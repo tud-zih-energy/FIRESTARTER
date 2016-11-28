@@ -25,9 +25,9 @@
 
 /* current version */
 #define VERSION_MAJOR  1
-#define VERSION_MINOR  4
+#define VERSION_MINOR  5
 #define VERSION_INFO   ""
-#define BUILDDATE      "2016-04-08"
+#define BUILDDATE      "2016-11-11"
 #define COPYRIGHT_YEAR 2016
 
 #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
@@ -84,7 +84,7 @@ typedef struct mydata
 {                                   
    struct threaddata *threaddata;           
    cpu_info_t *cpuinfo;
-   int *thread_comm; 
+   int *thread_comm;
    volatile unsigned int ack;   
    unsigned int num_threads;
 } mydata_t;
@@ -96,7 +96,12 @@ typedef struct threaddata
    char* bufferMem;                 
    unsigned long long addrMem;      
    unsigned long long addrHigh;             
-   unsigned long long buffersizeMem;     
+   unsigned long long buffersizeMem;
+   unsigned long long iterations;
+   unsigned long long flops;
+   unsigned long long bytes;
+   unsigned long long start_tsc;
+   unsigned long long stop_tsc;
    unsigned int alignment;      
    unsigned int cpu_id;
    unsigned int thread_id;

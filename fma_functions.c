@@ -23,11 +23,32 @@
 
 
 
-																																																																																																																																													int init_skl_corei_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_skl_corei_fma_1t(unsigned long long addrMem)
+
+																																																																																																																																													int init_skl_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_skl_corei_fma_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13340672;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=40*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=78*16; // 2 256 bit FMA operations
+
+        // lines with L2 operations
+        threaddata->flops+=18*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=5*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=3*16; // 2 256 bit FMA operations
+        threaddata->bytes=3*64;  // 1 memory access
+
+        threaddata->flops*=10;
+        threaddata->bytes*=10;
 
 	return EXIT_SUCCESS;
 }
@@ -39,10 +60,10 @@ int init_skl_corei_fma_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_skl_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_skl_corei_fma_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -57,12 +78,14 @@ int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -1538,6 +1561,7 @@ int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm11;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vfmadd231pd 64(%%rbx), %%ymm0, %%ymm10;		vfmadd231pd 96(%%rbx), %%ymm1, %%ymm12;	vmovapd %%ymm10, 32(%%rbx);	add $128, %%rbx;  "	// 2 L1 loads, L1 store
 		"vfmadd231pd 64(%%rbx), %%ymm0, %%ymm2;		vfmadd231pd 96(%%rbx), %%ymm1, %%ymm12;	vmovapd %%ymm2, 32(%%rbx);	add $128, %%rbx;  "	// 2 L1 loads, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_skl_corei_fma_1t;"
@@ -1545,6 +1569,7 @@ int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%r9;"
 		"add $1572864, %%r9;"
 		"_work_no_ram_reset_skl_corei_fma_1t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_skl_corei_fma_1t;"
@@ -1552,6 +1577,7 @@ int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rcx;"
 		"add $32768, %%rcx;"
 		"_work_no_L2_reset_skl_corei_fma_1t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_skl_corei_fma_1t;"
@@ -1560,23 +1586,44 @@ int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"add $262144, %%r8;"
 		"_work_no_L3_reset_skl_corei_fma_1t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_skl_corei_fma_1t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																													int init_skl_corei_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_skl_corei_fma_2t(unsigned long long addrMem)
+
+																																																																																																																																													int init_skl_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_skl_corei_fma_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<6670336;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=40*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=78*16; // 2 256 bit FMA operations
+
+        // lines with L2 operations
+        threaddata->flops+=18*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=5*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=3*16; // 2 256 bit FMA operations
+        threaddata->bytes=3*64;  // 1 memory access
+
+        threaddata->flops*=5;
+        threaddata->bytes*=5;
 
 	return EXIT_SUCCESS;
 }
@@ -1588,10 +1635,10 @@ int init_skl_corei_fma_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_skl_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_skl_corei_fma_2t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -1606,12 +1653,14 @@ int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -2367,6 +2416,7 @@ int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm12;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vfmadd231pd 64(%%rbx), %%ymm0, %%ymm10;		vfmadd231pd 96(%%rbx), %%ymm1, %%ymm13;	vmovapd %%ymm10, 32(%%rbx);	add $128, %%rbx;  "	// 2 L1 loads, L1 store
 		"vfmadd231pd 64(%%rbx), %%ymm0, %%ymm2;		vfmadd231pd 96(%%rbx), %%ymm1, %%ymm13;	vmovapd %%ymm2, 32(%%rbx);	add $128, %%rbx;  "	// 2 L1 loads, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_skl_corei_fma_2t;"
@@ -2374,6 +2424,7 @@ int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%r9;"
 		"add $786432, %%r9;"
 		"_work_no_ram_reset_skl_corei_fma_2t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_skl_corei_fma_2t;"
@@ -2381,6 +2432,7 @@ int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rcx;"
 		"add $16384, %%rcx;"
 		"_work_no_L2_reset_skl_corei_fma_2t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_skl_corei_fma_2t;"
@@ -2389,23 +2441,44 @@ int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"add $131072, %%r8;"
 		"_work_no_L3_reset_skl_corei_fma_2t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_skl_corei_fma_2t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																														int init_hsw_corei_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_corei_fma_1t(unsigned long long addrMem)
+
+																																																																																																																																														int init_hsw_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_corei_fma_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13340672;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=40*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=90*8;  // 1 256 bit FMA operation
+
+        // lines with L2 operations
+        threaddata->flops+=9*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=3*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*16; // 2 256 bit FMA operations
+        threaddata->bytes=2*64;  // 1 memory access
+
+        threaddata->flops*=10;
+        threaddata->bytes*=10;
 
 	return EXIT_SUCCESS;
 }
@@ -2417,10 +2490,10 @@ int init_hsw_corei_fma_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_hsw_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_corei_fma_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -2435,12 +2508,14 @@ int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -3916,6 +3991,7 @@ int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm11;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vmovapd %%xmm10, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm10;	shr $1, %%esi;	add %%r14, %%rbx;  "	// L1 load, L1 store
 		"vmovapd %%xmm2, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm2;	shr $1, %%edx;	add %%r14, %%rbx;  "	// L1 load, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_hsw_corei_fma_1t;"
@@ -3923,6 +3999,7 @@ int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%r9;"
 		"add $1572864, %%r9;"
 		"_work_no_ram_reset_hsw_corei_fma_1t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_hsw_corei_fma_1t;"
@@ -3930,6 +4007,7 @@ int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rcx;"
 		"add $32768, %%rcx;"
 		"_work_no_L2_reset_hsw_corei_fma_1t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_hsw_corei_fma_1t;"
@@ -3938,23 +4016,44 @@ int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long add
 		"add $262144, %%r8;"
 		"_work_no_L3_reset_hsw_corei_fma_1t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_hsw_corei_fma_1t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																														int init_hsw_corei_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_corei_fma_2t(unsigned long long addrMem)
+
+																																																																																																																																														int init_hsw_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_corei_fma_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<6670336;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=40*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=90*8;  // 1 256 bit FMA operation
+
+        // lines with L2 operations
+        threaddata->flops+=9*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=3*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*16; // 2 256 bit FMA operations
+        threaddata->bytes=2*64;  // 1 memory access
+
+        threaddata->flops*=5;
+        threaddata->bytes*=5;
 
 	return EXIT_SUCCESS;
 }
@@ -3966,10 +4065,10 @@ int init_hsw_corei_fma_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_hsw_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_corei_fma_2t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -3984,12 +4083,14 @@ int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -4745,6 +4846,7 @@ int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm12;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vmovapd %%xmm10, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm10;	shr $1, %%esi;	add %%r14, %%rbx;  "	// L1 load, L1 store
 		"vmovapd %%xmm2, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm2;	shr $1, %%edx;	add %%r14, %%rbx;  "	// L1 load, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_hsw_corei_fma_2t;"
@@ -4752,6 +4854,7 @@ int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%r9;"
 		"add $786432, %%r9;"
 		"_work_no_ram_reset_hsw_corei_fma_2t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_hsw_corei_fma_2t;"
@@ -4759,6 +4862,7 @@ int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rcx;"
 		"add $16384, %%rcx;"
 		"_work_no_L2_reset_hsw_corei_fma_2t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_hsw_corei_fma_2t;"
@@ -4767,23 +4871,44 @@ int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long add
 		"add $131072, %%r8;"
 		"_work_no_L3_reset_hsw_corei_fma_2t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_hsw_corei_fma_2t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																												int init_hsw_xeonep_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_xeonep_fma_1t(unsigned long long addrMem)
+
+																																																																																																																												int init_hsw_xeonep_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_xeonep_fma_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13471744;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=35*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=79*8;  // 1 256 bit FMA operation
+
+        // lines with L2 operations
+        threaddata->flops+=9*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=1*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*16; // 2 256 bit FMA operations
+        threaddata->bytes=2*64;  // 1 memory access
+
+        threaddata->flops*=12;
+        threaddata->bytes*=12;
 
 	return EXIT_SUCCESS;
 }
@@ -4795,10 +4920,10 @@ int init_hsw_xeonep_fma_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_hsw_xeonep_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_xeonep_fma_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -4813,12 +4938,14 @@ int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long ad
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -6366,6 +6493,7 @@ int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long ad
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm13;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vmovapd %%xmm10, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm10;	shr $1, %%esi;	add %%r14, %%rbx;  "	// L1 load, L1 store
 		"vmovapd %%xmm2, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm2;	shr $1, %%edx;	add %%r14, %%rbx;  "	// L1 load, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_hsw_xeonep_fma_1t;"
@@ -6373,6 +6501,7 @@ int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%r9;"
 		"add $2621440, %%r9;"
 		"_work_no_ram_reset_hsw_xeonep_fma_1t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_hsw_xeonep_fma_1t;"
@@ -6380,6 +6509,7 @@ int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rcx;"
 		"add $32768, %%rcx;"
 		"_work_no_L2_reset_hsw_xeonep_fma_1t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_hsw_xeonep_fma_1t;"
@@ -6388,23 +6518,44 @@ int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long ad
 		"add $262144, %%r8;"
 		"_work_no_L3_reset_hsw_xeonep_fma_1t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_hsw_xeonep_fma_1t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																												int init_hsw_xeonep_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_xeonep_fma_2t(unsigned long long addrMem)
+
+																																																																																																																												int init_hsw_xeonep_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_xeonep_fma_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<6735872;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=35*16; // 2 256 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=79*8;  // 1 256 bit FMA operation
+
+        // lines with L2 operations
+        threaddata->flops+=9*8;  // 1 256 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=1*8;  // 1 256 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*16; // 2 256 bit FMA operations
+        threaddata->bytes=2*64;  // 1 memory access
+
+        threaddata->flops*=6;
+        threaddata->bytes*=6;
 
 	return EXIT_SUCCESS;
 }
@@ -6416,10 +6567,10 @@ int init_hsw_xeonep_fma_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_hsw_xeonep_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_xeonep_fma_2t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -6434,12 +6585,14 @@ int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long ad
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,ymm*:	data registers for SIMD instructions
+		 *   - xmm*,ymm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -7231,6 +7384,7 @@ int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long ad
 		"vfmadd231pd %%ymm10, %%ymm0, %%ymm9;		vfmadd231pd %%ymm2, %%ymm1, %%ymm13;	shr $1, %%edi;	xor %%rdx, %%r13;  "	// REG ops only
 		"vmovapd %%xmm10, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm10;	shr $1, %%esi;	add %%r14, %%rbx;  "	// L1 load, L1 store
 		"vmovapd %%xmm2, 64(%%rbx);			vfmadd231pd 32(%%rbx), %%ymm0, %%ymm2;	shr $1, %%edx;	add %%r14, %%rbx;  "	// L1 load, L1 store
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_hsw_xeonep_fma_2t;"
@@ -7238,6 +7392,7 @@ int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%r9;"
 		"add $1310720, %%r9;"
 		"_work_no_ram_reset_hsw_xeonep_fma_2t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_hsw_xeonep_fma_2t;"
@@ -7245,6 +7400,7 @@ int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rcx;"
 		"add $16384, %%rcx;"
 		"_work_no_L2_reset_hsw_xeonep_fma_2t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_hsw_xeonep_fma_2t;"
@@ -7253,12 +7409,12 @@ int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long ad
 		"add $131072, %%r8;"
 		"_work_no_L3_reset_hsw_xeonep_fma_2t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_hsw_xeonep_fma_2t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }

@@ -23,11 +23,32 @@
 
 
 
-																																																																																																																																													int init_bld_opteron_fma4_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_bld_opteron_fma4_1t(unsigned long long addrMem)
+
+																																																																																																																																													int init_bld_opteron_fma4_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_bld_opteron_fma4_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13338624;i++) *((double*)(addrMem+8*i)) = 0.25 + (double)(i%9267) * 0.24738995982e-4;
+
+        // lines with register operations
+        threaddata->flops+=45*8; // 2 128 bit FMA operations
+
+        // lines with L1 operations
+        threaddata->flops+=90*12; // 1 128 and 1 256 bit FMA operation
+
+        // lines with L2 operations
+        threaddata->flops+=5*4; // 1 128 bit FMA operation
+
+        // lines with L3 operations
+        threaddata->flops+=1*4; // 1 128 bit FMA operation
+
+        // lines with RAM operations
+        threaddata->flops+=1*8; // 2 128 bit FMA operations
+        threaddata->bytes=1*64;  // 1 memory access
+
+        threaddata->flops*=10;
+        threaddata->bytes*=10;
 
 	return EXIT_SUCCESS;
 }
@@ -39,10 +60,10 @@ int init_bld_opteron_fma4_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_bld_opteron_fma4_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_bld_opteron_fma4_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -57,12 +78,14 @@ int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long 
 		 *   - r13:		register for temporary results
 		 *   - r14:		stores cacheline width as increment for buffer addresses
 		 *   - r15:		stores address of shared variable that controls load level
+                 *   - mm0:		stores iteration counter
 		 *   - rdx, rsi, rdi:	registers for shift operations
-		 *   - mm*,xmm*,xmm*:	data registers for SIMD instructions
+		 *   - xmm*,xmm*:	data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r15;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r15;" 	// store address of shared variable that controls load level
+                "movq %%rcx, %%mm0;"	// store iteration counter
 		"mov $64, %%r14;"	// increment after each cache/memory access
 		//Initialize registers for shift operations
 		"mov $0xAAAAAAAA, %%edi;"
@@ -1518,6 +1541,7 @@ int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long 
 		"vfmaddpd %%xmm8, %%xmm0, %%xmm7, %%xmm7;		vfmaddpd %%xmm9, %%xmm1, %%xmm13, %%xmm13;	shl $1, %%esi;	xor %%rdi, %%r13;  "	// REG ops only
 		"vfmaddpd %%xmm9, %%xmm0, %%xmm8, %%xmm8;		vfmaddpd 32(%%rbx), %%ymm1, %%ymm8, %%ymm8;	shl $1, %%edx;	add %%r14, %%rbx;  "	// L1 load
 		"vfmaddpd %%xmm10, %%xmm0, %%xmm9, %%xmm9;		vfmaddpd 32(%%rbx), %%ymm1, %%ymm9, %%ymm9;	shr $1, %%edi;	add %%r14, %%rbx;  "	// L1 load
+                "movq %%mm0, %%r13;" // restore iteration counter
 		//reset RAM counter
 		"sub $1, %%r12;"
 		"jnz _work_no_ram_reset_bld_opteron_fma4_1t;"
@@ -1525,6 +1549,7 @@ int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long 
 		"mov %%rax, %%r9;"
 		"add $786432, %%r9;"
 		"_work_no_ram_reset_bld_opteron_fma4_1t:"
+                "inc %%r13;" // increment iteration counter
 		//reset L2-Cache counter
 		"sub $1, %%r10;"
 		"jnz _work_no_L2_reset_bld_opteron_fma4_1t;"
@@ -1532,6 +1557,7 @@ int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long 
 		"mov %%rax, %%rcx;"
 		"add $16384, %%rcx;"
 		"_work_no_L2_reset_bld_opteron_fma4_1t:"
+                "movq %%r13, %%mm0;" // store iteration counter
 		//reset L3-Cache counter
 		"sub $1, %%r11;"
 		"jnz _work_no_L3_reset_bld_opteron_fma4_1t;"
@@ -1540,12 +1566,12 @@ int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long 
 		"add $1048576, %%r8;"
 		"_work_no_L3_reset_bld_opteron_fma4_1t:"
 		"mov %%rax, %%rbx;"
-		"mov (%%r15), %%r13;"
-		"test $1, %%r13;"
+                "testq $1, (%%r15);"
 		"jnz _work_loop_bld_opteron_fma4_1t;"
-                :
-		: "a"(addrMem), "b"(addrHigh) 
-                : "%rcx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%mm0, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rdx", "%rsi", "%rdi", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }

@@ -19,6 +19,10 @@
 # Contact: daniel.hackenberg@tu-dresden.de
 ###############################################################################
 
+Version 1.5
+ - added Knights Landing support (AVX512F)
+ - added error handling for restricted cpu sets for --bind and --threads options
+
 Version 1.4
  - added support for Skylake-H (FMA)
  - added support for Broadwell-E/EP (FMA)

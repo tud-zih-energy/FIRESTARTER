@@ -50,10 +50,13 @@
 /* use old memcpy to avoid GLIBC 2.14 dependency */
 __asm__(".symver memcpy, memcpy@GLIBC_2.2.5");
 
-        /* buffer for some generic implementations */
+/* buffer for some generic implementations */
 // TODO remove global variables to allow thread safe execution of detection
 static char output[_HW_DETECT_MAX_OUTPUT];
 static char path[_HW_DETECT_MAX_OUTPUT];
+
+/* avoid multiple executions of the corresponding functions */
+static int num_packages_sav = 0, num_cores_per_package_sav = 0, num_threads_per_core_sav = 0, num_threads_per_package_sav = 0;
 
 /**
  * list element for counting unique package_ids, core_ids etc.
@@ -309,28 +312,22 @@ void generic_get_architecture(char* arch)
  */
 int get_pkg(int cpu)
 {
-    int pkg=0;
-    char buffer[_HW_DETECT_MAX_OUTPUT];
-
-    if ((num_cpus() == 1) || (num_packages() == 1)) { return 0; }
+    int pkg=-1;
+    char buffer[10];
 
     if (cpu == -1) { cpu = get_cpu(); }
     if (cpu != -1)
     {
-
         sprintf(path, "/sys/devices/system/cpu/cpu%i/topology/physical_package_id", cpu);
+        if( read_file(path, buffer, sizeof(buffer)) ) pkg = atoi(buffer);
 
-        if( !read_file(path, buffer, sizeof(buffer)) ) {
-            pkg = -1;
-        }
-        else {
-            pkg = atoi(buffer);
-        }
-
+        /* fallbacks if sysfs is not working */
         if (pkg == -1)
         {
+            /* assume 0 if there is only one CPU or only one package */
+            if ((num_cpus() == 1) || (num_packages() == 1)) { return 0; }
             /* get the physical package id from /proc/cpuinfo */
-            if(!get_proc_cpuinfo_data("physical id", buffer, cpu)) { pkg = atoi(buffer); }
+            else if(!get_proc_cpuinfo_data("physical id", buffer, cpu)) { pkg = atoi(buffer); }
             /* if the number of cpus equals the number of packages assume pkg_id = cpu_id*/
             else if (num_cpus() == num_packages()) { pkg = cpu; }
             /* if there is only one core per package assume pkg_id = core_id */
@@ -342,6 +339,7 @@ int get_pkg(int cpu)
             without correct topology information in sysfs*/
         }
     }
+
     return pkg;
 }
 
@@ -353,28 +351,25 @@ int get_core_id(int cpu)
     int core=-1;
     char buffer[10];
 
-    if (num_cpus() == 1) { return 0; }
-
     if (cpu == -1) { cpu = get_cpu(); }
     if (cpu != -1)
     {
         sprintf(path, "/sys/devices/system/cpu/cpu%i/topology/core_id", cpu);
+        if(read_file(path, buffer, sizeof(buffer))) core = atoi(buffer);
 
-        if(!read_file(path, buffer, sizeof(buffer))) {
-            core = -1;
-        }
-        else {
-            core = atoi(buffer);
+        /* fallbacks if sysfs is not working */
+        if (core == -1)
+        {
+            /* assume 0 if there is only one CPU */
+            if (num_cpus() == 1) { return 0; }
+            /* if each package contains only one cpu assume core_id = package_id = cpu_id */
+            else if (num_cores_per_package() == 1) { core = 0; }
+
+            /* NOTE core_id can't be determined without correct topology information in sysfs if there are multiple cores per package
+               TODO /proc/cpuinfo */
         }
     }
-    if (core == -1)
-    {
-        /* if each package contains only one cpu assume core_id = package_id = cpu_id */
-        if (num_cores_per_package() == 1) { core = 0; }
 
-        /* NOTE core_id can't be determined without correct topology information in sysfs if there are multiple cores per package
-           TODO /proc/cpuinfo */
-    }
     return core;
 }
 
@@ -464,7 +459,7 @@ void init_cpuinfo(cpu_info_t *cpuinfo,int print)
     cpuinfo->clockrate              = get_cpu_clockrate(1, 0);
 
     /* setup supported feature list*/
-    if(!strcmp(cpuinfo->architecture,"x86_64")) cpuinfo->features   |=X86_64;
+    if(!strcmp(cpuinfo->architecture,"x86_64")) cpuinfo->features   |= X86_64;
     if (feature_available("SMT")) cpuinfo->features                 |= SMT;
     if (feature_available("FPU")) cpuinfo->features                 |= FPU;
     if (feature_available("MMX")) cpuinfo->features                 |= MMX;
@@ -479,8 +474,10 @@ void init_cpuinfo(cpu_info_t *cpuinfo,int print)
     if (feature_available("ABM")) cpuinfo->features                 |= ABM;
     if (feature_available("POPCNT")) cpuinfo->features              |= POPCNT;
     if (feature_available("AVX")) cpuinfo->features                 |= AVX;
+    if (feature_available("AVX2")) cpuinfo->features                |= AVX2;
     if (feature_available("FMA")) cpuinfo->features                 |= FMA;
     if (feature_available("AES")) cpuinfo->features                 |= AES;
+    if (feature_available("AVX512")) cpuinfo->features              |= AVX512;
 
     /* determine cache details */
     for (i=0; i<(unsigned int)num_caches(0); i++)
@@ -543,6 +540,8 @@ void init_cpuinfo(cpu_info_t *cpuinfo,int print)
         if(cpuinfo->features&SSE4A)     printf(" SSE4A");
         if(cpuinfo->features&POPCNT)    printf(" POPCNT");
         if(cpuinfo->features&AVX)       printf(" AVX");
+        if(cpuinfo->features&AVX2)      printf(" AVX2");
+        if(cpuinfo->features&AVX512)    printf(" AVX512");
         if(cpuinfo->features&FMA)       printf(" FMA");
         if(cpuinfo->features&AES)       printf(" AES");
         if(cpuinfo->features&SMT)       printf(" SMT");
@@ -1020,11 +1019,13 @@ int generic_cacheline_length(int cpu, int id) {
 int generic_num_packages()
 {
     struct dirent **namelist;
-    int ndir, m, num = -1;
+    int ndir, m;
     char tmppath[_HW_DETECT_MAX_OUTPUT];
     char buf[20];
     id_le * pkg_id_list = NULL;
 
+    if (num_packages_sav != 0) return num_packages_sav;
+    num_packages_sav = -1;
 
     strcpy(path, "/sys/devices/system/cpu/");
     ndir = scandir(path, &namelist, 0, 0);
@@ -1049,19 +1050,22 @@ int generic_num_packages()
             free(namelist[ndir]);
         }
         free(namelist);
-        num = id_total_count(pkg_id_list);
+        num_packages_sav = id_total_count(pkg_id_list);
         free_id_list(&pkg_id_list);
     }
-    return num;
+    return num_packages_sav;
 }
 
 int generic_num_cores_per_package()
 {
     struct dirent **namelist;
-    int ndir, m, n, num = 0, pkg_id_tocount = -1;
+    int ndir, m, n, pkg_id_tocount = -1;
     char tmppath[_HW_DETECT_MAX_OUTPUT];
     char buf[20];
     id_le *core_id_list = NULL;
+
+    if (num_cores_per_package_sav != 0) return num_cores_per_package_sav;
+    num_cores_per_package_sav=-1;
 
     strcpy(path, "/sys/devices/system/cpu/");
     ndir = scandir(path, &namelist, 0, 0);
@@ -1099,21 +1103,24 @@ int generic_num_cores_per_package()
             free(namelist[ndir]);
         }
         free(namelist);
-        num = id_total_count(core_id_list);
+        num_cores_per_package_sav = id_total_count(core_id_list);
         free_id_list(&core_id_list);
     }
-    else return -1;
+    else num_cores_per_package_sav = -1;
 
-    if (num==0) return -1;
-    return num;
+    if (num_cores_per_package_sav == 0) num_cores_per_package_sav = -1;
+
+    return num_cores_per_package_sav;
 }
 
 int generic_num_threads_per_core()
 {
     struct dirent **namelist;
-    int ndir, m, n, num = 0, pkg_id_tocount = -1, core_id_tocount = -1;
+    int ndir, m, n, pkg_id_tocount = -1, core_id_tocount = -1;
     char tmppath[_HW_DETECT_MAX_OUTPUT];
     char buf[20];
+
+    if (num_threads_per_core_sav != 0) return num_threads_per_core_sav;
 
     strcpy(path, "/sys/devices/system/cpu/");
     ndir = scandir(path, &namelist, 0, 0);
@@ -1144,7 +1151,7 @@ int generic_num_threads_per_core()
 
                     if(m == core_id_tocount && n == pkg_id_tocount) /*FIXME: only counts threads from the first core_id and package_id that are found, assumes that every core has the same amount of threads*/
                     {
-                        num++;
+                        num_threads_per_core_sav++;
                     }
                 }
             }
@@ -1152,23 +1159,23 @@ int generic_num_threads_per_core()
         }
         free(namelist);
     }
-    else return -1;
+    else num_threads_per_core_sav = -1;
 
-    if (num == 0) num = generic_num_threads_per_package() / generic_num_cores_per_package();
-    if (num != generic_num_threads_per_package() / generic_num_cores_per_package()) return -1;
+    if (num_threads_per_core_sav == 0) num_threads_per_core_sav = generic_num_threads_per_package() / generic_num_cores_per_package();
+    if (num_threads_per_core_sav != generic_num_threads_per_package() / generic_num_cores_per_package()) num_threads_per_core_sav = -1;
 
-    return num;
+    return num_threads_per_core_sav;
 }
 
 int generic_num_threads_per_package()
 {
 
     struct dirent **namelist;
-    int ndir, m, num = 0, pkg_id_tocount = -1;
+    int ndir, m, pkg_id_tocount = -1;
     char tmppath[_HW_DETECT_MAX_OUTPUT];
     char buf[20];
 
-    /*TODO proc/cpuinfo*/
+    if (num_threads_per_package_sav != 0) return num_threads_per_package_sav;
 
     strcpy(path, "/sys/devices/system/cpu/");
     ndir = scandir(path, &namelist, 0, 0);
@@ -1192,7 +1199,7 @@ int generic_num_threads_per_package()
 
                     if(m == pkg_id_tocount) /*FIXME: only counts threads from first package_id that is found and assumes that every package has the same amount of threads*/
                     {
-                        num++;
+                        num_threads_per_package_sav++;
                     }
                 }
             }
@@ -1200,20 +1207,21 @@ int generic_num_threads_per_package()
         }
         free(namelist);
     }
-    else return -1;
+    else num_threads_per_package_sav = -1;
 
-    if (num == 0) return -1;
-    return num;
+    if (num_threads_per_package_sav == 0) num_threads_per_package_sav = -1;
+
+    return num_threads_per_package_sav;
 }
 
 /* see cpu.h */
 #if defined (__ARCH_UNKNOWN)
 
-    /*
-     * use generic implementations for unknown architectures
-     */
+/*
+ * use generic implementations for unknown architectures
+ */
 
-    void get_architecture(char * arch) {
+void get_architecture(char * arch) {
     generic_get_architecture(arch);
 }
 

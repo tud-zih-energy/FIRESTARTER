@@ -25,21 +25,22 @@
 #include "firestarter_global.h"
 #include <mm_malloc.h>
 
-#define FUNC_SKL_COREI_FMA_1T	1
-#define FUNC_SKL_COREI_FMA_2T	2
-#define FUNC_HSW_COREI_FMA_1T	3
-#define FUNC_HSW_COREI_FMA_2T	4
-#define FUNC_HSW_XEONEP_FMA_1T	5
-#define FUNC_HSW_XEONEP_FMA_2T	6
-#define FUNC_SNB_COREI_AVX_1T	7
-#define FUNC_SNB_COREI_AVX_2T	8
-#define FUNC_SNB_XEONEP_AVX_1T	9
-#define FUNC_SNB_XEONEP_AVX_2T	10
-#define FUNC_NHM_COREI_SSE2_1T	11
-#define FUNC_NHM_COREI_SSE2_2T	12
-#define FUNC_NHM_XEONEP_SSE2_1T	13
-#define FUNC_NHM_XEONEP_SSE2_2T	14
-#define FUNC_BLD_OPTERON_FMA4_1T	15
+#define FUNC_KNL_XEONPHI_AVX512_4T	1
+#define FUNC_SKL_COREI_FMA_1T	2
+#define FUNC_SKL_COREI_FMA_2T	3
+#define FUNC_HSW_COREI_FMA_1T	4
+#define FUNC_HSW_COREI_FMA_2T	5
+#define FUNC_HSW_XEONEP_FMA_1T	6
+#define FUNC_HSW_XEONEP_FMA_2T	7
+#define FUNC_SNB_COREI_AVX_1T	8
+#define FUNC_SNB_COREI_AVX_2T	9
+#define FUNC_SNB_XEONEP_AVX_1T	10
+#define FUNC_SNB_XEONEP_AVX_2T	11
+#define FUNC_NHM_COREI_SSE2_1T	12
+#define FUNC_NHM_COREI_SSE2_2T	13
+#define FUNC_NHM_XEONEP_SSE2_1T	14
+#define FUNC_NHM_XEONEP_SSE2_2T	15
+#define FUNC_BLD_OPTERON_FMA4_1T	16
 
 
 /*
@@ -55,99 +56,105 @@ extern void *thread(void *threaddata);
 /*
  * init functions
  */
-int init_skl_corei_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_skl_corei_fma_1t(unsigned long long addrMem);
+int init_knl_xeonphi_avx512_4t(threaddata_t* threaddata) __attribute__((noinline));
+int init_knl_xeonphi_avx512_4t(threaddata_t* threaddata);
 
-int init_skl_corei_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_skl_corei_fma_2t(unsigned long long addrMem);
+int init_skl_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_skl_corei_fma_1t(threaddata_t* threaddata);
 
-int init_hsw_corei_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_corei_fma_1t(unsigned long long addrMem);
+int init_skl_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_skl_corei_fma_2t(threaddata_t* threaddata);
 
-int init_hsw_corei_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_corei_fma_2t(unsigned long long addrMem);
+int init_hsw_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_corei_fma_1t(threaddata_t* threaddata);
 
-int init_hsw_xeonep_fma_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_xeonep_fma_1t(unsigned long long addrMem);
+int init_hsw_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_corei_fma_2t(threaddata_t* threaddata);
 
-int init_hsw_xeonep_fma_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_hsw_xeonep_fma_2t(unsigned long long addrMem);
+int init_hsw_xeonep_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_xeonep_fma_1t(threaddata_t* threaddata);
 
-int init_snb_corei_avx_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_corei_avx_1t(unsigned long long addrMem);
+int init_hsw_xeonep_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_hsw_xeonep_fma_2t(threaddata_t* threaddata);
 
-int init_snb_corei_avx_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_corei_avx_2t(unsigned long long addrMem);
+int init_snb_corei_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_corei_avx_1t(threaddata_t* threaddata);
 
-int init_snb_xeonep_avx_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_xeonep_avx_1t(unsigned long long addrMem);
+int init_snb_corei_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_corei_avx_2t(threaddata_t* threaddata);
 
-int init_snb_xeonep_avx_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_xeonep_avx_2t(unsigned long long addrMem);
+int init_snb_xeonep_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_xeonep_avx_1t(threaddata_t* threaddata);
 
-int init_nhm_corei_sse2_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_corei_sse2_1t(unsigned long long addrMem);
+int init_snb_xeonep_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_xeonep_avx_2t(threaddata_t* threaddata);
 
-int init_nhm_corei_sse2_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_corei_sse2_2t(unsigned long long addrMem);
+int init_nhm_corei_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_corei_sse2_1t(threaddata_t* threaddata);
 
-int init_nhm_xeonep_sse2_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_xeonep_sse2_1t(unsigned long long addrMem);
+int init_nhm_corei_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_corei_sse2_2t(threaddata_t* threaddata);
 
-int init_nhm_xeonep_sse2_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_xeonep_sse2_2t(unsigned long long addrMem);
+int init_nhm_xeonep_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_xeonep_sse2_1t(threaddata_t* threaddata);
 
-int init_bld_opteron_fma4_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_bld_opteron_fma4_1t(unsigned long long addrMem);
+int init_nhm_xeonep_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_xeonep_sse2_2t(threaddata_t* threaddata);
+
+int init_bld_opteron_fma4_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_bld_opteron_fma4_1t(threaddata_t* threaddata);
 
 
 /*
  * stress test functions
  */
-int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_skl_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_knl_xeonphi_avx512_4t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_knl_xeonphi_avx512_4t(threaddata_t* threaddata);
 
-int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_skl_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_skl_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_skl_corei_fma_1t(threaddata_t* threaddata);
 
-int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_corei_fma_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_skl_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_skl_corei_fma_2t(threaddata_t* threaddata);
 
-int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_corei_fma_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_hsw_corei_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_corei_fma_1t(threaddata_t* threaddata);
 
-int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_xeonep_fma_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_hsw_corei_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_corei_fma_2t(threaddata_t* threaddata);
 
-int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_hsw_xeonep_fma_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_hsw_xeonep_fma_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_xeonep_fma_1t(threaddata_t* threaddata);
 
-int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_hsw_xeonep_fma_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_hsw_xeonep_fma_2t(threaddata_t* threaddata);
 
-int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_snb_corei_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_corei_avx_1t(threaddata_t* threaddata);
 
-int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_snb_corei_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_corei_avx_2t(threaddata_t* threaddata);
 
-int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_snb_xeonep_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_xeonep_avx_1t(threaddata_t* threaddata);
 
-int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_snb_xeonep_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_xeonep_avx_2t(threaddata_t* threaddata);
 
-int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_nhm_corei_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_corei_sse2_1t(threaddata_t* threaddata);
 
-int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_nhm_corei_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_corei_sse2_2t(threaddata_t* threaddata);
 
-int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_nhm_xeonep_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_xeonep_sse2_1t(threaddata_t* threaddata);
 
-int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_bld_opteron_fma4_1t(unsigned long long addrMem, unsigned long long addrHigh);
+int asm_work_nhm_xeonep_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_xeonep_sse2_2t(threaddata_t* threaddata);
+
+int asm_work_bld_opteron_fma4_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_bld_opteron_fma4_1t(threaddata_t* threaddata);
 
 
 /*

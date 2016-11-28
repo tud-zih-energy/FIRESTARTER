@@ -23,11 +23,32 @@
 
 
 
-																																																																																																																																																					int init_snb_corei_avx_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_corei_avx_1t(unsigned long long addrMem)
+
+																																																																																																																																																					int init_snb_corei_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_corei_avx_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13340672;i++) *((double*)(addrMem+8*i)) = i* 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=45*4; // 1 256 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=90*4; // 1 256 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=10*4; // 1 256 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=4*4; // 1 256 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*4; // 1 256 bit operation
+        threaddata->bytes=2*64; // 1 memory access
+
+        threaddata->flops*=10;
+        threaddata->bytes*=10;
 
 	return EXIT_SUCCESS;
 }
@@ -39,11 +60,11 @@ int init_snb_corei_avx_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_snb_corei_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_corei_avx_1t(threaddata_t* threaddata)
 {
 	
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -58,11 +79,13 @@ int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long add
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*,ymm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize AVX-Registers for Addition
 		"vmovapd 0(%%rax), %%ymm0;"
@@ -1654,25 +1677,47 @@ int asm_work_snb_corei_avx_1t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rdx;"
 		"add $262144, %%rdx;"
 		"_work_no_L3_reset_snb_corei_avx_1t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
 		"mfence;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_snb_corei_avx_1t;"
-                :
-		: "r"(addrMem), "r"(addrHigh)  
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																																					int init_snb_corei_avx_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_corei_avx_2t(unsigned long long addrMem)
+
+																																																																																																																																																					int init_snb_corei_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_corei_avx_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<6670336;i++) *((double*)(addrMem+8*i)) = i* 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=45*4; // 1 256 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=90*4; // 1 256 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=10*4; // 1 256 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=4*4; // 1 256 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=2*4; // 1 256 bit operation
+        threaddata->bytes=2*64; // 1 memory access
+
+        threaddata->flops*=5;
+        threaddata->bytes*=5;
 
 	return EXIT_SUCCESS;
 }
@@ -1684,11 +1729,11 @@ int init_snb_corei_avx_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_snb_corei_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_corei_avx_2t(threaddata_t* threaddata)
 {
 	
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -1703,11 +1748,13 @@ int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long add
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*,ymm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize AVX-Registers for Addition
 		"vmovapd 0(%%rax), %%ymm0;"
@@ -2544,25 +2591,47 @@ int asm_work_snb_corei_avx_2t(unsigned long long addrMem, unsigned long long add
 		"mov %%rax, %%rdx;"
 		"add $131072, %%rdx;"
 		"_work_no_L3_reset_snb_corei_avx_2t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
 		"mfence;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_snb_corei_avx_2t;"
-                :
-		: "r"(addrMem), "r"(addrHigh)  
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																				int init_snb_xeonep_avx_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_xeonep_avx_1t(unsigned long long addrMem)
+
+																																																																																																																																				int init_snb_xeonep_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_xeonep_avx_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<13471744;i++) *((double*)(addrMem+8*i)) = i* 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=30*4; // 1 256 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=90*4; // 1 256 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=10*4; // 1 256 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=2*4; // 1 256 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=3*4; // 1 256 bit operation
+        threaddata->bytes=3*64; // 1 memory access
+
+        threaddata->flops*=11;
+        threaddata->bytes*=11;
 
 	return EXIT_SUCCESS;
 }
@@ -2574,11 +2643,11 @@ int init_snb_xeonep_avx_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_snb_xeonep_avx_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_xeonep_avx_1t(threaddata_t* threaddata)
 {
 	
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -2593,11 +2662,13 @@ int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long ad
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*,ymm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize AVX-Registers for Addition
 		"vmovapd 0(%%rax), %%ymm0;"
@@ -4164,25 +4235,47 @@ int asm_work_snb_xeonep_avx_1t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rdx;"
 		"add $262144, %%rdx;"
 		"_work_no_L3_reset_snb_xeonep_avx_1t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
 		"mfence;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_snb_xeonep_avx_1t;"
-                :
-		: "r"(addrMem), "r"(addrHigh)  
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																																																																																				int init_snb_xeonep_avx_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_snb_xeonep_avx_2t(unsigned long long addrMem)
+
+																																																																																																																																				int init_snb_xeonep_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_snb_xeonep_avx_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i=0;i<6735872;i++) *((double*)(addrMem+8*i)) = i* 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=30*4; // 1 256 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=90*4; // 1 256 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=10*4; // 1 256 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=2*4; // 1 256 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=3*4; // 1 256 bit operation
+        threaddata->bytes=3*64; // 1 memory access
+
+        threaddata->flops*=5;
+        threaddata->bytes*=5;
 
 	return EXIT_SUCCESS;
 }
@@ -4194,11 +4287,11 @@ int init_snb_xeonep_avx_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_snb_xeonep_avx_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_snb_xeonep_avx_2t(threaddata_t* threaddata)
 {
 	
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -4213,11 +4306,13 @@ int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long ad
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*,ymm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize AVX-Registers for Addition
 		"vmovapd 0(%%rax), %%ymm0;"
@@ -4974,14 +5069,15 @@ int asm_work_snb_xeonep_avx_2t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rdx;"
 		"add $131072, %%rdx;"
 		"_work_no_L3_reset_snb_xeonep_avx_2t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
 		"mfence;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_snb_xeonep_avx_2t;"
-                :
-		: "r"(addrMem), "r"(addrHigh)  
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }

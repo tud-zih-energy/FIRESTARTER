@@ -42,8 +42,10 @@ void show_help(void)
            " -c         | --copyright        display copyright information\n"
            " -w         | --warranty         display warranty information\n"
            " -q         | --quiet            disable output to stdout\n"
+           " -r         | --report           display additional information (overridden by -q)\n"
            " -a         | --avail            list available functions\n"
-           " -i ID      | --function=ID      specify ID of the load-function to be used\n"
+           " -i ID      | --function=ID      specify integer ID of the load-function to be\n"
+           "                                 used (as listed by --avail)\n"
 #ifdef CUDA
 	   " -f         | --usegpufloat      use single precision matrix multiplications instead of double\n"
 	   " -g         | --gpus             number of gpus to use (default: all)\n"
@@ -61,10 +63,13 @@ void show_help(void)
            "                                 high load is defined by -l\n"
            "                                 will be overwriten if used with -s, -e and -n\n"
            " -n COUNT   | --threads=COUNT    specify the number of threads\n"
+           "                                 cannot be combined with -b | --bind, which\n"
+           "                                 implicitly specifies the number of threads\n"
 #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
-           " -b CPULIST | --bind=CPULIST     select certain CPUs (overrides -n)\n"
+           " -b CPULIST | --bind=CPULIST     select certain CPUs\n"
            "                                 CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\",\n"
            "                                 and any combination of the above\n"
+           "                                 cannot be combined with -n | --threads\n"
 #endif
            "\n"
            "\nExamples:\n\n"

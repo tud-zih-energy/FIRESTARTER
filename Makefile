@@ -44,11 +44,11 @@ cuda: FIRESTARTER_CUDA
 
 all: linux cuda
 
-FIRESTARTER: generic.o x86.o main.o work.o x86.o watchdog.o help.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o 
-	${LINUX_CC} -o FIRESTARTER  generic.o  main.o  work.o x86.o watchdog.o help.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o  ${LINUX_L_FLAGS}
+FIRESTARTER: generic.o x86.o main.o work.o x86.o watchdog.o help.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o avx512_functions.o 
+	${LINUX_CC} -o FIRESTARTER  generic.o  main.o  work.o x86.o watchdog.o help.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o avx512_functions.o  ${LINUX_L_FLAGS}
 
-FIRESTARTER_CUDA: generic.o  x86.o work.o x86.o watchdog.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o  gpu.o main_cuda.o help_cuda.o
-	${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o work.o x86.o watchdog.o help_cuda.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o  gpu.o ${LINUX_CUDA_L_FLAGS}
+FIRESTARTER_CUDA: generic.o  x86.o work.o x86.o watchdog.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o avx512_functions.o  gpu.o main_cuda.o help_cuda.o
+	${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o work.o x86.o watchdog.o help_cuda.o sse2_functions.o avx_functions.o fma_functions.o fma4_functions.o avx512_functions.o  gpu.o ${LINUX_CUDA_L_FLAGS}
 
 generic.o: generic.c cpu.h
 	${LINUX_CC} ${OPT} ${LINUX_C_FLAGS} -c generic.c
@@ -76,6 +76,9 @@ main_cuda.o: main.c work.h cpu.h
 
 help_cuda.o: help.c help.h 
 	${LINUX_CC} ${OPT} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
+
+avx512_functions.o: avx512_functions.c
+	${LINUX_CC} ${OPT} ${LINUX_C_FLAGS} -mavx512f  -c avx512_functions.c
 
 fma4_functions.o: fma4_functions.c
 	${LINUX_CC} ${OPT} ${LINUX_C_FLAGS} -mfma4 -mavx  -c fma4_functions.c

@@ -81,6 +81,7 @@
 #define FMA4         0x00010000
 #define FMA          0x00020000
 #define AES          0x00040000
+#define AVX512       0x00080000
 
 #define MAX_CACHELEVELS 3
 

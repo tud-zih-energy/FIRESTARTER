@@ -23,11 +23,32 @@
 
 
 
-																																																																								int init_nhm_corei_sse2_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_corei_sse2_1t(unsigned long long addrMem)
+
+																																																																								int init_nhm_corei_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_corei_sse2_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i = 0; i<13340672; i++) *((double*)(addrMem + 8*i)) = i * 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=2*2; // 1 128 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=70*2; // 1 128 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=1*2; // 1 128 bit operation
+        threaddata->bytes=1*64; // 1 memory access
+
+        threaddata->flops*=21;
+        threaddata->bytes*=21;
 
 	return EXIT_SUCCESS;
 }
@@ -39,10 +60,10 @@ int init_nhm_corei_sse2_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_nhm_corei_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_corei_sse2_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -57,11 +78,13 @@ int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long ad
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize SSE-Registers for Addition
 		"movapd 0(%%rax), %%xmm0;"
@@ -1640,24 +1663,46 @@ int asm_work_nhm_corei_sse2_1t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rdi;"
 		"add $1572864, %%rdi;"
 		"_work_no_ram_reset_nhm_corei_sse2_1t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_nhm_corei_sse2_1t;"
-                :
-		: "r"(addrMem), "r"(addrHigh) 
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																																								int init_nhm_corei_sse2_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_corei_sse2_2t(unsigned long long addrMem)
+
+																																																																								int init_nhm_corei_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_corei_sse2_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i = 0; i<6670336; i++) *((double*)(addrMem + 8*i)) = i * 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=2*2; // 1 128 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=70*2; // 1 128 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=1*2; // 1 128 bit operation
+        threaddata->bytes=1*64; // 1 memory access
+
+        threaddata->flops*=10;
+        threaddata->bytes*=10;
 
 	return EXIT_SUCCESS;
 }
@@ -1669,10 +1714,10 @@ int init_nhm_corei_sse2_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_nhm_corei_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_corei_sse2_2t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -1687,11 +1732,13 @@ int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long ad
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize SSE-Registers for Addition
 		"movapd 0(%%rax), %%xmm0;"
@@ -2467,24 +2514,46 @@ int asm_work_nhm_corei_sse2_2t(unsigned long long addrMem, unsigned long long ad
 		"mov %%rax, %%rdi;"
 		"add $786432, %%rdi;"
 		"_work_no_ram_reset_nhm_corei_sse2_2t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_nhm_corei_sse2_2t;"
-                :
-		: "r"(addrMem), "r"(addrHigh) 
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																														int init_nhm_xeonep_sse2_1t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_xeonep_sse2_1t(unsigned long long addrMem)
+
+																																																														int init_nhm_xeonep_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_xeonep_sse2_1t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i = 0; i<13406208; i++) *((double*)(addrMem + 8*i)) = i * 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=2*2; // 1 128 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=60*2; // 1 128 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=1*2; // 1 128 bit operation
+        threaddata->bytes=1*64; // 1 memory access
+
+        threaddata->flops*=24;
+        threaddata->bytes*=24;
 
 	return EXIT_SUCCESS;
 }
@@ -2496,10 +2565,10 @@ int init_nhm_xeonep_sse2_1t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_nhm_xeonep_sse2_1t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_xeonep_sse2_1t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -2514,11 +2583,13 @@ int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long a
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize SSE-Registers for Addition
 		"movapd 0(%%rax), %%xmm0;"
@@ -4076,24 +4147,46 @@ int asm_work_nhm_xeonep_sse2_1t(unsigned long long addrMem, unsigned long long a
 		"mov %%rax, %%rdi;"
 		"add $2097152, %%rdi;"
 		"_work_no_ram_reset_nhm_xeonep_sse2_1t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_nhm_xeonep_sse2_1t;"
-                :
-		: "r"(addrMem), "r"(addrHigh) 
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }
 
 
 
-																																																														int init_nhm_xeonep_sse2_2t(unsigned long long addrMem) __attribute__((noinline));
-int init_nhm_xeonep_sse2_2t(unsigned long long addrMem)
+
+																																																														int init_nhm_xeonep_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int init_nhm_xeonep_sse2_2t(threaddata_t* threaddata)
 {
+        unsigned long long addrMem = threaddata->addrMem;
 	int i;
 	for (i = 0; i<6703104; i++) *((double*)(addrMem + 8*i)) = i * 1.654738925401e-15;
+
+        // lines with register operations
+        threaddata->flops+=2*2; // 1 128 bit operation
+
+        // lines with L1 operations
+        threaddata->flops+=60*2; // 1 128 bit operation
+
+        // lines with L2 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with L3 operations
+        threaddata->flops+=0*2; // 1 128 bit operation
+
+        // lines with RAM operations
+        threaddata->flops+=1*2; // 1 128 bit operation
+        threaddata->bytes=1*64; // 1 memory access
+
+        threaddata->flops*=12;
+        threaddata->bytes*=12;
 
 	return EXIT_SUCCESS;
 }
@@ -4105,10 +4198,10 @@ int init_nhm_xeonep_sse2_2t(unsigned long long addrMem)
  * @input - addrMem:   pointer to buffer
  * @return EXIT_SUCCESS
  */
-int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh) __attribute__((noinline));
-int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long addrHigh)
+int asm_work_nhm_xeonep_sse2_2t(threaddata_t* threaddata) __attribute__((noinline));
+int asm_work_nhm_xeonep_sse2_2t(threaddata_t* threaddata)
 {
-	if (*((unsigned long long*)addrHigh) == 0) return EXIT_SUCCESS;
+	if (*((unsigned long long*)threaddata->addrHigh) == 0) return EXIT_SUCCESS;
 		/* input: 
 		 *   - addrMem -> rax
 		 * register usage:
@@ -4123,11 +4216,13 @@ int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long a
 		 *   - r11:	temp register for initialization of SIMD-registers
 		 *   - r12:	stores cacheline width as increment for buffer addresses
 		 *   - r13:	stores address of shared variable that controls load level
+                 *   - r14:	stores iteration counter
 		 *   - mm*,xmm*:		data registers for SIMD instructions
 		 */
 	       __asm__ __volatile__(
-		"mov %0, %%rax;" 	// store start address of buffer
-		"mov %1, %%r13;" 	// store address of shared variable that controls load level
+		"mov %%rax, %%rax;" 	// store start address of buffer
+		"mov %%rbx, %%r13;" 	// store address of shared variable that controls load level
+                "mov %%rcx, %%r14;"	// store iteration counter
 		"mov $64, %%r12;"	// increment after each cache/memory access
 		//Initialize SSE-Registers for Addition
 		"movapd 0(%%rax), %%xmm0;"
@@ -4929,13 +5024,14 @@ int asm_work_nhm_xeonep_sse2_2t(unsigned long long addrMem, unsigned long long a
 		"mov %%rax, %%rdi;"
 		"add $1048576, %%rdi;"
 		"_work_no_ram_reset_nhm_xeonep_sse2_2t:"
+                "inc %%r14;" // increment iteration counter
 		"mov %%rax, %%rbx;"
-		"mov (%%r13), %%r11;"
-		"test $1, %%r11;"
+                "testq $1, (%%r13);"
 		"jnz _work_loop_nhm_xeonep_sse2_2t;"
-                :
-		: "r"(addrMem), "r"(addrHigh) 
-                : "%rax", "%rbx", "%rcx", "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
+                "movq %%r14, %%rax;" // restore iteration counter
+                : "=a" (threaddata->iterations)
+		: "a"(threaddata->addrMem), "b"(threaddata->addrHigh), "c" (threaddata->iterations) 
+                : "%rdx", "%rdi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%mm0", "%mm1", "%mm2", "%mm3", "%mm4", "%mm5", "%mm6", "%mm7", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15"
 		);
 	return EXIT_SUCCESS;
 }

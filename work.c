@@ -123,50 +123,53 @@ void *thread(void *threaddata)
                     /* call init function */
                     switch (mydata->FUNCTION)
                     {
+                        case FUNC_KNL_XEONPHI_AVX512_4T:
+                            tmp = init_knl_xeonphi_avx512_4t(mydata);
+                            break;
                         case FUNC_SKL_COREI_FMA_1T:
-                            tmp = init_skl_corei_fma_1t(mydata->addrMem);
+                            tmp = init_skl_corei_fma_1t(mydata);
                             break;
                         case FUNC_SKL_COREI_FMA_2T:
-                            tmp = init_skl_corei_fma_2t(mydata->addrMem);
+                            tmp = init_skl_corei_fma_2t(mydata);
                             break;
                         case FUNC_HSW_COREI_FMA_1T:
-                            tmp = init_hsw_corei_fma_1t(mydata->addrMem);
+                            tmp = init_hsw_corei_fma_1t(mydata);
                             break;
                         case FUNC_HSW_COREI_FMA_2T:
-                            tmp = init_hsw_corei_fma_2t(mydata->addrMem);
+                            tmp = init_hsw_corei_fma_2t(mydata);
                             break;
                         case FUNC_HSW_XEONEP_FMA_1T:
-                            tmp = init_hsw_xeonep_fma_1t(mydata->addrMem);
+                            tmp = init_hsw_xeonep_fma_1t(mydata);
                             break;
                         case FUNC_HSW_XEONEP_FMA_2T:
-                            tmp = init_hsw_xeonep_fma_2t(mydata->addrMem);
+                            tmp = init_hsw_xeonep_fma_2t(mydata);
                             break;
                         case FUNC_SNB_COREI_AVX_1T:
-                            tmp = init_snb_corei_avx_1t(mydata->addrMem);
+                            tmp = init_snb_corei_avx_1t(mydata);
                             break;
                         case FUNC_SNB_COREI_AVX_2T:
-                            tmp = init_snb_corei_avx_2t(mydata->addrMem);
+                            tmp = init_snb_corei_avx_2t(mydata);
                             break;
                         case FUNC_SNB_XEONEP_AVX_1T:
-                            tmp = init_snb_xeonep_avx_1t(mydata->addrMem);
+                            tmp = init_snb_xeonep_avx_1t(mydata);
                             break;
                         case FUNC_SNB_XEONEP_AVX_2T:
-                            tmp = init_snb_xeonep_avx_2t(mydata->addrMem);
+                            tmp = init_snb_xeonep_avx_2t(mydata);
                             break;
                         case FUNC_NHM_COREI_SSE2_1T:
-                            tmp = init_nhm_corei_sse2_1t(mydata->addrMem);
+                            tmp = init_nhm_corei_sse2_1t(mydata);
                             break;
                         case FUNC_NHM_COREI_SSE2_2T:
-                            tmp = init_nhm_corei_sse2_2t(mydata->addrMem);
+                            tmp = init_nhm_corei_sse2_2t(mydata);
                             break;
                         case FUNC_NHM_XEONEP_SSE2_1T:
-                            tmp = init_nhm_xeonep_sse2_1t(mydata->addrMem);
+                            tmp = init_nhm_xeonep_sse2_1t(mydata);
                             break;
                         case FUNC_NHM_XEONEP_SSE2_2T:
-                            tmp = init_nhm_xeonep_sse2_2t(mydata->addrMem);
+                            tmp = init_nhm_xeonep_sse2_2t(mydata);
                             break;
                         case FUNC_BLD_OPTERON_FMA4_1T:
-                            tmp = init_bld_opteron_fma4_1t(mydata->addrMem);
+                            tmp = init_bld_opteron_fma4_1t(mydata);
                             break;
                         default:
                             fprintf(stderr, "Error: unknown function %i\n", mydata->FUNCTION);
@@ -188,6 +191,9 @@ void *thread(void *threaddata)
                     old = THREAD_WORK;
                     global_data->ack = id + 1;
 
+                   /* record thread's start timestamp */
+                   ((threaddata_t *)threaddata)->start_tsc = timestamp();
+
                     /* will be terminated by watchdog 
                      * watchdog also alters mydata->addrHigh to switch between high and low load function
                      */
@@ -201,50 +207,53 @@ void *thread(void *threaddata)
                         #endif
                         switch (mydata->FUNCTION)
                         {
+                            case FUNC_KNL_XEONPHI_AVX512_4T:
+                                tmp=asm_work_knl_xeonphi_avx512_4t(mydata);
+                                break;
                             case FUNC_SKL_COREI_FMA_1T:
-                                tmp=asm_work_skl_corei_fma_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_skl_corei_fma_1t(mydata);
                                 break;
                             case FUNC_SKL_COREI_FMA_2T:
-                                tmp=asm_work_skl_corei_fma_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_skl_corei_fma_2t(mydata);
                                 break;
                             case FUNC_HSW_COREI_FMA_1T:
-                                tmp=asm_work_hsw_corei_fma_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_hsw_corei_fma_1t(mydata);
                                 break;
                             case FUNC_HSW_COREI_FMA_2T:
-                                tmp=asm_work_hsw_corei_fma_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_hsw_corei_fma_2t(mydata);
                                 break;
                             case FUNC_HSW_XEONEP_FMA_1T:
-                                tmp=asm_work_hsw_xeonep_fma_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_hsw_xeonep_fma_1t(mydata);
                                 break;
                             case FUNC_HSW_XEONEP_FMA_2T:
-                                tmp=asm_work_hsw_xeonep_fma_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_hsw_xeonep_fma_2t(mydata);
                                 break;
                             case FUNC_SNB_COREI_AVX_1T:
-                                tmp=asm_work_snb_corei_avx_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_snb_corei_avx_1t(mydata);
                                 break;
                             case FUNC_SNB_COREI_AVX_2T:
-                                tmp=asm_work_snb_corei_avx_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_snb_corei_avx_2t(mydata);
                                 break;
                             case FUNC_SNB_XEONEP_AVX_1T:
-                                tmp=asm_work_snb_xeonep_avx_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_snb_xeonep_avx_1t(mydata);
                                 break;
                             case FUNC_SNB_XEONEP_AVX_2T:
-                                tmp=asm_work_snb_xeonep_avx_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_snb_xeonep_avx_2t(mydata);
                                 break;
                             case FUNC_NHM_COREI_SSE2_1T:
-                                tmp=asm_work_nhm_corei_sse2_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_nhm_corei_sse2_1t(mydata);
                                 break;
                             case FUNC_NHM_COREI_SSE2_2T:
-                                tmp=asm_work_nhm_corei_sse2_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_nhm_corei_sse2_2t(mydata);
                                 break;
                             case FUNC_NHM_XEONEP_SSE2_1T:
-                                tmp=asm_work_nhm_xeonep_sse2_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_nhm_xeonep_sse2_1t(mydata);
                                 break;
                             case FUNC_NHM_XEONEP_SSE2_2T:
-                                tmp=asm_work_nhm_xeonep_sse2_2t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_nhm_xeonep_sse2_2t(mydata);
                                 break;
                             case FUNC_BLD_OPTERON_FMA4_1T:
-                                tmp=asm_work_bld_opteron_fma4_1t(mydata->addrMem,mydata->addrHigh);
+                                tmp=asm_work_bld_opteron_fma4_1t(mydata);
                                 break;
                             default:
                                 fprintf(stderr,"Error: unknown function %i\n",mydata->FUNCTION);
@@ -274,6 +283,8 @@ void *thread(void *threaddata)
 
                         /* terminate if master signals end of run */
                         if(*((volatile unsigned long long *)(mydata->addrHigh)) == LOAD_STOP) {
+                            ((threaddata_t *)threaddata) -> stop_tsc = timestamp();
+
                             pthread_exit(NULL);
                         }
                     } // end while

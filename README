@@ -30,6 +30,7 @@ Supported CPU microarchitectures
 - Intel Ivy Bridge
 - Intel Haswell
 - Intel Skylake
+- Intel Knights Landing
 - AMD Bulldozer (experimental)
 
 Since version 1.1 it is also possible to create alternating and repetitive
@@ -54,8 +55,10 @@ Options:
 -c         | --copyright        display copyright information
 -w         | --warranty         display warranty information
 -q         | --quiet            disable output to stdout
+-r         | --report           display additional information (overridden by -q)
 -a         | --avail            list available functions
--i ID      | --function=ID      specify ID of the load-function to be used
+-i ID      | --function=ID      specify integer ID of the load-function to be
+                                used (as listed by --avail)
 -t TIMEOUT | --timeout=TIMEOUT  set timeout (seconds) after which FIRESTARTER
                                 terminates itself, default: no timeout
 -l LOAD    | --load=LOAD        set the percentage of high load to LOAD (%),
@@ -67,9 +70,12 @@ Options:
                                 load and an idle phase, the percentage of
                                 high load is defined by -l
 -n COUNT   | --threads=COUNT    specify the number of threads
--b CPULIST | --bind=CPULIST     select certain CPUs (overrides -n)
+                                cannot be combined with -b | --bind, which
+                                implicitly specifies the number of threads
+-b CPULIST | --bind=CPULIST     select certain CPUs
                                 CPULIST format: "x,y,z", "x-y", "x-y/step",
                                 and any combination of the above
+                                cannot be combined with -n | --threads
 
 CUDA Options:
 -g         | --gpus             number of gpus to use (default: all)

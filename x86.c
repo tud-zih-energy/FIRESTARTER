@@ -53,9 +53,6 @@ static int has_invariant_rdtsc();
 #endif
 #endif
 
-/** used to store Registers {R|E}AX, {R|E}BX, {R|E}CX and {R|E}DX */
-static unsigned long long a,b,c,d;
-
 /*
  * declarations of x86 specific functions, only used within this file
  */
@@ -77,11 +74,11 @@ static int has_htt();
 
 /** 64 Bit implementations  */
 #if defined _64_BIT
-static unsigned long long reg_a,reg_b,reg_c,reg_d;
-
 
 static void cpuid(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long *d)
 {
+    unsigned long long reg_a,reg_b,reg_c,reg_d;
+ 
     __asm__ __volatile__(
         "cpuid;"
         : "=a" (reg_a), "=b" (reg_b), "=c" (reg_c), "=d" (reg_d)
@@ -101,6 +98,8 @@ static int has_cpuid()
 
 unsigned long long timestamp()
 {
+    unsigned long long reg_a,reg_d;
+
     if (!has_rdtsc()) return 0;
     __asm__ __volatile__("rdtsc;": "=a" (reg_a), "=d" (reg_d));
     return (reg_d<<32)|(reg_a&0xffffffffULL);
@@ -110,11 +109,11 @@ unsigned long long timestamp()
 
 /** 32 Bit implementations */
 #if defined(_32_BIT)
-/* 32 Bit Registers */
-static unsigned int reg_a,reg_b,reg_c,reg_d;
 
 static void cpuid(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long *d)
 {
+    unsigned int reg_a,reg_b,reg_c,reg_d;
+
     __asm__ __volatile__(
         "cpuid;"
         : "=a" (reg_a), "=b" (reg_b), "=c" (reg_c), "=d" (reg_d)
@@ -165,6 +164,8 @@ static int has_cpuid()
 
 unsigned long long timestamp()
 {
+    unsigned int reg_a,reg_d;
+
     if (!has_rdtsc()) return 0;
     __asm__ __volatile__("rdtsc;": "=a" (reg_a) , "=d" (reg_d));
     // upper 32 Bit in EDX, lower 32 Bit in EAX
@@ -206,6 +207,8 @@ void get_architecture(char* arch, size_t len)
 
 int has_rdtsc()
 {
+    unsigned long long a,b,c,d;
+
     if (!has_cpuid()) return 0;
 
     a=0;
@@ -223,6 +226,7 @@ int has_rdtsc()
 
 int has_invariant_rdtsc()
 {
+    unsigned long long a,b,c,d;
     char tmp[_HW_DETECT_MAX_OUTPUT];
     int res=0;
 
@@ -281,6 +285,8 @@ int has_invariant_rdtsc()
 
 static int has_htt()
 {
+    unsigned long long a,b,c,d;
+
     if (!has_cpuid()) return 0;
     a=0;
     cpuid(&a,&b,&c,&d);
@@ -295,6 +301,7 @@ static int has_htt()
 
 int get_cpu_vendor(char* vendor, size_t len)
 {
+    unsigned long long a,b,c,d;
     char tmp_vendor[13];
 
     if (!has_cpuid()) return generic_get_cpu_vendor(vendor);
@@ -312,6 +319,7 @@ int get_cpu_vendor(char* vendor, size_t len)
 
 int get_cpu_name(char* name, size_t len)
 {
+    unsigned long long a,b,c,d;
     char tmp[48];
     char* start;
 
@@ -361,6 +369,8 @@ int get_cpu_name(char* name, size_t len)
 
 int get_cpu_family()
 {
+    unsigned long long a,b,c,d;
+
     if (!has_cpuid()) return generic_get_cpu_family();
     a=0;
     cpuid(&a,&b,&c,&d);
@@ -375,6 +385,8 @@ int get_cpu_family()
 }
 int get_cpu_model()
 {
+    unsigned long long a,b,c,d;
+
     if (!has_cpuid()) return generic_get_cpu_model();
     a=0;
     cpuid(&a,&b,&c,&d);
@@ -389,6 +401,8 @@ int get_cpu_model()
 }
 int get_cpu_stepping()
 {
+    unsigned long long a,b,c,d;
+
     if (!has_cpuid()) return generic_get_cpu_stepping();
     a=0;
     cpuid(&a,&b,&c,&d);
@@ -404,6 +418,7 @@ int get_cpu_stepping()
 
 int get_cpu_isa_extensions(char* features, size_t len)
 {
+    unsigned long long a,b,c,d;
     unsigned long long max,max_ext;
     char tmp[16];
 
@@ -450,6 +465,14 @@ int get_cpu_isa_extensions(char* features, size_t len)
             if (c&(1<<13)) strncat(features,"CX16 ",  (len-strlen(features))-1);
             if (c&(1<<23)) strncat(features,"POPCNT ",(len-strlen(features))-1);
 
+        }
+        if (max>=7)
+        {
+            a=7;c=0;
+            cpuid(&a,&b,&c,&d);
+            
+            if (b&(1<<5))  strncat(features,"AVX2 ", (len-strlen(features))-1);
+            if (b&(1<<16)) strncat(features,"AVX512 ", (len-strlen(features))-1);
         }
         if (max_ext>=0x80000001)
         {
@@ -591,6 +614,7 @@ unsigned long long get_cpu_clockrate(int check,int cpu)
  */
 int num_caches(int cpu)
 {
+    unsigned long long a,b,c,d;
     unsigned long long max,max_ext;
     char tmp[16];
     int num;
@@ -660,6 +684,7 @@ int num_caches(int cpu)
 //TODO use sysfs if available to determine cache sharing
 int cache_info(int cpu,int id, char* output, size_t len)
 {
+    unsigned long long a,b,c,d;
     unsigned long long max,max_ext;
     char tmp[16];
 
@@ -1120,6 +1145,7 @@ int num_packages()
 
 int num_cores_per_package()
 {
+    unsigned long long a,b,c,d;
     char tmp[16];
     int num=-1;
 
@@ -1167,7 +1193,7 @@ int num_cores_per_package()
         /* consistency checks */
         /* more cores than cpus is not possible -> some cores are deactivated */
         if (num>num_cpus()) num=num_cpus();
-        /* if the number of packages is known this cann be checked for multi-socket systems, too
+        /* if the number of packages is known this can be checked for multi-socket systems, too
            NOTE depends on valid entries in sysfs */
         if ((generic_num_packages()!=-1)&&(generic_num_packages()*num>num_cpus())) num=num_cpus()/generic_num_packages();
 
@@ -1185,6 +1211,7 @@ int num_threads_per_core()
 
 int num_threads_per_package()
 {
+    unsigned long long a,b,c,d;
     int num=-1;
     char tmp[16];
 
