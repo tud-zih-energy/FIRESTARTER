@@ -22,13 +22,15 @@
 def target_all(file,targets):
     file.write("all: {}\n".format(targets))
 
-def src_obj_files(file,templates):
+def src_obj_files(file,templates,version):
     obj_files = ''
     src_files = ''
     for each in templates:
         src_files = each.file+'.c '+src_files
         obj_files = each.file+'.o '+obj_files
     file.write("ASM_FUNCTION_SRC_FILES="+src_files+"\n")
+    if version.enable_win64 == 1:
+        file.write("ASM_FUNCTION_SRC_FILES_WIN=sse2_functions.c avx_functions.c fma_functions.c\n")
     file.write("ASM_FUNCTION_OBJ_FILES="+obj_files+"\n")
 
 def template_rules(file,templates):

@@ -79,6 +79,27 @@ $CUDA            " -m         | --matrixsize       size of the matrix to calcula
            "\n");
 }
 
+$WIN64 void show_help_win64(void)
+$WIN64 {
+$WIN64     show_version();
+$WIN64     printf("This program comes with ABSOLUTELY NO WARRANTY; for details run `FIRESTARTER -w'.\n");
+$WIN64     printf("This is free software, and you are welcome to redistribute it\nunder certain conditions; run `FIRESTARTER -c' for details.\n");
+$WIN64     printf("\nUsage: FIRESTARTER [Options]\n"
+$WIN64            "\nOptions:\n\n"
+$WIN64            " -h         | --help             display usage information\n"
+$WIN64            " -v         | --version          display version information\n"
+$WIN64            " -c         | --copyright        display copyright information\n"
+$WIN64            " -w         | --warranty         display warranty information\n"
+$WIN64            " -a         | --avail            list available functions\n"
+$WIN64            " -f name    | --function=name    specify load-function (as listed by --avail)\n"
+$WIN64            " -t TIMEOUT | --timeout=TIMEOUT  set timeout (seconds) after which FIRESTARTER\n"
+$WIN64            "                                 terminates itself, default: no timeout\n"
+$WIN64            " -n COUNT   | --threads=COUNT    specify the number of threads\n"
+$WIN64            "                                 cannot be combined with -b | --bind, which\n"
+$WIN64            "                                 implicitly specifies the number of threads\n"
+$WIN64            "\n");
+$WIN64 }
+$WIN64 
 void show_warranty(void)
 {
     show_version();

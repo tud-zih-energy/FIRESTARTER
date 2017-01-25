@@ -23,6 +23,7 @@
 #define __FIRESTARTER__HELP__H
 
 void show_help(void);
+$WIN64 void show_help_win64(void);
 void show_warranty(void);
 void show_copyright(void);
 void show_version(void);

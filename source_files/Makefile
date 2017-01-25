@@ -31,7 +31,7 @@ OPT_ASM=-O0
 LINUX_L_FLAGS=-lpthread -lrt -lm
 
 # source and object files of assembler routines
-$TEMPLATE Makefile.src_obj_files(dest,templates)
+$TEMPLATE Makefile.src_obj_files(dest,templates,version)
 
 $CUDA # CUDA flags
 $CUDA LINUX_CUDA_PATH=/opt/cuda
@@ -61,8 +61,8 @@ $TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.
 $CUDA FIRESTARTER_CUDA: generic.o  x86.o work.o init_functions.o x86.o watchdog.o gpu.o main_cuda.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES}
 $CUDA$TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
 $CUDA
-$WIN64 FIRESTARTER_win64.exe: main_win64.c work.h init_functions.c ${ASM_FUNCTION_SRC_FILES}
-$WIN64$TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} main_win64.c ${ASM_FUNCTION_SRC_FILES} init_functions.c -o FIRESTARTER_win64.exe ${WIN64_L_FLAGS}
+$WIN64 FIRESTARTER_win64.exe: main_win64.c work.h init_functions.c help.h help.c ${ASM_FUNCTION_SRC_FILES_WIN}
+$WIN64$TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} main_win64.c ${ASM_FUNCTION_SRC_FILES_WIN} init_functions.c help.c -o FIRESTARTER_win64.exe ${WIN64_L_FLAGS}
 $WIN64
 generic.o: generic.c cpu.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c generic.c
@@ -100,7 +100,5 @@ $TAB rm -f *.a
 $TAB rm -f *.o
 $TAB rm -f FIRESTARTER
 $CUDA$TAB rm -f FIRESTARTER_CUDA
-$CUDA
 $WIN64$TAB rm -f FIRESTARTER_win64.exe
-$WIN64
 
