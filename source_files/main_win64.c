@@ -25,11 +25,6 @@
 #include <windows.h>
 #include <getopt.h>
 
-// FUNC_NOT_DEFINED defined in firestarter_global.h
-#define FUNC_SSE        1
-#define FUNC_AVX        2
-#define FUNC_FMA        3
-
 unsigned long long HIGH=1;  /* shared variable that specifies load level */
 
 int exitCondition;
@@ -44,52 +39,33 @@ static void list_functions(){
   show_version();
 
   printf("\n available load-functions:\n");
-  printf(" sse  - performs load functions using SSE2 instructions\n");
-  printf(" avx  - performs load functions using AVX instructions\n");
-  printf(" fma  - performs load functions using FMA3 instructions\n");
+  printf("  ID   | NAME                           \n");
+  printf("  --------------------------------------\n");
+$$ list available functions with their respective id
+$TEMPLATE main_win64_c.list_functions(dest,architectures,templates)
+
   return;
 }
 
-static DWORD WINAPI fmaThread(void* threadParams)
-{
-  threaddata_t * data = malloc(sizeof(threaddata_t));
-  void * p= _mm_malloc(6703104*8,4096);
+static int get_function(unsigned int id){
+    int func=FUNC_UNKNOWN;
 
-  data->addrMem = (unsigned long long) p;
-  data->addrHigh = (unsigned long long) &HIGH;
-  init_hsw_corei_fma_2t(data);
-  asm_work_hsw_corei_fma_2t(data);
-  return 0;
+    switch(id){
+$$ select function based on specified id
+$TEMPLATE main_win64_c.get_function_cases(dest,architectures,templates)
+       default:
+         fprintf(stderr, "\nError: unknown function id: %s, see --avail for available ids\n\n", optarg);
+    }
+
+    return func;
 }
 
-static DWORD WINAPI sseThread(void* threadParams)
-{
-  threaddata_t * data = malloc(sizeof(threaddata_t));
-  void * p= _mm_malloc(6703104*8,4096);
-
-  data->addrMem = (unsigned long long) p;
-  data->addrHigh = (unsigned long long) &HIGH;
-  init_nhm_xeonep_sse2_2t(data);
-  asm_work_nhm_xeonep_sse2_2t(data);
-  return 0;
-}
-
-static DWORD WINAPI avxThread(void* threadParams)
-{
-  threaddata_t * data = malloc(sizeof(threaddata_t));
-  void * p= _mm_malloc(6703104*8,4096);
-
-  data->addrMem = (unsigned long long) p;
-  data->addrHigh = (unsigned long long) &HIGH;
-  init_snb_corei_avx_2t(data);
-  asm_work_snb_corei_avx_2t(data);
-  return 0;
-}
+$$ thread definitions
+$TEMPLATE main_win64_c.thread_definitions(dest,architectures,templates)
 
 int main(int argc, char *argv[]){
   int nr_threads=0,i,time=0;
-  char func = FUNC_NOT_DEFINED;
-  char sse_input[256];
+  int func = FUNC_NOT_DEFINED;
   int c;
 
   static struct option long_options[] = {
@@ -98,14 +74,14 @@ int main(int argc, char *argv[]){
     {"version",     no_argument,        0, 'v'},
     {"warranty",    no_argument,        0, 'w'},
     {"avail",       no_argument,        0, 'a'},
-    {"function",    required_argument,  0, 'f'},
+    {"function",    required_argument,  0, 'i'},
     {"threads",     required_argument,  0, 'n'},
     {"timeout",     required_argument,  0, 't'},
     {0,             0,                  0,  0 }
   };
 
   while(1){
-    c = getopt_long(argc, argv, "chvwaf:n:t:", long_options, NULL);
+    c = getopt_long(argc, argv, "chvwai:n:t:", long_options, NULL);
     if(c == -1) break;
 
     errno = 0;
@@ -126,20 +102,15 @@ int main(int argc, char *argv[]){
       case 'a':
         list_functions();
         return EXIT_SUCCESS;
-      case 'f':
-        if (!strstr(optarg,"sse")) func = FUNC_SSE;
-        else if (!strstr(optarg,"avx")) func = FUNC_AVX;
-        else if (!strstr(optarg,"fma")) func = FUNC_FMA;
-        else {
-          printf("Error: unknown function \"%s\"! See --avail for available functions.\n",optarg);
-          return EXIT_FAILURE;
-        }
+      case 'i':
+        func=get_function((unsigned int)strtol(optarg,NULL,10));
+        if (func==FUNC_UNKNOWN) return EXIT_FAILURE;
         break;
       case 'n':
-        nr_threads=atoi(optarg);
+        nr_threads=(unsigned int)strtol(optarg,NULL,10);
         break;
       case 't':
-        time=atoi(optarg);
+        time=(unsigned int)strtol(optarg,NULL,10);
         break;
       case ':':   // Missing argument
         return EXIT_FAILURE;
@@ -153,7 +124,6 @@ int main(int argc, char *argv[]){
     return EXIT_FAILURE;
   }
 
-  memset(sse_input,0,256);
   printf("FIRESTARTER - A Processor Stress Test Utility\n");
   printf("Copyright (C) %i TU Dresden, Center for Information Services and High Performance Computing\n\n",COPYRIGHT_YEAR);
   printf("This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\n");
@@ -168,64 +138,27 @@ int main(int argc, char *argv[]){
     scanf("%d",&time);
   }
   if (func == FUNC_NOT_DEFINED){
-    func = FUNC_SSE; //default
-    printf("\nNo function specified on command line (-f).\n");
+    printf("\nNo function specified on command line (-i).\n");
+    printf("\n available load-functions:\n");
+    printf("  ID   | NAME                           \n");
+    printf("  --------------------------------------\n");
+$$ list available functions with their respective id
+$TEMPLATE main_win64_c.list_functions(dest,architectures,templates)
+    printf("\nPlease enter function ID:\n");
 
-    printf("\nDo you want to use AVX Instructions?(y/n):\n");
-    scanf("%1s",sse_input);
-    printf("\n\n");
-    if (sse_input[0]=='y' || sse_input[0] == 'Y') {
-      func = FUNC_AVX;
-    }
-    printf("\nDo you want to use FMA Instructions?(y/n):\n");
-    scanf("%1s",sse_input);
-    printf("\n\n");
-    if (sse_input[0]=='y' || sse_input[0] == 'Y') {
-      func = FUNC_FMA;
-    }
+    scanf("%d",&func);
   }
-  if (func == FUNC_SSE)
-    printf("Running FIRESTARTER - %s Version\n"
-      "With %i Threads for %i Seconds\n"
-      ,"SSE2",nr_threads,time);
-  else if (func == FUNC_AVX)
-    printf("Running FIRESTARTER - %s Version\n"
-      "With %i Threads for %i Seconds\n"
-      ,"AVX",nr_threads,time);
-  else if (func == FUNC_FMA)
-    printf("Running FIRESTARTER - %s Version\n"
-      "With %i Threads for %i Seconds\n"
-      ,"FMA",nr_threads,time);
+
+  printf("\nRunning FIRESTARTER with %i threads for %i seconds",nr_threads,time);
 
   DWORD threadDescriptor;
   HANDLE * threads=malloc(nr_threads*sizeof(HANDLE));
-  if (func == FUNC_SSE) for (i=0;i<nr_threads;i++){
-      threads[i]=CreateThread(
-          NULL,
-          0,
-          sseThread,
-          NULL,
-          0,
-          &threadDescriptor);
+
+  switch (func) {
+$$ start threads according to selected function
+$TEMPLATE main_win64_c.start_threads(dest,architectures,templates)
   }
-  if (func == FUNC_AVX) for (i=0;i<nr_threads;i++){
-      threads[i]=CreateThread(
-          NULL,
-          0,
-          avxThread,
-          NULL,
-          0,
-          &threadDescriptor);
-  }
-  if (func == FUNC_FMA) for (i=0;i<nr_threads;i++){
-      threads[i]=CreateThread(
-          NULL,
-          0,
-          fmaThread,
-          NULL,
-          0,
-          &threadDescriptor);
-  }
+
   Sleep(time*1000);
   for (i=0;i<nr_threads;i++)
     TerminateThread(threads[i],1);

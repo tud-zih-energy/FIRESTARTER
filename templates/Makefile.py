@@ -23,21 +23,30 @@ def target_all(file,targets):
     file.write("all: {}\n".format(targets))
 
 def src_obj_files(file,templates,version):
-    obj_files = ''
     src_files = ''
+    obj_files = ''
+    src_files_win = ''
+    obj_files_win = ''
     for each in templates:
         src_files = each.file+'.c '+src_files
         obj_files = each.file+'.o '+obj_files
+        if each.win64_incl == 1:
+            src_files_win = each.file+'.c '+src_files_win
+            obj_files_win = each.file+'_win64.o '+obj_files_win
     file.write("ASM_FUNCTION_SRC_FILES="+src_files+"\n")
-    if version.enable_win64 == 1:
-        file.write("ASM_FUNCTION_SRC_FILES_WIN=sse2_functions.c avx_functions.c fma_functions.c\n")
     file.write("ASM_FUNCTION_OBJ_FILES="+obj_files+"\n")
+    if version.enable_win64 == 1:
+        file.write("ASM_FUNCTION_SRC_FILES_WIN="+src_files_win+"\n")
+        file.write("ASM_FUNCTION_OBJ_FILES_WIN="+obj_files_win+"\n")
 
-def template_rules(file,templates):
+def template_rules(file,templates,version):
     for each in templates:
         flags = ''
         for flag in each.flags:
             flags = flag+' '+flags
         file.write(each.file+".o: "+each.file+".c\n")
         file.write("\t${LINUX_CC} ${OPT_ASM} ${LINUX_C_FLAGS} "+flags+" -c "+each.file+".c\n\n")
+        if (version.enable_win64 == 1) and (each.win64_incl == 1):
+            file.write(each.file+"_win64.o: "+each.file+".c\n")
+            file.write("\t${WIN64_CC} ${OPT_ASM} ${WIN64_C_FLAGS} "+flags+" -c "+each.file+".c -o "+each.file+"_win64.o\n\n")
 

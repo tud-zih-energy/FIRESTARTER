@@ -27,7 +27,7 @@ except ImportError:
     from ConfigParser import ConfigParser
 
 # import templates
-from templates import firestarter_global_h, Makefile, work_c, work_h, main_c
+from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c
 
 def usage():
     print("code-generator.py generates source code of FIRESTARTER") 
@@ -180,6 +180,7 @@ for each in templates:
     each.file=cfg.get(each.name,'template')+'_functions'
     each.feature_req=cfg.get(each.name,'feature_req')
     each.flags=[x.strip() for x in cfg.get(each.name,'flags').split(',')]
+    each.win64_incl=int(cfg.get(each.name,'win64_incl'))
     each.fallback=[x.strip() for x in cfg.get(each.name,'fallback').split(',')]
 
     # add source files to list of files and import the corresponding templates

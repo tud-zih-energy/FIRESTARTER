@@ -59,10 +59,10 @@ FIRESTARTER: generic.o x86.o main.o init_functions.o work.o x86.o watchdog.o hel
 $TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES} ${LINUX_L_FLAGS}
 
 $CUDA FIRESTARTER_CUDA: generic.o  x86.o work.o init_functions.o x86.o watchdog.o gpu.o main_cuda.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES}
-$CUDA$TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
+$CUDA $TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
 $CUDA
-$WIN64 FIRESTARTER_win64.exe: main_win64.c work.h init_functions.c help.h help.c ${ASM_FUNCTION_SRC_FILES_WIN}
-$WIN64$TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} main_win64.c ${ASM_FUNCTION_SRC_FILES_WIN} init_functions.c help.c -o FIRESTARTER_win64.exe ${WIN64_L_FLAGS}
+$WIN64 FIRESTARTER_win64.exe: main_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN}
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -o FIRESTARTER_win64.exe main_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN} ${WIN64_L_FLAGS}
 $WIN64
 generic.o: generic.c cpu.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c generic.c
@@ -85,20 +85,29 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
 help.o: help.c help.h 
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
 
+$WIN64 main_win64.o: main.c work.h cpu.h
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c main_win64.c
+$WIN64
+$WIN64 init_functions_win64.o: init_functions.c work.h cpu.h
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c init_functions.c -o init_functions_win64.o
+$WIN64
+$WIN64 help_win64.o: help.c help.h
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c help.c -o help_win64.o
+$WIN64
 $CUDA gpu.o: gpu.c gpu.h
-$CUDA$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_CUDA_C_FLAGS} -c gpu.c
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_CUDA_C_FLAGS} -c gpu.c
 $CUDA
 $CUDA main_cuda.o: main.c work.h cpu.h
-$CUDA$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o main_cuda.o -c main.c -DCUDA
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o main_cuda.o -c main.c -DCUDA
 $CUDA
 $CUDA help_cuda.o: help.c help.h 
-$CUDA$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
 $CUDA
-$TEMPLATE Makefile.template_rules(dest,templates)
+$TEMPLATE Makefile.template_rules(dest,templates,version)
 clean:
 $TAB rm -f *.a
 $TAB rm -f *.o
 $TAB rm -f FIRESTARTER
-$CUDA$TAB rm -f FIRESTARTER_CUDA
-$WIN64$TAB rm -f FIRESTARTER_win64.exe
+$CUDA $TAB rm -f FIRESTARTER_CUDA
+$WIN64 $TAB rm -f FIRESTARTER_win64.exe
 

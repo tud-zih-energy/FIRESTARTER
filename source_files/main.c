@@ -616,7 +616,7 @@ $CUDA         #endif
     watchdog_arg.loadvar = &LOADVAR;
 
     if(verbose){
-           show_version();
+       show_version();
        printf("This program comes with ABSOLUTELY NO WARRANTY; for details run `FIRESTARTER -w'.\n");
        printf("This is free software, and you are welcome to redistribute it\nunder certain conditions; run `FIRESTARTER -c' for details.\n");
     }
