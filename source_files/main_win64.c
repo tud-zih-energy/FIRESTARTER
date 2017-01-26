@@ -25,6 +25,8 @@
 #include <windows.h>
 #include <getopt.h>
 
+#define VERBOSE 0
+
 unsigned long long HIGH=1;  /* shared variable that specifies load level */
 
 static void list_functions(){
@@ -71,9 +73,12 @@ $TEMPLATE main_win64_c.WorkerThread_select_function(dest,architectures,templates
 }
 
 int main(int argc, char *argv[]){
-  int nr_threads=0,i,time=0;
+  SYSTEM_INFO SysInfo;
+  SYSTEM_LOGICAL_PROCESSOR_INFORMATION * ProcInfo;
+  unsigned long nr_cpu=0, nr_core=0, threads_per_core=0, nr_pkg=0, cores_per_package=0,nr_numa_node=0;
+  unsigned long ProcInfoSize,ProcInfoCount;
+  int nr_threads=-1,time=0,i,c;
   int func = FUNC_NOT_DEFINED;
-  int c;
 
   static struct option long_options[] = {
     {"copyright",   no_argument,        0, 'c'},
@@ -132,13 +137,55 @@ int main(int argc, char *argv[]){
     return EXIT_FAILURE;
   }
 
+  /* gather information about assignment of CPUs to core and packages */
+  GetSystemInfo(&SysInfo);
+  nr_cpu = SysInfo.dwNumberOfProcessors;
+  GetLogicalProcessorInformation(NULL,&ProcInfoSize);
+  ProcInfo = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION *) malloc(ProcInfoSize);
+  if (GetLogicalProcessorInformation(ProcInfo,&ProcInfoSize)){
+    ProcInfoCount = ProcInfoSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+    for (i=0;i<ProcInfoCount;i++){
+      switch (ProcInfo[i].Relationship){
+        case RelationNumaNode:
+          nr_numa_node++;
+          break;
+        case RelationProcessorCore:
+          nr_core++;
+          break;
+        case RelationProcessorPackage:
+          nr_pkg++;
+          break;
+        default:
+          break;
+      }
+    }
+    if ((nr_core > 0) && (nr_pkg > 0)) cores_per_package = nr_core/nr_pkg;
+    if ((nr_cpu > 0) && (nr_core >0)){
+      threads_per_core = nr_cpu/nr_core;
+      if (nr_threads == -1) nr_threads = nr_cpu; // use all logical processors if not specified otherwise
+    }
+  }
+
+  if (VERBOSE) {
+    printf("\nhardware information:\n");
+    printf(" - number of processors: %lu\n",nr_pkg);
+    printf(" - number of physical processor cores: %lu\n",nr_core);
+    printf(" - number of logical processors: %lu\n",nr_cpu);
+    printf(" - number of cores per processor: %lu\n",cores_per_package);
+    printf(" - number of threads per core: %lu\n",threads_per_core);
+    printf(" - number of NUMA nodes: %lu\n",nr_numa_node);
+    printf("\n");
+  }
+
+  //TODO integrate cpuid based ISA detection for automatic function selection 
+
   printf("FIRESTARTER - A Processor Stress Test Utility\n");
   printf("Copyright (C) %i TU Dresden, Center for Information Services and High Performance Computing\n\n",COPYRIGHT_YEAR);
   printf("This program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.\n\n");
   printf("You should have received a copy of the GNU General Public License\nalong with this program.  If not, see <http://www.gnu.org/licenses/>.\n\n");
 
-  if (nr_threads == 0){
-    printf("\nNumber of threads not specified on command line (-n). Please specify the number of threads:\n");
+  if (nr_threads == -1){
+    printf("\nNumber of threads not specified on command line (-n) and autodetection of available CPUs failed. Please specify the number of threads:\n");
     scanf("%d",&nr_threads);
   }
   if (time == 0){ 
