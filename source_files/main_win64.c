@@ -27,24 +27,15 @@
 
 unsigned long long HIGH=1;  /* shared variable that specifies load level */
 
-int exitCondition;
-
-struct threadParams{
-    int param1;
-    int param2;
-};
-
 static void list_functions(){
 
-  show_version();
-
-  printf("\n available load-functions:\n");
-  printf("  ID   | NAME                           \n");
-  printf("  --------------------------------------\n");
+    printf("\n available load-functions:\n");
+    printf("  ID   | NAME                           \n");
+    printf("  --------------------------------------\n");
 $$ list available functions with their respective id
 $TEMPLATE main_win64_c.list_functions(dest,architectures,templates)
 
-  return;
+    return;
 }
 
 static int get_function(unsigned int id){
@@ -54,14 +45,30 @@ static int get_function(unsigned int id){
 $$ select function based on specified id
 $TEMPLATE main_win64_c.get_function_cases(dest,architectures,templates)
        default:
-         fprintf(stderr, "\nError: unknown function id: %s, see --avail for available ids\n\n", optarg);
+         fprintf(stderr, "\nError: unknown function id: %i, see --avail for available ids\n\n", id);
+         return EXIT_FAILURE;
     }
 
     return func;
 }
 
-$$ thread definitions
-$TEMPLATE main_win64_c.thread_definitions(dest,architectures,templates)
+static DWORD WINAPI WorkerThread(void* threadParams)
+{
+  int func = * (int *) threadParams; 
+  threaddata_t * data = (threaddata_t*) malloc(sizeof(threaddata_t));
+  void * p;
+
+  data->addrHigh = (unsigned long long) &HIGH;
+
+  switch (func) {
+$$ select function
+$TEMPLATE main_win64_c.WorkerThread_select_function(dest,architectures,templates)
+    default:
+      fprintf(stderr, "\nError: unknown function id: %i, see --avail for available ids\n\n", func);
+      return EXIT_FAILURE;       
+  }
+  return 0;
+}
 
 int main(int argc, char *argv[]){
   int nr_threads=0,i,time=0;
@@ -100,6 +107,7 @@ int main(int argc, char *argv[]){
         show_warranty();
         return EXIT_SUCCESS;
       case 'a':
+        show_version();
         list_functions();
         return EXIT_SUCCESS;
       case 'i':
@@ -139,24 +147,30 @@ int main(int argc, char *argv[]){
   }
   if (func == FUNC_NOT_DEFINED){
     printf("\nNo function specified on command line (-i).\n");
-    printf("\n available load-functions:\n");
-    printf("  ID   | NAME                           \n");
-    printf("  --------------------------------------\n");
-$$ list available functions with their respective id
-$TEMPLATE main_win64_c.list_functions(dest,architectures,templates)
+    list_functions();
     printf("\nPlease enter function ID:\n");
 
     scanf("%d",&func);
   }
 
   printf("\nRunning FIRESTARTER with %i threads for %i seconds",nr_threads,time);
+  switch (func) {
+$$ print information about selected function
+$TEMPLATE main_win64_c.main_function_info(dest,architectures,templates)
+  }
 
   DWORD threadDescriptor;
   HANDLE * threads=malloc(nr_threads*sizeof(HANDLE));
 
-  switch (func) {
-$$ start threads according to selected function
-$TEMPLATE main_win64_c.start_threads(dest,architectures,templates)
+  /* start worker threads */
+  for (i=0;i<nr_threads;i++){
+    threads[i]=CreateThread(
+      NULL,
+      0,
+      WorkerThread,
+      &func,
+      0,
+      &threadDescriptor);
   }
 
   Sleep(time*1000);

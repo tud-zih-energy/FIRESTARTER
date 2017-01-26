@@ -28,7 +28,7 @@ def list_functions(file,architectures,templates):
                     for threads in each.threads:
                         id = id + 1
                         func_name = 'func_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'T'
-                        file.write("  printf(\"  %4.4s | %.30s \\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
+                        file.write("    printf(\"  %4.4s | %.30s \\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
 
 def get_function_cases(file,architectures,templates):
     id = 0
@@ -43,31 +43,26 @@ def get_function_cases(file,architectures,templates):
                         file.write("         func = "+func_name.upper()+";\n")
                         file.write("         break;\n")
 
-def thread_definitions(file,architectures,templates):
+def WorkerThread_select_function(file,architectures,templates):
     for each in architectures:
         for isa in each.isa:
             for tmpl in templates:
                 if ("ISA_"+isa.upper() == tmpl.name) and (tmpl.win64_incl == 1):
                     for threads in each.threads:
                         func_name = each.arch+'_'+each.model+'_'+isa+'_'+threads+'t'
-                        file.write("static DWORD WINAPI FUNC_"+func_name.upper()+"_Thread(void* threadParams)\n")
-                        file.write("{\n")
-                        file.write("  threaddata_t * data = malloc(sizeof(threaddata_t));\n")
+                        file.write("    case FUNC_"+func_name.upper()+":\n")
                         if (int(threads) == 1):
-                            file.write("  void * p= _mm_malloc(13406208*8,4096);\n")
+                            file.write("      p =  _mm_malloc(13406208*8,4096);\n")
                         if (int(threads) == 2):
-                            file.write("  void * p= _mm_malloc(6703104*8,4096);\n")
+                            file.write("      p = _mm_malloc(6703104*8,4096);\n")
                         if (int(threads) == 4):
-                            file.write("  void * p= _mm_malloc(3351552*8,4096);\n")
-                        file.write("\n")
-                        file.write("  data->addrMem = (unsigned long long) p;\n")
-                        file.write("  data->addrHigh = (unsigned long long) &HIGH;\n")
-                        file.write("  init_"+func_name+"(data);\n")
-                        file.write("  asm_work_"+func_name+"(data);\n")
-                        file.write("  return 0;\n")
-                        file.write("}\n")
+                            file.write("      p = _mm_malloc(3351552*8,4096);\n")
+                        file.write("      data->addrMem = (unsigned long long) p;\n")
+                        file.write("      init_"+func_name+"(data);\n")
+                        file.write("      asm_work_"+func_name+"(data);\n")
+                        file.write("      break;\n")
 
-def start_threads(file,architectures,templates):
+def main_function_info(file,architectures,templates):
     for each in architectures:
         for isa in each.isa:
             for tmpl in templates:
@@ -76,14 +71,5 @@ def start_threads(file,architectures,templates):
                         func_name = 'func_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'t'
                         file.write("    case "+func_name.upper()+":\n")
                         file.write("      printf(\"\\nTaking "+isa.upper()+" code path optimized for "+each.name+" - "+threads+" thread(s) per core\\n\");\n")
-                        file.write("      for (i=0;i<nr_threads;i++){\n")
-                        file.write("          threads[i]=CreateThread(\n")
-                        file.write("              NULL,\n")
-                        file.write("              0,\n")
-                        file.write("              "+func_name.upper()+"_Thread,\n")
-                        file.write("              NULL,\n")
-                        file.write("              0,\n")
-                        file.write("              &threadDescriptor);\n")
-                        file.write("      }\n")
                         file.write("      break;\n")
 
