@@ -479,6 +479,7 @@ void init_cpuinfo(cpu_info_t *cpuinfo,int print)
     if (feature_available("AVX")) cpuinfo->features                 |= AVX;
     if (feature_available("AVX2")) cpuinfo->features                |= AVX2;
     if (feature_available("FMA")) cpuinfo->features                 |= FMA;
+    if (feature_available("FMA4")) cpuinfo->features                |= FMA4;
     if (feature_available("AES")) cpuinfo->features                 |= AES;
     if (feature_available("AVX512")) cpuinfo->features              |= AVX512;
 
@@ -546,6 +547,7 @@ void init_cpuinfo(cpu_info_t *cpuinfo,int print)
         if(cpuinfo->features&AVX2)      printf(" AVX2");
         if(cpuinfo->features&AVX512)    printf(" AVX512");
         if(cpuinfo->features&FMA)       printf(" FMA");
+        if(cpuinfo->features&FMA4)      printf(" FMA4");
         if(cpuinfo->features&AES)       printf(" AES");
         if(cpuinfo->features&SMT)       printf(" SMT");
         printf("    \n");

@@ -61,8 +61,8 @@ $TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.
 $CUDA FIRESTARTER_CUDA: generic.o  x86.o work.o init_functions.o x86.o watchdog.o gpu.o main_cuda.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES}
 $CUDA $TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
 $CUDA
-$WIN64 FIRESTARTER_win64.exe: main_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN}
-$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -o FIRESTARTER_win64.exe main_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN} ${WIN64_L_FLAGS}
+$WIN64 FIRESTARTER_win64.exe: main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN}
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -o FIRESTARTER_win64.exe main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN} ${WIN64_L_FLAGS}
 $WIN64
 generic.o: generic.c cpu.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c generic.c
@@ -88,6 +88,9 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
 $WIN64 main_win64.o: main.c work.h cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c main_win64.c
 $WIN64
+$WIN64 x86_win64.o: x86_win64.c cpu.h
+$WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c x86_win64.c
+$WIN64 
 $WIN64 init_functions_win64.o: init_functions.c work.h cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c init_functions.c -o init_functions_win64.o
 $WIN64

@@ -28,7 +28,8 @@ def list_functions(file,architectures,templates):
                     for threads in each.threads:
                         id = id + 1
                         func_name = 'func_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'T'
-                        file.write("    printf(\"  %4.4s | %.30s \\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
+                        file.write("    if (has_feature("+tmpl.feature_req.upper().replace('.','_')+")) printf(\"  %4.4s | %.30s | yes\\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
+                        file.write("    else printf(\"  %4.4s | %.30s | no \\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
 
 def get_function_cases(file,architectures,templates):
     id = 0
@@ -72,4 +73,57 @@ def main_function_info(file,architectures,templates):
                         file.write("    case "+func_name.upper()+":\n")
                         file.write("      printf(\"\\nTaking "+isa.upper()+" code path optimized for "+each.name+" - "+threads+" thread(s) per core\\n\");\n")
                         file.write("      break;\n")
+
+def main_set_function_cases(file,architectures,families,templates):
+    for cpu_fam in families:
+        file.write("          case "+cpu_fam+":\n")
+        file.write("            switch (model) {\n")
+        for each in architectures:
+            for isa in each.isa:
+                for tmpl in templates:
+                    if ("ISA_"+isa.upper() == tmpl.name) and (tmpl.win64_incl == 1):
+
+                        if each.cpu_family == cpu_fam:
+                            for cpu_model in each.cpu_model:
+                                file.write("              case "+cpu_model+":\n")
+                            for isa in each.isa:
+                                func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'
+                                file.write("                if (has_feature("+isa.upper().replace('.','_')+")) {\n")
+                                for threads in each.threads:
+                                    file.write("                    if (threads_per_core == "+threads+") func = "+func_name.upper()+threads.upper()+"T;\n")
+                                file.write("                    if (func == FUNC_NOT_DEFINED) {\n")
+                                file.write("                        fprintf(stderr, \"Warning: no code path for %lu threads per core!\\n\",threads_per_core);\n")
+                                file.write("                    }\n")
+                                file.write("                }\n")
+                            file.write("                if (func == FUNC_NOT_DEFINED) {\n")
+                            file.write("                    fprintf(stderr, \"\\nWarning: "+isa.upper()+" is requiered for architecture \\\""+each.arch.upper()+"\\\", but is not supported!\\n\");\n")
+                            file.write("                }\n")
+                            file.write("                break;\n")
+        file.write("            default:\n")
+        file.write("                fprintf(stderr, \"\\nWarning: %s family %i, model %i is not supported by this version of FIRESTARTER!\\n         Check project website for updates.\\n\",vendor,family,model);\n")
+        file.write("            }\n")
+        file.write("            break;\n")
+
+def main_select_fallback_function(file,templates):
+    for templ in templates:
+        if templ.win64_incl == 1:
+            file.write("  /* use "+templ.feature_req.upper()+" as fallback if available*/\n")
+            file.write("  if ((func == FUNC_NOT_DEFINED)&&(has_feature("+templ.feature_req.upper().replace('.','_')+"))) {\n")
+            file.write("      /* use function for correct number of threads per core if available */\n")
+            for fb in templ.fallback:
+                # TODO: this implementation does only support fallbacks with single digit number of threads
+                file.write("      if(threads_per_core == "+fb[-2:-1]+") {\n")
+                file.write("          func = "+fb.upper()+";\n")
+                file.write("          fprintf(stderr, \"Warning: using function "+fb.upper()+" as fallback.\\n\");\n")
+                file.write("          fprintf(stderr, \"         You can use the parameter --function to try other functions.\\n\");\n")
+                file.write("      }\n")
+            # TODO: this implementation does only support fallbacks with single digit number of threads
+            file.write("      /* use function for "+templ.fallback[0][-2:-1]+" threads per core if no function for actual number of thread per core exists*/\n")
+            file.write("      if (func == FUNC_NOT_DEFINED)\n")
+            file.write("      {\n")
+            file.write("          func = "+templ.fallback[0].upper()+";\n")
+            file.write("          fprintf(stderr, \"Warning: using function "+templ.fallback[0].upper()+" as fallback.\\n\");\n")
+            file.write("          fprintf(stderr, \"         You can use the parameter --function to try other functions.\\n\");\n")
+            file.write("      }\n")
+            file.write("  }\n")
 

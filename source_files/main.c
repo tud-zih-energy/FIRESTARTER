@@ -92,12 +92,6 @@ int FUNCTION = FUNC_NOT_DEFINED;
 long TIMEOUT = 0, PERIOD = 100000, LOAD = 100;
 
 /*
- * timeout and load characteristics as defind by -s, -e, and -k
- * in usec
- */
-long long unsigned int STARTPERIOD = 0, ENDPERIOD = 0, NUMPERIODSTEPS = 0;
-
-/*
  * pointer for CPU bind argument (-b | --bind)
  */
 char *fsbind = NULL;

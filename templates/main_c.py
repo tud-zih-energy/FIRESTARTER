@@ -82,7 +82,7 @@ def evaluate_environment_select_fallback_function(file,templates):
             file.write("            fprintf(stderr, \"         You can use the parameter --function to try other functions.\\n\");\n")
             file.write("        }\n")
         # TODO: this implementation does only support fallbacks with single digit number of threads
-        file.write("      /* use function for "+templ.fallback[0][-2:-1]+" threads per core if no function for actual number of thread per core exists*/\n")
+        file.write("        /* use function for "+templ.fallback[0][-2:-1]+" threads per core if no function for actual number of thread per core exists*/\n")
         file.write("        if (FUNCTION == FUNC_NOT_DEFINED)\n")
         file.write("        {\n")
         file.write("            FUNCTION = "+templ.fallback[0].upper()+";\n")

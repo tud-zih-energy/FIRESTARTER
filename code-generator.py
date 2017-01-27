@@ -214,6 +214,7 @@ if version.enable_cuda == 1:
 # add windows main file if windows support is enabled
 if version.enable_win64 == 1:
     files.append('source_files/main_win64.c')
+    files.append('source_files/x86_win64.c')
 
 # generate source code from files in source_files directory, apply patches defined in templates directory
 for file in files:
