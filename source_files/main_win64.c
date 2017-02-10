@@ -40,8 +40,8 @@ static int has_feature(int feature)
 static void list_functions(){
 
     printf("\n available load-functions:\n");
-  printf("  ID   | NAME                           | available on this system\n");
-  printf("  ----------------------------------------------------------------\n");
+    printf("  ID   | NAME                           | available on this system\n");
+    printf("  ----------------------------------------------------------------\n");
 $$ list available functions with their respective id
 $TEMPLATE main_win64_c.list_functions(dest,architectures,templates)
 

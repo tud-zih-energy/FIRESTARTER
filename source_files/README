@@ -103,3 +103,11 @@ $CUDA  - cuda:            build 64 bit linux executable with additional CUDA sup
 $WIN64  - win64:           build 64 bit windows executable "FIRESTARTER_win64.exe"
 $ALL  - all:             build all executables
 
+note:
+- FIRESTARTER typically uses the most advanced SIMD instructions that are
+  available on the supported processor architectures. Therefore, an up-to-date
+  compiler with support for the latest ISA extensions is required.
+$WIN64 - the windows version (target win64/all) is only tested using mingw-w64
+$WIN64   compilers under Linux for compilation. Building FIRESTARTER in a windows
+$WIN64   environment may need adoption.
+
