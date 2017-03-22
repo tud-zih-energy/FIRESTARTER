@@ -85,7 +85,7 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
 help.o: help.c help.h 
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
 
-$WIN64 main_win64.o: main.c work.h cpu.h
+$WIN64 main_win64.o: main_win64.c work.h cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c main_win64.c
 $WIN64
 $WIN64 x86_win64.o: x86_win64.c cpu.h

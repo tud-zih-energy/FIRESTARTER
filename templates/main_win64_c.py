@@ -60,7 +60,10 @@ def WorkerThread_select_function(file,architectures,templates):
                             file.write("      p = _mm_malloc(3351552*8,4096);\n")
                         file.write("      data->addrMem = (unsigned long long) p;\n")
                         file.write("      init_"+func_name+"(data);\n")
-                        file.write("      asm_work_"+func_name+"(data);\n")
+                        file.write("      while(*((unsigned long long*)(data->addrHigh)) != LOAD_STOP){\n")
+                        file.write("        asm_work_"+func_name+"(data);\n")
+                        file.write("        low_load_function(data->addrHigh, PERIOD);\n")
+                        file.write("      }\n")
                         file.write("      break;\n")
 
 def main_function_info(file,architectures,templates):

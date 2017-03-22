@@ -24,12 +24,54 @@
 #include "cpu.h"
 #include "firestarter_global.h"
 #include <windows.h>
+#include <inttypes.h>
 #include <getopt.h>
 
-#define VERBOSE 0
+unsigned long long LOAD_VAR=LOAD_HIGH;  /* shared variable that specifies load level */
+unsigned int features;                  /* bitmask for CPU features */
+unsigned long long clockrate;           /* measured clockrate (via TSC) */
 
-unsigned long long HIGH=1;  /* shared variable that specifies load level */
-unsigned int features;      /* bitmask for CPU features */
+/*
+ * load characteristics as defind by -p and -l
+ */
+long PERIOD = 100000, LOAD = 100;
+long load_time, idle_time;
+
+/* thread handling */
+DWORD threadDescriptor;
+HANDLE * threads;
+
+/* Ctrl-C handler */
+BOOL WINAPI ConsoleHandler(DWORD type);
+
+/* global to be accessible by Ctrl-C handler */
+threaddata_t * threaddata;
+int nr_threads=-1,verbose=0;
+struct timeval ts;
+unsigned long long start_time,end_time;
+
+/*
+ * low load function
+ * borrowed from work.c; TODO remove redundant code
+ */
+int low_load_function(volatile unsigned long long addrHigh, unsigned int period) __attribute__((noinline));
+int low_load_function(volatile unsigned long long addrHigh, unsigned int period)
+{
+    int nap;
+
+    nap = period / 100;
+    __asm__ __volatile__ ("mfence;"
+                  "cpuid;" ::: "eax", "ebx", "ecx", "edx");
+    while(*((volatile unsigned long long *)addrHigh) == 0){
+        __asm__ __volatile__ ("mfence;"
+                      "cpuid;" ::: "eax", "ebx", "ecx", "edx");
+        usleep(nap);
+        __asm__ __volatile__ ("mfence;"
+                      "cpuid;" ::: "eax", "ebx", "ecx", "edx");
+    }
+
+    return 0;
+}
 
 static int has_feature(int feature)
 {
@@ -63,18 +105,53 @@ $TEMPLATE main_win64_c.get_function_cases(dest,architectures,templates)
 
 static DWORD WINAPI WorkerThread(void* threadParams)
 {
-  int func = * (int *) threadParams; 
-  threaddata_t * data = (threaddata_t*) malloc(sizeof(threaddata_t));
+  threaddata_t * data = (threaddata_t*) threadParams; 
   void * p;
 
-  data->addrHigh = (unsigned long long) &HIGH;
+  data->iterations=0;
+  data->start_tsc=timestamp();
 
-  switch (func) {
+  switch (data->FUNCTION) {
 $$ select function
 $TEMPLATE main_win64_c.WorkerThread_select_function(dest,architectures,templates)
     default:
       return EXIT_FAILURE;       
   }
+
+  data->stop_tsc=timestamp();
+
+  return 0;
+}
+
+int print_report(){
+  unsigned long long start_tsc,stop_tsc,iterations=0;
+  double runtime;
+  int i;
+
+  if (verbose){
+    printf("\nperformance report:\n\n");
+
+    start_tsc=threaddata[0].start_tsc;
+    stop_tsc=threaddata[0].stop_tsc;
+    for(i = 0; i < nr_threads; i++){
+      printf("Thread %i: %I64u iterations, tsc_delta: %I64u\n",i,threaddata[i].iterations, threaddata[i].stop_tsc - threaddata[i].start_tsc );
+      iterations+=threaddata[i].iterations;
+      if (start_tsc > threaddata[i].start_tsc) start_tsc = threaddata[i].start_tsc;
+      if (stop_tsc < threaddata[i].stop_tsc) stop_tsc = threaddata[i].stop_tsc;
+    }
+    printf("\ntotal iterations: %I64u\n",iterations);
+    runtime=(double)(end_time - start_time) / 1000000;
+    printf("runtime: %.2f seconds (%I64u cycles)\n\n",runtime, stop_tsc - start_tsc);
+
+    printf("estimated floating point performance: %.2f GFLOPS\n", (double)threaddata[0].flops*0.000000001*(double)iterations/runtime);
+    printf("estimated memory bandwidth*: %.2f GB/s\n", (double)threaddata[0].bytes*0.000000001*(double)iterations/runtime);
+    printf("\n* this estimate is highly unreliable if --function is used in order to select\n");
+    printf("  a function that is not optimized for your architecture, or if FIRESTARTER is\n");
+    printf("  executed on an unsupported architecture!\n");
+
+    printf("\n");
+  }
+
   return 0;
 }
 
@@ -85,7 +162,7 @@ int main(int argc, char *argv[]){
   unsigned long nr_cpu=0, nr_core=0, threads_per_core=0, nr_pkg=0, cores_per_package=0,nr_numa_node=0;
   unsigned long ProcInfoSize,ProcInfoCount;
   int family, model, stepping;
-  int nr_threads=-1,time=0,i,c;
+  int time=0,i,c;
   int func = FUNC_NOT_DEFINED;
 
 
@@ -94,10 +171,13 @@ int main(int argc, char *argv[]){
     {"help",        no_argument,        0, 'h'},
     {"version",     no_argument,        0, 'v'},
     {"warranty",    no_argument,        0, 'w'},
+    {"report",      no_argument,        0, 'r'},
     {"avail",       no_argument,        0, 'a'},
     {"function",    required_argument,  0, 'i'},
     {"threads",     required_argument,  0, 'n'},
     {"timeout",     required_argument,  0, 't'},
+    {"load",        required_argument,  0, 'l'},
+    {"period",      required_argument,  0, 'p'},
     {0,             0,                  0,  0 }
   };
 
@@ -127,6 +207,11 @@ int main(int argc, char *argv[]){
     if ((nr_cpu > 0) && (nr_core >0)) threads_per_core = nr_cpu/nr_core;
   }
 
+  if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler,TRUE)) {
+     fprintf(stderr, "Error: Unable to install Ctrl-C handler!\n");
+     return EXIT_FAILURE;
+  }
+
   //cpuid based feature detection
   buffer = (char*) malloc(_HW_DETECT_MAX_OUTPUT);
   get_cpu_isa_extensions(buffer,_HW_DETECT_MAX_OUTPUT);
@@ -153,22 +238,8 @@ int main(int argc, char *argv[]){
   model=get_cpu_model();
   stepping=get_cpu_stepping();
 
-  if (VERBOSE) {
-    printf("\nhardware information:\n");
-    printf(" - number of processors: %lu\n",nr_pkg);
-    printf(" - number of physical processor cores: %lu\n",nr_core);
-    printf(" - number of logical processors: %lu\n",nr_cpu);
-    printf(" - number of cores per processor: %lu\n",cores_per_package);
-    printf(" - number of threads per core: %lu\n",threads_per_core);
-    printf(" - number of NUMA nodes: %lu\n",nr_numa_node);
-    printf(" - processor name: %s\n",proc_name);
-    printf(" - processor family, model, and stepping: %i - %i - %i\n",family,model,stepping);
-    printf(" - processor features: %s\n",buffer);
-    printf("\n");
-  }
-
   while(1){
-    c = getopt_long(argc, argv, "chvwai:n:t:", long_options, NULL);
+    c = getopt_long(argc, argv, "chvwrai:n:t:l:p:", long_options, NULL);
     if(c == -1) break;
 
     errno = 0;
@@ -194,11 +265,28 @@ int main(int argc, char *argv[]){
         func=get_function((unsigned int)strtol(optarg,NULL,10));
         if (func==FUNC_UNKNOWN) return EXIT_FAILURE;
         break;
+      case 'r':
+        verbose = 1;
+        break;
       case 'n':
         nr_threads=(unsigned int)strtol(optarg,NULL,10);
         break;
       case 't':
         time=(unsigned int)strtol(optarg,NULL,10);
+        break;
+      case 'l':
+        LOAD = strtol(optarg,NULL,10);
+        if ((errno != 0) || (LOAD < 0) || (LOAD > 100)) {
+           printf("Error: load out of range or not a number: %s\n",optarg);
+           return EXIT_FAILURE;
+        }
+        break;
+      case 'p':
+        PERIOD = strtol(optarg,NULL,10);
+        if ((errno != 0) || (PERIOD <= 0)) {
+           printf("Error: period out of range or not a number: %s\n",optarg);
+           return EXIT_FAILURE;
+        }
         break;
       case ':':   // Missing argument
         return EXIT_FAILURE;
@@ -211,6 +299,12 @@ int main(int argc, char *argv[]){
     printf("Error: too many parameters!\n");
     return EXIT_FAILURE;
   }
+
+  LOAD = ( PERIOD * LOAD ) / 100;
+  if ((LOAD == PERIOD) || (LOAD == 0)) PERIOD = 0;    // disable interupts for 100% and 0% load case
+  if (LOAD == 0) LOAD_VAR = LOAD_LOW;                 // use low load routine
+  load_time = LOAD;
+  idle_time = PERIOD - LOAD;
 
   printf("FIRESTARTER - A Processor Stress Test Utility\n");
   printf("Copyright (C) %i TU Dresden, Center for Information Services and High Performance Computing\n\n",COPYRIGHT_YEAR);
@@ -254,6 +348,23 @@ $TEMPLATE main_win64_c.main_select_fallback_function(dest,templates)
     if (func==FUNC_UNKNOWN) return EXIT_FAILURE;
   }
 
+  clockrate=get_cpu_clockrate(0,0);
+
+  if (verbose) {
+    printf("\nhardware information:\n");
+    printf(" - number of processors: %lu\n",nr_pkg);
+    printf(" - number of physical processor cores: %lu\n",nr_core);
+    printf(" - number of logical processors: %lu\n",nr_cpu);
+    printf(" - number of cores per processor: %lu\n",cores_per_package);
+    printf(" - number of threads per core: %lu\n",threads_per_core);
+    printf(" - number of NUMA nodes: %lu\n",nr_numa_node);
+    printf(" - processor name: %s\n",proc_name);
+    printf(" - processor clockrate: %I64u MHz\n",clockrate/1000000);
+    printf(" - processor family, model, and stepping: %i - %i - %i\n",family,model,stepping);
+    printf(" - processor features: %s\n",buffer);
+    printf("\n");
+  }
+
   if (time) printf("\nRunning FIRESTARTER with %i threads for %i seconds.",nr_threads,time);
   else printf("\nRunning FIRESTARTER with %i threads. Press Ctrl-C to abort.",nr_threads);
 
@@ -262,27 +373,91 @@ $$ print information about selected function
 $TEMPLATE main_win64_c.main_function_info(dest,architectures,templates)
   }
 
-  DWORD threadDescriptor;
-  HANDLE * threads=malloc(nr_threads*sizeof(HANDLE));
+  threaddata = (threaddata_t*) malloc(nr_threads * sizeof(threaddata_t));
+  threads = malloc(nr_threads*sizeof(HANDLE));
+
+  gettimeofday(&ts,NULL);
+  start_time=ts.tv_sec*1000000+ts.tv_usec;
 
   /* start worker threads */
   for (i=0;i<nr_threads;i++){
+    threaddata[i].addrHigh = (unsigned long long) &LOAD_VAR;
+    threaddata[i].FUNCTION = func;
+
     threads[i]=CreateThread(
       NULL,
       0,
       WorkerThread,
-      &func,
+      &(threaddata[i]),
       0,
       &threadDescriptor);
   }
 
-  if (time) {
-    Sleep(time*1000);
+  if (time) { // timeout specified, terminated automatically when it is exceeded
+    if (PERIOD == 0){ // 0% or 100% load
+      Sleep(time*1000);
+      gettimeofday(&ts,NULL);
+      end_time=ts.tv_sec*1000000+ts.tv_usec;
+    }
+    else{
+      do {
+        usleep(load_time);
+        LOAD_VAR=LOAD_LOW;
+        usleep(idle_time);
+        LOAD_VAR=LOAD_HIGH;
+
+        gettimeofday(&ts,NULL);
+        end_time=ts.tv_sec*1000000+ts.tv_usec; 
+      }
+      while (end_time-start_time <= (unsigned long long)time * 1000000);
+    }
+
+    LOAD_VAR=LOAD_STOP;
     for (i=0;i<nr_threads;i++){
-      TerminateThread(threads[i],1);
       WaitForSingleObject(threads[i],INFINITE);
     }
+    print_report();
   }
-  else while (1) Sleep(2000000000); // sleep until Ctrl-C
+  else{ // no timeout specified (stopped by Ctrl-C, see handler at the bottom)
+    if (PERIOD == 0){ // 0% or 100% load
+      while (1) Sleep(2000000000); // master thraed sleeps until interupted (does not generate load)
+    }
+    else
+    {
+      while (1) {
+        usleep(load_time);
+        LOAD_VAR=LOAD_LOW;
+        usleep(idle_time);
+        LOAD_VAR=LOAD_HIGH;
+      }
+    }
+  }
+
+  return 0;
+}
+
+/* Handler for Ctrl-C 
+ *
+ * signals worker threads to stop and terminates program orderly
+ */
+BOOL WINAPI ConsoleHandler(DWORD type)
+{
+  int i;
+
+  switch(type) {
+     case CTRL_C_EVENT:
+        LOAD_VAR=LOAD_STOP;
+        gettimeofday(&ts,NULL);
+        end_time=ts.tv_sec*1000000+ts.tv_usec; 
+        for (i=0;i<nr_threads;i++){
+          WaitForSingleObject(threads[i],INFINITE);
+        }
+        print_report();
+        return 0;
+        break;
+     default:
+        break;
+  }
+  return TRUE;
 }
 

@@ -156,6 +156,80 @@ int get_cpu_name(char* name, size_t len)
     return -1;
 }
 
+unsigned long long timestamp()
+{
+    unsigned long long reg_a,reg_d;
+
+    __asm__ __volatile__("rdtsc;": "=a" (reg_a), "=d" (reg_d));
+    return (reg_d<<32)|(reg_a&0xffffffffULL);
+}
+
+/**
+ * measures clockrate using the Time-Stamp-Counter
+ * @param check if set to 1 only constant TSCs will be used (i.e. power management independent TSCs)
+ *              if set to 0 non constant TSCs are allowed (e.g. AMD K8)
+ *              TODO this is currently not supported under windows (parameter ignored, using any TSC available)
+ * @param cpu the cpu that should be used, only relevant for the fallback to generic functions
+ *            if TSC is available and check is passed or deactivated then it is assumed thet the affinity
+ *            has already being set to the desired cpu
+ * @return frequency in highest P-State, 0 if no invariant TSC is available
+ */
+unsigned long long get_cpu_clockrate(int check, int cpu)
+{
+    unsigned long long start1_tsc,start2_tsc,end1_tsc,end2_tsc;
+    unsigned long long start_time,end_time;
+    unsigned long long clock_lower_bound,clock_upper_bound,clock;
+    unsigned long long clockrate=0;
+    int i,num_measurements=0,min_measurements;
+    struct timeval ts;
+
+    min_measurements=20;
+
+    i=3;
+    do
+    {
+
+        //start timestamp
+        start1_tsc=timestamp();
+        gettimeofday(&ts,NULL);
+        start2_tsc=timestamp();
+
+        start_time=ts.tv_sec*1000000+ts.tv_usec;
+
+        //waiting
+        do {
+            end1_tsc=timestamp();
+        }
+        while (end1_tsc<start2_tsc+1000000*i);   /* busy waiting */
+
+        //end timestamp
+        do{
+          end1_tsc=timestamp();
+          gettimeofday(&ts,NULL);
+          end2_tsc=timestamp();
+          end_time=ts.tv_sec*1000000+ts.tv_usec;
+        }
+        while (end_time == start_time);
+
+        clock_lower_bound=(((end1_tsc-start2_tsc)*1000000)/(end_time-start_time));
+        clock_upper_bound=(((end2_tsc-start1_tsc)*1000000)/(end_time-start_time));
+
+        // if both values differ significantly, the measurement could have been interrupted between 2 rdtsc's
+        if (((double)clock_lower_bound>(((double)clock_upper_bound)*0.999))&&((end_time-start_time)>2000))
+        {
+            num_measurements++;
+            clock=(clock_lower_bound+clock_upper_bound)/2;
+            if(clockrate==0) clockrate=clock;
+            else if ((check)&&(clock<clockrate)) clockrate=clock;
+            else if ((!check)&&(clock>clockrate)) clockrate=clock;
+        }
+        i+=2;
+    }
+    while (((end_time-start_time)<10000)||(num_measurements<min_measurements));
+
+    return clockrate;
+}
+
 int get_cpu_family()
 {
     unsigned long long a=0,b=0,c=0,d=0;

@@ -629,11 +629,13 @@ unsigned long long get_cpu_clockrate(int check,int cpu)
         while (end1_tsc<start2_tsc+1000000*i);   /* busy waiting */
 
         //end timestamp
-        end1_tsc=timestamp();
-        gettimeofday(&ts,NULL);
-        end2_tsc=timestamp();
-
-        end_time=ts.tv_sec*1000000+ts.tv_usec;
+        do{
+          end1_tsc=timestamp();
+          gettimeofday(&ts,NULL);
+          end2_tsc=timestamp();
+          end_time=ts.tv_sec*1000000+ts.tv_usec;
+        }
+        while (end_time == start_time);
 
         clock_lower_bound=(((end1_tsc-start2_tsc)*1000000)/(end_time-start_time));
         clock_upper_bound=(((end2_tsc-start1_tsc)*1000000)/(end_time-start_time));
