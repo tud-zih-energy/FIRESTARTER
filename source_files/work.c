@@ -53,7 +53,7 @@ int low_load_function(volatile unsigned long long addrHigh, unsigned int period)
     nap = period / 100;
     __asm__ __volatile__ ("mfence;"
                   "cpuid;" ::: "eax", "ebx", "ecx", "edx");
-    while(*((volatile unsigned long long *)addrHigh) == 0){
+    while(*((volatile unsigned long long *)addrHigh) == LOAD_LOW){
         __asm__ __volatile__ ("mfence;"
                       "cpuid;" ::: "eax", "ebx", "ecx", "edx");
         usleep(nap);

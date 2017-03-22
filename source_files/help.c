@@ -100,7 +100,7 @@ $WIN64            "                                 default 100, valid values: 0
 $WIN64            "                                 threads will be idle in the remaining time,\n"
 $WIN64            "                                 frequency of load changes is determined by -p\n"
 $WIN64            " -p PERIOD  | --period=PERIOD    set the interval length to PERIOD (usec),\n"
-$WIN64            "                                 default: 100000, each interval contains a high\n"
+$WIN64            "                                 default: 250000, each interval contains a high\n"
 $WIN64            "                                 load and an idle phase, the percentage of \n"
 $WIN64            "                                 high load is defined by -l\n"
 $WIN64            " -n COUNT   | --threads=COUNT    specify the number of threads\n"

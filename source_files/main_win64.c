@@ -34,7 +34,7 @@ unsigned long long clockrate;           /* measured clockrate (via TSC) */
 /*
  * load characteristics as defind by -p and -l
  */
-long PERIOD = 100000, LOAD = 100;
+long PERIOD = 250000, LOAD = 100;
 long load_time, idle_time;
 
 /* thread handling */
@@ -62,7 +62,7 @@ int low_load_function(volatile unsigned long long addrHigh, unsigned int period)
     nap = period / 100;
     __asm__ __volatile__ ("mfence;"
                   "cpuid;" ::: "eax", "ebx", "ecx", "edx");
-    while(*((volatile unsigned long long *)addrHigh) == 0){
+    while(*((volatile unsigned long long *)addrHigh) == LOAD_LOW){
         __asm__ __volatile__ ("mfence;"
                       "cpuid;" ::: "eax", "ebx", "ecx", "edx");
         usleep(nap);
@@ -303,8 +303,10 @@ int main(int argc, char *argv[]){
   LOAD = ( PERIOD * LOAD ) / 100;
   if ((LOAD == PERIOD) || (LOAD == 0)) PERIOD = 0;    // disable interupts for 100% and 0% load case
   if (LOAD == 0) LOAD_VAR = LOAD_LOW;                 // use low load routine
-  load_time = LOAD;
-  idle_time = PERIOD - LOAD;
+  
+  /* using millisecond granularity as long usleeps (> 1000000 usecs) do not seem to work propperly, short usleeps (<50000 usecs) do not work anyway => no short periods under windows */
+  load_time = LOAD/1000;
+  idle_time = (PERIOD - LOAD)/1000;
 
   printf("FIRESTARTER - A Processor Stress Test Utility\n");
   printf("Copyright (C) %i TU Dresden, Center for Information Services and High Performance Computing\n\n",COPYRIGHT_YEAR);
@@ -401,10 +403,10 @@ $TEMPLATE main_win64_c.main_function_info(dest,architectures,templates)
     }
     else{
       do {
-        usleep(load_time);
-        LOAD_VAR=LOAD_LOW;
-        usleep(idle_time);
-        LOAD_VAR=LOAD_HIGH;
+        Sleep(load_time);
+        if (LOAD_VAR != LOAD_STOP) LOAD_VAR=LOAD_LOW;
+        Sleep(idle_time);
+        if (LOAD_VAR != LOAD_STOP) LOAD_VAR=LOAD_HIGH;
 
         gettimeofday(&ts,NULL);
         end_time=ts.tv_sec*1000000+ts.tv_usec; 
@@ -425,10 +427,10 @@ $TEMPLATE main_win64_c.main_function_info(dest,architectures,templates)
     else
     {
       while (1) {
-        usleep(load_time);
-        LOAD_VAR=LOAD_LOW;
-        usleep(idle_time);
-        LOAD_VAR=LOAD_HIGH;
+        Sleep(load_time);
+        if (LOAD_VAR != LOAD_STOP) LOAD_VAR=LOAD_LOW;
+        Sleep(idle_time);
+        if (LOAD_VAR != LOAD_STOP) LOAD_VAR=LOAD_HIGH;
       }
     }
   }
@@ -446,7 +448,11 @@ BOOL WINAPI ConsoleHandler(DWORD type)
 
   switch(type) {
      case CTRL_C_EVENT:
-        LOAD_VAR=LOAD_STOP;
+        do {
+         LOAD_VAR=LOAD_STOP;
+         Sleep(10);
+        }
+        while (LOAD_VAR!=LOAD_STOP); // catch unlikely case that master thread changes the LOAD_VAR back to LOAD_LOW or LOAD_HIGH (interupt directly after "if (LOAD_VAR != LOAD_STOP)" is evaluated)
         gettimeofday(&ts,NULL);
         end_time=ts.tv_sec*1000000+ts.tv_usec; 
         for (i=0;i<nr_threads;i++){
