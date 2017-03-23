@@ -41,8 +41,13 @@ def init_functions(file,architectures):
                     file.write("    unsigned long long addrMem = threaddata->addrMem;\n")
                     file.write("    int i;\n")
                     file.write("\n")
-                    buffersize = (l1_size+l2_size+l3_size+ram_size) // 8
-                    file.write("    for (i = 0; i<"+str(buffersize)+"; i++) ((double*)addrMem)[i] = i * 1.654738925401e-15;\n")
+# old version: one large loop that initializes indivisual elements
+#                    buffersize = (l1_size+l2_size+l3_size+ram_size) // 8
+#                    file.write("    for (i = 0; i<"+str(buffersize)+"; i++) ((double*)addrMem)[i] = i * 1.654738925401e-15;\n")
+                    buffersize = (l1_size+l2_size+l3_size+ram_size)
+                    file.write("    for (i = 0; i < INIT_BLOCKSIZE; i+=8) *((double*)(addrMem+i)) = i * 1.654738925401e-10;\n")
+                    file.write("    for (i = INIT_BLOCKSIZE; i <= "+str(buffersize)+" - INIT_BLOCKSIZE; i+= INIT_BLOCKSIZE) memcpy((void*)(addrMem+i),(void*)(addrMem+i-INIT_BLOCKSIZE),INIT_BLOCKSIZE);\n")
+                    file.write("    for (; i <= "+str(buffersize)+"-8; i+=8) *((double*)(addrMem+i)) = i * 1.654738925401e-15;\n")
                     file.write("\n")
                     flops_total=0
                     bytes_total=0

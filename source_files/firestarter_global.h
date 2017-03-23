@@ -66,6 +66,8 @@ $MAC
 #define LOAD_HIGH          1 /* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
 #define LOAD_STOP          2
 
+#define INIT_BLOCKSIZE  8192
+
 /*
  * watchdog timer
  */
