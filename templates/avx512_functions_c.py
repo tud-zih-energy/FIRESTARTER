@@ -266,7 +266,7 @@ def work_functions(file,architectures,version):
                                     l1_offset = 0
                                     d3_inst  = 'mov %%'+pointer_reg+', %%'+l1_addr+';'
                                 comment   = '// L1 store'
-                            elif item == 'L1_LS': 
+                            elif item == 'L1_LS':
                                 d0_inst   = 'vmovapd %%zmm'+str(add_dest)+', 64(%%'+l1_addr+');'
                                 d1_inst   = 'vfmadd231pd 128(%%'+l1_addr+'), %%zmm0, %%zmm'+str(add_dest)+';'
                                 l1_offset = l1_offset + each.cl_size
@@ -388,8 +388,7 @@ def work_functions(file,architectures,version):
                         file.write("        \"_work_no_L3_reset_"+func_name+":\"\n")
                     file.write("        \"mov %%"+pointer_reg+", %%"+l1_addr+";\"\n")
                     #file.write("        \"mfence;\"\n")
-                    file.write("        \"testq $1, (%%"+addrHigh_reg+");\"\n")
-                    file.write("        \"jnz _work_loop_"+func_name+";\"\n")
+                    util.termination_condition(file, addrHigh_reg, func_name)
                     file.write("        \"movq %%"+iter_reg+", %%rax;\" // restore iteration counter\n")
                     file.write("        : \"=a\" (threaddata->iterations)\n")
                     file.write("        : \"a\"(threaddata->addrMem), \"b\"(threaddata->addrHigh), \"c\" (threaddata->iterations)\n")
@@ -397,4 +396,3 @@ def work_functions(file,architectures,version):
                     file.write("        );\n")
                     file.write("    return EXIT_SUCCESS;\n")
                     file.write("}\n")
-

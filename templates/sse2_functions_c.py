@@ -234,7 +234,7 @@ def work_functions(file,architectures,version):
                     l1_offset = 0
                     dir = 0
                     for i in range(0,util.repeat(sequence,lines)):
-                        for item in sequence: 
+                        for item in sequence:
                             # D2 identical for all cases, handeld after the individual cases
                             if item == 'REG':
                                 d0_inst   = 'addpd %%xmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%xmm'+str(add_dest)+';'
@@ -380,8 +380,7 @@ def work_functions(file,architectures,version):
                     file.write("        \"inc %%"+iter_reg+";\" // increment iteration counter\n")
                     file.write("        \"mov %%"+pointer_reg+", %%"+l1_addr+";\"\n")
                     #file.write("        \"mfence;\"\n")
-                    file.write("        \"testq $1, (%%"+addrHigh_reg+");\"\n")
-                    file.write("        \"jnz _work_loop_"+func_name+";\"\n")
+                    util.termination_condition(file, addrHigh_reg, func_name)
                     file.write("        \"movq %%"+iter_reg+", %%rax;\" // restore iteration counter\n")
                     file.write("        : \"=a\" (threaddata->iterations)\n")
                     file.write("        : \"a\"(threaddata->addrMem), \"b\"(threaddata->addrHigh), \"c\" (threaddata->iterations)\n")
@@ -389,4 +388,3 @@ def work_functions(file,architectures,version):
                     file.write("        );\n")
                     file.write("    return EXIT_SUCCESS;\n")
                     file.write("}\n")
-

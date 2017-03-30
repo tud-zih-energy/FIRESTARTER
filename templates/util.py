@@ -17,7 +17,7 @@ def l1_seq_count(sequence):
         if item[:2] == 'L1':
             count+=1
     return count
-        
+
 def l2_seq_count(sequence):
     count = 0
     for item in sequence:
@@ -81,3 +81,8 @@ def l3_accesses(arch,threads,sequence):
 def ram_accesses(arch,threads,sequence):
     return int(ram_loop_count(arch,threads,sequence)*(repeat(sequence, arch.lines // int(threads)) * ram_seq_count(sequence)))
 
+
+def termination_condition(file, addr_high_reg, func_name):
+    file.write("        \"sub $1, %%" + addr_high_reg + ";\"\n")
+    # file.write("        \"testq $1, (%%" + addr_high_reg + ");\"\n")
+    file.write("        \"jnz _work_loop_"+func_name+";\"\n")

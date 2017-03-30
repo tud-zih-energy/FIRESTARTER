@@ -239,9 +239,9 @@ def work_functions(file,architectures,version):
                     mov_src = mov_dst+1
                     l1_offset = 0
                     for i in range(0,util.repeat(sequence,lines)):
-                        for item in sequence: 
+                        for item in sequence:
                             ## D2 identical for all cases except L1_2LS_256 and L2_2LS_256, handeld after the individual cases
-                            if item == 'REG': 
+                            if item == 'REG':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%ymm0, %%ymm'+str(add_dest)+';'
                                 d1_inst   = 'vfmadd231pd %%ymm'+str(add_start+(add_dest-add_start+add_regs+2)%add_regs)+', %%ymm1, %%ymm'+str(mov_dst)+';'
                                 d3_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
@@ -277,7 +277,7 @@ def work_functions(file,architectures,version):
                                     l1_offset = 0
                                     d3_inst  = 'mov %%'+pointer_reg+', %%'+l1_addr+';'
                                 comment   = '// L1 store'
-                            elif item == 'L1_LS': 
+                            elif item == 'L1_LS':
                                 d0_inst   = 'vmovapd %%xmm'+str(add_dest)+', 64(%%'+l1_addr+');'
                                 d1_inst   = 'vfmadd231pd 32(%%'+l1_addr+'), %%ymm0, %%ymm'+str(add_dest)+';'
                                 l1_offset = l1_offset + each.cl_size
@@ -334,7 +334,7 @@ def work_functions(file,architectures,version):
                                 d2_inst   = 'vmovapd %%ymm'+str(add_dest)+', 32(%%'+l2_addr+');'
                                 d3_inst   = 'add $'+str(2*each.cl_size)+', %%'+l2_addr+';'
                                 comment   = '// L2 load, L2 store'
-                            elif item == 'L3_L':        
+                            elif item == 'L3_L':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%ymm0, %%ymm'+str(add_dest)+';'
                                 d1_inst   = 'vfmadd231pd 64(%%'+l3_addr+'), %%ymm1, %%ymm'+str(add_dest)+';'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
@@ -437,8 +437,7 @@ def work_functions(file,architectures,version):
                         file.write("        \"_work_no_L3_reset_"+func_name+":\"\n")
                     file.write("        \"mov %%"+pointer_reg+", %%"+l1_addr+";\"\n")
                     #file.write("        \"mfence;\"\n")
-                    file.write("        \"testq $1, (%%"+addrHigh_reg+");\"\n")
-                    file.write("        \"jnz _work_loop_"+func_name+";\"\n")
+                    util.termination_condition(file, addrHigh_reg, func_name)
                     file.write("        \"movq %%"+iter_reg+", %%rax;\" // restore iteration counter\n")
                     file.write("        : \"=a\" (threaddata->iterations)\n")
                     file.write("        : \"a\"(threaddata->addrMem), \"b\"(threaddata->addrHigh), \"c\" (threaddata->iterations)\n")
@@ -446,4 +445,3 @@ def work_functions(file,architectures,version):
                     file.write("        );\n")
                     file.write("    return EXIT_SUCCESS;\n")
                     file.write("}\n")
-
