@@ -30,14 +30,14 @@ except ImportError:
 from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c
 
 def usage():
-    print("code-generator.py generates source code of FIRESTARTER") 
+    print("code-generator.py generates source code of FIRESTARTER")
     print("optional arguments:")
     print("-h|--help            print usage information")
     print("-v|--verbose         enable debug output")
     print("-c|--enable-cuda     enable CUDA support")
     print("-m|--enable-mac      enable Mac O/S support")
     print("-w|--enable-win      enable windows support")
-    print("If one of the --enable-* arguments is used it overrides all the feature") 
+    print("If one of the --enable-* arguments is used it overrides all the feature")
     print("selections in the config file, i.e., if one feature is added on the command line,")
     print("features that are enabled by default have to be added to the command as well.")
 
@@ -95,7 +95,7 @@ cfg.readfp(open(dirname+'config.cfg'))
 
 for each in cfg.sections():
     if each == "VERSION":
-        version = version(each) 
+        version = version(each)
         version.major = cfg.get(version.name,'major').strip()
         version.minor = cfg.get(version.name,'minor').strip()
         version.info = cfg.get(version.name,'info').strip()
@@ -116,7 +116,7 @@ for each in cfg.sections():
                 version.enable_win64 = 1
             if features[2] == True:
                 version.enable_mac = 1
-        if version.enable_cuda: 
+        if version.enable_cuda:
             version.targets = version.targets+' cuda'
         if version.enable_win64:
             version.targets = version.targets+' win64'
@@ -224,7 +224,7 @@ for file in files:
     infile = dirname+file
     outfile = outdir+file.replace("source_files/","")
     source = open (infile, 'r')
-    dest = open (outfile, 'w') 
+    dest = open (outfile, 'w')
     lines = source.readlines()
     for line in lines:
         # copy lines that do not need modification to destination file
@@ -237,41 +237,43 @@ for file in files:
         # - conditions can be in arbitrary order
         # - for templates (and tabs) the syntax is: [conditions] $TEMPLATE (or $TAB) command
         else:
-            while (line.find("$",0,1) == 0): 
+            while (line.find("$",0,1) == 0):
                 # remove comments
                 if (line.find("$$") == 0):
                     line = ""
                 # conditions for optional features
-                if (line.find("$CUDA") == 0):
+                elif (line.find("$CUDA") == 0):
                     if version.enable_cuda == 1:
                         line = line.replace("$CUDA ","").replace("$CUDA","")
                     else:
                         line = ""
-                if (line.find("$WIN64") == 0): 
+                elif (line.find("$WIN64") == 0):
                     if version.enable_win64 == 1:
                         line = line.replace("$WIN64 ","").replace("$WIN64","")
                     else:
                         line = ""
-                if (line.find("$MAC") == 0):
+                elif (line.find("$MAC") == 0):
                     if version.enable_mac == 1:
                         line = line.replace("$MAC ","").replace("$MAC","")
                     else:
                         line = ""
                 # special condition for Makefiles with multiple targets (at least one option with an extra make target is enabled)
-                if (line.find("$ALL") == 0):
+                elif (line.find("$ALL") == 0):
                     if version.targets is not 'linux':
                         line = line.replace("$ALL ","").replace("$ALL","")
                     else:
                         line = ""
                 # expand tabs in Makefile
-                if (line.find("$TAB") == 0):
+                elif (line.find("$TAB") == 0):
                     line = line.replace("$TAB ","\t").replace("$TAB","\t")
                 # process templates in source files
-                if (line.find("$TEMPLATE") == 0):
+                elif (line.find("$TEMPLATE") == 0):
                     command = line.replace("$TEMPLATE ","")
                     exec(command)
                     line = ""
+                else:
+                    raise ValueError("The following line can't be parsed: {}".format(line))
+
             dest.write(line)
     source.close()
     dest.close()
-
