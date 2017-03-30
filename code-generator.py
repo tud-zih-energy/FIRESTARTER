@@ -27,7 +27,7 @@ except ImportError:
     from ConfigParser import ConfigParser
 
 # import templates
-from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c
+from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c, lib_main_c
 
 def usage():
     print("code-generator.py generates source code of FIRESTARTER")
@@ -186,12 +186,13 @@ for each in templates:
     # add source files to list of files and import the corresponding templates
     files.append('source_files/'+each.file+".c")
     globals()[each.file+"_c"] = importlib.import_module("templates."+each.file+"_c")
-        
+
 # list of files to generate besides the special assembler files from above
 # new files have to be added here. Furthermore, if the files use templates, the
 # respective modules have to be imported from the templates directory (see line 25/26)
 files.append('source_files/cpu.h')
 files.append('source_files/firestarter_global.h')
+files.append('source_files/firestarter.h')
 files.append('source_files/generic.c')
 files.append('source_files/help.c')
 files.append('source_files/help.h')
@@ -205,6 +206,7 @@ files.append('source_files/watchdog.h')
 files.append('source_files/work.c')
 files.append('source_files/work.h')
 files.append('source_files/x86.c')
+files.append('source_files/lib_main.c')
 
 # add GPU files if CUDA support is enabled
 if version.enable_cuda == 1:
