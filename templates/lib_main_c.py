@@ -61,5 +61,5 @@ def evaluate_environment_set_buffersize(file, architectures):
                 mem_size = int(each.l1_size) // int(threads) * 2 + int(each.l2_size) // int(threads) + int(each.l3_size) // int(threads) + int(each.ram_size) // int(threads)
                 func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'T'
                 file.write("    case "+func_name.upper()+":\n")
-                file.write("        return {} + 64 + 2 * sizeof(unsigned long long)\n".format(mem_size))
+                file.write("        return {} + 64 + 2 * sizeof(unsigned long long);\n".format(mem_size))
                 file.write("        break;\n")
