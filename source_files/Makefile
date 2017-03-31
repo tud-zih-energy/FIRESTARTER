@@ -67,8 +67,8 @@ $CUDA
 $WIN64 FIRESTARTER_win64.exe: main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN}
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -o FIRESTARTER_win64.exe main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN} ${WIN64_L_FLAGS}
 $WIN64
-libfirestarter.a: init_functions.o generic.o lib_main.o ${ASM_FUNCTION_OBJ_FILES}
-$TAB ar rcs libfirestarter.a init_functions.o generic.o lib_main.o ${ASM_FUNCTION_OBJ_FILES}
+libfirestarter.a: init_functions.o generic.o x86.o lib_main.o ${ASM_FUNCTION_OBJ_FILES}
+$TAB ar rcs libfirestarter.a init_functions.o generic.o x86.o lib_main.o ${ASM_FUNCTION_OBJ_FILES}
 
 lib_main.o: lib_main.c firestarter.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c lib_main.c
