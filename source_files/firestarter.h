@@ -26,6 +26,9 @@ typedef int (*kernel_function_t)(threaddata_t* threaddata);
 typedef int base_function_t;
 
 base_function_t select_base_function();
+
 kernel_function_t get_working_function(base_function_t base_function, int num_threads);
-size_t get_memory_size(base_function_t base_function);
+
+size_t get_memory_size(base_function_t base_function, int num_threads);
+
 init_function_t get_init_function(base_function_t base_function, int num_threads);
