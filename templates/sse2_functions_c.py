@@ -143,7 +143,7 @@ def work_functions(file,architectures,version):
                     file.write("int asm_work_"+func_name+"(threaddata_t* threaddata) __attribute__((noinline));\n")
                     file.write("int asm_work_"+func_name+"(threaddata_t* threaddata)\n")
                     file.write("{\n")
-                    file.write("    if (threaddata->addrHigh) == 0) return EXIT_SUCCESS;\n")
+                    file.write("    if (threaddata->addrHigh == 0) return EXIT_SUCCESS;\n")
                     file.write("        /* input: \n")
                     file.write("         *   - threaddata->addrMem    -> rax\n")
                     file.write("         *   - threaddata->addrHigh   -> rbx\n")
