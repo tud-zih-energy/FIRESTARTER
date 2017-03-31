@@ -19,6 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter_global.h"
+
 typedef int (*init_function_t)(threaddata_t* threaddata);
 typedef int (*kernel_function_t)(threaddata_t* threaddata);
 typedef int base_function_t;
