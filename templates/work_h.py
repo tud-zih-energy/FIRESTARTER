@@ -23,10 +23,13 @@ def function_definitions(file,architectures):
     id = 1
     for each in architectures:
         for isa in each.isa:
+            def_name = "FUNC_{}_{}_{}".format(each.arch, each.model, isa)
+            file.write("#define {} {}\n".format(def_name.upper().ljust(30), id << 16))
+
             for threads in each.threads:
                 def_name = "FUNC_{}_{}_{}_{}T".format(each.arch, each.model, isa, threads)
-                file.write("#define {} {}\n".format(def_name.upper().ljust(30), id))
-                id = id + 1
+                file.write("#define {} {}\n".format(def_name.upper().ljust(30), (id << 16) + int(threads)))
+            id = id + 1
 
 def init_functions(file,architectures):
     for each in architectures:
