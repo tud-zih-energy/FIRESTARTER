@@ -300,7 +300,7 @@ def work_functions(file,architectures,version):
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+ram_addr+';'
                                 comment   = '// RAM prefetch'
                             else:
-                                print("Error: instruction group \""+each.instr_groups[i]+"\" undefined in "+isa+"_functions_c.work_functions")
+                                print("Error: instruction group \""+item+"\" undefined in "+isa+"_functions_c.work_functions")
                                 sys.exit(2)
                             # setup D2, which is identical for all cases
                             if left == 1:
