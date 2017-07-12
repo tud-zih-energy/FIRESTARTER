@@ -34,8 +34,7 @@
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError() __cudaCheckError( __FILE__, __LINE__ )
 
-void *A,*B;
-static unsigned int size,useDouble,useDevice,verbose; //matrixsize,switch for double precision and numbers of GPUs to use.
+static unsigned int globsize,useDouble,useDevice,verbose; //matrixsize,switch for double precision and numbers of GPUs to use.
 gpustruct * gpuvar=NULL;
 
 //CUDA Error Checking
@@ -52,6 +51,22 @@ inline void __cudaSafeCall( cudaError_t err, const char *file, const int line )
 
     return;
 }
+
+int roundUp(int numToRound, int multiple)  
+{  
+ if(multiple == 0)  
+ {  
+  return numToRound;  
+ }  
+
+ int remainder = numToRound % multiple; 
+ if (remainder == 0)
+  {
+    return numToRound; 
+  }
+
+ return numToRound + multiple - remainder; 
+} 
 
 int ipow(int base,int exp) {
     int result = 1;
@@ -75,12 +90,40 @@ int bbs(void) {
     return s;
 }
 
+void* fillup(void* array, int useD, int size) {
+    int i;
+    if(useD) {
+        double frac;
+        double *dbl=(double*)array;
+        dbl = malloc(sizeof(double)*size*size);
+        for (i=0; i<size*size; i++) {
+            if(i % 128 == 0) {
+                frac = (double) bbs() / 10000;
+                dbl[i]=(double) bbs() + frac;
+            }
+        }
+    } else {
+        float frac;
+        float *flt = (float*)array;
+        flt = malloc(sizeof(float)*size*size);
+        for (i=0; i<size*size; i++) {
+            if(i % 128 == 0) {
+                frac = (float) bbs() / 10000;
+                flt[i]=(float) bbs() + frac;
+            }
+        }
+    }
+    return array;
+}
 void* startBurn(void *index) {
     int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int d_iters,i;
     int pthread_useDouble = useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
-    unsigned int size_use=size;        //local per-thread variable, if there's a GPU in the system with a smaller memory
-
+    int size_use=0;
+    if (globsize>0){
+        size_use=globsize;
+    }
+    void *A,*B;
     CUcontext d_ctx;
     size_t useBytes, d_resultSize;
     struct cudaDeviceProp properties;
@@ -109,9 +152,9 @@ void* startBurn(void *index) {
     fprintf(stderr,"    - GPU %d: %s Stressing with single precision instead. Maybe use -f parameter.\n",d_devIndex,properties.name);
     pthread_useDouble=0;
     }
-    //check if the Matrices aren't too big for the GPU, and resizing the Matrices if the GPU has not that much memory
-    if(((size_use*size_use)*(12*(pthread_useDouble+1)))>availMemory) {
-        size_use=sqrt((availMemory/(12*(pthread_useDouble+1))))-10;
+    //check if the user has not set a matrix OR has set a too big matrixsite and if this is true: set a good matrixsize
+    if(!size_use || (((size_use*size_use)*(12*(pthread_useDouble+1)))>availMemory)){
+        size_use=roundUp((int)(0.8*sqrt(((availMemory)/(12*(pthread_useDouble+1))))),1024); //a multiple of 1024 works always well
     }
     if(pthread_useDouble) {
         useBytes = (size_t)((double)availMemory);
@@ -122,6 +165,8 @@ void* startBurn(void *index) {
     }
     d_iters = (useBytes - 2*d_resultSize)/d_resultSize;
     //Allocating memory on the GPU
+    A=fillup(A,pthread_useDouble,size_use);
+    B=fillup(B,pthread_useDouble,size_use);
     CudaSafeCall(cuMemAlloc(&d_Adata, d_resultSize));
     CudaSafeCall(cuMemAlloc(&d_Bdata, d_resultSize));
     CudaSafeCall(cuMemAlloc(&d_Cdata, d_iters*d_resultSize));
@@ -162,39 +207,25 @@ void* startBurn(void *index) {
     return NULL;
 }
 
-
-void* fillup(void* array) {
-    int i;
-    if(useDouble) {
-        double frac;
-        double *dbl=(double*)array;
-        dbl = malloc(sizeof(double)*size*size);
-        for (i=0; i<size*size; i++) {
-            if(i % 128 == 0) {
-                frac = (double) bbs() / 10000;
-                dbl[i]=(double) bbs() + frac;
-            }
-        }
-    } else {
-        float frac;
-        float *flt = (float*)array;
-        flt = malloc(sizeof(float)*size*size);
-        for (i=0; i<size*size; i++) {
-            if(i % 128 == 0) {
-                frac = (float) bbs() / 10000;
-                flt[i]=(float) bbs() + frac;
-            }
-        }
-    }
-    return array;
-}
-
+#ifdef CUDA_ONLY
+int main(int argc, char ** argv){
+    gpustruct * gpu = malloc(sizeof(gpustruct));
+    gpu->useDevice=-1;
+    gpu->useDouble=1;
+    gpu->msize=0;
+    gpu->verbose=1;
+    gpu->loadingdone=1;
+#endif
+#ifdef CUDA
 void* initgpu(void *gpu) {
+#endif
     gpuvar=(gpustruct*)gpu;
-    useDouble = gpuvar->useDouble;  //setting the switch for double precision (or not)
     useDevice = gpuvar->useDevice;  //how many GPUs to use
-    size      = gpuvar->msize;      //setting the matrixsize...
     verbose   = gpuvar->verbose;    //Verbosity
+    if(gpuvar->msize>0)
+    {
+        globsize=gpuvar->msize;
+    }
     if(useDevice) {
         CudaSafeCall(cuInit(0));
         int devCount;
@@ -202,8 +233,6 @@ void* initgpu(void *gpu) {
         if (devCount) {
             int *dev=malloc(sizeof(int)*devCount);;
             pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the System.
-            fillup(A);
-            fillup(B);
             if(verbose) printf("\n  graphics processor characteristics:\n");
             int i;
             if(useDevice==-1 || useDevice>=devCount) { //use all GPUs if the user gave no information about useDevice or too many GPUs.
@@ -215,8 +244,6 @@ void* initgpu(void *gpu) {
             }
             pthread_join(gputhreads[0],NULL);
             free(dev);
-            free(A);
-            free(B);
         }
         else {
             if(verbose) printf("    - No CUDA devices. Just stressing CPU(s) Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
@@ -225,6 +252,10 @@ void* initgpu(void *gpu) {
     else {
       if(verbose) printf("    - gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
     }
+#ifdef CUDA
     return NULL;
+#endif
+#ifdef CUDA_ONLY
+    return 0;
+#endif
 }
-
