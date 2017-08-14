@@ -30,7 +30,7 @@ before_build:
 
     cd build
 
-    python ../code-generator.py --enable-win64
+    python ../code-generator.py --enable-win
 
 build_script:
 - cmd: >-
