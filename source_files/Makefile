@@ -45,7 +45,10 @@ $WIN64 WIN64_L_FLAGS=-static
 $WIN64 
 # targets
 
-default: linux
+default: version linux
+
+version:
+  LINUX_CC --version
 
 linux: FIRESTARTER
 
