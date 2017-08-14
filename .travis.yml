@@ -24,6 +24,7 @@ matrix:
           packages:
             - gcc-6
             - g++-6
+            - nvidia-cuda-dev
           sources: *sources
 before_script:
   - mkdir -p build
