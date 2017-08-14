@@ -32,10 +32,6 @@ before_build:
 
     python ../code-generator.py --enable-win
 
-    copy c:\MinGW\bin\mingw32-make.exe c:\MinGW\bin\make.exe
-
-    set PATH="%PATH%;c:\MinGW\bin"
-    
 build_script:
 - cmd: >-
-    make all
+    c:\MinGW\bin\mingw32-make.exe all
