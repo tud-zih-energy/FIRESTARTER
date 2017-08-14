@@ -16,6 +16,15 @@ matrix:
             - nvidia-cuda-dev
           sources: &sources
             - ubuntu-toolchain-r-test
+    - os: linux
+      env: CXX="g++-6" CC="gcc-6"
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
+          sources: *sources
 before_script:
   - mkdir -p build
   - cd build 
