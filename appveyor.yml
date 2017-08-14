@@ -34,6 +34,8 @@ before_build:
 
     copy c:\MinGW\bin\mingw32-make.exe c:\MinGW\bin\make.exe
 
+    set PATH="%PATH%;c:\MinGW\bin"
+    
 build_script:
 - cmd: >-
     make all
