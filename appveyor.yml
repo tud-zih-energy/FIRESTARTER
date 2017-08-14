@@ -34,4 +34,4 @@ before_build:
 
 build_script:
 - cmd: >-
-    c:\MinGW\bin\mingw32-make.exe all
+    c:\MinGW\bin\mingw32-make.exe win64
