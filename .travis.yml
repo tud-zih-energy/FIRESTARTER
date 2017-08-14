@@ -30,5 +30,4 @@ before_script:
   - cd build
   - ../code-generator.py --enable-cuda
 script:
-  - cd build
-  - make
+  - make all
