@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/tud-zih-energy/FIRESTARTER.svg?branch=master)](https://travis-ci.org/tud-zih-energy/FIRESTARTER)
+[![Build status](https://ci.appveyor.com/api/projects/status/oon43fcq6ulee503/branch/master?svg=true)](https://ci.appveyor.com/project/bmario/firestarter/branch/master)
+
 
 # FIRESTARTER - A Processor Stress Test Utility
 
