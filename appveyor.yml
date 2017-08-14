@@ -33,4 +33,5 @@ before_build:
 
 build_script:
 - cmd: >-
-    WIN64_CC=c:\MinGW\binx86_64-w64-mingw32-gcc.exe c:\MinGW\bin\mingw32-make.exe win64
+    set WIN64_CC=c:\MinGW\bin\x86_64-w64-mingw32-gcc.exe
+    c:\MinGW\bin\mingw32-make.exe win64
