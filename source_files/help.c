@@ -45,19 +45,27 @@ $CUDA #endif
            " -a         | --avail            list available functions\n"
            " -i ID      | --function=ID      specify integer ID of the load-function to be\n"
            "                                 used (as listed by --avail)\n"
+$CUDA #ifdef CUDA
 $CUDA            " -f         | --usegpufloat      use single precision matrix multiplications instead of double\n"
 $CUDA            " -g         | --gpus             number of gpus to use (default: all)\n"
 $CUDA            " -m         | --matrixsize       size of the matrix to calculate (default: 12288)\n"
+$CUDA #endif
            " -t TIMEOUT | --timeout=TIMEOUT  set timeout (seconds) after which FIRESTARTER\n"
            "                                 terminates itself, default: no timeout\n"
-           " -l LOAD    | --load=LOAD        set the percentage of high load to LOAD (%%),\n"
+           " -l LOAD    | --load=LOAD        set the percentage of high CPU load to LOAD (%%),\n"
            "                                 default 100, valid values: 0 <= LOAD <= 100,\n"
            "                                 threads will be idle in the remaining time,\n"
            "                                 frequency of load changes is determined by -p\n"
-           " -p PERIOD  | --period=PERIOD    set the interval length to PERIOD (usec),\n"
+$CUDA #ifdef CUDA
+$CUDA            "            |                    This option does NOT influence the GPU workload!\n"
+$CUDA #endif
+           " -p PERIOD  | --period=PERIOD    set the interval length for CPUs to PERIOD (usec),\n"
            "                                 default: 100000, each interval contains a high\n"
            "                                 load and an idle phase, the percentage of \n"
            "                                 high load is defined by -l\n"
+$CUDA #ifdef CUDA
+$CUDA            "            |                    This option does NOT influence the GPU workload!\n"
+$CUDA #endif
            " -n COUNT   | --threads=COUNT    specify the number of threads\n"
            "                                 cannot be combined with -b | --bind, which\n"
            "                                 implicitly specifies the number of threads\n"
@@ -72,9 +80,15 @@ $CUDA            " -m         | --matrixsize       size of the matrix to calcula
            "./FIRESTARTER                    - starts FIRESTARTER without timeout\n"
            "./FIRESTARTER -t 300             - starts a 5 minute run of FIRESTARTER\n"
            "./FIRESTARTER -l 50 -t 600       - starts a 10 minute run of FIRESTARTER with\n"
+$CUDA #ifdef CUDA
+$CUDA      "                                   50%% high load and 50%% idle time on CPUs and full load on GPUs\n"
+$CUDA      "./FIRESTARTER -l 75 -p 20000000  - starts FIRESTARTER with an interval length\n"
+$CUDA      "                                   of 2 sec, 1.5s high load and 0.5s idle on CPUs and full load on GPUs\n"
+$CUDA #else
            "                                   50%% high load and 50%% idle time\n"
            "./FIRESTARTER -l 75 -p 20000000  - starts FIRESTARTER with an interval length\n"
            "                                   of 2 sec, 1.5s high load and 0.5s idle\n"
+$CUDA #endif
            "\n");
 }
 
