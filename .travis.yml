@@ -6,7 +6,7 @@ dist: trusty
 matrix:
   include:
     - os: linux
-      env: CXX="g++-7" CC="gcc-7"
+      env: LINUX_CC="gcc-7"
       compiler: gcc
       addons:
         apt:
@@ -17,7 +17,7 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
     - os: linux
-      env: CXX="g++-6" CC="gcc-6"
+      env: LINUX_CC="gcc-6"
       compiler: gcc
       addons:
         apt:
@@ -27,8 +27,8 @@ matrix:
           sources: *sources
 before_script:
   - mkdir -p build
-  - cd build 
+  - cd build
   - ../code-generator.py --enable-cuda
 script:
-  - cd build 
+  - cd build
   - make

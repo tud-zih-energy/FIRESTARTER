@@ -20,7 +20,7 @@
 ###############################################################################
 
 # linux compiler and flags
-CC?=gcc
+LINUX_CC?=gcc
 # tracing options (VampirTrace/Score-P):
 #CC=vtcc -vt:cc gcc -vt:inst manual -DVTRACE -DENABLE_VTRACING
 #CC=scorep --user --nocompiler gcc -DENABLE_SCOREP
@@ -48,7 +48,7 @@ $WIN64
 default: version linux
 
 version:
-$TAB ${CC} --version
+$TAB ${LINUX_CC} --version
 
 linux: FIRESTARTER
 
@@ -59,34 +59,34 @@ $WIN64
 $ALL $TEMPLATE Makefile.target_all(dest,version.targets)
 $ALL
 FIRESTARTER: generic.o x86.o main.o init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES}
-$TAB ${CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES} ${LINUX_L_FLAGS}
+$TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES} ${LINUX_L_FLAGS}
 
 $CUDA FIRESTARTER_CUDA: generic.o  x86.o work.o init_functions.o x86.o watchdog.o gpu.o main_cuda.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES}
-$CUDA $TAB ${CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
+$CUDA $TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}
 $CUDA
 $WIN64 FIRESTARTER_win64.exe: main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN}
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -o FIRESTARTER_win64.exe main_win64.o x86_win64.o init_functions_win64.o help_win64.o ${ASM_FUNCTION_OBJ_FILES_WIN} ${WIN64_L_FLAGS}
 $WIN64
 generic.o: generic.c cpu.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c generic.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c generic.c
 
 x86.o: x86.c cpu.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c x86.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c x86.c
 
 main.o: main.c work.h cpu.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c main.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c main.c
 
 init_functions.o: init_functions.c work.h cpu.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c init_functions.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c init_functions.c
 
 work.o: work.c work.h cpu.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c work.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c work.c
 
 watchdog.o: watchdog.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
 
 help.o: help.c help.h
-$TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
 
 $WIN64 main_win64.o: main_win64.c work.h cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c main_win64.c
@@ -101,13 +101,13 @@ $WIN64 help_win64.o: help.c help.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c help.c -o help_win64.o
 $WIN64
 $CUDA gpu.o: gpu.c gpu.h
-$CUDA $TAB ${CC} ${OPT_STD} ${LINUX_CUDA_C_FLAGS} -c gpu.c
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_CUDA_C_FLAGS} -c gpu.c
 $CUDA
 $CUDA main_cuda.o: main.c work.h cpu.h
-$CUDA $TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -o main_cuda.o -c main.c -DCUDA
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o main_cuda.o -c main.c -DCUDA
 $CUDA
 $CUDA help_cuda.o: help.c help.h
-$CUDA $TAB ${CC} ${OPT_STD} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
+$CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
 $CUDA
 $TEMPLATE Makefile.template_rules(dest,templates,version)
 clean:
