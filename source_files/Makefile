@@ -20,10 +20,10 @@
 ###############################################################################
 
 # linux compiler and flags
-LINUX_CC=gcc
+LINUX_CC?=gcc
 # tracing options (VampirTrace/Score-P):
-#LINUX_CC=vtcc -vt:cc gcc -vt:inst manual -DVTRACE -DENABLE_VTRACING
-#LINUX_CC=scorep --user --nocompiler gcc -DENABLE_SCOREP
+#CC=vtcc -vt:cc gcc -vt:inst manual -DVTRACE -DENABLE_VTRACING
+#CC=scorep --user --nocompiler gcc -DENABLE_SCOREP
 
 LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=c99 -I. -DAFFINITY
 OPT_STD=-O2
@@ -42,10 +42,13 @@ $WIN64 # windows compiler and flags
 $WIN64 WIN64_CC=x86_64-w64-mingw32-gcc
 $WIN64 WIN64_C_FLAGS=-Wall -std=c99
 $WIN64 WIN64_L_FLAGS=-static
-$WIN64 
+$WIN64
 # targets
 
-default: linux
+default: version linux
+
+version:
+$TAB ${LINUX_CC} --version
 
 linux: FIRESTARTER
 
@@ -82,7 +85,7 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c work.c
 watchdog.o: watchdog.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
 
-help.o: help.c help.h 
+help.o: help.c help.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
 
 $WIN64 main_win64.o: main_win64.c work.h cpu.h
@@ -90,7 +93,7 @@ $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c main_win64.c
 $WIN64
 $WIN64 x86_win64.o: x86_win64.c cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c x86_win64.c
-$WIN64 
+$WIN64
 $WIN64 init_functions_win64.o: init_functions.c work.h cpu.h
 $WIN64 $TAB ${WIN64_CC} ${OPT_STD} ${WIN64_C_FLAGS} -c init_functions.c -o init_functions_win64.o
 $WIN64
@@ -103,7 +106,7 @@ $CUDA
 $CUDA main_cuda.o: main.c work.h cpu.h
 $CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o main_cuda.o -c main.c -DCUDA
 $CUDA
-$CUDA help_cuda.o: help.c help.h 
+$CUDA help_cuda.o: help.c help.h
 $CUDA $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -o help_cuda.o -c help.c -DCUDA
 $CUDA
 $TEMPLATE Makefile.template_rules(dest,templates,version)
@@ -113,4 +116,3 @@ $TAB rm -f *.o
 $TAB rm -f FIRESTARTER
 $CUDA $TAB rm -f FIRESTARTER_CUDA
 $WIN64 $TAB rm -f FIRESTARTER_win64.exe
-
