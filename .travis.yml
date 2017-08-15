@@ -1,0 +1,34 @@
+language: generic
+
+sudo: required
+dist: trusty
+
+matrix:
+  include:
+    - os: linux
+      env: LINUX_CC="gcc-7"
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+            - nvidia-cuda-dev
+          sources: &sources
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: LINUX_CC="gcc-6"
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
+            - nvidia-cuda-dev
+          sources: *sources
+before_script:
+  - mkdir -p build
+  - cd build
+  - ../code-generator.py --enable-cuda
+script:
+  - make all
