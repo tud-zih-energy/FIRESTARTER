@@ -241,11 +241,13 @@ void* initgpu(void *gpu) {
             free(B);
         }
         else {
-            if(verbose) printf("    - No CUDA devices. Just stressing CPU(s) Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+            if(verbose) printf("    - No CUDA devices. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+            gpuvar->loadingdone=1;
         }
     }
     else {
-      if(verbose) printf("    --gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+        if(verbose) printf("    --gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+        gpuvar->loadingdone=1;
     }
     return NULL;
 }
