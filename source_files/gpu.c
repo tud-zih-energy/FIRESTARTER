@@ -173,7 +173,7 @@ static void* fillup(void* array) {
         double frac;
         double *dbl=(double*)array;
         dbl = malloc(sizeof(double)*size*size);
-        if (flt == NULL)
+        if (dbl == NULL)
         {
             fprintf(stderr,"Could not allocate memory for GPU computation\n");
             exit(ENOMEM);
