@@ -20,23 +20,27 @@
  *****************************************************************************/
 
 #include <unistd.h>
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+
+#include <errno.h>
+#include <sys/types.h>
+
 #include <cuda.h>
 #include <cublas_v2.h>
 #include <cuda_runtime_api.h>
-#include <string.h>
+
 #include "gpu.h"
-#include <pthread.h>
 
 #define CUDA_ERROR_CHECK
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError() __cudaCheckError( __FILE__, __LINE__ )
 
-void *A,*B;
+static void *A,*B;
 static unsigned int size,useDouble,useDevice,verbose; //matrixsize,switch for double precision and numbers of GPUs to use.
-gpustruct * gpuvar=NULL;
+static gpustruct * gpuvar=NULL;
 
 //CUDA Error Checking
 inline void __cudaSafeCall( cudaError_t err, const char *file, const int line )
@@ -53,7 +57,7 @@ inline void __cudaSafeCall( cudaError_t err, const char *file, const int line )
     return;
 }
 
-int ipow(int base,int exp) {
+static int ipow(int base,int exp) {
     int result = 1;
     while (exp) {
         if (exp & 1) result *= base;
@@ -63,7 +67,7 @@ int ipow(int base,int exp) {
     return result;
 }
 
-int bbs(void) {
+static int bbs(void) {
     static int s;
     static int runned = 0;
     int n = 131*17;
@@ -75,7 +79,7 @@ int bbs(void) {
     return s;
 }
 
-void* startBurn(void *index) {
+static void* startBurn(void *index) {
     int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int d_iters,i;
     int pthread_useDouble = useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
@@ -163,12 +167,18 @@ void* startBurn(void *index) {
 }
 
 
-void* fillup(void* array) {
+static void* fillup(void* array) {
     int i;
     if(useDouble) {
         double frac;
         double *dbl=(double*)array;
         dbl = malloc(sizeof(double)*size*size);
+        if (flt == NULL)
+        {
+            fprintf(stderr,"Could not allocate memory for GPU computation\n");
+            exit(ENOMEM);
+        }
+
         for (i=0; i<size*size; i++) {
             if(i % 128 == 0) {
                 frac = (double) bbs() / 10000;
@@ -178,7 +188,14 @@ void* fillup(void* array) {
     } else {
         float frac;
         float *flt = (float*)array;
+
         flt = malloc(sizeof(float)*size*size);
+        if (flt == NULL)
+        {
+            fprintf(stderr,"Could not allocate memory for GPU computation\n");
+            exit(ENOMEM);
+        }
+
         for (i=0; i<size*size; i++) {
             if(i % 128 == 0) {
                 frac = (float) bbs() / 10000;
@@ -209,11 +226,16 @@ void* initgpu(void *gpu) {
             if(useDevice==-1 || useDevice>=devCount) { //use all GPUs if the user gave no information about useDevice or too many GPUs.
                 useDevice=devCount;
             }
-            for(i=1; i<=useDevice; i++) {
-                dev[i]=i-1; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
-                pthread_create(&gputhreads[dev[i]],NULL,startBurn,(void *)&(dev[i]));
+            for(i=0; i<useDevice; ++i) {
+                dev[i]=i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
+                pthread_create(&gputhreads[i],NULL,startBurn,(void *)&(dev[i]));
             }
-            pthread_join(gputhreads[0],NULL);
+
+            /* join computation threads */
+            for(i=0; i<useDevice; ++i) {
+                pthread_join(gputhreads[i],NULL);
+            }
+
             free(dev);
             free(A);
             free(B);
@@ -223,7 +245,7 @@ void* initgpu(void *gpu) {
         }
     }
     else {
-      if(verbose) printf("    - gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+      if(verbose) printf("    --gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
     }
     return NULL;
 }
