@@ -173,8 +173,7 @@ static void* fillup(void* array) {
         double frac;
         double *dbl=(double*)array;
         dbl = malloc(sizeof(double)*size*size);
-        if (dbl == NULL)
-        {
+        if (dbl == NULL) {
             fprintf(stderr,"Could not allocate memory for GPU computation\n");
             exit(ENOMEM);
         }
@@ -190,8 +189,7 @@ static void* fillup(void* array) {
         float *flt = (float*)array;
 
         flt = malloc(sizeof(float)*size*size);
-        if (flt == NULL)
-        {
+        if (flt == NULL) {
             fprintf(stderr,"Could not allocate memory for GPU computation\n");
             exit(ENOMEM);
         }
@@ -223,9 +221,15 @@ void* initgpu(void *gpu) {
             fillup(B);
             if(verbose) printf("\n  graphics processor characteristics:\n");
             int i;
-            if(useDevice==-1 || useDevice>=devCount) { //use all GPUs if the user gave no information about useDevice or too many GPUs.
+            if( useDevice==-1 ) { //use all GPUs if the user gave no information about useDevice 
                 useDevice=devCount;
             }
+            if ( useDevice >= devCount ) {
+                printf("    - You requested more CUDA devices than available. Maybe you set CUDA_VISIBLE_DEVICES?\n");
+                printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,useDevice);
+                useDevice=devCount;
+            }
+
             for(i=0; i<useDevice; ++i) {
                 dev[i]=i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
                 pthread_create(&gputhreads[i],NULL,startBurn,(void *)&(dev[i]));
@@ -246,7 +250,7 @@ void* initgpu(void *gpu) {
         }
     }
     else {
-        if(verbose) printf("    --gpus=0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
+        if(verbose) printf("    --gpus 0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
         gpuvar->loadingdone=1;
     }
     return NULL;
