@@ -224,7 +224,7 @@ void* initgpu(void *gpu) {
             if( useDevice==-1 ) { //use all GPUs if the user gave no information about useDevice 
                 useDevice=devCount;
             }
-            if ( useDevice >= devCount ) {
+            if ( useDevice > devCount ) {
                 printf("    - You requested more CUDA devices than available. Maybe you set CUDA_VISIBLE_DEVICES?\n");
                 printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,useDevice);
                 useDevice=devCount;
