@@ -22,7 +22,7 @@
 #ifndef __FIRESTARTER_GPU_H
 #define __FIRESTARTER_GPU_H
 void * initgpu(void*);
-void * startBurn(void *index);
+
 typedef struct{
       int msize;        //Matrixsize to calculate on the GPU. Different msizes create different workloads...
       int useDouble;    //If we want to use doubleprecision or not

@@ -67,10 +67,12 @@ Options:
                                 default 100, valid values: 0 <= LOAD <= 100,
                                 threads will be idle in the remaining time,
                                 frequency of load changes is determined by -p
+                                This option does NOT influence the GPU workload.
 -p PERIOD  | --period=PERIOD    set the interval length to PERIOD (us),
                                 default: 100, each interval contains a high
                                 load and an idle phase, the percentage of
                                 high load is defined by -l
+                                This option does NOT influence the GPU workload.
 -n COUNT   | --threads=COUNT    specify the number of threads
                                 cannot be combined with -b | --bind, which
                                 implicitly specifies the number of threads
@@ -89,9 +91,9 @@ Examples:
 ./FIRESTARTER                    - starts FIRESTARTER without timeout
 ./FIRESTARTER -t 300             - starts a 5 minute run of FIRESTARTER
 ./FIRESTARTER -l 50 -t 600       - starts a 10 minute run of FIRESTARTER with
-                                   50% high load and 50% idle time
+                                   50% high load and 50% idle time on CPUs and full load on GPUs
 ./FIRESTARTER -l 75 -p 2000000   - starts FIRESTARTER with an interval length
-                                   of 2 seconds, 1.5s high load and 0.5s idle
+                                   of 2 seconds, 1.5s high load and 0.5s idle on CPUs and full load on GPUs
 ###############################################################################
 Build from source:
 1) edit Makefile if necessary (compiler, flags)
