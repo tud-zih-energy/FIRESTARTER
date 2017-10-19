@@ -52,12 +52,7 @@ def WorkerThread_select_function(file,architectures,templates):
                     for threads in each.threads:
                         func_name = each.arch+'_'+each.model+'_'+isa+'_'+threads+'t'
                         file.write("    case FUNC_"+func_name.upper()+":\n")
-                        if (int(threads) == 1):
-                            file.write("      p =  _mm_malloc(13406208*8,4096);\n")
-                        if (int(threads) == 2):
-                            file.write("      p = _mm_malloc(6703104*8,4096);\n")
-                        if (int(threads) == 4):
-                            file.write("      p = _mm_malloc(3351552*8,4096);\n")
+                        file.write("      p =  _mm_malloc("+str( (each.l1_size+each.l2_size+each.l3_size+each.ram_size)//int(threads)+16 )+",4096);\n")
                         file.write("      data->addrMem = (unsigned long long) p;\n")
                         file.write("      init_"+func_name+"(data);\n")
                         file.write("      while(*((unsigned long long*)(data->addrHigh)) != LOAD_STOP){\n")

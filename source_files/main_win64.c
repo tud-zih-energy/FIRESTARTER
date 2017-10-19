@@ -34,7 +34,7 @@ unsigned long long clockrate;           /* measured clockrate (via TSC) */
 /*
  * load characteristics as defind by -p and -l
  */
-long PERIOD = 250000, LOAD = 100;
+long PERIOD = 100000, LOAD = 100;
 long load_time, idle_time;
 
 /* thread handling */
