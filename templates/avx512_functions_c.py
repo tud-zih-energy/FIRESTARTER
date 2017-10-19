@@ -61,6 +61,8 @@ def init_functions(file,architectures):
                             flops=32 # two 512 bit FMA operations
                         elif each.instr_groups[i] == 'L1_L':
                             flops=32 # two 512 bit FMA operations
+                        elif each.instr_groups[i] == 'L1_BROADCAST':
+                            flops=16 # one 512 bit FMA operation
                         elif each.instr_groups[i] == 'L1_S':
                             flops=16 # one 512 bit FMA operation
                         elif each.instr_groups[i] == 'L1_LS':
@@ -234,6 +236,16 @@ def work_functions(file,architectures,version):
                                 d3_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
                                 comment   = '// REG ops only'
                                 mov_dst = mov_dst +1
+                            elif item == 'L1_BROADCAST':
+                                d0_inst   = 'vfmadd231pd %%zmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%zmm0, %%zmm'+str(add_dest)+';'
+                                d1_inst   = 'vbroadcastsd 64(%%'+l1_addr+'), %%zmm'+str(add_dest)+';'
+                                l1_offset = l1_offset + each.cl_size
+                                if l1_offset < l1_size*each.l1_cover:
+                                    d3_inst  = 'add %%'+offset_reg+', %%'+l1_addr+';'
+                                else:
+                                    l1_offset = 0
+                                    d3_inst  = 'mov %%'+pointer_reg+', %%'+l1_addr+';'
+                                comment   = '// L1 packed single load'
                             elif item == 'L1_L':
                                 d0_inst   = 'vfmadd231pd %%zmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%zmm0, %%zmm'+str(add_dest)+';'
                                 d1_inst   = 'vfmadd231pd 64(%%'+l1_addr+'), %%zmm1, %%zmm'+str(add_dest)+';'
@@ -279,7 +291,27 @@ def work_functions(file,architectures,version):
                                 d1_inst   = 'vfmadd231pd 128(%%'+l2_addr+'), %%zmm0, %%zmm'+str(add_dest)+';'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l2_addr+';'
                                 comment   = '// L2 load, L2 store'
-                            elif item ==  'RAM_L':    
+                            elif item ==  'L3_L':
+                                d0_inst   = 'vfmadd231pd %%zmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%zmm0, %%zmm'+str(add_dest)+';'
+                                d1_inst   = 'vfmadd231pd 64(%%'+l3_addr+'), %%zmm1, %%zmm'+str(add_dest)+';'
+                                d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
+                                comment   = '// L3 load'
+                            elif item ==  'L3_S':
+                                d0_inst   = 'vmovapd %%zmm'+str(add_dest)+', 64(%%'+l3_addr+');'
+                                d1_inst   = 'vfmadd231pd %%zmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%zmm0, %%zmm'+str(add_dest)+';'
+                                d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
+                                comment   = '// L3 store'
+                            elif item ==  'L3_LS':
+                                d0_inst   = 'vmovapd %%zmm'+str(add_dest)+', 64(%%'+l2_addr+');'
+                                d1_inst   = 'vfmadd231pd 128(%%'+l3_addr+'), %%zmm0, %%zmm'+str(add_dest)+';'
+                                d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
+                                comment   = '// L3 load, L3 store'
+                            elif item ==  'L3_P':
+                                d0_inst   = 'vfmadd231pd 64(%%'+l1_addr+'), %%zmm0, %%zmm'+str(add_dest)+';'
+                                d1_inst   = 'prefetcht2 (%%'+l3_addr+');'
+                                d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
+                                comment   = '// L3 prefetch'
+                            elif item ==  'RAM_L':
                                 d0_inst   = 'vfmadd231pd %%zmm'+str(add_start+(add_dest-add_start+add_regs+1)%add_regs)+', %%zmm0, %%zmm'+str(add_dest)+';'
                                 d1_inst   = 'vfmadd231pd 64(%%'+ram_addr+'), %%zmm1, %%'+str(ram_reg)+';'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+ram_addr+';'

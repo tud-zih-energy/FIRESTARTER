@@ -27,6 +27,10 @@ $$ TODO Version 2.0
 $$ TODO - add results verification
 $$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
 
+Version 1.7
+ - added Skylake-SP support
+ - minor fixes
+
 Version 1.6
  - added Windows version
 
