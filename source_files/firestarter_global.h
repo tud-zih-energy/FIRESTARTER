@@ -110,7 +110,7 @@ $$ TODO   unsigned long long bytes[5];      // total, L1*, L2*, L3*, RAM*  *:est
    unsigned int thread_id;
    unsigned int package;
    unsigned int period;                     
-   unsigned char FUNCTION;
+   unsigned int FUNCTION;
 } threaddata_t;
 
 #endif
