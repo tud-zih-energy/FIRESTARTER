@@ -45,7 +45,7 @@ $WIN64 WIN64_L_FLAGS=-static
 $WIN64
 # targets
 
-default: version linux
+default: version libfirestarter.so
 
 version:
 $TAB ${LINUX_CC} --version
@@ -120,5 +120,6 @@ clean:
 $TAB rm -f *.a
 $TAB rm -f *.o
 $TAB rm -f FIRESTARTER
+$TAB rm libfirestarter.so
 $CUDA $TAB rm -f FIRESTARTER_CUDA
 $WIN64 $TAB rm -f FIRESTARTER_win64.exe
