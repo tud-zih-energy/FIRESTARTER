@@ -86,7 +86,7 @@ typedef struct mydata
 {                                   
    struct threaddata *threaddata;           
    cpu_info_t *cpuinfo;
-   int *thread_comm;
+   volatile int *thread_comm;
    volatile unsigned int ack;   
    unsigned int num_threads;
 } mydata_t;
