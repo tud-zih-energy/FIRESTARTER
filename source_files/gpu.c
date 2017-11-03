@@ -19,6 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+/* CUDA error checking based on CudaWrapper.h
+ * ===============================================================================
+ * Copyright (c) 2011, School of Computing, National University of Singapore. 
+ * All rights reserved.
+ * ===============================================================================
+ */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,22 +42,20 @@
 #include "gpu.h"
 
 #define CUDA_ERROR_CHECK
-#define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
-#define CudaCheckError() __cudaCheckError( __FILE__, __LINE__ )
+#define cuda_safe_call( cuerr ) __cuda_safe_call( cuerr, __FILE__, __LINE__ )
 
-static void *A,*B;
 static unsigned int size,useDouble,useDevice,verbose; //matrixsize,switch for double precision and numbers of GPUs to use.
 static gpustruct * gpuvar=NULL;
 
 //CUDA Error Checking
-inline void __cudaSafeCall( cudaError_t err, const char *file, const int line )
+inline void __cuda_safe_call( cudaError_t cuerr, const char *file, const int line )
 {
 #ifdef CUDA_ERROR_CHECK
-    if ( cudaSuccess != err && err != 1) //we ignore the error code 1, since we don't need a __global__ kernel function
+    if ( cudaSuccess != cuerr && cuerr != 1) //we ignore the error code 1, since we don't need a __global__ kernel function
     {
-        fprintf( stderr, "    - cudaSafeCall() failed at %s:%i : %i %s\n",
-                 file, line, err,cudaGetErrorString( err ) );
-        exit(err);
+        fprintf( stderr, "    - cuda_safe_call() failed at %s:%i : %i %s\n",
+                 file, line, cuerr,cudaGetErrorString( cuerr ) );
+        exit(cuerr);
     }
 #endif
 
@@ -92,14 +97,14 @@ static void* startBurn(void *index) {
     //Reserving the GPU and Initializing cublas
     CUdevice d_dev;
     cublasHandle_t d_cublas;
-    CudaSafeCall(cuDeviceGet(&d_dev, d_devIndex));
-    CudaSafeCall(cuCtxCreate(&d_ctx, 0, d_dev));
-    CudaSafeCall(cuCtxSetCurrent(d_ctx));
-    CudaSafeCall(cublasCreate(&d_cublas));
-    CudaSafeCall(cudaGetDeviceProperties(&properties,d_devIndex));
+    cuda_safe_call(cuDeviceGet(&d_dev, d_devIndex));
+    cuda_safe_call(cuCtxCreate(&d_ctx, 0, d_dev));
+    cuda_safe_call(cuCtxSetCurrent(d_ctx));
+    cuda_safe_call(cublasCreate(&d_cublas));
+    cuda_safe_call(cudaGetDeviceProperties(&properties,d_devIndex));
     //getting Informations about the GPU Memory
     size_t availMemory, totalMemory;
-    CudaSafeCall(cuMemGetInfo(&availMemory,&totalMemory));
+    cuda_safe_call(cuMemGetInfo(&availMemory,&totalMemory));
 
     //Defining Memory Pointers
     CUdeviceptr d_Adata;
@@ -126,12 +131,12 @@ static void* startBurn(void *index) {
     }
     d_iters = (useBytes - 2*d_resultSize)/d_resultSize;
     //Allocating memory on the GPU
-    CudaSafeCall(cuMemAlloc(&d_Adata, d_resultSize));
-    CudaSafeCall(cuMemAlloc(&d_Bdata, d_resultSize));
-    CudaSafeCall(cuMemAlloc(&d_Cdata, d_iters*d_resultSize));
+    cuda_safe_call(cuMemAlloc(&d_Adata, d_resultSize));
+    cuda_safe_call(cuMemAlloc(&d_Bdata, d_resultSize));
+    cuda_safe_call(cuMemAlloc(&d_Cdata, d_iters*d_resultSize));
     // Moving matrices A and B to the GPU
-    CudaSafeCall(cuMemcpyHtoD_v2(d_Adata, A, d_resultSize));
-    CudaSafeCall(cuMemcpyHtoD_v2(d_Bdata, B, d_resultSize));
+    cuda_safe_call(cuMemcpyHtoD_v2(d_Adata, A, d_resultSize));
+    cuda_safe_call(cuMemcpyHtoD_v2(d_Bdata, B, d_resultSize));
     static const float alpha = 1.0f;
     static const float beta = 0.0f;
     static const double alphaD = 1.0;
@@ -144,14 +149,14 @@ static void* startBurn(void *index) {
     for(;;) {
         for (i = 0; i < d_iters; i++) {
             if(pthread_useDouble) {
-                CudaSafeCall(cublasDgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
+                cuda_safe_call(cublasDgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
                                          size_use, size_use, size_use, &alphaD,
                                          (const double*)d_Adata, size_use,
                                          (const double*)d_Bdata, size_use,
                                          &betaD,
                                          (double*)d_Cdata + i*size_use*size_use, size_use));
             } else {
-                CudaSafeCall(cublasSgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
+                cuda_safe_call(cublasSgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
                                          size_use, size_use, size_use, &alpha,
                                          (const float*)d_Adata, size_use,
                                          (const float*)d_Bdata, size_use,
@@ -160,9 +165,9 @@ static void* startBurn(void *index) {
             }
         }
     }
-    CudaSafeCall(cuMemFree_v2(d_Adata));
-    CudaSafeCall(cuMemFree_v2(d_Bdata));
-    CudaSafeCall(cuMemFree_v2(d_Cdata));
+    cuda_safe_call(cuMemFree_v2(d_Adata));
+    cuda_safe_call(cuMemFree_v2(d_Bdata));
+    cuda_safe_call(cuMemFree_v2(d_Cdata));
     return NULL;
 }
 
@@ -211,9 +216,9 @@ void* initgpu(void *gpu) {
     size      = gpuvar->msize;      //setting the matrixsize...
     verbose   = gpuvar->verbose;    //Verbosity
     if(useDevice) {
-        CudaSafeCall(cuInit(0));
+        cuda_safe_call(cuInit(0));
         int devCount;
-        CudaSafeCall(cuDeviceGetCount(&devCount));
+        cuda_safe_call(cuDeviceGetCount(&devCount));
         if (devCount) {
             int *dev=malloc(sizeof(int)*devCount);;
             pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the System.
