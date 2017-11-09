@@ -72,53 +72,53 @@ do { \
   } \
 } while (0)
 
-mydata_t *mdp;                          /* global data structure */
-cpu_info_t *cpuinfo = NULL;             /* data structure for hardware detection */
-unsigned long long LOADVAR = LOAD_HIGH; /* shared variable that specifies load level */
-int ALIGNMENT = 64;                     /* alignment of buffers and data structures */
-unsigned int verbose = 1;               /* enable/disable output to stdout */
+static mydata_t *mdp;                          /* global data structure */
+static cpu_info_t *cpuinfo = NULL;             /* data structure for hardware detection */
+volatile unsigned long long LOADVAR = LOAD_HIGH; /* shared variable that specifies load level */
+static int ALIGNMENT = 64;                     /* alignment of buffers and data structures */
+static unsigned int verbose = 1;               /* enable/disable output to stdout */
 
 /*
  * FIRESTARTER configuration, determined by evaluate_environment function
  */
-unsigned long long BUFFERSIZEMEM, RAMBUFFERSIZE;
-unsigned int BUFFERSIZE[3];
-unsigned int NUM_THREADS = 0;
-int FUNCTION = FUNC_NOT_DEFINED;
+static unsigned long long BUFFERSIZEMEM, RAMBUFFERSIZE;
+static unsigned int BUFFERSIZE[3];
+static unsigned int NUM_THREADS = 0;
+static int FUNCTION = FUNC_NOT_DEFINED;
 
 /*
  * timeout and load characteristics as defind by -t, -p, and -l
  */
-long TIMEOUT = 0, PERIOD = 100000, LOAD = 100;
+static long TIMEOUT = 0, PERIOD = 100000, LOAD = 100;
 
 /*
  * pointer for CPU bind argument (-b | --bind)
  */
-char *fsbind = NULL;
+static char *fsbind = NULL;
 
 /*
  * temporary variables
  */
-int tmp1,tmp2;
+static int tmp1,tmp2;
 
 $MAC /* Mac OS compatibility */
 $MAC #ifdef __MACH__
 $MAC mach_timebase_info_data_t info;
-$MAC double ns_per_tick;
+$MAC static double ns_per_tick;
 $MAC #endif
 $MAC
 /*
  * worker threads
  */
-pthread_t *threads;
+static pthread_t *threads;
 
 /*
  * CPU bindings of threads
  */
 #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
-cpu_set_t cpuset;
+static cpu_set_t cpuset;
 #endif
-unsigned long long *cpu_bind;
+static unsigned long long *cpu_bind;
 
 $MAC /* Mac OS compatibility - clock_gettime is not implemented on OSX */
 $MAC #ifdef __MACH__
