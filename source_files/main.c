@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
 $CUDA     #ifdef CUDA
 $CUDA     gpustruct * structpointer=malloc(sizeof(gpustruct));
 $CUDA     structpointer->useDouble=1;     //we want to use Doubles, if no -f Argument is given
-$CUDA     structpointer->msize=12288;     //12288 is a good Matrixsize, it produced on nvidia k20x the biggest power-consumption
+$CUDA     structpointer->msize=0;     //with msize=0, FIRESTARTER_CUDA will autotune the matrixsize.
 $CUDA     structpointer->useDevice=-1;    //by default, we use all GPUs with -1 option.
 $CUDA     structpointer->verbose=1;       //Verbosity
 $CUDA     structpointer->loadingdone=0;
