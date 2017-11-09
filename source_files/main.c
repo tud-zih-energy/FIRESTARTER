@@ -74,7 +74,7 @@ do { \
 
 static mydata_t *mdp;                          /* global data structure */
 static cpu_info_t *cpuinfo = NULL;             /* data structure for hardware detection */
-volatile unsigned long long LOADVAR = LOAD_HIGH; /* shared variable that specifies load level */
+unsigned long long LOADVAR = LOAD_HIGH; /* shared variable that specifies load level */
 static int ALIGNMENT = 64;                     /* alignment of buffers and data structures */
 static unsigned int verbose = 1;               /* enable/disable output to stdout */
 
