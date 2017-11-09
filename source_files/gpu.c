@@ -131,7 +131,7 @@ static void* fillup(void* array, int useD, int size) {
 void* startBurn(void *index) {
     int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int d_iters,i;
-    int pthread_useDouble = useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
+    int pthread_useDouble = gpuvar->useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
     int size_use=0;
     if (gpuvar->msize>0){
         size_use=gpuvar->msize>0;
@@ -196,7 +196,7 @@ void* startBurn(void *index) {
     const double alphaD = 1.0;
     const double betaD = 0.0;
 
-    if(verbose) {
+    if(gpuvar->verbose) {
         printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",d_devIndex,properties.name,totalMemory/1024ul/1024ul, availMemory/1024ul/1024ul, useBytes/1024/1024,size_use);
     }
     
@@ -237,48 +237,46 @@ void* startBurn(void *index) {
 
 void* initgpu(gpustruct_t *gpu) {
     gpuvar      = gpu;
-    useDevice   = gpuvar->useDevice;  //how many GPUs to use
-    verbose     = gpuvar->verbose;    //Verbosity
 
-    if(useDevice) {
+    if(gpuvar->useDevice) {
         CUDA_SAFE_CALL(cuInit(0), -1);
         int devCount;
         CUDA_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
         if (devCount) {
             int *dev=malloc(sizeof(int)*devCount);;
             pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the System.
-            if(verbose) printf("\n  graphics processor characteristics:\n");
+            if(gpuvar->verbose) printf("\n  graphics processor characteristics:\n");
             int i;
-            if( useDevice==-1 ) { //use all GPUs if the user gave no information about useDevice 
-                useDevice=devCount;
+            if( gpuvar->useDevice==-1 ) { //use all GPUs if the user gave no information about useDevice 
+                gpuvar->useDevice=devCount;
             }
-            if ( useDevice > devCount ) {
+            if ( gpuvar->useDevice > devCount ) {
                 printf("    - You requested more CUDA devices than available. Maybe you set CUDA_VISIBLE_DEVICES?\n");
-                printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,useDevice);
-                useDevice=devCount;
+                printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,gpuvar->useDevice);
+                gpuvar->useDevice=devCount;
             }
 
-            for(i=0; i<useDevice; ++i) {
+            for(i=0; i<gpuvar->useDevice; ++i) {
                 dev[i]=i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
                 pthread_create(&gputhreads[i],NULL,startBurn,(void *)&(dev[i]));
             }
 
             /* join computation threads */
-            for(i=0; i<useDevice; ++i) {
+            for(i=0; i<gpuvar->useDevice; ++i) {
                 pthread_join(gputhreads[i],NULL);
             }
 
             free(dev);
         }
         else {
-            if(verbose) {
+            if(gpuvar->verbose) {
                 printf("    - No CUDA devices. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
             }
             gpu->loadingdone=1;
         }
     }
     else {
-        if(verbose) {
+        if(gpuvar->verbose) {
             printf("    --gpus 0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
         }
         gpu->loadingdone=1;
