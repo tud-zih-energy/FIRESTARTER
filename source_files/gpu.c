@@ -43,8 +43,8 @@
 static volatile gpustruct_t * gpuvar;
 
 //CUDA Error Checking
-static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char *file, const int line ) {
-    if ( cuerr != cudaSuccess)
+static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char * file, const int line ) {
+    if ( cuerr != cudaSuccess && cuerr != 1)
     {
         fprintf( stderr, "    - CUDA error at %s:%i : error code = %i(%s), device index:%i\n",
                  file, line, cuerr, cudaGetErrorString( cuerr ), dev_index );
@@ -92,13 +92,12 @@ static int bbs(void) {
     return s;
 }
 
-static void* fillup(void* array, int useD, int size) {
+static void* fillup(int useD, int size) {
     int i;
     
     if(useD) {
         double frac;
-        double *dbl=(double*)array;
-        dbl = malloc(sizeof(double)*size*size);
+        double *dbl= malloc(sizeof(double)*size*size);
         if(!dbl) {
             fprintf(stderr, "Could not allocate memory for GPU computation\n");
             exit(ENOMEM);
@@ -109,11 +108,11 @@ static void* fillup(void* array, int useD, int size) {
                 dbl[i]=(double) bbs() + frac;
             }
         }
+        return dbl;
     }
     else {
         float frac;
-        float *flt = (float*)array;
-        flt = malloc(sizeof(float)*size*size);
+        float *flt = malloc(sizeof(float)*size*size);
         if(!flt) { 
             fprintf(stderr, "Could not allocate memory for GPU computation\n");
             exit(ENOMEM);   
@@ -124,19 +123,20 @@ static void* fillup(void* array, int useD, int size) {
                 flt[i]=(float) bbs() + frac;
             }
         }
+        return flt;
     }
-
-    return array;
 }
-void* startBurn(void *index) {
+
+void* startBurn(void * index) {
     int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int d_iters,i;
     int pthread_useDouble = gpuvar->useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
     int size_use=0;
     if (gpuvar->msize>0){
-        size_use=gpuvar->msize>0;
+        size_use=gpuvar->msize;
     }
-    void *A,*B;
+    void *A = NULL;
+    void *B = NULL;
     CUcontext d_ctx;
     size_t useBytes, d_resultSize;
     struct cudaDeviceProp properties;
@@ -182,8 +182,8 @@ void* startBurn(void *index) {
     d_iters = (useBytes - 2*d_resultSize)/d_resultSize;
     
     //Allocating memory on the GPU
-    A=fillup(A,pthread_useDouble,size_use);
-    B=fillup(B,pthread_useDouble,size_use);
+    A=fillup(pthread_useDouble,size_use);
+    B=fillup(pthread_useDouble,size_use);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Adata, d_resultSize), d_devIndex);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Bdata, d_resultSize), d_devIndex);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Cdata, d_iters*d_resultSize), d_devIndex);
@@ -234,9 +234,8 @@ void* startBurn(void *index) {
     return NULL;
 }
 
-
-void* initgpu(gpustruct_t *gpu) {
-    gpuvar      = gpu;
+void* initgpu(void * gpu) {
+    gpuvar = (gpustruct_t*)gpu;
 
     if(gpuvar->useDevice) {
         CUDA_SAFE_CALL(cuInit(0), -1);
@@ -272,14 +271,14 @@ void* initgpu(gpustruct_t *gpu) {
             if(gpuvar->verbose) {
                 printf("    - No CUDA devices. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
             }
-            gpu->loadingdone=1;
+            gpuvar->loadingdone=1;
         }
     }
     else {
         if(gpuvar->verbose) {
             printf("    --gpus 0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
         }
-        gpu->loadingdone=1;
+        gpuvar->loadingdone=1;
     }
 
     return NULL;

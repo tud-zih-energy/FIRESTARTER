@@ -31,6 +31,6 @@ typedef struct{
       int loadingdone;  //variable to use if the initialization of GPUs are done
       } gpustruct_t;
       
-void * initgpu(gpustruct_t * gpu);
+void * initgpu(void * gpu);
 #endif
 
