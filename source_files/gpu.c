@@ -41,12 +41,12 @@
 #define CUDA_ERROR_CHECK
 #define CUDA_SAFE_CALL( cuerr ) cuda_safe_call( cuerr, __FILE__, __LINE__ )
 
-void *A,*B;
+static void *A,*B;
 static unsigned int size,useDouble,useDevice,verbose; //matrixsize,switch for double precision and numbers of GPUs to use.
 static gpustruct * gpuvar=NULL;
 
 //CUDA Error Checking
-inline void cuda_safe_call( cudaError_t cuerr, const char *file, const int line )
+static inline void cuda_safe_call( cudaError_t cuerr, const char *file, const int line )
 {
 #ifdef CUDA_ERROR_CHECK
     if ( cuerr != cudaSuccess)
