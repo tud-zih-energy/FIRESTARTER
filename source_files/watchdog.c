@@ -44,24 +44,16 @@ $$
      __asm__ __volatile__ ("mfence;");
 }
 
-static pthread_mutex_t fakeMutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t fakeCond = PTHREAD_COND_INITIALIZER;
 
 /* exit with zero returncode on sigterm */
 void sigterm_handler()
 {
     fprintf(stderr, "Caught shutdown signal, ending now ...\n");
-    if ( pthread_mutex_trylock(&fakeMutex) != EBUSY )
-    {
-      pthread_cond_signal(&fakeCond);
-      pthread_mutex_unlock(&fakeMutex);
-    }
     LOADVAR = LOAD_STOP; // required for the cases load = 100 and load = 0, which do not enter the while loop
     TERMINATE = 1;       // exit while loop used in case of 0 < load < 100
     
     //exit(EXIT_SUCCESS);
 }
-
 
 
 /* coordinates high load and low load phases
@@ -73,8 +65,7 @@ void *watchdog_timer(watchdog_arg_t *arg)
     sigset_t signal_mask;
     long long timeout, time, period, load, idle, advance, load_reduction, idle_reduction;
     unsigned long long *loadvar;
-    unsigned long long future_high,future_low;
-    struct timespec start_ts, current, future;
+    struct timespec start_ts, current;
     int sleepret;
 
 $MAC     /* Mac OS compatibility */
@@ -83,8 +74,6 @@ $MAC       mach_timebase_info(&info);
 $MAC       ns_per_tick = (double)info.numer / (double)info.denom;
 $MAC     #endif
 $MAC
-
-    pthread_mutex_lock(&fakeMutex);
     sigemptyset(&signal_mask);
     sigaddset(&signal_mask, SIGINT);
     sigaddset(&signal_mask, SIGTERM);
@@ -106,7 +95,6 @@ $MAC
         // cycles++;
 
         clock_gettime(CLOCK_REALTIME, &current);
-        advance = (( current.tv_sec * 1000000 + current.tv_nsec / 1000 ) - (start_ts.tv_sec * 1000000 - start_ts.tv_nsec / 1000 ) ) % period;
         advance = ((current.tv_sec - start_ts.tv_sec) * 1000000 + (current.tv_nsec - start_ts.tv_nsec) / 1000) % period;
         load_reduction = (load * advance) / period;
         idle_reduction = advance - load_reduction;
@@ -117,54 +105,35 @@ $MAC
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        future_low = current.tv_sec *1E9 + current.tv_nsec;
-        future_high=future_low+(load - load_reduction)*1000;
-        future_low = future_high+(idle - idle_reduction)*1000;
-        future.tv_sec=future_high/1000000000;
-        future.tv_nsec=future_high%1000000000;
 
-        if ( !TERMINATE )
-          sleepret = pthread_cond_timedwait(&fakeCond, &fakeMutex, &future);
+        sleepret = usleep(load - load_reduction);
+        while(sleepret != 0){ /* sometimes usleep fails, this is to be very sure it works */
+            sleepret = usleep(load - load_reduction);
+        }
 
 #ifdef ENABLE_VTRACING
         VT_USER_END("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
-#endif
-
-        if ( sleepret != ETIMEDOUT  )
-        {
-            pthread_mutex_unlock(&fakeMutex);
-            set_load(loadvar, LOAD_STOP);
-            return 0;
-        }
-#ifdef ENABLE_VTRACING
         VT_USER_START("WD_LOW");
 #endif
 #ifdef ENABLE_SCOREP
+        SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
         SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
 
         /* signal low load */
         set_load(loadvar, LOAD_LOW);
         
-        future.tv_sec=future_low/1000000000;
-        future.tv_nsec=future_low%1000000000;
-        if ( !TERMINATE )
-          sleepret = pthread_cond_timedwait(&fakeCond, &fakeMutex, &future);
+        sleepret = usleep(idle - idle_reduction);
+        while(sleepret != 0) { /* sometimes usleep fails, this is to be very sure it works */
+            sleepret = usleep(idle - idle_reduction);
+        }
+
 #ifdef ENABLE_VTRACING
         VT_USER_END("WD_LOW");
 #endif
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_END("WD_LOW");
 #endif
-        if ( sleepret != ETIMEDOUT )
-        {
-            pthread_mutex_unlock(&fakeMutex);
-            set_load(loadvar, LOAD_STOP);
-            return 0;
-        }
 
         /* signal high load */
         set_load(loadvar, LOAD_HIGH);
