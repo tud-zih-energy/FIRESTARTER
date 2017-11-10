@@ -78,21 +78,7 @@ static int ipow(int base,int exp) {
     return result;
 }
 
-static int bbs(void) {
-    static int s;
-    static int runned = 0;
-
-    int n = 131*17;
-    if(runned == 0) {
-        runned = 1;
-        s = 123; // this is the seed
-    }
-    s = ipow(s,2) % n;
-
-    return s;
-}
-
-static void* fillup(int useD, int size) {
+static void* fillup(int useD, int size, int * s) {
     int i;
     
     if(useD) {
@@ -104,8 +90,8 @@ static void* fillup(int useD, int size) {
         }
         for (i=0; i<size*size; i++) {
             if(i % 128 == 0) {   
-                frac = (double) bbs() / 10000;
-                dbl[i]=(double) bbs() + frac;
+                frac = (double) (ipow(*s,2) % 131*17) / 10000;
+                dbl[i]=(double) (ipow(*s,2) % 131*17) + frac;
             }
         }
         return dbl;
@@ -119,8 +105,8 @@ static void* fillup(int useD, int size) {
         }
         for (i=0; i<size*size; i++) {
             if(i % 128 == 0) {
-                frac = (float) bbs() / 10000;
-                flt[i]=(float) bbs() + frac;
+                frac = (float) (ipow(*s,2) % 131*17) / 10000;
+                flt[i]=(float) (ipow(*s,2) % 131*17) + frac;
             }
         }
         return flt;
@@ -137,6 +123,7 @@ void* startBurn(void * index) {
     }
     void *A = NULL;
     void *B = NULL;
+    int seed = 123;     //seed for pseudo random
     CUcontext d_ctx;
     size_t useBytes, d_resultSize;
     struct cudaDeviceProp properties;
@@ -182,8 +169,8 @@ void* startBurn(void * index) {
     d_iters = (useBytes - 2*d_resultSize)/d_resultSize;
     
     //Allocating memory on the GPU
-    A=fillup(pthread_useDouble,size_use);
-    B=fillup(pthread_useDouble,size_use);
+    A=fillup(pthread_useDouble,size_use, &seed);
+    B=fillup(pthread_useDouble,size_use, &seed);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Adata, d_resultSize), d_devIndex);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Bdata, d_resultSize), d_devIndex);
     CUDA_SAFE_CALL(cuMemAlloc(&d_Cdata, d_iters*d_resultSize), d_devIndex);
@@ -191,6 +178,12 @@ void* startBurn(void * index) {
     // Moving matrices A and B to the GPU
     CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Adata, A, d_resultSize), d_devIndex);
     CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Bdata, B, d_resultSize), d_devIndex);
+
+    //initialize d_Cdata with copies of A
+    for (i = 0; i < d_iters; i++ ) {
+        CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Cdata + i*size_use*size_use, A, d_resultSize), d_devIndex);
+    }
+    
     const float alpha = 1.0f;
     const float beta = 0.0f;
     const double alphaD = 1.0;
@@ -228,6 +221,7 @@ void* startBurn(void * index) {
     CUDA_SAFE_CALL(cuMemFree_v2(d_Adata), d_devIndex);
     CUDA_SAFE_CALL(cuMemFree_v2(d_Bdata), d_devIndex);
     CUDA_SAFE_CALL(cuMemFree_v2(d_Cdata), d_devIndex);
+    CUDA_SAFE_CALL(cublasDestroy(d_cublas), d_devIndex);
     free(A);
     free(B);
 
