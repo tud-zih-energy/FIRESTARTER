@@ -78,38 +78,31 @@ static int ipow(int base,int exp) {
     return result;
 }
 
+#define FILL_SUPPORT(DATATYPE,SIZE,SEED) \
+    do { \
+        int i; \
+        DATATYPE frac; \
+        DATATYPE *array= malloc(sizeof(DATATYPE)*SIZE*SIZE); \
+        if(!array) { \
+            fprintf(stderr, "Could not allocate memory for GPU computation\n"); \
+            exit(ENOMEM); \
+        } \
+        for (i=0; i<SIZE*SIZE; i++) { \
+            if(i % 128 == 0) { \
+                frac = (DATATYPE) (ipow(*SEED,2) % 131*17) / 10000; \
+                array[i]=(DATATYPE) (ipow(*SEED,2) % 131*17) + frac; \
+            } \
+        } \
+        return array; \
+    while( 0 ) \
+
 static void* fillup(int useD, int size, int * s) {
-    int i;
     
     if(useD) {
-        double frac;
-        double *dbl= malloc(sizeof(double)*size*size);
-        if(!dbl) {
-            fprintf(stderr, "Could not allocate memory for GPU computation\n");
-            exit(ENOMEM);
-        }
-        for (i=0; i<size*size; i++) {
-            if(i % 128 == 0) {   
-                frac = (double) (ipow(*s,2) % 131*17) / 10000;
-                dbl[i]=(double) (ipow(*s,2) % 131*17) + frac;
-            }
-        }
-        return dbl;
+        FILL_SUPPORT(double, size, s);
     }
     else {
-        float frac;
-        float *flt = malloc(sizeof(float)*size*size);
-        if(!flt) { 
-            fprintf(stderr, "Could not allocate memory for GPU computation\n");
-            exit(ENOMEM);   
-        }
-        for (i=0; i<size*size; i++) {
-            if(i % 128 == 0) {
-                frac = (float) (ipow(*s,2) % 131*17) / 10000;
-                flt[i]=(float) (ipow(*s,2) % 131*17) + frac;
-            }
-        }
-        return flt;
+        FILL_SUPPORT(float, size, s);
     }
 }
 
@@ -155,10 +148,10 @@ void* startBurn(void * index) {
     }
 
     //check if the user has not set a matrix OR has set a too big matrixsite and if this is true: set a good matrixsize
-    if(!size_use || (((size_use*size_use)*(12*(pthread_useDouble+1)))>availMemory)) {
-        size_use=roundUp((int)(0.8*sqrt(((availMemory)/(12*(pthread_useDouble+1))))),1024); //a multiple of 1024 works always well
+    if( !size_use || ( ( size_use * size_use * pthread_useDouble?sizeof(double):sizeof(float) * 3 > availMemory ) ) {
+        size_use=roundUp((int)(0.8*sqrt(((availMemory)/((pthread_useDouble?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well
     }
-    if(pthread_useDouble) {
+    if( pthread_useDouble ) {
         useBytes = (size_t)((double)availMemory);
         d_resultSize = sizeof(double)*size_use*size_use;
     }
@@ -166,7 +159,7 @@ void* startBurn(void * index) {
         useBytes = (size_t)((float)availMemory);
         d_resultSize = sizeof(float)*size_use*size_use;
     }
-    d_iters = (useBytes - 2*d_resultSize)/d_resultSize;
+    d_iters = (useBytes - 2*d_resultSize)/d_resultSize; // = 1;
     
     //Allocating memory on the GPU
     A=fillup(pthread_useDouble,size_use, &seed);
