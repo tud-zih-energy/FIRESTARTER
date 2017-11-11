@@ -28,6 +28,16 @@ selections in the config file, i.e., if one feature is added on the command
 line, features that are enabled by default have to be added to the command as
 well.
 
+# Reference
+
+A detailed description can be found in the following paper. Please cite this if you use FIRESTARTER for scientific work.
+
+Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
+[Introducing FIRESTARTER: A processor stress test utility](http://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
+
+Additional information: https://tu-dresden.de/zih/forschung/projekte/firestarter
+
+
 # Contact
 
 Daniel Hackenberg < daniel dot hackenberg at tu-dresden.de >
