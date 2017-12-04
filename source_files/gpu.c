@@ -94,6 +94,7 @@ static int ipow(int base,int exp) {
             } \
         } \
         return array; \
+    } \
     while( 0 ) \
 
 static void* fillup(int useD, int size, int * s) {
@@ -106,7 +107,7 @@ static void* fillup(int useD, int size, int * s) {
     }
 }
 
-void* startBurn(void * index) {
+static void* startBurn(void * index) {
     int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int d_iters,i;
     int pthread_useDouble = gpuvar->useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
