@@ -21,7 +21,7 @@
 
 #ifndef __FIRESTARTER_GPU_H
 #define __FIRESTARTER_GPU_H
-void * initgpu(void*);
+
 
 typedef struct{
       int msize;        //Matrixsize to calculate on the GPU. Different msizes create different workloads...
@@ -29,7 +29,8 @@ typedef struct{
       int useDevice;    //number of devices to use
       int verbose;      //verbosity
       int loadingdone;  //variable to use if the initialization of GPUs are done
-      } gpustruct;
+      } gpustruct_t;
       
+void * initgpu(void * gpu);
 #endif
 
