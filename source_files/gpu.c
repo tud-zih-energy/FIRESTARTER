@@ -149,7 +149,7 @@ static void* startBurn(void * index) {
     }
 
     //check if the user has not set a matrix OR has set a too big matrixsite and if this is true: set a good matrixsize
-    if( !size_use || ( ( size_use * size_use * pthread_useDouble?sizeof(double):sizeof(float) * 3 > availMemory ) ) {
+    if( !size_use || ( ( size_use * size_use * pthread_useDouble?sizeof(double):sizeof(float) * 3 > availMemory ) ) ) {
         size_use=roundUp((int)(0.8*sqrt(((availMemory)/((pthread_useDouble?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well
     }
     if( pthread_useDouble ) {
