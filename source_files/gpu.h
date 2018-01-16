@@ -25,12 +25,12 @@
 
 typedef struct{
       int msize;        //Matrixsize to calculate on the GPU. Different msizes create different workloads...
-      int useDouble;    //If we want to use doubleprecision or not
-      int useDevice;    //number of devices to use
+      int use_double;    //If we want to use doubleprecision or not
+      int use_device;    //number of devices to use
       int verbose;      //verbosity
       int loadingdone;  //variable to use if the initialization of GPUs are done
       } gpustruct_t;
       
-void * initgpu(void * gpu);
+void * init_gpu(void * gpu);
 #endif
 

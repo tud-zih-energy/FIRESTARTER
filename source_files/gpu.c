@@ -21,6 +21,11 @@
 
 /* CUDA error checking based on CudaWrapper.h
  * https://github.com/ashwin/gDel3D/blob/master/GDelFlipping/src/gDel3D/GPU/CudaWrapper.h
+ *
+ * http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/emt19937ar.html
+ *
+ * inspired by gpu_burn
+ * http://wili.cc/blog/gpu-burn.html
  *****************************************************************************/
 
 #include <unistd.h>
@@ -38,9 +43,20 @@
 
 #include "gpu.h"
 
+/* Period parameters */  
+#define N 624
+#define M 397
+#define MATRIX_A 0x9908b0dfUL   /* constant vector a */
+#define UPPER_MASK 0x80000000UL /* most significant w-r bits */
+#define LOWER_MASK 0x7fffffffUL /* least significant r bits */
+
 #define CUDA_SAFE_CALL( cuerr, dev_index ) cuda_safe_call( cuerr, dev_index, __FILE__, __LINE__ )
 
 static volatile gpustruct_t * gpuvar;
+static unsigned long mt[N]; /* the array for the state vector  */
+static int mti=N+1; /* mti==N+1 means mt[N] is not initialized */
+static void *A = NULL;
+static void *B = NULL;
 
 //CUDA Error Checking
 static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char * file, const int line ) {
@@ -54,51 +70,90 @@ static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char 
     return;
 }
 
-static int roundUp(int numToRound, int multiple) {  
+static int round_up(int num_to_round, int multiple) {  
     if(multiple == 0) {  
-        return numToRound;
+        return num_to_round;
     }  
 
-    int remainder = numToRound % multiple; 
+    int remainder = num_to_round % multiple; 
     if (remainder == 0) {
-        return numToRound;
+        return num_to_round;
     }
 
-    return numToRound + multiple - remainder; 
-} 
+    return num_to_round + multiple - remainder; 
+}
 
-static int ipow(int base,int exp) {
-    int result = 1;
-    while (exp) {
-        if (exp & 1) result *= base;
-        exp >>= 1;
-        base *= base;
+/* initializes mt[N] with a seed */
+static void init_genrand(unsigned long s)
+{
+    mt[0]= s & 0xffffffffUL;
+    for (mti=1; mti<N; mti++) {
+        mt[mti] = 
+        (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+        /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
+        /* In the previous versions, MSBs of the seed affect   */
+        /* only MSBs of the array mt[].                        */
+        /* 2002/01/09 modified by Makoto Matsumoto             */
+        mt[mti] &= 0xffffffffUL;
+        /* for >32 bit machines */
     }
+}
 
-    return result;
+/* generates a random number on [0,0xffffffff]-interval */
+static unsigned long genrand_int32(void)
+{
+    unsigned long y;
+    static unsigned long mag01[2]={0x0UL, MATRIX_A};
+    /* mag01[x] = x * MATRIX_A  for x=0,1 */
+
+    if (mti >= N) { /* generate N words at one time */
+        int kk;
+
+        if (mti == N+1)   /* if init_genrand() has not been called, */
+            init_genrand(5489UL); /* a default initial seed is used */
+
+        for (kk=0;kk<N-M;kk++) {
+            y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+            mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+        }
+        for (;kk<N-1;kk++) {
+            y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+            mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
+        }
+        y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
+        mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
+
+        mti = 0;
+    }
+  
+    y = mt[mti++];
+
+    /* Tempering */
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680UL;
+    y ^= (y << 15) & 0xefc60000UL;
+    y ^= (y >> 18);
+
+    return y;
 }
 
 #define FILL_SUPPORT(DATATYPE,SIZE,SEED) \
     do { \
         int i; \
-        DATATYPE frac; \
-        DATATYPE *array= malloc(sizeof(DATATYPE)*SIZE*SIZE); \
+        DATATYPE *array = malloc(sizeof(DATATYPE)*SIZE*SIZE); \
         if(!array) { \
             fprintf(stderr, "Could not allocate memory for GPU computation\n"); \
             exit(ENOMEM); \
         } \
-        for (i=0; i<SIZE*SIZE; i++) { \
-            if(i % 128 == 0) { \
-                frac = (DATATYPE) (ipow(*SEED,2) % 131*17) / 10000; \
-                array[i]=(DATATYPE) (ipow(*SEED,2) % 131*17) + frac; \
-            } \
+        init_genrand(SEED); \
+        for (i=0; i < SIZE*SIZE; i++) { \
+            array[i] = (DATATYPE) (genrand_int32() % 1000000) / 100000.0; \
         } \
         return array; \
     } \
     while( 0 ) \
 
 static void* fillup(int useD, int size, int * s) {
-    
     if(useD) {
         FILL_SUPPORT(double, size, s);
     }
@@ -107,149 +162,183 @@ static void* fillup(int useD, int size, int * s) {
     }
 }
 
-static void* startBurn(void * index) {
-    int d_devIndex = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
-    int d_iters,i;
-    int pthread_useDouble = gpuvar->useDouble; //local per-thread variable, if there's a GPU in the system without Double Precision support.
-    int size_use=0;
-    if (gpuvar->msize>0){
-        size_use=gpuvar->msize;
+static void* create_load(void * index) {
+    int device_index = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
+    int iterations, i;
+    int pthread_use_double = gpuvar->use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
+    int size_use = 0;
+    if (gpuvar->msize > 0){
+        size_use = gpuvar->msize;
     }
-    void *A = NULL;
-    void *B = NULL;
-    int seed = 123;     //seed for pseudo random
-    CUcontext d_ctx;
-    size_t useBytes, d_resultSize;
+    
+    CUcontext context;
+    size_t use_bytes, memory_size;
     struct cudaDeviceProp properties;
 
     //Reserving the GPU and Initializing cublas
-    CUdevice d_dev;
-    cublasHandle_t d_cublas;
-    CUDA_SAFE_CALL(cuDeviceGet(&d_dev, d_devIndex), d_devIndex);
-    CUDA_SAFE_CALL(cuCtxCreate(&d_ctx, 0, d_dev), d_devIndex);
-    CUDA_SAFE_CALL(cuCtxSetCurrent(d_ctx), d_devIndex);
-    CUDA_SAFE_CALL(cublasCreate(&d_cublas), d_devIndex);
-    CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties,d_devIndex), d_devIndex);
+    CUdevice device;
+    cublasHandle_t cublas;
+    CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+    CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+    CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+    CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
+    CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
 
     //getting Informations about the GPU Memory
-    size_t availMemory, totalMemory;
-    CUDA_SAFE_CALL(cuMemGetInfo(&availMemory,&totalMemory), d_devIndex);
+    size_t memory_avail, memory_total;
+    CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
 
     //Defining Memory Pointers
-    CUdeviceptr d_Adata;
-    CUdeviceptr d_Bdata;
-    CUdeviceptr d_Cdata;
+    CUdeviceptr a_data_ptr;
+    CUdeviceptr b_data_ptr;
+    CUdeviceptr c_data_ptr;
 
     //we check for double precision support on the GPU and print errormsg, when the user wants to compute DP on a SP-only-Card.
-    if(pthread_useDouble && properties.major<=1 && properties.minor<=2) {
-        fprintf(stderr,"    - GPU %d: %s Doesn't support double precision.\n",d_devIndex,properties.name);
-        fprintf(stderr,"    - GPU %d: %s Compute Capability: %d.%d. Requiered for double precision: >=1.3\n",d_devIndex,properties.name,properties.major,properties.minor);
-        fprintf(stderr,"    - GPU %d: %s Stressing with single precision instead. Maybe use -f parameter.\n",d_devIndex,properties.name);
-        pthread_useDouble=0;
+    if(pthread_use_double && properties.major<=1 && properties.minor<=2) {
+        fprintf(stderr,"    - GPU %d: %s Doesn't support double precision.\n",device_index,properties.name);
+        fprintf(stderr,"    - GPU %d: %s Compute Capability: %d.%d. Requiered for double precision: >=1.3\n",device_index,properties.name,properties.major,properties.minor);
+        fprintf(stderr,"    - GPU %d: %s Stressing with single precision instead. Maybe use -f parameter.\n",device_index,properties.name);
+        pthread_use_double=0;
     }
 
     //check if the user has not set a matrix OR has set a too big matrixsite and if this is true: set a good matrixsize
-    if( !size_use || ( ( size_use * size_use * pthread_useDouble?sizeof(double):sizeof(float) * 3 > availMemory ) ) ) {
-        size_use=roundUp((int)(0.8*sqrt(((availMemory)/((pthread_useDouble?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well
+    if( !size_use || ( ( size_use * size_use * pthread_use_double?sizeof(double):sizeof(float) * 3 > memory_avail ) ) ) {
+        size_use=round_up((int)(0.8*sqrt(((memory_avail)/((pthread_use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well
     }
-    if( pthread_useDouble ) {
-        useBytes = (size_t)((double)availMemory);
-        d_resultSize = sizeof(double)*size_use*size_use;
+    if( pthread_use_double ) {
+        use_bytes = (size_t)((double)memory_avail);
+        memory_size = sizeof(double) * size_use * size_use;
     }
     else {
-        useBytes = (size_t)((float)availMemory);
-        d_resultSize = sizeof(float)*size_use*size_use;
+        use_bytes = (size_t)((float)memory_avail);
+        memory_size = sizeof(float) * size_use * size_use;
     }
-    d_iters = (useBytes - 2*d_resultSize)/d_resultSize; // = 1;
+    iterations = (use_bytes - 2*memory_size) / memory_size; // = 1;
+    printf("device: %i | iterations: %i\n", device_index, iterations);
     
     //Allocating memory on the GPU
-    A=fillup(pthread_useDouble,size_use, &seed);
-    B=fillup(pthread_useDouble,size_use, &seed);
-    CUDA_SAFE_CALL(cuMemAlloc(&d_Adata, d_resultSize), d_devIndex);
-    CUDA_SAFE_CALL(cuMemAlloc(&d_Bdata, d_resultSize), d_devIndex);
-    CUDA_SAFE_CALL(cuMemAlloc(&d_Cdata, d_iters*d_resultSize), d_devIndex);
+    CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
+    CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
+    CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations*memory_size), device_index);
     
     // Moving matrices A and B to the GPU
-    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Adata, A, d_resultSize), d_devIndex);
-    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Bdata, B, d_resultSize), d_devIndex);
+    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(a_data_ptr, A, memory_size), device_index);
+    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(b_data_ptr, B, memory_size), device_index);
 
-    //initialize d_Cdata with copies of A
-    for (i = 0; i < d_iters; i++ ) {
-        CUDA_SAFE_CALL(cuMemcpyHtoD_v2(d_Cdata + i*size_use*size_use, A, d_resultSize), d_devIndex);
+    //initialize c_data_ptr with copies of A
+    for (i = 0; i < iterations; i++ ) {
+        CUDA_SAFE_CALL(cuMemcpyHtoD_v2(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
     }
     
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    const double alphaD = 1.0;
-    const double betaD = 0.0;
+    const double alpha_double = 1.0;
+    const double beta_double = 0.0;
 
     if(gpuvar->verbose) {
-        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",d_devIndex,properties.name,totalMemory/1024ul/1024ul, availMemory/1024ul/1024ul, useBytes/1024/1024,size_use);
+        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
     }
     
     //Actual stress begins here, we set the loadingdone variable on true so that the CPU workerthreads can start too. But only gputhread #0 is setting the variable, to prohibite race-conditioning...
-    if(d_devIndex==0) {
-        gpuvar->loadingdone=1;
+    if(device_index == 0) {
+        gpuvar->loadingdone = 1;
     }
+
     for(;;) {
-        for (i = 0; i < d_iters; i++) {
-            if(pthread_useDouble) {
-                CUDA_SAFE_CALL(cublasDgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
-                                         size_use, size_use, size_use, &alphaD,
-                                         (const double*)d_Adata, size_use,
-                                         (const double*)d_Bdata, size_use,
-                                         &betaD,
-                                         (double*)d_Cdata + i*size_use*size_use, size_use), d_devIndex);
+        for (i = 0; i < iterations; i++) {
+            printf("device: %i | for(i=%i)\n", device_index, i);
+            if(pthread_use_double) {
+                CUDA_SAFE_CALL(cublasDgemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N,
+                                         size_use, size_use, size_use, &alpha_double,
+                                         (const double*)a_data_ptr, size_use,
+                                         (const double*)b_data_ptr, size_use,
+                                         &beta_double,
+                                         (double*)c_data_ptr + i*size_use*size_use, size_use), device_index);
             }
             else {
-                CUDA_SAFE_CALL(cublasSgemm(d_cublas, CUBLAS_OP_N, CUBLAS_OP_N,
+                CUDA_SAFE_CALL(cublasSgemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N,
                                          size_use, size_use, size_use, &alpha,
-                                         (const float*)d_Adata, size_use,
-                                         (const float*)d_Bdata, size_use,
+                                         (const float*)a_data_ptr, size_use,
+                                         (const float*)b_data_ptr, size_use,
                                          &beta,
-                                         (float*)d_Cdata + i*size_use*size_use, size_use), d_devIndex);
+                                         (float*)c_data_ptr + i*size_use*size_use, size_use), device_index);
             }
         }
     }
 
-    CUDA_SAFE_CALL(cuMemFree_v2(d_Adata), d_devIndex);
-    CUDA_SAFE_CALL(cuMemFree_v2(d_Bdata), d_devIndex);
-    CUDA_SAFE_CALL(cuMemFree_v2(d_Cdata), d_devIndex);
-    CUDA_SAFE_CALL(cublasDestroy(d_cublas), d_devIndex);
-    free(A);
-    free(B);
-
+    CUDA_SAFE_CALL(cuMemFree_v2(a_data_ptr), device_index);
+    CUDA_SAFE_CALL(cuMemFree_v2(b_data_ptr), device_index);
+    CUDA_SAFE_CALL(cuMemFree_v2(c_data_ptr), device_index);
+    CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
+    CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+    
     return NULL;
 }
 
-void* initgpu(void * gpu) {
-    gpuvar = (gpustruct_t*)gpu;
+static int get_msize(int device_index) {
+    CUcontext context;
+    CUdevice device;
+    cublasHandle_t cublas;
+    size_t memory_avail, memory_total;
 
-    if(gpuvar->useDevice) {
+    CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+    CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+    CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+    CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
+    CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+    
+    return round_up((int)(0.8*sqrt(((memory_avail)/((gpuvar->use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well;
+}
+
+void* init_gpu(void * gpu) {
+    gpuvar = (gpustruct_t*)gpu;
+    int seed = 123;
+    int max_msize = 0;
+
+    if(gpuvar->use_device) {
         CUDA_SAFE_CALL(cuInit(0), -1);
         int devCount;
         CUDA_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
+
         if (devCount) {
-            int *dev=malloc(sizeof(int)*devCount);;
+            int *dev = malloc(sizeof(int)*devCount);;
             pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the System.
-            if(gpuvar->verbose) printf("\n  graphics processor characteristics:\n");
-            int i;
-            if( gpuvar->useDevice==-1 ) { //use all GPUs if the user gave no information about useDevice 
-                gpuvar->useDevice=devCount;
+
+            if(gpuvar->verbose) {
+                printf("\n  graphics processor characteristics:\n");
             }
-            if ( gpuvar->useDevice > devCount ) {
+            
+            int i;
+            
+            if( gpuvar->use_device == -1 ) { //use all GPUs if the user gave no information about use_device 
+                gpuvar->use_device = devCount;
+            }
+            
+            if ( gpuvar->use_device > devCount ) {
                 printf("    - You requested more CUDA devices than available. Maybe you set CUDA_VISIBLE_DEVICES?\n");
-                printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,gpuvar->useDevice);
-                gpuvar->useDevice=devCount;
+                printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,gpuvar->use_device);
+                gpuvar->use_device = devCount;
+            }
+            
+            for(i=0; i<gpuvar->use_device; ++i) {
+                int tmp = get_msize(i);
+                printf("tmp=%i\n", tmp);
+                
+                if(tmp > max_msize) {
+                    max_msize = tmp;
+                }
             }
 
-            for(i=0; i<gpuvar->useDevice; ++i) {
-                dev[i]=i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
-                pthread_create(&gputhreads[i],NULL,startBurn,(void *)&(dev[i]));
+            A = fillup(gpuvar->use_double, max_msize, &seed);
+            B = fillup(gpuvar->use_double, max_msize, &seed);
+
+            for(i=0; i<gpuvar->use_device; ++i) {
+                dev[i] = i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
+                pthread_create(&gputhreads[i],NULL,create_load,(void *)&(dev[i]));
             }
 
             /* join computation threads */
-            for(i=0; i<gpuvar->useDevice; ++i) {
+            for(i=0; i<gpuvar->use_device; ++i) {
                 pthread_join(gputhreads[i],NULL);
             }
 
@@ -259,15 +348,18 @@ void* initgpu(void * gpu) {
             if(gpuvar->verbose) {
                 printf("    - No CUDA devices. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
             }
-            gpuvar->loadingdone=1;
+            gpuvar->loadingdone = 1;
         }
     }
     else {
         if(gpuvar->verbose) {
             printf("    --gpus 0 is set. Just stressing CPU(s). Maybe use FIRESTARTER instead of FIRESTARTER_CUDA?\n");
         }
-        gpuvar->loadingdone=1;
+        gpuvar->loadingdone = 1;
     }
+
+    free(A);
+    free(B);
 
     return NULL;
 }
