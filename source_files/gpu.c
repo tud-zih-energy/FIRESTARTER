@@ -187,10 +187,10 @@ static unsigned long genrand_int32(void)
 
 static void* fillup(int useD, int size, int * s) {
     if(useD) {
-        FILL_SUPPORT(double, size, s);
+        FILL_SUPPORT(double, size, *s);
     }
     else {
-        FILL_SUPPORT(float, size, s);
+        FILL_SUPPORT(float, size, *s);
     }
 }
 
@@ -246,7 +246,6 @@ static void* create_load(void * index) {
         memory_size = sizeof(float) * size_use * size_use;
     }
     iterations = (use_bytes - 2*memory_size) / memory_size; // = 1;
-    printf("device: %i | iterations: %i\n", device_index, iterations);
     
     //Allocating memory on the GPU
     CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
@@ -278,7 +277,6 @@ static void* create_load(void * index) {
 
     for(;;) {
         for (i = 0; i < iterations; i++) {
-            printf("device: %i | for(i=%i)\n", device_index, i);
             if(pthread_use_double) {
                 CUDA_SAFE_CALL(cublasDgemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N,
                                          size_use, size_use, size_use, &alpha_double,
@@ -310,7 +308,6 @@ static void* create_load(void * index) {
 static int get_msize(int device_index) {
     CUcontext context;
     CUdevice device;
-    cublasHandle_t cublas;
     size_t memory_avail, memory_total;
 
     CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
@@ -354,7 +351,6 @@ void* init_gpu(void * gpu) {
             
             for(i=0; i<gpuvar->use_device; ++i) {
                 int tmp = get_msize(i);
-                printf("tmp=%i\n", tmp);
                 
                 if(tmp > max_msize) {
                     max_msize = tmp;
