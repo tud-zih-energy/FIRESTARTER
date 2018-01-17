@@ -37,14 +37,20 @@
 #include "watchdog.h"
 #include "help.h"
 
+$MAC /* Mac OS compatibility */
+$MAC #ifdef __MACH__
+$MAC #include <mach/mach_time.h>
+$MAC #define CLOCK_REALTIME 0
+$MAC #endif
+$MAC
 /*
  * Header for local functions
  */
 #include "work.h"
 #include "cpu.h"
-#ifdef CUDA
-#include "gpu.h"
-#endif
+$CUDA #ifdef CUDA
+$CUDA #include "gpu.h"
+$CUDA #endif
 
 /*
  * used for --bind option
@@ -95,6 +101,12 @@ char *fsbind = NULL;
  */
 int tmp1,tmp2;
 
+$MAC /* Mac OS compatibility */
+$MAC #ifdef __MACH__
+$MAC mach_timebase_info_data_t info;
+$MAC double ns_per_tick;
+$MAC #endif
+$MAC
 /*
  * worker threads
  */
@@ -108,6 +120,21 @@ cpu_set_t cpuset;
 #endif
 unsigned long long *cpu_bind;
 
+$MAC /* Mac OS compatibility - clock_gettime is not implemented on OSX */
+$MAC #ifdef __MACH__
+$MAC static int clock_gettime(int id, struct timespec *t)
+$MAC {
+$MAC     uint64_t ts, sec, nsec;
+$MAC
+$MAC     ts = (uint64_t)((double)mach_absolute_time() * ns_per_tick);
+$MAC     sec = ts / 1000000000;
+$MAC     nsec = ts - sec * 1000000000;
+$MAC     t->tv_sec = (time_t)sec;
+$MAC     t->tv_nsec = (long)nsec;
+$MAC     return id;
+$MAC }
+$MAC #endif
+$MAC 
 /*
  * initialize data structures
  */
@@ -144,6 +171,11 @@ static void *init()
     }
 
     if (verbose) {
+$$ TODO list core ID to package mapping
+$$        if ((num_packages() != -1) && (num_cores_per_package() != -1) && (num_threads_per_core() != -1)){
+$$            printf ("  num_packages: %i, %i cores per package, %i threads per core\n",
+$$                    num_packages(), num_cores_per_package(),num_threads_per_core());
+$$        }
         printf("  using %i threads\n", NUM_THREADS);
         #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
             int print_core_id_info = 0;
@@ -175,6 +207,7 @@ static void *init()
         mdp->threaddata[t].buffersizeMem = BUFFERSIZEMEM;
         mdp->threaddata[t].iterations = 0;
         mdp->threaddata[t].flops = 0;
+$$        for (i=0;i<5;i++) mdp->threaddata[t].bytes[i] = 0;
         mdp->threaddata[t].bytes = 0;
         mdp->threaddata[t].alignment = ALIGNMENT;
         mdp->threaddata[t].FUNCTION = FUNCTION;
@@ -212,42 +245,8 @@ static void list_functions(){
   printf("\n available load-functions:\n");
   printf("  ID   | NAME                           | available on this system\n");
   printf("  ----------------------------------------------------------------\n");
-  if (feature_available("AVX512")) printf("  %4.4s | %.30s | yes\n","1","FUNC_KNL_XEONPHI_AVX512_4T                             ");
-  else printf("  %4.4s | %.30s | no\n","1","FUNC_KNL_XEONPHI_AVX512_4T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","2","FUNC_SKL_COREI_FMA_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","2","FUNC_SKL_COREI_FMA_1T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","3","FUNC_SKL_COREI_FMA_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","3","FUNC_SKL_COREI_FMA_2T                             ");
-  if (feature_available("AVX512")) printf("  %4.4s | %.30s | yes\n","4","FUNC_SKL_XEONEP_AVX512_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","4","FUNC_SKL_XEONEP_AVX512_1T                             ");
-  if (feature_available("AVX512")) printf("  %4.4s | %.30s | yes\n","5","FUNC_SKL_XEONEP_AVX512_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","5","FUNC_SKL_XEONEP_AVX512_2T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","6","FUNC_HSW_COREI_FMA_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","6","FUNC_HSW_COREI_FMA_1T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","7","FUNC_HSW_COREI_FMA_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","7","FUNC_HSW_COREI_FMA_2T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","8","FUNC_HSW_XEONEP_FMA_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","8","FUNC_HSW_XEONEP_FMA_1T                             ");
-  if (feature_available("FMA")) printf("  %4.4s | %.30s | yes\n","9","FUNC_HSW_XEONEP_FMA_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","9","FUNC_HSW_XEONEP_FMA_2T                             ");
-  if (feature_available("AVX")) printf("  %4.4s | %.30s | yes\n","10","FUNC_SNB_COREI_AVX_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","10","FUNC_SNB_COREI_AVX_1T                             ");
-  if (feature_available("AVX")) printf("  %4.4s | %.30s | yes\n","11","FUNC_SNB_COREI_AVX_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","11","FUNC_SNB_COREI_AVX_2T                             ");
-  if (feature_available("AVX")) printf("  %4.4s | %.30s | yes\n","12","FUNC_SNB_XEONEP_AVX_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","12","FUNC_SNB_XEONEP_AVX_1T                             ");
-  if (feature_available("AVX")) printf("  %4.4s | %.30s | yes\n","13","FUNC_SNB_XEONEP_AVX_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","13","FUNC_SNB_XEONEP_AVX_2T                             ");
-  if (feature_available("SSE2")) printf("  %4.4s | %.30s | yes\n","14","FUNC_NHM_COREI_SSE2_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","14","FUNC_NHM_COREI_SSE2_1T                             ");
-  if (feature_available("SSE2")) printf("  %4.4s | %.30s | yes\n","15","FUNC_NHM_COREI_SSE2_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","15","FUNC_NHM_COREI_SSE2_2T                             ");
-  if (feature_available("SSE2")) printf("  %4.4s | %.30s | yes\n","16","FUNC_NHM_XEONEP_SSE2_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","16","FUNC_NHM_XEONEP_SSE2_1T                             ");
-  if (feature_available("SSE2")) printf("  %4.4s | %.30s | yes\n","17","FUNC_NHM_XEONEP_SSE2_2T                             ");
-  else printf("  %4.4s | %.30s | no\n","17","FUNC_NHM_XEONEP_SSE2_2T                             ");
-  if (feature_available("FMA4")) printf("  %4.4s | %.30s | yes\n","18","FUNC_BLD_OPTERON_FMA4_1T                             ");
-  else printf("  %4.4s | %.30s | no\n","18","FUNC_BLD_OPTERON_FMA4_1T                             ");
+$$ list available functions with their respective id
+$TEMPLATE main_c.list_functions(dest,architectures)
 
   return;
 }
@@ -256,114 +255,8 @@ static int get_function(unsigned int id){
     int func=FUNC_UNKNOWN;
 
     switch(id){
-       case 1:
-         if (feature_available("AVX512")) func = FUNC_KNL_XEONPHI_AVX512_4T;
-         else{
-           fprintf(stderr, "\nError: Function 1 (\"FUNC_KNL_XEONPHI_AVX512_4T\") requires AVX512, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 2:
-         if (feature_available("FMA")) func = FUNC_SKL_COREI_FMA_1T;
-         else{
-           fprintf(stderr, "\nError: Function 2 (\"FUNC_SKL_COREI_FMA_1T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 3:
-         if (feature_available("FMA")) func = FUNC_SKL_COREI_FMA_2T;
-         else{
-           fprintf(stderr, "\nError: Function 3 (\"FUNC_SKL_COREI_FMA_2T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 4:
-         if (feature_available("AVX512")) func = FUNC_SKL_XEONEP_AVX512_1T;
-         else{
-           fprintf(stderr, "\nError: Function 4 (\"FUNC_SKL_XEONEP_AVX512_1T\") requires AVX512, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 5:
-         if (feature_available("AVX512")) func = FUNC_SKL_XEONEP_AVX512_2T;
-         else{
-           fprintf(stderr, "\nError: Function 5 (\"FUNC_SKL_XEONEP_AVX512_2T\") requires AVX512, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 6:
-         if (feature_available("FMA")) func = FUNC_HSW_COREI_FMA_1T;
-         else{
-           fprintf(stderr, "\nError: Function 6 (\"FUNC_HSW_COREI_FMA_1T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 7:
-         if (feature_available("FMA")) func = FUNC_HSW_COREI_FMA_2T;
-         else{
-           fprintf(stderr, "\nError: Function 7 (\"FUNC_HSW_COREI_FMA_2T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 8:
-         if (feature_available("FMA")) func = FUNC_HSW_XEONEP_FMA_1T;
-         else{
-           fprintf(stderr, "\nError: Function 8 (\"FUNC_HSW_XEONEP_FMA_1T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 9:
-         if (feature_available("FMA")) func = FUNC_HSW_XEONEP_FMA_2T;
-         else{
-           fprintf(stderr, "\nError: Function 9 (\"FUNC_HSW_XEONEP_FMA_2T\") requires FMA, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 10:
-         if (feature_available("AVX")) func = FUNC_SNB_COREI_AVX_1T;
-         else{
-           fprintf(stderr, "\nError: Function 10 (\"FUNC_SNB_COREI_AVX_1T\") requires AVX, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 11:
-         if (feature_available("AVX")) func = FUNC_SNB_COREI_AVX_2T;
-         else{
-           fprintf(stderr, "\nError: Function 11 (\"FUNC_SNB_COREI_AVX_2T\") requires AVX, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 12:
-         if (feature_available("AVX")) func = FUNC_SNB_XEONEP_AVX_1T;
-         else{
-           fprintf(stderr, "\nError: Function 12 (\"FUNC_SNB_XEONEP_AVX_1T\") requires AVX, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 13:
-         if (feature_available("AVX")) func = FUNC_SNB_XEONEP_AVX_2T;
-         else{
-           fprintf(stderr, "\nError: Function 13 (\"FUNC_SNB_XEONEP_AVX_2T\") requires AVX, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 14:
-         if (feature_available("SSE2")) func = FUNC_NHM_COREI_SSE2_1T;
-         else{
-           fprintf(stderr, "\nError: Function 14 (\"FUNC_NHM_COREI_SSE2_1T\") requires SSE2, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 15:
-         if (feature_available("SSE2")) func = FUNC_NHM_COREI_SSE2_2T;
-         else{
-           fprintf(stderr, "\nError: Function 15 (\"FUNC_NHM_COREI_SSE2_2T\") requires SSE2, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 16:
-         if (feature_available("SSE2")) func = FUNC_NHM_XEONEP_SSE2_1T;
-         else{
-           fprintf(stderr, "\nError: Function 16 (\"FUNC_NHM_XEONEP_SSE2_1T\") requires SSE2, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 17:
-         if (feature_available("SSE2")) func = FUNC_NHM_XEONEP_SSE2_2T;
-         else{
-           fprintf(stderr, "\nError: Function 17 (\"FUNC_NHM_XEONEP_SSE2_2T\") requires SSE2, which is not supported by the processor.\n\n");
-         }
-         break;
-       case 18:
-         if (feature_available("FMA4")) func = FUNC_BLD_OPTERON_FMA4_1T;
-         else{
-           fprintf(stderr, "\nError: Function 18 (\"FUNC_BLD_OPTERON_FMA4_1T\") requires FMA4, which is not supported by the processor.\n\n");
-         }
-         break;
+$$ select function based on specified id
+$TEMPLATE main_c.get_function_cases(dest,architectures)
        default:
          fprintf(stderr, "\nError: unknown function id: %s, see --avail for available ids\n\n", optarg);
     }
@@ -422,12 +315,12 @@ static void evaluate_environment()
             current_cpu++;
           }
         }
-        #ifdef CUDA
-        NUM_THREADS++; //+1 for the CUDA-thread!
-        #endif
-#elif defined(CUDA)
-        if (NUM_THREADS==0) NUM_THREADS = cpuinfo->num_cpus+1; //+1 for the CUDA-thread!
-        else NUM_THREADS++;
+$CUDA         #ifdef CUDA
+$CUDA         NUM_THREADS++; //+1 for the CUDA-thread!
+$CUDA         #endif
+$CUDA #elif defined(CUDA)
+$CUDA         if (NUM_THREADS==0) NUM_THREADS = cpuinfo->num_cpus+1; //+1 for the CUDA-thread!
+$CUDA         else NUM_THREADS++;
 #else
         if (NUM_THREADS==0) NUM_THREADS = cpuinfo->num_cpus;
 #endif
@@ -535,149 +428,8 @@ static void evaluate_environment()
      if ((strcmp("GenuineIntel", cpuinfo->vendor) == 0) || (strcmp("AuthenticAMD", cpuinfo->vendor) == 0))
      {
         switch (cpuinfo->family) {
-          case 6:
-            switch (cpuinfo->model) {
-              case 87:
-                if (feature_available("AVX512")) {
-                    if (num_threads_per_core() == 4) FUNCTION = FUNC_KNL_XEONPHI_AVX512_4T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: AVX512 is requiered for architecture \"KNL\", but is not supported!\n");
-                }
-                break;
-              case 78:
-              case 94:
-                if (feature_available("FMA")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_SKL_COREI_FMA_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_SKL_COREI_FMA_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: FMA is requiered for architecture \"SKL\", but is not supported!\n");
-                }
-                break;
-              case 85:
-                if (feature_available("AVX512")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_SKL_XEONEP_AVX512_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_SKL_XEONEP_AVX512_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: AVX512 is requiered for architecture \"SKL\", but is not supported!\n");
-                }
-                break;
-              case 60:
-              case 61:
-              case 69:
-              case 70:
-              case 71:
-                if (feature_available("FMA")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_HSW_COREI_FMA_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_HSW_COREI_FMA_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: FMA is requiered for architecture \"HSW\", but is not supported!\n");
-                }
-                break;
-              case 63:
-              case 79:
-                if (feature_available("FMA")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_HSW_XEONEP_FMA_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_HSW_XEONEP_FMA_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: FMA is requiered for architecture \"HSW\", but is not supported!\n");
-                }
-                break;
-              case 42:
-              case 58:
-                if (feature_available("AVX")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_SNB_COREI_AVX_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_SNB_COREI_AVX_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: AVX is requiered for architecture \"SNB\", but is not supported!\n");
-                }
-                break;
-              case 45:
-              case 62:
-                if (feature_available("AVX")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_SNB_XEONEP_AVX_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_SNB_XEONEP_AVX_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: AVX is requiered for architecture \"SNB\", but is not supported!\n");
-                }
-                break;
-              case 30:
-              case 37:
-              case 23:
-                if (feature_available("SSE2")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_NHM_COREI_SSE2_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_NHM_COREI_SSE2_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: SSE2 is requiered for architecture \"NHM\", but is not supported!\n");
-                }
-                break;
-              case 26:
-              case 44:
-                if (feature_available("SSE2")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_NHM_XEONEP_SSE2_1T;
-                    if (num_threads_per_core() == 2) FUNCTION = FUNC_NHM_XEONEP_SSE2_2T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: SSE2 is requiered for architecture \"NHM\", but is not supported!\n");
-                }
-                break;
-            default:
-                fprintf(stderr, "\nWarning: %s family %i, model %i is not supported by this version of FIRESTARTER!\n         Check project website for updates.\n",cpuinfo->vendor,cpuinfo->family,cpuinfo->model);
-            }
-            break;
-          case 21:
-            switch (cpuinfo->model) {
-              case 1:
-              case 2:
-              case 3:
-                if (feature_available("FMA4")) {
-                    if (num_threads_per_core() == 1) FUNCTION = FUNC_BLD_OPTERON_FMA4_1T;
-                    if (FUNCTION == FUNC_NOT_DEFINED) {
-                        fprintf(stderr, "Warning: no code path for %i threads per core!\n",num_threads_per_core());
-                    }
-                }
-                if (FUNCTION == FUNC_NOT_DEFINED) {
-                    fprintf(stderr, "\nWarning: FMA4 is requiered for architecture \"BLD\", but is not supported!\n");
-                }
-                break;
-            default:
-                fprintf(stderr, "\nWarning: %s family %i, model %i is not supported by this version of FIRESTARTER!\n         Check project website for updates.\n",cpuinfo->vendor,cpuinfo->family,cpuinfo->model);
-            }
-            break;
+$$ select function according to cpu family and model
+$TEMPLATE main_c.evaluate_environment_set_function_cases(dest,architectures,families)
           default:
             fprintf(stderr, "\nWarning: family %i processors are not supported by this version of FIRESTARTER!\n         Check project website for updates.\n",cpuinfo->family);
         }
@@ -687,106 +439,8 @@ static void evaluate_environment()
      }
     }
 
-    /* use AVX512 as fallback if available*/
-    if ((FUNCTION == FUNC_NOT_DEFINED)&&(feature_available("AVX512"))) {
-        /* use function for correct number of threads per core if available */
-        if(num_threads_per_core() == 1) {
-            FUNCTION = FUNC_SKL_XEONEP_AVX512_1T;
-            fprintf(stderr, "Warning: using function FUNC_SKL_XEONEP_AVX512_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        if(num_threads_per_core() == 2) {
-            FUNCTION = FUNC_SKL_XEONEP_AVX512_2T;
-            fprintf(stderr, "Warning: using function FUNC_SKL_XEONEP_AVX512_2T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        /* use function for 1 threads per core if no function for actual number of thread per core exists*/
-        if (FUNCTION == FUNC_NOT_DEFINED)
-        {
-            FUNCTION = FUNC_SKL_XEONEP_AVX512_1T;
-            fprintf(stderr, "Warning: using function FUNC_SKL_XEONEP_AVX512_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-    }
-    /* use FMA4 as fallback if available*/
-    if ((FUNCTION == FUNC_NOT_DEFINED)&&(feature_available("FMA4"))) {
-        /* use function for correct number of threads per core if available */
-        if(num_threads_per_core() == 1) {
-            FUNCTION = FUNC_BLD_OPTERON_FMA4_1T;
-            fprintf(stderr, "Warning: using function FUNC_BLD_OPTERON_FMA4_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        /* use function for 1 threads per core if no function for actual number of thread per core exists*/
-        if (FUNCTION == FUNC_NOT_DEFINED)
-        {
-            FUNCTION = FUNC_BLD_OPTERON_FMA4_1T;
-            fprintf(stderr, "Warning: using function FUNC_BLD_OPTERON_FMA4_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-    }
-    /* use FMA as fallback if available*/
-    if ((FUNCTION == FUNC_NOT_DEFINED)&&(feature_available("FMA"))) {
-        /* use function for correct number of threads per core if available */
-        if(num_threads_per_core() == 1) {
-            FUNCTION = FUNC_HSW_COREI_FMA_1T;
-            fprintf(stderr, "Warning: using function FUNC_HSW_COREI_FMA_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        if(num_threads_per_core() == 2) {
-            FUNCTION = FUNC_HSW_COREI_FMA_2T;
-            fprintf(stderr, "Warning: using function FUNC_HSW_COREI_FMA_2T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        /* use function for 1 threads per core if no function for actual number of thread per core exists*/
-        if (FUNCTION == FUNC_NOT_DEFINED)
-        {
-            FUNCTION = FUNC_HSW_COREI_FMA_1T;
-            fprintf(stderr, "Warning: using function FUNC_HSW_COREI_FMA_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-    }
-    /* use AVX as fallback if available*/
-    if ((FUNCTION == FUNC_NOT_DEFINED)&&(feature_available("AVX"))) {
-        /* use function for correct number of threads per core if available */
-        if(num_threads_per_core() == 1) {
-            FUNCTION = FUNC_SNB_COREI_AVX_1T;
-            fprintf(stderr, "Warning: using function FUNC_SNB_COREI_AVX_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        if(num_threads_per_core() == 2) {
-            FUNCTION = FUNC_SNB_COREI_AVX_2T;
-            fprintf(stderr, "Warning: using function FUNC_SNB_COREI_AVX_2T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        /* use function for 1 threads per core if no function for actual number of thread per core exists*/
-        if (FUNCTION == FUNC_NOT_DEFINED)
-        {
-            FUNCTION = FUNC_SNB_COREI_AVX_1T;
-            fprintf(stderr, "Warning: using function FUNC_SNB_COREI_AVX_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-    }
-    /* use SSE2 as fallback if available*/
-    if ((FUNCTION == FUNC_NOT_DEFINED)&&(feature_available("SSE2"))) {
-        /* use function for correct number of threads per core if available */
-        if(num_threads_per_core() == 1) {
-            FUNCTION = FUNC_NHM_COREI_SSE2_1T;
-            fprintf(stderr, "Warning: using function FUNC_NHM_COREI_SSE2_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        if(num_threads_per_core() == 2) {
-            FUNCTION = FUNC_NHM_COREI_SSE2_2T;
-            fprintf(stderr, "Warning: using function FUNC_NHM_COREI_SSE2_2T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-        /* use function for 1 threads per core if no function for actual number of thread per core exists*/
-        if (FUNCTION == FUNC_NOT_DEFINED)
-        {
-            FUNCTION = FUNC_NHM_COREI_SSE2_1T;
-            fprintf(stderr, "Warning: using function FUNC_NHM_COREI_SSE2_1T as fallback.\n");
-            fprintf(stderr, "         You can use the parameter --function to try other functions.\n");
-        }
-    }
+$$ select fallback function based on ISA
+$TEMPLATE main_c.evaluate_environment_select_fallback_function(dest,templates)
     if (FUNCTION == FUNC_NOT_DEFINED) {
       fprintf(stderr, "Error: no fallback implementation found for available ISA extensions.\n");
       exit(1);
@@ -794,222 +448,8 @@ static void evaluate_environment()
 
 
     switch (FUNCTION) {
-    case FUNC_KNL_XEONPHI_AVX512_4T:
-        BUFFERSIZE[0] = 8192;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 59069781;
-        RAMBUFFERSIZE = 6553600;
-        if (verbose) {
-            printf("\n  Taking AVX512 path optimized for Knights_Landing - 4 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SKL_COREI_FMA_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 1572864;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Skylake - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SKL_COREI_FMA_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 786432;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Skylake - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SKL_XEONEP_AVX512_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 1048576;
-        BUFFERSIZE[2] = 1441792;
-        RAMBUFFERSIZE = 1048576000;
-        if (verbose) {
-            printf("\n  Taking AVX512 path optimized for Skylake-SP - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SKL_XEONEP_AVX512_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 524288;
-        BUFFERSIZE[2] = 720896;
-        RAMBUFFERSIZE = 524288000;
-        if (verbose) {
-            printf("\n  Taking AVX512 path optimized for Skylake-SP - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_HSW_COREI_FMA_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 1572864;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Haswell - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_HSW_COREI_FMA_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 786432;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Haswell - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_HSW_XEONEP_FMA_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 2621440;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Haswell-EP - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_HSW_XEONEP_FMA_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 1310720;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking FMA path optimized for Haswell-EP - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SNB_COREI_AVX_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 1572864;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking AVX path optimized for Sandy Bridge - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SNB_COREI_AVX_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 786432;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking AVX path optimized for Sandy Bridge - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SNB_XEONEP_AVX_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 2621440;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking AVX path optimized for Sandy Bridge-EP - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_SNB_XEONEP_AVX_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 1310720;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking AVX path optimized for Sandy Bridge-EP - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_NHM_COREI_SSE2_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 1572864;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking SSE2 path optimized for Nehalem - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_NHM_COREI_SSE2_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 786432;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking SSE2 path optimized for Nehalem - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_NHM_XEONEP_SSE2_1T:
-        BUFFERSIZE[0] = 32768;
-        BUFFERSIZE[1] = 262144;
-        BUFFERSIZE[2] = 2097152;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking SSE2 path optimized for Nehalem-EP - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_NHM_XEONEP_SSE2_2T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 131072;
-        BUFFERSIZE[2] = 1048576;
-        RAMBUFFERSIZE = 52428800;
-        if (verbose) {
-            printf("\n  Taking SSE2 path optimized for Nehalem-EP - 2 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
-    case FUNC_BLD_OPTERON_FMA4_1T:
-        BUFFERSIZE[0] = 16384;
-        BUFFERSIZE[1] = 1048576;
-        BUFFERSIZE[2] = 786432;
-        RAMBUFFERSIZE = 104857600;
-        if (verbose) {
-            printf("\n  Taking FMA4 path optimized for Bulldozer - 1 thread(s) per core");
-            printf("\n  Used buffersizes per thread:\n");
-            for (i = 0; i < MAX_CACHELEVELS; i++) if (BUFFERSIZE[i] > 0) printf("    - L%d-Cache: %d Bytes\n", i + 1, BUFFERSIZE[i]);
-            printf("    - Memory: %llu Bytes\n\n", RAMBUFFERSIZE);
-        }
-        break;
+$$ set buffersizes according to selected code path and print corresponding debug information
+$TEMPLATE main_c.evaluate_environment_set_buffersize(dest,architectures)
       default:
         fprintf(stderr, "Internal Error: missing code-path %i!\n",FUNCTION);
         exit(1);
@@ -1022,15 +462,15 @@ int main(int argc, char *argv[])
     int i,c;
     unsigned long long iterations=0;
 
-    #ifdef CUDA
-    gpustruct_t * structpointer=malloc(sizeof(gpustruct_t));
-    structpointer->use_double=1;     //we want to use Doubles, if no -f Argument is given
-    structpointer->msize=0;
-    structpointer->use_device=-1;    //by default, we use all GPUs with -1 option.
-    structpointer->verbose=1;       //Verbosity
-    structpointer->loadingdone=0;
-    #endif 
-
+$CUDA     #ifdef CUDA
+$CUDA     gpustruct_t * structpointer=malloc(sizeof(gpustruct_t));
+$CUDA     structpointer->use_double=1;     //we want to use Doubles, if no -f Argument is given
+$CUDA     structpointer->msize=0;
+$CUDA     structpointer->use_device=-1;    //by default, we use all GPUs with -1 option.
+$CUDA     structpointer->verbose=1;       //Verbosity
+$CUDA     structpointer->loadingdone=0;
+$CUDA     #endif 
+$CUDA 
     static struct option long_options[] = {
         {"copyright",   no_argument,        0, 'c'},
         {"help",        no_argument,        0, 'h'},
@@ -1040,11 +480,11 @@ int main(int argc, char *argv[])
         {"report",      no_argument,        0, 'r'},
         {"avail",       no_argument,        0, 'a'},
         {"function",    required_argument,  0, 'i'},
-        #ifdef CUDA
-        {"usegpufloat", no_argument,        0, 'f'},
-        {"gpus",        required_argument,  0, 'g'},
-        {"matrixsize",  required_argument,  0, 'm'},
-        #endif
+$CUDA         #ifdef CUDA
+$CUDA         {"usegpufloat", no_argument,        0, 'f'},
+$CUDA         {"gpus",        required_argument,  0, 'g'},
+$CUDA         {"matrixsize",  required_argument,  0, 'm'},
+$CUDA         #endif
         {"threads",     required_argument,  0, 'n'},
         #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
         {"bind",        required_argument,  0, 'b'},
@@ -1057,11 +497,8 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
-        c = getopt_long(argc, argv, "chvwqarfb:i:t:l:p:n:m:g:", long_options, NULL);
-        #else
-        c = getopt_long(argc, argv, "chvwqarfi:t:l:p:n:m:g:", long_options, NULL);
-        #endif
+$$ construct getopt_long command
+$TEMPLATE main_c.main_getopt(dest,version)
 
         if(c == -1) break;
 
@@ -1091,9 +528,9 @@ int main(int argc, char *argv[])
             if (verbose) verbose = 2;
             break;
         case 'q':
-            #ifdef CUDA
-            structpointer->verbose=0;
-            #endif
+$CUDA             #ifdef CUDA
+$CUDA             structpointer->verbose=0;
+$CUDA             #endif
             verbose = 0;
             break;
         case 'n':
@@ -1112,25 +549,25 @@ int main(int argc, char *argv[])
             fsbind=strdup(optarg);
             break;
         #endif
-        #ifdef CUDA
-        case 'f':
-            structpointer->use_double=0; //disabling double-precision
-            break;
-        case 'm':
-            structpointer->msize=strtoull(optarg,NULL,10); //resetting the Matrixsize if the user wants to.
-            if ((errno != 0) || (structpointer->msize < 64)) {
-                printf("Error: matrixsize out of range (<64) or not a number: %s\n",optarg);
-                return EXIT_FAILURE;
-            }
-            break;
-        case 'g':
-            structpointer->use_device=strtoull(optarg,NULL,10); //setting, how many GPUs the user wants to use.
-            if ((errno != 0 ) || (structpointer->use_device <0)){
-                printf("Error: Number of GPUs out of range (<0) or not a number: %s\n",optarg);
-                return EXIT_FAILURE;
-            }
-            break;
-        #endif
+$CUDA         #ifdef CUDA
+$CUDA         case 'f':
+$CUDA             structpointer->use_double=0; //disabling double-precision
+$CUDA             break;
+$CUDA         case 'm':
+$CUDA             structpointer->msize=strtoull(optarg,NULL,10); //resetting the Matrixsize if the user wants to.
+$CUDA             if ((errno != 0) || (structpointer->msize < 64)) {
+$CUDA                 printf("Error: matrixsize out of range (<64) or not a number: %s\n",optarg);
+$CUDA                 return EXIT_FAILURE;
+$CUDA             }
+$CUDA             break;
+$CUDA         case 'g':
+$CUDA             structpointer->use_device=strtoull(optarg,NULL,10); //setting, how many GPUs the user wants to use.
+$CUDA             if ((errno != 0 ) || (structpointer->use_device <0)){
+$CUDA                 printf("Error: Number of GPUs out of range (<0) or not a number: %s\n",optarg);
+$CUDA                 return EXIT_FAILURE;
+$CUDA             }
+$CUDA             break;
+$CUDA         #endif
         case 't':
             TIMEOUT = strtol(optarg,NULL,10);
             if ((errno != 0) || (TIMEOUT <= 0)) {
@@ -1180,14 +617,14 @@ int main(int argc, char *argv[])
 
     signal(SIGTERM, sigterm_handler);
     signal(SIGINT, sigterm_handler);
-
-    #ifdef CUDA
-    pthread_t gpu_thread;
-    pthread_create(&gpu_thread,NULL,init_gpu,(void*)structpointer);
-    while(structpointer->loadingdone!=1){
-      usleep(10000);
-    }
-    #endif
+$CUDA
+$CUDA     #ifdef CUDA
+$CUDA     pthread_t gpu_thread;
+$CUDA     pthread_create(&gpu_thread,NULL,init_gpu,(void*)structpointer);
+$CUDA     while(structpointer->loadingdone!=1){
+$CUDA       usleep(10000);
+$CUDA     }
+$CUDA     #endif
 
     evaluate_environment();
     init();
@@ -1229,9 +666,10 @@ int main(int argc, char *argv[])
        printf("\n");
     }
 
-    #ifdef CUDA
-    free(structpointer);
-    #endif
-
+$CUDA     #ifdef CUDA
+$CUDA     free(structpointer);
+$CUDA     #endif
+$CUDA
     return EXIT_SUCCESS;
 }
+
