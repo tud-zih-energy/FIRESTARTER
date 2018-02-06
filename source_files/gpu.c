@@ -43,6 +43,7 @@
 
 
 #define CUDA_SAFE_CALL( cuerr, dev_index ) cuda_safe_call( cuerr, dev_index, __FILE__, __LINE__ )
+#define SEED 123
 
 static volatile gpustruct_t * gpuvar;
 static void *A = NULL;
@@ -74,7 +75,7 @@ static int round_up(int num_to_round, int multiple) {
 }
 
 
-#define FILL_SUPPORT(DATATYPE,SIZE,SEED) \
+#define FILL_SUPPORT(DATATYPE,SIZE) \
     do { \
         int i; \
         DATATYPE *array = malloc(sizeof(DATATYPE)*SIZE*SIZE); \
@@ -90,12 +91,12 @@ static int round_up(int num_to_round, int multiple) {
     } \
     while( 0 ) \
 
-static void* fillup(int useD, int size, int * s) {
+static void* fillup(int useD, int size) {
     if(useD) {
-        FILL_SUPPORT(double, size, s);
+        FILL_SUPPORT(double, size);
     }
     else {
-        FILL_SUPPORT(float, size, s);
+        FILL_SUPPORT(float, size);
     }
 }
 
@@ -226,7 +227,6 @@ static int get_msize(int device_index) {
 
 void* init_gpu(void * gpu) {
     gpuvar = (gpustruct_t*)gpu;
-    int seed = 123;
     int max_msize = 0;
 
     if(gpuvar->use_device) {
@@ -262,8 +262,8 @@ void* init_gpu(void * gpu) {
                 }
             }
 
-            A = fillup(gpuvar->use_double, max_msize, &seed);
-            B = fillup(gpuvar->use_double, max_msize, &seed);
+            A = fillup(gpuvar->use_double, max_msize);
+            B = fillup(gpuvar->use_double, max_msize);
 
             for(i=0; i<gpuvar->use_device; ++i) {
                 dev[i] = i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
