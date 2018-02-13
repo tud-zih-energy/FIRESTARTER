@@ -49,6 +49,10 @@ static volatile gpustruct_t * gpuvar;
 static void *A = NULL;
 static void *B = NULL;
 
+static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t wait_for_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 //CUDA Error Checking
 static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char * file, const int line ) {
     if ( cuerr != cudaSuccess && cuerr != 1)
@@ -108,7 +112,7 @@ static void* create_load(void * index) {
     if (gpuvar->msize > 0){
         size_use = gpuvar->msize;
     }
-    
+
     CUcontext context;
     size_t use_bytes, memory_size;
     struct cudaDeviceProp properties;
@@ -152,12 +156,12 @@ static void* create_load(void * index) {
         memory_size = sizeof(float) * size_use * size_use;
     }
     iterations = (use_bytes - 2*memory_size) / memory_size; // = 1;
-    
+
     //Allocating memory on the GPU
     CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations*memory_size), device_index);
-    
+
     // Moving matrices A and B to the GPU
     CUDA_SAFE_CALL(cuMemcpyHtoD_v2(a_data_ptr, A, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemcpyHtoD_v2(b_data_ptr, B, memory_size), device_index);
@@ -166,21 +170,30 @@ static void* create_load(void * index) {
     for (i = 0; i < iterations; i++ ) {
         CUDA_SAFE_CALL(cuMemcpyHtoD_v2(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
     }
-    
+
+    // save gpuvar->init_count and sys.out
+    pthread_mutex_lock(&wait_for_init_mutex);
+
+    if(gpuvar->verbose) {
+        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
+    }
+
+    gpuvar->init_count++;
+
+    // check whether all GPU threads initialized their workload, if so allow other threads to continue
+    if ( gpuvar->init_count == gpuvar->use_device )
+    {
+      pthread_cond_signal( &wait_for_init_cond );
+    }
+    pthread_mutex_unlock(&wait_for_init_mutex);
+
+
     const float alpha = 1.0f;
     const float beta = 0.0f;
     const double alpha_double = 1.0;
     const double beta_double = 0.0;
 
-    if(gpuvar->verbose) {
-        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
-    }
-    
-    //Actual stress begins here, we set the loadingdone variable on true so that the CPU workerthreads can start too. But only gputhread #0 is setting the variable, to prohibite race-conditioning...
-    if(device_index == 0) {
-        gpuvar->loadingdone = 1;
-    }
-
+    //Actual stress begins here
     for(;;) {
         for (i = 0; i < iterations; i++) {
             if(pthread_use_double) {
@@ -207,7 +220,7 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cuMemFree_v2(c_data_ptr), device_index);
     CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
-    
+
     return NULL;
 }
 
@@ -221,7 +234,7 @@ static int get_msize(int device_index) {
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
-    
+
     return round_up((int)(0.8*sqrt(((memory_avail)/((gpuvar->use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well;
 }
 
@@ -241,22 +254,21 @@ void* init_gpu(void * gpu) {
             if(gpuvar->verbose) {
                 printf("\n  graphics processor characteristics:\n");
             }
-            
-            int i;
-            
+
+
             if( gpuvar->use_device == -1 ) { //use all GPUs if the user gave no information about use_device 
                 gpuvar->use_device = devCount;
             }
-            
+
             if ( gpuvar->use_device > devCount ) {
                 printf("    - You requested more CUDA devices than available. Maybe you set CUDA_VISIBLE_DEVICES?\n");
                 printf("    - FIRESTARTER will use %d of the requested %d CUDA device(s)\n",devCount,gpuvar->use_device);
                 gpuvar->use_device = devCount;
             }
-            
-            for(i=0; i<gpuvar->use_device; ++i) {
+
+            for(int i=0; i<gpuvar->use_device; ++i) {
                 int tmp = get_msize(i);
-                
+
                 if(tmp > max_msize) {
                     max_msize = tmp;
                 }
@@ -265,13 +277,21 @@ void* init_gpu(void * gpu) {
             A = fillup(gpuvar->use_double, max_msize);
             B = fillup(gpuvar->use_double, max_msize);
 
-            for(i=0; i<gpuvar->use_device; ++i) {
+            gpuvar->init_count = 0;
+            pthread_mutex_lock(&wait_for_init_mutex);
+
+
+            for(int i=0; i<gpuvar->use_device; ++i) {
                 dev[i] = i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
                 pthread_create(&gputhreads[i],NULL,create_load,(void *)&(dev[i]));
             }
 
+            pthread_cond_wait(&wait_for_init_cond, &wait_for_init_mutex);
+            gpuvar->loadingdone = 1;
+            pthread_mutex_unlock(&wait_for_init_mutex);
+
             /* join computation threads */
-            for(i=0; i<gpuvar->use_device; ++i) {
+            for(int i=0; i<gpuvar->use_device; ++i) {
                 pthread_join(gputhreads[i],NULL);
             }
 
