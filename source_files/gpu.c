@@ -171,16 +171,12 @@ static void* create_load(void * index) {
         CUDA_SAFE_CALL(cuMemcpyHtoD_v2(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
     }
 
-    const float alpha = 1.0f;
-    const float beta = 0.0f;
-    const double alpha_double = 1.0;
-    const double beta_double = 0.0;
+    // save gpuvar->init_count and sys.out
+    pthread_mutex_lock(&wait_for_init_mutex);
 
     if(gpuvar->verbose) {
         printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
     }
-
-    pthread_mutex_lock(&wait_for_init_mutex);
 
     gpuvar->init_count++;
 
@@ -190,6 +186,12 @@ static void* create_load(void * index) {
       pthread_cond_signal( &wait_for_init_cond );
     }
     pthread_mutex_unlock(&wait_for_init_mutex);
+
+
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+    const double alpha_double = 1.0;
+    const double beta_double = 0.0;
 
     //Actual stress begins here
     for(;;) {
