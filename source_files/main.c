@@ -463,10 +463,10 @@ int main(int argc, char *argv[])
     unsigned long long iterations=0;
 
 $CUDA     #ifdef CUDA
-$CUDA     gpustruct * structpointer=malloc(sizeof(gpustruct));
-$CUDA     structpointer->useDouble=1;     //we want to use Doubles, if no -f Argument is given
-$CUDA     structpointer->msize=12288;     //12288 is a good Matrixsize, it produced on nvidia k20x the biggest power-consumption
-$CUDA     structpointer->useDevice=-1;    //by default, we use all GPUs with -1 option.
+$CUDA     gpustruct_t * structpointer=malloc(sizeof(gpustruct_t));
+$CUDA     structpointer->use_double=1;     //we want to use Doubles, if no -f Argument is given
+$CUDA     structpointer->msize=0;
+$CUDA     structpointer->use_device=-1;    //by default, we use all GPUs with -1 option.
 $CUDA     structpointer->verbose=1;       //Verbosity
 $CUDA     structpointer->loadingdone=0;
 $CUDA     #endif 
@@ -551,7 +551,7 @@ $CUDA             #endif
         #endif
 $CUDA         #ifdef CUDA
 $CUDA         case 'f':
-$CUDA             structpointer->useDouble=0; //disabling double-precision
+$CUDA             structpointer->use_double=0; //disabling double-precision
 $CUDA             break;
 $CUDA         case 'm':
 $CUDA             structpointer->msize=strtoull(optarg,NULL,10); //resetting the Matrixsize if the user wants to.
@@ -561,8 +561,8 @@ $CUDA                 return EXIT_FAILURE;
 $CUDA             }
 $CUDA             break;
 $CUDA         case 'g':
-$CUDA             structpointer->useDevice=strtoull(optarg,NULL,10); //setting, how many GPUs the user wants to use.
-$CUDA             if ((errno != 0 ) || (structpointer->useDevice <0)){
+$CUDA             structpointer->use_device=strtoull(optarg,NULL,10); //setting, how many GPUs the user wants to use.
+$CUDA             if ((errno != 0 ) || (structpointer->use_device <0)){
 $CUDA                 printf("Error: Number of GPUs out of range (<0) or not a number: %s\n",optarg);
 $CUDA                 return EXIT_FAILURE;
 $CUDA             }
@@ -620,7 +620,7 @@ $CUDA         #endif
 $CUDA
 $CUDA     #ifdef CUDA
 $CUDA     pthread_t gpu_thread;
-$CUDA     pthread_create(&gpu_thread,NULL,initgpu,(void*)structpointer);
+$CUDA     pthread_create(&gpu_thread,NULL,init_gpu,(void*)structpointer);
 $CUDA     while(structpointer->loadingdone!=1){
 $CUDA       usleep(10000);
 $CUDA     }
