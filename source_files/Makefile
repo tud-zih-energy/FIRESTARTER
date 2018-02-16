@@ -82,8 +82,8 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c init_functions.c
 work.o: work.c work.h cpu.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c work.c
 
-watchdog.o: watchdog.h
-$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
+watchdog.o: watchdog.c watchdog.h
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c
 
 help.o: help.c help.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
