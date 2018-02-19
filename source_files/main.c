@@ -634,6 +634,7 @@ $CUDA     #endif
 
     //start watchdog
     watchdog_arg.pid = getpid();
+    
     watchdog_timer(&watchdog_arg);
 
     /* wait for threads after watchdog has requested termination */

@@ -23,7 +23,7 @@
 #define __FIRESTARTER__WATCHDOG__H
 
 void sigterm_handler();
-void *watchdog_timer(watchdog_arg_t *arg);
+int watchdog_timer(watchdog_arg_t *arg);
 
 #endif
 
