@@ -69,6 +69,7 @@ do \
 { \
     if ( TERMINATE ) \
     { \
+        fprintf(stderr, "Caught shutdown signal, ending now ...\n"); \
         return EINTR; \
     } \
     sleepret = nanosleep(&target,&remaining); \
