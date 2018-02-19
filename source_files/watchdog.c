@@ -24,6 +24,8 @@
 #include "firestarter_global.h"
 #include "watchdog.h"
 
+#define NSEC_PER_SEC 1000000000
+
 extern unsigned long long LOADVAR;
 int TERMINATE = 0;
 
@@ -46,12 +48,11 @@ $$
      __asm__ __volatile__ ("mfence;");
 }
 
-pthread_t watchdog_thread;
+static pthread_t watchdog_thread;
 
 /* exit with zero returncode on sigterm */
 void sigterm_handler()
 {
-    fprintf(stderr, "Caught shutdown signal, ending now ...\n");
     LOADVAR = LOAD_STOP; // required for the cases load = 100 and load = 0, which do not enter the while loop
     TERMINATE = 1;       // exit while loop used in case of 0 < load < 100
 
@@ -63,7 +64,40 @@ void sigalrm_handler()
 {
 }
 
-
+#define DO_SLEEP(sleepret,target,remaining) \
+do \
+{ \
+    if ( TERMINATE ) \
+    { \
+        return EINTR; \
+    } \
+    sleepret = nanosleep(&target,&remaining); \
+    while ( sleepret == -1 && errno == EINTR && ! TERMINATE ) \
+    { \
+        sleepret = nanosleep(&remaining,&remaining); \
+    } \
+    if ( sleepret == -1 ) \
+    { \
+        switch (errno) \
+        { \
+        case EFAULT: \
+            fprintf(stderr,"Found a bug in FIRESTARTER, error on copying for nanosleep\n"); \
+            break; \
+        case EINVAL: \
+            fprintf(stderr,"Found a bug in FIRESTARTER, invalid setting for nanosleep\n"); \
+            break; \
+        case EINTR: \
+            fprintf(stderr, "Caught shutdown signal, ending now ...\n"); \
+            break; \
+        default: \
+            fprintf(stderr,"Error calling nanosleep: %d\n",errno); \
+            break; \
+        } \
+        set_load(loadvar, LOAD_STOP); \
+        return errno; \
+    } \
+}\
+while (0)
 
 /* coordinates high load and low load phases
  * stops FIRESTARTER when timeout is reached
@@ -108,40 +142,23 @@ $MAC
         // cycles++;
 
         clock_gettime(CLOCK_REALTIME, &current);
-        advance = ((current.tv_sec - start_ts.tv_sec) * 1000000000 + (current.tv_nsec - start_ts.tv_nsec) ) % period;
+        advance = ((current.tv_sec - start_ts.tv_sec) * NSEC_PER_SEC + (current.tv_nsec - start_ts.tv_nsec) ) % period;
         load_reduction = (load * advance) / period;
         idle_reduction = advance - load_reduction;
 
-        target.tv_nsec = (load - load_reduction) % 1000000000;
-        target.tv_sec  = (load - load_reduction) / 1000000000;
+        /* signal high load */
+        set_load(loadvar, LOAD_HIGH);
+        target.tv_nsec = (load - load_reduction) % NSEC_PER_SEC;
+        target.tv_sec  = (load - load_reduction) / NSEC_PER_SEC;
 #ifdef ENABLE_VTRACING
         VT_USER_START("WD_HIGH");
 #endif
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        sleepret = nanosleep(&target,&remaining);
-        while ( sleepret == -1 && errno ==EINTR && ! TERMINATE )
-        {
-            sleepret = nanosleep(&remaining,&remaining);
-        }
-        if ( sleepret == -1 )
-        {
-            switch (errno)
-            {
-            case EFAULT:
-                fprintf(stderr,"Found a bug in FIRESTARTER, error on copying for nanosleep\n");
-                break;
-            case EINVAL:
-                fprintf(stderr,"Found a bug in FIRESTARTER, invalid setting for nanosleep\n");
-                break;
-            default:
-                fprintf(stderr,"Error calling nanosleep: %d\n",errno);
-                break;
-            }
-            set_load(loadvar, LOAD_STOP);
-            return errno;
-        }
+
+        DO_SLEEP(sleepret,target,remaining);
+
 #ifdef ENABLE_VTRACING
         VT_USER_END("WD_HIGH");
 #endif
@@ -165,46 +182,21 @@ $MAC
         /* signal low load */
         set_load(loadvar, LOAD_LOW);
 
-        target.tv_nsec = (idle - idle_reduction) % 1000000000;
-        target.tv_sec  = (idle - idle_reduction) / 1000000000;
+        target.tv_nsec = (idle - idle_reduction) % NSEC_PER_SEC;
+        target.tv_sec  = (idle - idle_reduction) / NSEC_PER_SEC;
 
-        sleepret = nanosleep(&target,&remaining);
-        while ( sleepret == -1 && errno ==EINTR && ! TERMINATE )
-        {
-            sleepret = nanosleep(&remaining,&remaining);
-        }
-        if ( sleepret == -1 )
-        {
-            switch (errno)
-            {
-            case EFAULT:
-                fprintf(stderr,"Found a bug in FIRESTARTER, error on copying for nanosleep\n");
-                break;
-            case EINVAL:
-                fprintf(stderr,"Found a bug in FIRESTARTER, invalid setting for nanosleep\n");
-                break;
-            default:
-                fprintf(stderr,"Error calling nanosleep: %d\n",errno);
-                break;
-            }
-            set_load(loadvar, LOAD_STOP);
-            return errno;
-        }
+        DO_SLEEP(sleepret,target,remaining);
 
 #ifdef ENABLE_VTRACING
         VT_USER_END("WD_LOW");
 #endif
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_END("WD_LOW");
-#endif
-
-        /* signal high load */
-        set_load(loadvar, LOAD_HIGH);
-        
+#endif        
         time += period;
 
         /* exit when termination signal is received or timeout is reached */
-        if( (TERMINATE) || ((timeout > 0) && (time / 10000000000 >= timeout)) ){
+        if( (TERMINATE) || ((timeout > 0) && (time / NSEC_PER_SEC >= timeout)) ){
             /* signal that the workers shall shout down */
             set_load(loadvar, LOAD_STOP);
             return 0;
@@ -215,28 +207,8 @@ $MAC
         target.tv_nsec = 0;
         target.tv_sec = timeout;
 
-        sleepret = nanosleep(&target,NULL);
-        while ( sleepret == -1 && errno == EINTR && !TERMINATE )
-        {
-            sleepret = nanosleep(&remaining,&remaining);
-        }
-        if ( sleepret == -1 )
-        {
-            switch (errno)
-            {
-            case EFAULT:
-                fprintf(stderr,"Found a bug in FIRESTARTER, error on copying for nanosleep\n");
-                break;
-            case EINVAL:
-                fprintf(stderr,"Found a bug in FIRESTARTER, invalid setting for nanosleep\n");
-                break;
-            default:
-                fprintf(stderr,"Error calling nanosleep: %d\n",errno);
-                break;
-            }
-            set_load(loadvar, LOAD_STOP);
-            return errno;
-        }
+        DO_SLEEP(sleepret,target,remaining);
+
         /* signal that the workers shall shut down */
         set_load(loadvar, LOAD_STOP);
         return 0;
