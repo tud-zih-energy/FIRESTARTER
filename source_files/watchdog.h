@@ -22,7 +22,6 @@
 #ifndef __FIRESTARTER__WATCHDOG__H
 #define __FIRESTARTER__WATCHDOG__H
 
-void sigterm_handler();
 int watchdog_timer(watchdog_arg_t *arg);
 
 #endif

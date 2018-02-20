@@ -51,7 +51,7 @@ $$
 static pthread_t watchdog_thread;
 
 /* exit with zero returncode on sigterm */
-void sigterm_handler()
+static void sigterm_handler()
 {
     LOADVAR = LOAD_STOP; // required for the cases load = 100 and load = 0, which do not enter the while loop
     TERMINATE = 1;       // exit while loop used in case of 0 < load < 100
@@ -123,15 +123,19 @@ $MAC
     sigaddset(&signal_mask, SIGTERM);
     pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
 
+
+    watchdog_thread = pthread_self();
+
     signal(SIGALRM, sigalrm_handler);
+
+    signal(SIGTERM, sigterm_handler);
+    signal(SIGINT, sigterm_handler);
 
     period = arg->period*1000;
     load = arg->load*1000;
     idle = period - load;
     timeout = arg->timeout;
     loadvar = arg->loadvar;
-
-    watchdog_thread = pthread_self();
 
     clock_gettime(CLOCK_REALTIME, &start_ts);
     time = 0;
