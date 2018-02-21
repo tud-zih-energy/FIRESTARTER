@@ -615,8 +615,6 @@ $CUDA         #endif
        printf("This is free software, and you are welcome to redistribute it\nunder certain conditions; run `FIRESTARTER -c' for details.\n");
     }
 
-    signal(SIGTERM, sigterm_handler);
-    signal(SIGINT, sigterm_handler);
 $CUDA
 $CUDA     #ifdef CUDA
 $CUDA     pthread_t gpu_thread;
@@ -634,6 +632,7 @@ $CUDA     #endif
 
     //start watchdog
     watchdog_arg.pid = getpid();
+    
     watchdog_timer(&watchdog_arg);
 
     /* wait for threads after watchdog has requested termination */

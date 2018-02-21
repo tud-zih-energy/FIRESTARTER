@@ -25,7 +25,7 @@ LINUX_CC?=gcc
 #CC=vtcc -vt:cc gcc -vt:inst manual -DVTRACE -DENABLE_VTRACING
 #CC=scorep --user --nocompiler gcc -DENABLE_SCOREP
 
-LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=c99 -I. -DAFFINITY
+LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=gnu99 -I. -DAFFINITY
 OPT_STD=-O2
 OPT_ASM=-O0
 LINUX_L_FLAGS=-lpthread -lrt -lm
@@ -82,8 +82,8 @@ $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c init_functions.c
 work.o: work.c work.h cpu.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c work.c
 
-watchdog.o: watchdog.h
-$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c -lrt -lm
+watchdog.o: watchdog.c watchdog.h
+$TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c watchdog.c
 
 help.o: help.c help.h
 $TAB ${LINUX_CC} ${OPT_STD} ${LINUX_C_FLAGS} -c help.c
