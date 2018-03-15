@@ -23,7 +23,7 @@ def version_info(file,major_version,minor_version,version_info,build_date):
     file.write("#define VERSION_MAJOR  {}\n".format(major_version))
     file.write("#define VERSION_MINOR  {}\n".format(minor_version))
     # "" for python2, "\"\"" for python3
-    if version_info is "" or "\"\"":
+    if version_info is "" or version_info is "\"\"":
         file.write("#define VERSION_INFO   \"\" //additional information, e.g. \"BETA\"\n")
     else:
         file.write("#define VERSION_INFO   \"{}\" //additional information, e.g. \"BETA\"\n".format(' '+version_info.replace("\"","")))
