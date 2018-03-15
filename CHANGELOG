@@ -27,6 +27,12 @@ $$ TODO Version 2.0
 $$ TODO - add results verification
 $$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
 
+Version 1.7.2
+ - fixed CUDA problem with low power consumption
+ - fixed version string
+ - fixed synchronization of CUDA resources
+ - fixed additional thread at CUDA workload
+
 Version 1.7.1
  - fixed Skylake-X problem in the Win64 version
 

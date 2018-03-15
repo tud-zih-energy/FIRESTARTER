@@ -223,6 +223,9 @@ for file in files:
     sys.stdout.flush()
     infile = dirname+file
     outfile = outdir+file.replace("source_files/","")
+    # skip if it's the same file
+    if infile == outfile:
+        continue
     source = open (infile, 'r')
     dest = open (outfile, 'w')
     lines = source.readlines()
