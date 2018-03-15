@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2017 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2018 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 
 /* current version */
 $TEMPLATE firestarter_global_h.version_info(dest,version.major,version.minor,version.info,version.date)
-#define COPYRIGHT_YEAR 2017
+#define COPYRIGHT_YEAR 2018
 
 #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
 #define _GNU_SOURCE
