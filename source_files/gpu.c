@@ -40,6 +40,7 @@
 #include <cuda_runtime_api.h>
 
 #include "gpu.h"
+#include "firestarter_global.h"
 
 
 #define CUDA_SAFE_CALL( cuerr, dev_index ) cuda_safe_call( cuerr, dev_index, __FILE__, __LINE__ )
@@ -163,12 +164,12 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations*memory_size), device_index);
 
     // Moving matrices A and B to the GPU
-    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(a_data_ptr, A, memory_size), device_index);
-    CUDA_SAFE_CALL(cuMemcpyHtoD_v2(b_data_ptr, B, memory_size), device_index);
+    CUDA_SAFE_CALL(cuMemcpyHtoD(a_data_ptr, A, memory_size), device_index);
+    CUDA_SAFE_CALL(cuMemcpyHtoD(b_data_ptr, B, memory_size), device_index);
 
     //initialize c_data_ptr with copies of A
     for (i = 0; i < iterations; i++ ) {
-        CUDA_SAFE_CALL(cuMemcpyHtoD_v2(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
+        CUDA_SAFE_CALL(cuMemcpyHtoD(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
     }
 
     // save gpuvar->init_count and sys.out
@@ -194,7 +195,7 @@ static void* create_load(void * index) {
     const double beta_double = 0.0;
 
     //Actual stress begins here
-    for(;;) {
+    while(*gpuvar->loadvar != LOAD_STOP) {
         for (i = 0; i < iterations; i++) {
             if(pthread_use_double) {
                 CUDA_SAFE_CALL(cublasDgemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -212,12 +213,13 @@ static void* create_load(void * index) {
                                          &beta,
                                          (float*)c_data_ptr + i*size_use*size_use, size_use), device_index);
             }
+            CUDA_SAFE_CALL(cudaDeviceSynchronize(), device_index);
         }
     }
 
-    CUDA_SAFE_CALL(cuMemFree_v2(a_data_ptr), device_index);
-    CUDA_SAFE_CALL(cuMemFree_v2(b_data_ptr), device_index);
-    CUDA_SAFE_CALL(cuMemFree_v2(c_data_ptr), device_index);
+    CUDA_SAFE_CALL(cuMemFree(a_data_ptr), device_index);
+    CUDA_SAFE_CALL(cuMemFree(b_data_ptr), device_index);
+    CUDA_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
     CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 

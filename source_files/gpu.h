@@ -30,6 +30,7 @@ typedef struct{
       int verbose;      //verbosity
       int loadingdone;  //variable to use if the initialization of GPUs are done
       int init_count;   // Counts devices that already initialized and probably started the workload 
+      unsigned long long *loadvar; //provides termination information
       } gpustruct_t;
 
 void * init_gpu(void * gpu);

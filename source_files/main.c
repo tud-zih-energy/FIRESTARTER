@@ -469,6 +469,7 @@ $CUDA     structpointer->msize=0;
 $CUDA     structpointer->use_device=-1;    //by default, we use all GPUs with -1 option.
 $CUDA     structpointer->verbose=1;       //Verbosity
 $CUDA     structpointer->loadingdone=0;
+$CUDA     structpointer->loadvar=&LOADVAR;
 $CUDA     #endif 
 $CUDA 
     static struct option long_options[] = {
