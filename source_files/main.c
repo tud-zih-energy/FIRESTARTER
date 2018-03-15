@@ -315,12 +315,6 @@ static void evaluate_environment()
             current_cpu++;
           }
         }
-$CUDA         #ifdef CUDA
-$CUDA         NUM_THREADS++; //+1 for the CUDA-thread!
-$CUDA         #endif
-$CUDA #elif defined(CUDA)
-$CUDA         if (NUM_THREADS==0) NUM_THREADS = cpuinfo->num_cpus+1; //+1 for the CUDA-thread!
-$CUDA         else NUM_THREADS++;
 #else
         if (NUM_THREADS==0) NUM_THREADS = cpuinfo->num_cpus;
 #endif
