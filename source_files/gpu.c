@@ -47,8 +47,10 @@
 #define SEED 123
 
 static volatile gpustruct_t * gpuvar;
-static void *A = NULL;
-static void *B = NULL;
+static void *A_double = NULL;
+static void *B_double = NULL;
+static void *A_single = NULL;
+static void *B_single = NULL;
 
 static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t wait_for_init_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -109,7 +111,10 @@ static void* create_load(void * index) {
     int device_index = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
     int iterations, i;
     int pthread_use_double = gpuvar->use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
+    int precision_ratio;
     int size_use = 0;
+    void *A = A_single;
+    void *B = B_single;
     if (gpuvar->msize > 0){
         size_use = gpuvar->msize;
     }
@@ -126,6 +131,18 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
+
+    //Read precision ratio to choose the right version for maximum workload
+    precision_ratio = properties.singleToDoublePrecisionPerfRatio;
+    if(pthread_use_double == 2 && precision_ratio > 3){
+            pthread_use_double = 0;
+    } else if(pthread_use_double) {
+        pthread_use_double = 1;
+        A = A_double;
+        B = B_double;
+    } else {
+        pthread_use_double = 0;
+    }
 
     //getting Informations about the GPU Memory
     size_t memory_avail, memory_total;
@@ -176,7 +193,11 @@ static void* create_load(void * index) {
     pthread_mutex_lock(&wait_for_init_mutex);
 
     if(gpuvar->verbose) {
-        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
+        printf("   GPU %d\n", device_index);
+        printf("    name:           %s\n", properties.name);
+        printf("    memory:         %lu/%lu MB available (using %lu MB)\n", memory_avail/1024ul/1024ul, memory_total/1024ul/1024ul, use_bytes/1024/1024);
+        printf("    matrix size:    %d\n", size_use);
+        printf("    used precision: %s\n", pthread_use_double ? "double" : "single");
     }
 
     gpuvar->init_count++;
@@ -276,8 +297,10 @@ void* init_gpu(void * gpu) {
                 }
             }
 
-            A = fillup(gpuvar->use_double, max_msize);
-            B = fillup(gpuvar->use_double, max_msize);
+            A_double = fillup(1, max_msize);
+            B_double = fillup(1, max_msize);
+            A_single = fillup(0, max_msize);
+            B_single = fillup(0, max_msize);
 
             gpuvar->init_count = 0;
             pthread_mutex_lock(&wait_for_init_mutex);
@@ -313,8 +336,10 @@ void* init_gpu(void * gpu) {
         gpuvar->loadingdone = 1;
     }
 
-    free(A);
-    free(B);
+    free(A_double);
+    free(B_double);
+    free(A_single);
+    free(B_single);
 
     return NULL;
 }

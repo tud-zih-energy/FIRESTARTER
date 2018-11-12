@@ -117,7 +117,7 @@ def main_getopt(file,version):
     opts_noarg="chvwqar"
     opts_arg="i:t:l:p:n:"
     if version.enable_cuda == 1:
-        opts_noarg=opts_noarg+"f"
+        opts_noarg=opts_noarg+"df"
         opts_arg=opts_arg+"m:g:"
     file.write("        #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)\n")
     file.write("        c = getopt_long(argc, argv, \""+opts_noarg+"b:"+opts_arg+"\", long_options, NULL);\n")

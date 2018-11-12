@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
 
 $CUDA     #ifdef CUDA
 $CUDA     gpustruct_t * structpointer=malloc(sizeof(gpustruct_t));
-$CUDA     structpointer->use_double=1;     //we want to use Doubles, if no -f Argument is given
+$CUDA     structpointer->use_double=2;     //default: double; float if GPU's singleToDoublePrecisionPerfRatio is too big
 $CUDA     structpointer->msize=0;
 $CUDA     structpointer->use_device=-1;    //by default, we use all GPUs with -1 option.
 $CUDA     structpointer->verbose=1;       //Verbosity
@@ -476,9 +476,10 @@ $CUDA
         {"avail",       no_argument,        0, 'a'},
         {"function",    required_argument,  0, 'i'},
 $CUDA         #ifdef CUDA
-$CUDA         {"usegpufloat", no_argument,        0, 'f'},
-$CUDA         {"gpus",        required_argument,  0, 'g'},
-$CUDA         {"matrixsize",  required_argument,  0, 'm'},
+$CUDA         {"usegpufloat",  no_argument,        0, 'f'},
+$CUDA         {"usegpudouble", no_argument,        0, 'd'},
+$CUDA         {"gpus",         required_argument,  0, 'g'},
+$CUDA         {"matrixsize",   required_argument,  0, 'm'},
 $CUDA         #endif
         {"threads",     required_argument,  0, 'n'},
         #if (defined(linux) || defined(__linux__)) && defined (AFFINITY)
@@ -545,7 +546,18 @@ $CUDA             #endif
             break;
         #endif
 $CUDA         #ifdef CUDA
+$CUDA         case 'd':
+$CUDA             if(structpointer->use_double == 0){
+$CUDA               printf("Error: -f and -d cannot be used together\n");
+$CUDA               return EXIT_FAILURE;
+$CUDA             }
+$CUDA             structpointer->use_double=1; //enabling double-precision
+$CUDA             break;
 $CUDA         case 'f':
+$CUDA             if(structpointer->use_double == 1){
+$CUDA               printf("Error: -f and -d cannot be used together\n");
+$CUDA               return EXIT_FAILURE;
+$CUDA             }  
 $CUDA             structpointer->use_double=0; //disabling double-precision
 $CUDA             break;
 $CUDA         case 'm':
