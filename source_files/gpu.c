@@ -275,9 +275,8 @@ static int get_msize(int device_index) {
 
 void* init_gpu(void * gpu) {
     gpuvar = (gpustruct_t*)gpu;
-    int max_msize_single = 0;
-    int max_msize_double = 0;
-
+    int max_msize = 0;
+    
     if(gpuvar->use_device) {
         CUDA_SAFE_CALL(cuInit(0), -1);
         int devCount;
