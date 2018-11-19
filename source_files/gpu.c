@@ -247,7 +247,7 @@ static void* create_load(void * index) {
     return NULL;
 }
 
-static int get_msize(int device_index) {
+static int get_msize(int device_index, int use_double) {
     CUcontext context;
     CUdevice device;
     size_t memory_avail, memory_total;
@@ -258,12 +258,13 @@ static int get_msize(int device_index) {
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
-    return round_up((int)(0.8*sqrt(((memory_avail)/((gpuvar->use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well;
+    return round_up((int)(0.8*sqrt(((memory_avail)/((use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well;
 }
 
 void* init_gpu(void * gpu) {
     gpuvar = (gpustruct_t*)gpu;
-    int max_msize = 0;
+    int max_msize_single = 0;
+    int max_msize_double = 0;
 
     if(gpuvar->use_device) {
         CUDA_SAFE_CALL(cuInit(0), -1);
@@ -290,17 +291,22 @@ void* init_gpu(void * gpu) {
             }
 
             for(int i=0; i<gpuvar->use_device; ++i) {
-                int tmp = get_msize(i);
+                int tmp_single = get_msize(i, 0);
+                int tmp_double = get_msize(i, 1);
 
-                if(tmp > max_msize) {
-                    max_msize = tmp;
+                if(tmp_single > max_msize_single) {
+                    max_msize_single = tmp_single;
+                }
+
+                if(tmp_double > max_msize_double) {
+                    max_msize_double = tmp_double;
                 }
             }
 
-            A_double = fillup(1, max_msize);
-            B_double = fillup(1, max_msize);
-            A_single = fillup(0, max_msize);
-            B_single = fillup(0, max_msize);
+            A_double = fillup(1, max_msize_double);
+            B_double = fillup(1, max_msize_double);
+            A_single = fillup(0, max_msize_single);
+            B_single = fillup(0, max_msize_single);
 
             gpuvar->init_count = 0;
             pthread_mutex_lock(&wait_for_init_mutex);
