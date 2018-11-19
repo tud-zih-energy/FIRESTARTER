@@ -51,6 +51,9 @@ static void *A_double = NULL;
 static void *B_double = NULL;
 static void *A_single = NULL;
 static void *B_single = NULL;
+static int filled_double = 0;
+static int filled_single = 0;
+static int max_msize = 0;
 
 static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t wait_for_init_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -145,10 +148,26 @@ static void* create_load(void * index) {
 
     pthread_use_double = get_precision(properties);
 
+    pthread_mutex_lock(&wait_for_init_mutex);
     if(pthread_use_double) {
+        if (!filled_double) {
+            A_double = fillup(pthread_use_double, max_msize);
+            B_double = fillup(pthread_use_double, max_msize);
+            filled_double = 1;
+        }
         A = A_double;
         B = B_double;
     }
+    else {
+        if(!filled_single) {
+            A_single = fillup(pthread_use_double, max_msize);
+            B_single = fillup(pthread_use_double, max_msize);
+            filled_single = 1;
+        }
+        A = A_single;
+        B = B_single;
+    }
+    pthread_mutex_unlock(&wait_for_init_mutex);
 
     //getting Informations about the GPU Memory
     size_t memory_avail, memory_total;
@@ -275,7 +294,6 @@ static int get_msize(int device_index) {
 
 void* init_gpu(void * gpu) {
     gpuvar = (gpustruct_t*)gpu;
-    int max_msize = 0;
     
     if(gpuvar->use_device) {
         CUDA_SAFE_CALL(cuInit(0), -1);
@@ -308,11 +326,6 @@ void* init_gpu(void * gpu) {
                     max_msize = tmp;
                 }
             }
-
-            A_double = fillup(1, max_msize);
-            B_double = fillup(1, max_msize);
-            A_single = fillup(0, max_msize);
-            B_single = fillup(0, max_msize);
 
             gpuvar->init_count = 0;
             pthread_mutex_lock(&wait_for_init_mutex);
