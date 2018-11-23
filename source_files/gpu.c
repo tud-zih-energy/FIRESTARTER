@@ -110,7 +110,8 @@ static void* fillup(int useD, int size) {
     }
 }
 
-//read precision ratio (dp/sp) of GPU to choose the right version for maximum workload
+#if ( CUDART_VERSION >= 8000 )  
+//read precision ratio (dp/sp) of GPU to choose the right variant for maximum workload
 static int get_precision(int precision_ratio) {
     if(gpuvar->use_double == 2 && precision_ratio > 3){
         return 0;
@@ -120,6 +121,7 @@ static int get_precision(int precision_ratio) {
         return 0;
     }
 }
+#endif
 
 static void* create_load(void * index) {
     int device_index = *((int*)index);   //GPU index. Used to pin this pthread to the GPU.
@@ -145,7 +147,9 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
 
+#if ( CUDART_VERSION >= 8000 )    
     pthread_use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
+#endif
 
     pthread_mutex_lock(&wait_for_init_mutex);
     if(pthread_use_double) {
@@ -274,7 +278,7 @@ static void* create_load(void * index) {
 static int get_msize(int device_index) {
     CUcontext context;
     CUdevice device;
-    int use_double;
+    int use_double = 1;
     size_t memory_avail, memory_total;
     struct cudaDeviceProp properties;
 
@@ -283,8 +287,10 @@ static int get_msize(int device_index) {
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
-
+    
+#if ( CUDART_VERSION >= 8000 )    
     use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
+#endif
 
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
