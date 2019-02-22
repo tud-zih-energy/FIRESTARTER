@@ -47,12 +47,9 @@
 #define SEED 123
 
 static volatile gpustruct_t * gpuvar;
-static void *A_double = NULL;
-static void *B_double = NULL;
-static void *A_single = NULL;
-static void *B_single = NULL;
-static int filled_double = 0;
-static int filled_single = 0;
+static void *A = NULL;
+static void *B = NULL;
+static int filled = 0;
 static int max_msize = 0;
 
 static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
@@ -110,6 +107,17 @@ static void* fillup(int useD, int size) {
     }
 }
 
+#if ( CUDART_VERSION < 8000 )
+//as precision ratio is not supported return default/user input value  
+static int get_precision() {
+    if(gpuvar->use_double) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+#endif
+
 #if ( CUDART_VERSION >= 8000 )  
 //read precision ratio (dp/sp) of GPU to choose the right variant for maximum workload
 static int get_precision(int precision_ratio) {
@@ -126,10 +134,8 @@ static int get_precision(int precision_ratio) {
 static void* create_load(void * index) {
     int device_index = *((int*)index);   //GPU index. Used to pin this pthread to the GPU.
     int iterations, i;
-    int pthread_use_double = gpuvar->use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
+    int pthread_use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
     int size_use = 0;
-    void *A = A_single;
-    void *B = B_single;
     if (gpuvar->msize > 0){
         size_use = gpuvar->msize;
     }
@@ -147,28 +153,28 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
 
+#if ( CUDART_VERSION < 8000 )    
+    pthread_use_double = get_precision();
+#endif
+
 #if ( CUDART_VERSION >= 8000 )    
     pthread_use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
 #endif
 
     pthread_mutex_lock(&wait_for_init_mutex);
     if(pthread_use_double) {
-        if (!filled_double) {
-            A_double = fillup(pthread_use_double, max_msize);
-            B_double = fillup(pthread_use_double, max_msize);
-            filled_double = 1;
+        if (!filled || filled == 2) {
+            A = fillup(pthread_use_double, max_msize);
+            B = fillup(pthread_use_double, max_msize);
+            filled = 1;
         }
-        A = A_double;
-        B = B_double;
     }
     else {
-        if(!filled_single) {
-            A_single = fillup(pthread_use_double, max_msize);
-            B_single = fillup(pthread_use_double, max_msize);
-            filled_single = 1;
+        if(!filled || filled == 1) {
+            A = fillup(pthread_use_double, max_msize);
+            B = fillup(pthread_use_double, max_msize);
+            filled = 2;
         }
-        A = A_single;
-        B = B_single;
     }
     pthread_mutex_unlock(&wait_for_init_mutex);
 
@@ -278,7 +284,7 @@ static void* create_load(void * index) {
 static int get_msize(int device_index) {
     CUcontext context;
     CUdevice device;
-    int use_double = 1;
+    int use_double;
     size_t memory_avail, memory_total;
     struct cudaDeviceProp properties;
 
@@ -287,7 +293,11 @@ static int get_msize(int device_index) {
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
-    
+
+#if ( CUDART_VERSION < 8000 )    
+    use_double = get_precision();
+#endif
+
 #if ( CUDART_VERSION >= 8000 )    
     use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
 #endif
@@ -366,10 +376,8 @@ void* init_gpu(void * gpu) {
         gpuvar->loadingdone = 1;
     }
 
-    free(A_double);
-    free(B_double);
-    free(A_single);
-    free(B_single);
+    free(A);
+    free(B);
 
     return NULL;
 }
