@@ -120,7 +120,7 @@ static int get_precision(struct cudaDeviceProp properties) {
 }
 #else
 //as precision ratio is not supported return default/user input value  
-static int get_precision() {
+static int get_precision(struct cudaDeviceProp properties) {
     if(gpuvar->use_double) {
         return 1;
     } else {
