@@ -107,17 +107,6 @@ static void* fillup(int useD, int size) {
     }
 }
 
-#if ( CUDART_VERSION < 8000 )
-//as precision ratio is not supported return default/user input value  
-static int get_precision() {
-    if(gpuvar->use_double) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-#endif
-
 #if ( CUDART_VERSION >= 8000 )  
 //read precision ratio (dp/sp) of GPU to choose the right variant for maximum workload
 static int get_precision(struct cudaDeviceProp properties) {
