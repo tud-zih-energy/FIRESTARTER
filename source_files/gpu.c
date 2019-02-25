@@ -109,8 +109,8 @@ static void* fillup(int useD, int size) {
 
 #if ( CUDART_VERSION >= 8000 )  
 //read precision ratio (dp/sp) of GPU to choose the right variant for maximum workload
-static int get_precision(int precision_ratio) {
-    if(gpuvar->use_double == 2 && precision_ratio > 3){
+static int get_precision(struct cudaDeviceProp properties) {
+    if(gpuvar->use_double == 2 && properties.singleToDoublePrecisionPerfRatio > 3){
         return 0;
     } else if(gpuvar->use_double) {
         return 1;
@@ -150,8 +150,8 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
-
-    pthread_use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
+  
+    pthread_use_double = get_precision(properties);
 
     pthread_mutex_lock(&wait_for_init_mutex);
     if(pthread_use_double) {
@@ -286,7 +286,7 @@ static int get_msize(int device_index) {
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
 
-    use_double = get_precision(properties.singleToDoublePrecisionPerfRatio);
+    use_double = get_precision(properties);
 
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
