@@ -49,12 +49,14 @@
 static volatile gpustruct_t * gpuvar;
 static void *A = NULL;
 static void *B = NULL;
+static int filled = 0;
+static int max_msize = 0;
 
 static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t wait_for_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
-//CUDA Error Checking
+//CUDA error checking
 static inline void cuda_safe_call( cudaError_t cuerr, int dev_index, const char * file, const int line ) {
     if ( cuerr != cudaSuccess && cuerr != 1)
     {
@@ -105,10 +107,32 @@ static void* fillup(int useD, int size) {
     }
 }
 
+#if ( CUDART_VERSION >= 8000 )  
+//read precision ratio (dp/sp) of GPU to choose the right variant for maximum workload
+static int get_precision(struct cudaDeviceProp properties) {
+    if(gpuvar->use_double == 2 && properties.singleToDoublePrecisionPerfRatio > 3){
+        return 0;
+    } else if(gpuvar->use_double) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+#else
+//as precision ratio is not supported return default/user input value  
+static int get_precision(struct cudaDeviceProp properties) {
+    if(gpuvar->use_double) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+#endif
+
 static void* create_load(void * index) {
-    int device_index = *((int*)index);   //GPU Index. Used to pin this pthread to the GPU.
+    int device_index = *((int*)index);   //GPU index. Used to pin this pthread to the GPU.
     int iterations, i;
-    int pthread_use_double = gpuvar->use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
+    int pthread_use_double; //local per-thread variable, if there's a GPU in the system without Double Precision support.
     int size_use = 0;
     if (gpuvar->msize > 0){
         size_use = gpuvar->msize;
@@ -118,7 +142,7 @@ static void* create_load(void * index) {
     size_t use_bytes, memory_size;
     struct cudaDeviceProp properties;
 
-    //Reserving the GPU and Initializing cublas
+    //reserving the GPU and initializing cublas
     CUdevice device;
     cublasHandle_t cublas;
     CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
@@ -127,11 +151,30 @@ static void* create_load(void * index) {
     CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
     CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
 
-    //getting Informations about the GPU Memory
+    pthread_use_double = get_precision(properties);
+
+    pthread_mutex_lock(&wait_for_init_mutex);
+    if(pthread_use_double) {
+        if (!filled || filled == 2) {
+            A = fillup(pthread_use_double, max_msize);
+            B = fillup(pthread_use_double, max_msize);
+            filled = 1;
+        }
+    }
+    else {
+        if(!filled || filled == 1) {
+            A = fillup(pthread_use_double, max_msize);
+            B = fillup(pthread_use_double, max_msize);
+            filled = 2;
+        }
+    }
+    pthread_mutex_unlock(&wait_for_init_mutex);
+
+    //getting information about the GPU memory
     size_t memory_avail, memory_total;
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
 
-    //Defining Memory Pointers
+    //defining memory pointers
     CUdeviceptr a_data_ptr;
     CUdeviceptr b_data_ptr;
     CUdeviceptr c_data_ptr;
@@ -158,12 +201,12 @@ static void* create_load(void * index) {
     }
     iterations = (use_bytes - 2*memory_size) / memory_size; // = 1;
 
-    //Allocating memory on the GPU
+    //allocating memory on the GPU
     CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations*memory_size), device_index);
 
-    // Moving matrices A and B to the GPU
+    //moving matrices A and B to the GPU
     CUDA_SAFE_CALL(cuMemcpyHtoD(a_data_ptr, A, memory_size), device_index);
     CUDA_SAFE_CALL(cuMemcpyHtoD(b_data_ptr, B, memory_size), device_index);
 
@@ -172,16 +215,20 @@ static void* create_load(void * index) {
         CUDA_SAFE_CALL(cuMemcpyHtoD(c_data_ptr + i*size_use*size_use, A, memory_size), device_index);
     }
 
-    // save gpuvar->init_count and sys.out
+    //save gpuvar->init_count and sys.out
     pthread_mutex_lock(&wait_for_init_mutex);
 
     if(gpuvar->verbose) {
-        printf("    - GPU %d: %s Initialized with %lu MB of memory (%lu MB available, using %lu MB of it) and Matrix Size: %d.\n",device_index,properties.name,memory_total/1024ul/1024ul, memory_avail/1024ul/1024ul, use_bytes/1024/1024,size_use);
+        printf("   GPU %d\n", device_index);
+        printf("    name:           %s\n", properties.name);
+        printf("    memory:         %lu/%lu MB available (using %lu MB)\n", memory_avail/1024ul/1024ul, memory_total/1024ul/1024ul, use_bytes/1024/1024);
+        printf("    matrix size:    %d\n", size_use);
+        printf("    used precision: %s\n", pthread_use_double ? "double" : "single");
     }
 
     gpuvar->init_count++;
 
-    // check whether all GPU threads initialized their workload, if so allow other threads to continue
+    //check whether all GPU threads initialized their workload, if so allow other threads to continue
     if ( gpuvar->init_count == gpuvar->use_device )
     {
       pthread_cond_signal( &wait_for_init_cond );
@@ -194,7 +241,7 @@ static void* create_load(void * index) {
     const double alpha_double = 1.0;
     const double beta_double = 0.0;
 
-    //Actual stress begins here
+    //actual stress begins here
     while(*gpuvar->loadvar != LOAD_STOP) {
         for (i = 0; i < iterations; i++) {
             if(pthread_use_double) {
@@ -229,21 +276,26 @@ static void* create_load(void * index) {
 static int get_msize(int device_index) {
     CUcontext context;
     CUdevice device;
+    int use_double;
     size_t memory_avail, memory_total;
+    struct cudaDeviceProp properties;
 
     CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
     CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
     CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
     CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail,&memory_total), device_index);
+    CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index), device_index);
+
+    use_double = get_precision(properties);
+
     CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
-    return round_up((int)(0.8*sqrt(((memory_avail)/((gpuvar->use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well;
+    return round_up((int)(0.8*sqrt(((memory_avail)/((use_double?sizeof(double):sizeof(float))*3)))),1024); //a multiple of 1024 works always well
 }
 
 void* init_gpu(void * gpu) {
     gpuvar = (gpustruct_t*)gpu;
-    int max_msize = 0;
-
+    
     if(gpuvar->use_device) {
         CUDA_SAFE_CALL(cuInit(0), -1);
         int devCount;
@@ -251,7 +303,7 @@ void* init_gpu(void * gpu) {
 
         if (devCount) {
             int *dev = malloc(sizeof(int)*devCount);;
-            pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the System.
+            pthread_t gputhreads[devCount]; //creating as many threads as GPUs in the system.
 
             if(gpuvar->verbose) {
                 printf("\n  graphics processor characteristics:\n");
@@ -276,15 +328,12 @@ void* init_gpu(void * gpu) {
                 }
             }
 
-            A = fillup(gpuvar->use_double, max_msize);
-            B = fillup(gpuvar->use_double, max_msize);
-
             gpuvar->init_count = 0;
             pthread_mutex_lock(&wait_for_init_mutex);
 
 
             for(int i=0; i<gpuvar->use_device; ++i) {
-                dev[i] = i; //creating seperate ints, so no race-condition happens when pthread_create submits the adress
+                dev[i] = i; //creating separate ints, so no race-condition happens when pthread_create submits the address
                 pthread_create(&gputhreads[i],NULL,create_load,(void *)&(dev[i]));
             }
 

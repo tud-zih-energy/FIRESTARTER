@@ -1,34 +1,134 @@
 language: generic
 
-sudo: required
 dist: trusty
+sudo: required
 
 matrix:
   include:
     - os: linux
-      env: LINUX_CC="gcc-7"
-      compiler: gcc
-      addons:
-        apt:
-          packages:
-            - gcc-7
-            - g++-7
-            - nvidia-cuda-dev
-          sources: &sources
-            - ubuntu-toolchain-r-test
-    - os: linux
-      env: LINUX_CC="gcc-6"
+      env: 
+        - LINUX_CC="gcc-6"
+        - CUDA=6.5-14
       compiler: gcc
       addons:
         apt:
           packages:
             - gcc-6
             - g++-6
-            - nvidia-cuda-dev
+          sources: &sources
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-6"
+        - CUDA=7.0-28
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
+          sources: &sources
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-6"
+        - CUDA=7.5-18
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
+          sources: &sources
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-6"
+        - CUDA=8.0.61-1
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
+          sources: &sources
+            - ubuntu-toolchain-r-test
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-6"
+        - CUDA=10.0.130-1
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-6
+            - g++-6
           sources: *sources
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-7"
+        - CUDA=6.5-14
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+          sources: *sources
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-7"
+        - CUDA=7.0-28
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+          sources: *sources
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-7"
+        - CUDA=7.5-18
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+          sources: *sources
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-7"
+        - CUDA=8.0.61-1
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+          sources: *sources
+    - os: linux
+      env: 
+        - LINUX_CC="gcc-7"
+        - CUDA=10.0.130-1
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - gcc-7
+            - g++-7
+          sources: *sources
+
+
+before_install:
+  - source travis-ci/install-cuda-trusty.sh
+  - nvcc --version
+
 before_script:
   - mkdir -p build
   - cd build
   - ../code-generator.py --enable-cuda
+
 script:
-  - make all
+- make all

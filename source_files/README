@@ -83,7 +83,8 @@ Options:
 $CUDA
 $CUDA CUDA Options:
 $CUDA -g         | --gpus             number of gpus to use (default: all)
-$CUDA -f         | --usegpufloat      use single precision matrix multiplications instead of double
+$CUDA -f         | --usegpufloat      use single precision matrix multiplications (default: depends on GPU) 
+$CUDA -d         | --usegpudouble     use double precision matrix multiplications (default: depends on GPU)
 $CUDA -m         | --matrixsize       size of the Matrix to calculate (default: 12288)
 
 Examples:
