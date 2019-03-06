@@ -37,7 +37,8 @@ Since version 1.1 it is also possible to create alternating and repetitive
 patterns of high load and idle (-l and -p parameters).
 $CUDA
 $CUDA Since version 1.3 it is also possible to stress Nvidia GPUs with support for 
-$CUDA CUDA 5.0 or later (FIRESTARTER_CUDA)
+$CUDA CUDA 8.0 or later (FIRESTARTER_CUDA with automatic precision switching) or
+$CUDA CUDA 5.0 or later (FIRESTARTER_CUDA_LEGACY)
 $WIN64
 $WIN64 Since version 1.x a windows version is included (FIRESTARTER_win64.exe)
 
