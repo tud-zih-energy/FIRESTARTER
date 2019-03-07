@@ -12,8 +12,8 @@ travis_retry sudo apt-get install -y cuda-drivers cuda-core-${CUDA_VERSION_APT} 
 travis_retry sudo apt-get clean
 
 export CUDA_ROOT=/usr/local/cuda-${CUDA_VERSION}
-export LD_LIBRARY_PATH=${CUDA_HOME}/nvvm/lib64:${LD_LIBRARY_PATH}
-export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=${CUDA_ROOT}/nvvm/lib64:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${LD_LIBRARY_PATH}
 export PATH=${CUDA_ROOT}/bin:${PATH}
 
 sudo mkdir -p /opt/cuda/
