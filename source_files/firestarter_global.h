@@ -74,8 +74,8 @@ $MAC
 typedef struct watchdog_args {
     unsigned long long *loadvar;
     pid_t pid;
-    useconds_t period;
-    useconds_t load;
+    long long period;
+    long long load;
     unsigned int timeout;
 } watchdog_arg_t;
 watchdog_arg_t watchdog_arg;

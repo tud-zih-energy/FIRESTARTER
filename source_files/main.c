@@ -89,7 +89,7 @@ static int FUNCTION = FUNC_NOT_DEFINED;
 /*
  * timeout and load characteristics as defind by -t, -p, and -l
  */
-static long TIMEOUT = 0, PERIOD = 100000, LOAD = 100;
+static long long TIMEOUT = 0, PERIOD = 100000, LOAD = 100;
 
 /*
  * pointer for CPU bind argument (-b | --bind)
@@ -590,7 +590,7 @@ $CUDA         #endif
             }
             break;
         case 'p':
-            PERIOD = strtol(optarg,NULL,10);
+            PERIOD = strtoll(optarg,NULL,10);
             if ((errno != 0) || (PERIOD <= 0)) {
                 printf("Error: period out of range or not a number: %s\n",optarg);
                 return EXIT_FAILURE;
