@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2019 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2018 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,15 +21,5 @@
 
 #include "work.h"
 
-$TEMPLATE sse2_functions_c.init_functions(dest,architectures)
-
-$TEMPLATE avx_functions_c.init_functions(dest,architectures)
-
-$TEMPLATE fma_functions_c.init_functions(dest,architectures)
-
-$TEMPLATE fma4_functions_c.init_functions(dest,architectures)
-
-$TEMPLATE avx512_functions_c.init_functions(dest,architectures)
-
-$TEMPLATE zen_fma_functions_c.init_functions(dest,architectures)
+$TEMPLATE zen_fma_functions_c.work_functions(dest,architectures,version)
 

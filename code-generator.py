@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 ###############################################################################
 # FIRESTARTER - A Processor Stress Test Utility
 # Copyright (C) 2019 TU Dresden, Center for Information Services and High
@@ -25,6 +26,8 @@ try:
     from configparser import ConfigParser
 except ImportError:
     from ConfigParser import ConfigParser
+
+from fractions import Fraction
 
 # import templates
 from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c
@@ -177,7 +180,8 @@ if verbose == True:
 files = ['LICENSE','COPYING','CHANGELOG']
 
 for each in templates:
-    each.file=cfg.get(each.name,'template')+'_functions'
+    each.template=cfg.get(each.name,'template')
+    each.file=each.template+'_functions'
     each.feature_req=cfg.get(each.name,'feature_req')
     each.flags=[x.strip() for x in cfg.get(each.name,'flags').split(',')]
     each.win64_incl=int(cfg.get(each.name,'win64_incl'))

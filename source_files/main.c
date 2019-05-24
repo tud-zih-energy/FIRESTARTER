@@ -219,7 +219,7 @@ static void list_functions(){
   printf("  ID   | NAME                           | available on this system\n");
   printf("  ----------------------------------------------------------------\n");
 $$ list available functions with their respective id
-$TEMPLATE main_c.list_functions(dest,architectures)
+$TEMPLATE main_c.list_functions(dest,architectures,templates)
 
   return;
 }
@@ -229,7 +229,7 @@ static int get_function(unsigned int id){
 
     switch(id){
 $$ select function based on specified id
-$TEMPLATE main_c.get_function_cases(dest,architectures)
+$TEMPLATE main_c.get_function_cases(dest,architectures,templates)
        default:
          fprintf(stderr, "\nError: unknown function id: %s, see --avail for available ids\n\n", optarg);
     }
@@ -396,7 +396,7 @@ static void evaluate_environment()
      {
         switch (cpuinfo->family) {
 $$ select function according to cpu family and model
-$TEMPLATE main_c.evaluate_environment_set_function_cases(dest,architectures,families)
+$TEMPLATE main_c.evaluate_environment_set_function_cases(dest,architectures,families,templates)
           default:
             fprintf(stderr, "\nWarning: family %i processors are not supported by this version of FIRESTARTER!\n         Check project website for updates.\n",cpuinfo->family);
         }

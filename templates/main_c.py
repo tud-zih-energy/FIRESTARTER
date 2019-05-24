@@ -19,31 +19,40 @@
 # Contact: daniel.hackenberg@tu-dresden.de
 ###############################################################################
 
-def list_functions(file,architectures):
+def get_feature_request_from_isa(templates,isa):
+    template = next((d for d in templates if d.template == isa), None)
+    if template is None:
+        feature_req = isa
+    else:
+        feature_req = template.feature_req
+
+def list_functions(file,architectures,templates):
     id = 0
     for each in architectures:
         for isa in each.isa:
             for threads in each.threads:
                 id = id + 1
+                feature_req = get_feature_request_from_isa(templates,isa)
                 func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'T'
-                file.write("  if (feature_available(\""+isa.upper()+"\")) printf(\"  %4.4s | %.30s | yes\\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
+                file.write("  if (feature_available(\""+feature_req.upper()+"\")) printf(\"  %4.4s | %.30s | yes\\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
                 file.write("  else printf(\"  %4.4s | %.30s | no\\n\",\""+str(id)+"\",\""+func_name.upper()+"                             \");\n")
 
-def get_function_cases(file,architectures):
+def get_function_cases(file,architectures,templates):
     id = 0
     for each in architectures:
         for isa in each.isa:
             for threads in each.threads:
                 id = id + 1
+                feature_req = get_feature_request_from_isa(templates,isa)
                 func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'+threads+'T'
                 file.write("       case "+str(id)+":\n")
-                file.write("         if (feature_available(\""+isa.upper()+"\")) func = "+func_name.upper()+";\n")
+                file.write("         if (feature_available(\""+feature_req.upper()+"\")) func = "+func_name.upper()+";\n")
                 file.write("         else{\n")
-                file.write("           fprintf(stderr, \"\\nError: Function "+str(id)+" (\\\""+func_name.upper()+"\\\") requires "+isa.upper()+", which is not supported by the processor.\\n\\n\");\n")
+                file.write("           fprintf(stderr, \"\\nError: Function "+str(id)+" (\\\""+func_name.upper()+"\\\") requires "+feature_req.upper()+", which is not supported by the processor.\\n\\n\");\n")
                 file.write("         }\n")
                 file.write("         break;\n")
 
-def evaluate_environment_set_function_cases(file,architectures,families):
+def evaluate_environment_set_function_cases(file,architectures,families,templates):
     for cpu_fam in families:
         file.write("          case "+cpu_fam+":\n")
         file.write("            switch (cpuinfo->model) {\n")
@@ -52,8 +61,9 @@ def evaluate_environment_set_function_cases(file,architectures,families):
                 for cpu_model in each.cpu_model:
                     file.write("              case "+cpu_model+":\n")
                 for isa in each.isa:
+                    feature_req = get_feature_request_from_isa(templates,isa)
                     func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'
-                    file.write("                if (feature_available(\""+isa.upper()+"\")) {\n")
+                    file.write("                if (feature_available(\""+feature_req.upper()+"\")) {\n")
                     for threads in each.threads:
                         file.write("                    if (num_threads_per_core() == "+threads+") FUNCTION = "+func_name.upper()+threads.upper()+"T;\n")
                     file.write("                    if (FUNCTION == FUNC_NOT_DEFINED) {\n")
@@ -61,7 +71,7 @@ def evaluate_environment_set_function_cases(file,architectures,families):
                     file.write("                    }\n")
                     file.write("                }\n")
                 file.write("                if (FUNCTION == FUNC_NOT_DEFINED) {\n")
-                file.write("                    fprintf(stderr, \"\\nWarning: "+isa.upper()+" is requiered for architecture \\\""+each.arch.upper()+"\\\", but is not supported!\\n\");\n")
+                file.write("                    fprintf(stderr, \"\\nWarning: "+feature_req.upper()+" is requiered for architecture \\\""+each.arch.upper()+"\\\", but is not supported!\\n\");\n")
                 file.write("                }\n")
                 file.write("                break;\n")
         file.write("            default:\n")
