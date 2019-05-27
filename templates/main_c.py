@@ -25,6 +25,7 @@ def get_feature_request_from_isa(templates,isa):
         feature_req = isa
     else:
         feature_req = template.feature_req
+    return feature_req
 
 def list_functions(file,architectures,templates):
     id = 0
