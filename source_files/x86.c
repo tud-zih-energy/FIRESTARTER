@@ -1236,6 +1236,13 @@ int num_cores_per_package()
             a=0x80000008;
             cpuid(&a,&b,&c,&d);
             num= (c&0xff)+1;
+
+            if (get_cpu_family() >= 0x17)
+            {
+                a=0x8000001e;
+                cpuid(&a,&b,&c,&d);
+                num/=(b>>8&0xff)+1;
+            }
         }
         else num=1;
         /* consistency checks */
