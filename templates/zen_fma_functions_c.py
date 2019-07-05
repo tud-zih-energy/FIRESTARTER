@@ -184,7 +184,7 @@ def work_functions(file,architectures,version):
                     file.write("        \"mov $64, %%"+offset_reg+";\" // increment after each cache/memory access\n")
                     file.write("        //Initialize registers for shift operations\n")
                     for i in range(0,nr_shift_regs):
-                        file.write("        \"mov $0xAAAAAAAA, %%"+shift_reg32[i]+";\"\n")
+                        file.write("        \"mov $0xAAAAAAAAAAAAAAAA, %%"+shift_reg[i]+";\"\n")
                     file.write("        //Initialize AVX-Registers for FMA Operations\n")
                     file.write("        \"vmovapd (%%rax), %%ymm0;\"\n")
                     fma_input_start  = 1
