@@ -123,7 +123,7 @@ def work_functions(file,architectures,version):
     iter_reg        = 'mm0'
     shift_reg       = ['rdi','rsi','rdx']
     nr_shift_regs   = 3
-    fma_io_regs     = 7 # number of registers each used for input and output
+    fma_io_regs     = 6 # number of registers each used for input and output
     ram_reg         = 'ymm15'
 
     shift_regs=shift_reg[0]
@@ -191,8 +191,13 @@ def work_functions(file,architectures,version):
                     fma_input_end    = fma_input_start + fma_io_regs - 1
                     fma_output_start = fma_input_end + 1
                     fma_output_end   = fma_output_start + fma_io_regs - 1
+                    #for i in range(fma_input_start, fma_output_end):
                     for i in range(fma_input_start, fma_output_end):
                         file.write("        \"vmovapd "+str(i*32)+"(%%rax), %%ymm"+str(i)+";\"\n")
+                    file.write("        \"mov $1, %%"+temp_reg+";\"\n")
+                    file.write("        \"movd %%xmm14, %%"+temp_reg+";\"\n")
+                    file.write("        \"movd %%xmm13, %%"+shift_reg[0]+";\"\n")
+                    file.write("        \"vbroadcastss %%xmm13, %%xmm13;\"\n")
                     file.write("        \"mov %%"+pointer_reg+", %%"+l1_addr+";\" // address for L1-buffer\n")
                     file.write("        \"mov %%"+pointer_reg+", %%"+l2_addr+";\"\n")
                     file.write("        \"add $"+str(l1_size)+", %%"+l2_addr+";\" // address for L2-buffer\n")
@@ -220,13 +225,20 @@ def work_functions(file,architectures,version):
                     shift_pos = 0
                     left = 0
                     l1_offset = 0
+                    count = 0
                     for i in range(0,util.repeat(sequence,lines)):
                         for item in sequence: 
+                            # d0: 256 bit fma
+                            # d1: xor or 256 bit store
+                            # d2: 128 shr/shl
+                            # d3: add or move l[1-3] addr or shr/shl
                             if item == 'REG': 
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(fma_output_start+fma_pos)+', %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
                                 d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
-                                d3_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-2)%nr_shift_regs])+', %%'+str(temp_reg)+';'
-                                #d3_inst   = 'add %%'+offset_reg+', %%'+str(temp_reg)+';'
+                                if left == 1:
+                                    d3_inst = 'shr $1, %%'+str(shift_reg[shift_pos])+';'
+                                else:
+                                    d3_inst = 'shl $1, %%'+str(shift_reg[shift_pos])+';'
                                 comment   = '// REG ops only'
                             elif item == 'L1_L':
                                 d0_inst   = 'vfmadd231pd 32(%%'+l1_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
@@ -307,7 +319,7 @@ def work_functions(file,architectures,version):
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
                                 comment   = '// L3 load, L3 store'
                             elif item == 'L3_P':
-                                d0_inst   = 'vfmadd231pd 32(%%'+l1_addr+'), %%ymm0, %%ymm'+tr(fma_input_start+fma_pos)+';'
+                                d0_inst   = 'vfmadd231pd 32(%%'+l1_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
                                 d1_inst   = 'prefetcht2 (%%'+l3_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
                                 comment   = '// L3 prefetch'
@@ -327,7 +339,7 @@ def work_functions(file,architectures,version):
                             elif item == 'RAM_LS':
                                 d0_inst   = 'vfmadd231pd 32(%%'+ram_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
                                 if store_count % 2 == 0:
-                                    d0_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
+                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
                                 else:
                                     d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+ram_addr+';'
@@ -340,10 +352,11 @@ def work_functions(file,architectures,version):
                             else:
                                 print("Error: instruction group \""+item+"\" undefined in "+isa+"_functions_c.work_functions")
                                 sys.exit(2)
-                            if left == 1:
-                                d2_inst = 'shr $1, %%'+str(shift_reg[shift_pos])+';'
+                            if count % 2 == 0:
+                                d2_inst = 'vpsrlq %%xmm13, %%xmm13, %%xmm14;';
                             else:
-                                d2_inst = 'shl $1, %%'+str(shift_reg[shift_pos])+';'
+                                d2_inst = 'vpsllq %%xmm13, %%xmm13, %%xmm14;';
+                            count += 1
                             # write instruction group to file
                             file.write("        \"{:<40} {:<40} {:<20} {:<20}\" {:<}\n".format(d0_inst, d1_inst, d2_inst, d3_inst, comment))
                             # prepare register numbers for next iteration
