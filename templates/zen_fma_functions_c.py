@@ -191,7 +191,6 @@ def work_functions(file,architectures,version):
                     fma_input_end    = fma_input_start + fma_io_regs - 1
                     fma_output_start = fma_input_end + 1
                     fma_output_end   = fma_output_start + fma_io_regs - 1
-                    #for i in range(fma_input_start, fma_output_end):
                     for i in range(fma_input_start, fma_output_end):
                         file.write("        \"vmovapd "+str(i*32)+"(%%rax), %%ymm"+str(i)+";\"\n")
                     file.write("        \"mov $1, %%"+temp_reg+";\"\n")
@@ -220,7 +219,6 @@ def work_functions(file,architectures,version):
                     file.write("        /****************************************************************************************************\n")
                     file.write("         decode 0                                 decode 1                                 decode 2             decode 3 */\n")
 
-                    store_count = 0
                     fma_pos = 0
                     shift_pos = 0
                     left = 0
@@ -229,7 +227,7 @@ def work_functions(file,architectures,version):
                     for i in range(0,util.repeat(sequence,lines)):
                         for item in sequence: 
                             # d0: 256 bit fma
-                            # d1: xor or 256 bit store
+                            # d1: 128 bit store
                             # d2: 128 shr/shl
                             # d3: add or move l[1-3] addr or shr/shl
                             if item == 'REG': 
@@ -252,10 +250,7 @@ def work_functions(file,architectures,version):
                                 comment   = '// L1 load'
                             elif item == 'L1_S':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(fma_output_start+fma_pos)+', %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 32(%%'+l1_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 32(%%'+l1_addr+');'
                                 l1_offset = l1_offset + each.cl_size
                                 if l1_offset < l1_size*each.l1_cover:
                                     d3_inst  = 'add %%'+offset_reg+', %%'+l1_addr+';'
@@ -265,10 +260,7 @@ def work_functions(file,architectures,version):
                                 comment   = '// L1 store'
                             elif item == 'L1_LS':
                                 d0_inst   = 'vfmadd231pd 32(%%'+l1_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+l1_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+l1_addr+');'
                                 l1_offset = l1_offset + each.cl_size
                                 if l1_offset < l1_size*each.l1_cover:
                                     d3_inst  = 'add %%'+offset_reg+', %%'+l1_addr+';'
@@ -283,18 +275,12 @@ def work_functions(file,architectures,version):
                                 comment   = '// L2 load'
                             elif item == 'L2_S':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(fma_output_start+fma_pos)+', %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+l2_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 64(%%'+l2_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l2_addr+';'
                                 comment   = '// L2 store'
                             elif item == 'L2_LS':
                                 d0_inst   = 'vfmadd231pd 64(%%'+l2_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 96(%%'+l2_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 96(%%'+l2_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l2_addr+';'
                                 comment   = '// L2 load, L2 store'
                             elif item == 'L3_L':        
@@ -304,18 +290,12 @@ def work_functions(file,architectures,version):
                                 comment   = '// L3 load'
                             elif item == 'L3_S':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(fma_output_start+fma_pos)+', %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 96(%%'+l3_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 96(%%'+l3_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
                                 comment   = '// L3 store'
                             elif item == 'L3_LS':        
                                 d0_inst   = 'vfmadd231pd 64(%%'+l3_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 96(%%'+l3_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 96(%%'+l3_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+l3_addr+';'
                                 comment   = '// L3 load, L3 store'
                             elif item == 'L3_P':
@@ -330,18 +310,12 @@ def work_functions(file,architectures,version):
                                 comment   = '// RAM load'
                             elif item == 'RAM_S':
                                 d0_inst   = 'vfmadd231pd %%ymm'+str(fma_output_start+fma_pos)+', %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+ram_addr+';'
                                 comment   = '// RAM store'
                             elif item == 'RAM_LS':
                                 d0_inst   = 'vfmadd231pd 32(%%'+ram_addr+'), %%ymm0, %%ymm'+str(fma_input_start+fma_pos)+';'
-                                if store_count % 2 == 0:
-                                    d1_inst   = 'vmovapd %%ymm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
-                                else:
-                                    d1_inst   = 'xor %%'+str(shift_reg[(shift_pos+nr_shift_regs-1)%nr_shift_regs])+', %%'+str(temp_reg)+';'
+                                d1_inst   = 'vmovapd %%xmm'+str(fma_input_start+fma_pos)+', 64(%%'+ram_addr+');'
                                 d3_inst   = 'add %%'+str(offset_reg)+', %%'+ram_addr+';'
                                 comment   = '// RAM load, RAM store'
                             elif item == 'RAM_P':
@@ -356,15 +330,13 @@ def work_functions(file,architectures,version):
                                 d2_inst = 'vpsrlq %%xmm13, %%xmm13, %%xmm14;';
                             else:
                                 d2_inst = 'vpsllq %%xmm13, %%xmm13, %%xmm14;';
-                            count += 1
                             # write instruction group to file
                             file.write("        \"{:<40} {:<40} {:<20} {:<20}\" {:<}\n".format(d0_inst, d1_inst, d2_inst, d3_inst, comment))
                             # prepare register numbers for next iteration
                             # check if it is a store
-                            if item[-1:] == "S":
-                                store_count = store_count + 1
                             fma_pos   = (fma_pos+1)%fma_io_regs
                             shift_pos = shift_pos +1
+                            count += 1
                             if shift_pos == nr_shift_regs:
                                 shift_pos = 0
                                 if left == 1:
