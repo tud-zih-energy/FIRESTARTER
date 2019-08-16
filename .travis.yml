@@ -143,8 +143,9 @@ before_install:
 before_script:
   - mkdir -p build
   - cd build
+  - echo $TRAVIS_OS_NAME
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ../code-generator.py --enable-cuda ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ../code-generator.py --enable-mac ; fi
 
 script:
-- make all
+- make
