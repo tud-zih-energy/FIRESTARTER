@@ -1215,7 +1215,14 @@ int num_cores_per_package()
 
         a=0;
         cpuid(&a,&b,&c,&d);
-        if (a>=4)
+        if (a>=0xb)
+        {
+            a = 0xb;
+            c = 2;
+            cpuid( &a, &b, &c, &d );
+            num = ( b & 0xffff );
+        }
+        else if (a>=4)
         {
             a=4;
             c=0;
