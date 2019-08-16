@@ -47,7 +47,11 @@
 #include <dirent.h>
 
 /* use old memcpy to avoid GLIBC 2.14 dependency */
+/* don't do this with mac builds */
+/* this still is necessary to distribute the binary though :( */
+$MAC #if 0
 __asm__(".symver memcpy, memcpy@GLIBC_2.2.5");
+$MAC #endif
 
 /* buffer for some generic implementations */
 // TODO remove global variables to allow thread safe execution of detection
@@ -966,7 +970,12 @@ int generic_cache_shared(int cpu, int id) {
     char *beg, *end;
     int num = 0;
 
-    generic_cache_info(cpu, id, tmp, sizeof(tmp));
+    /* re-use num for checking return value */
+    num = generic_cache_info(cpu, id, tmp, sizeof(tmp));
+    if ( num == -1 )
+        return -1;
+    num = 0;
+
     beg = strstr(tmp,",")+1;
     if (beg == NULL) return -1;
     else beg++;

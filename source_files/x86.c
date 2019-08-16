@@ -1152,12 +1152,12 @@ int cache_shared(int cpu, int id) {
     beg=strstr(tmp,"among");
     if (beg==NULL)
     {
-        beg=strstr(tmp,"per cpu");
+        beg=strstr(tmp,"per thread");
         if (beg!=NULL) return 1;
         else return generic_cache_shared(cpu,id);
     }
     beg+=6;
-    end=strstr(beg,"cpus");
+    end=strstr(beg,"thread");
     if (end!=NULL)*(end--)='\0';
 
     return atoi(beg);
@@ -1220,7 +1220,7 @@ int num_cores_per_package()
             a=4;
             c=0;
             cpuid(&a,&b,&c,&d);
-            num= (a>>26)+1;
+            num= ( a >> 26 ) + 1 ;
         }
         else num=1;
 

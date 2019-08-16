@@ -28,7 +28,7 @@ LINUX_CC?=gcc
 LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=gnu99 -I. -DAFFINITY
 OPT_STD=-O2
 OPT_ASM=-O0
-LINUX_L_FLAGS=-lpthread -lrt -lm
+LINUX_L_FLAGS=-lpthread -lm
 
 # source and object files of assembler routines
 $TEMPLATE Makefile.src_obj_files(dest,templates,version)
@@ -36,7 +36,7 @@ $TEMPLATE Makefile.src_obj_files(dest,templates,version)
 $CUDA # CUDA flags
 $CUDA LINUX_CUDA_PATH=/opt/cuda
 $CUDA LINUX_CUDA_C_FLAGS=${LINUX_C_FLAGS} -I${LINUX_CUDA_PATH}/include -DCUDA
-$CUDA LINUX_CUDA_L_FLAGS=${LINUX_L_FLAGS} -lcuda -lcublas -lcudart -L${LINUX_CUDA_PATH}/lib64 -L${LINUX_CUDA_PATH}/lib -Wl,-rpath=${LINUX_CUDA_PATH}/lib64 -Wl,-rpath=${LINUX_CUDA_PATH}/lib
+$CUDA LINUX_CUDA_L_FLAGS=${LINUX_L_FLAGS} -lrt -lcuda -lcublas -lcudart -L${LINUX_CUDA_PATH}/lib64 -L${LINUX_CUDA_PATH}/lib -Wl,-rpath=${LINUX_CUDA_PATH}/lib64 -Wl,-rpath=${LINUX_CUDA_PATH}/lib
 $CUDA
 $WIN64 # windows compiler and flags
 $WIN64 WIN64_CC=x86_64-w64-mingw32-gcc

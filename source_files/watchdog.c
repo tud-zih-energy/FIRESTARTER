@@ -29,6 +29,29 @@
 extern unsigned long long LOADVAR;
 int TERMINATE = 0;
 
+$MAC /* Mac OS compatibility */
+$MAC #ifdef __MACH__
+$MAC #include <mach/mach_time.h>
+$MAC #ifndef CLOCK_REALTIME
+$MAC #define CLOCK_REALTIME 0
+$MAC #endif  /* ifndef CLOCK_REALTIME */
+$MAC #endif /* ifdef __MACH__ */
+
+$MAC #ifdef __MACH__
+$MAC #define FIRESTARTER_gettime(timer) \
+$MAC do { \
+$MAC         timer = mach_absolute_time(); \
+$MAC } \
+$MAC while ( 0 )
+$MAC #elif
+#define FIRESTARTER_gettime(timer) \
+do { \
+    clock_gettime(CLOCK_REALTIME, &timer); \
+} \
+while ( 0 )
+$MAC #endif
+
+
 /* signal load changes to workers */
 static void set_load(unsigned long long *loadvar, unsigned long long value)
 {
@@ -109,12 +132,26 @@ int watchdog_timer(watchdog_arg_t *arg)
     sigset_t signal_mask;
     long long timeout, time, period, load, idle, advance, load_reduction, idle_reduction;
     unsigned long long *loadvar;
-    struct timespec start_ts, current, target, remaining;
     int sleepret;
+    struct timespec target, remaining;
 
+    /* Definition of timestamps */
 $MAC     /* Mac OS compatibility */
 $MAC     #ifdef __MACH__
-$MAC       mach_timebase_info(&info);
+$MAC         uint64_t start_ts, current;
+$MAC         double ns_per_tick;
+$MAC     #elif
+    struct timespec start_ts, current;
+$MAC     #endif
+
+$MAC     /* Mac OS compatibility: get resolution of timer */
+$MAC     #ifdef __MACH__
+$MAC       mach_timebase_info_data_t info;
+$MAC       if ( mach_timebase_info(&info) != KERN_SUCCESS )
+$MAC       {
+$MAC           fprintf(stderr, "Could not get time base information\n");
+$MAC           return 1;
+$MAC       }
 $MAC       ns_per_tick = (double)info.numer / (double)info.denom;
 $MAC     #endif
 $MAC
@@ -137,7 +174,8 @@ $MAC
     timeout = arg->timeout;
     loadvar = arg->loadvar;
 
-    clock_gettime(CLOCK_REALTIME, &start_ts);
+    FIRESTARTER_gettime(start_ts);
+
     time = 0;
     /* TODO: I don't like that the control flow depends on the period variable,
      * it is not wrong but confusing
@@ -146,8 +184,16 @@ $MAC
     while(period > 0){
         // cycles++;
 
-        clock_gettime(CLOCK_REALTIME, &current);
-        advance = ((current.tv_sec - start_ts.tv_sec) * NSEC_PER_SEC + (current.tv_nsec - start_ts.tv_nsec) ) % period;
+        FIRESTARTER_gettime(current);
+
+        /* compute advance and align with generally planned period */
+$MAC     /* Mac OS compatibility */
+$MAC     #ifdef __MACH__
+$MAC         advance= ((uint64_t)( (current-start_ts) * ns_per_tick )) % period;
+$MAC     #elif
+             advance = ((current.tv_sec - start_ts.tv_sec) * NSEC_PER_SEC + (current.tv_nsec - start_ts.tv_nsec) ) % period;
+$MAC     #endif
+
         load_reduction = (load * advance) / period;
         idle_reduction = advance - load_reduction;
 

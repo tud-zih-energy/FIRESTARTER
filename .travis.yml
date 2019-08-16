@@ -6,7 +6,7 @@ sudo: required
 matrix:
   include:
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-6"
         - CUDA=6.5-14
       compiler: gcc
@@ -18,7 +18,7 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-6"
         - CUDA=7.0-28
       compiler: gcc
@@ -30,7 +30,7 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-6"
         - CUDA=7.5-18
       compiler: gcc
@@ -42,7 +42,7 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-6"
         - CUDA=8.0.61-1
       compiler: gcc
@@ -54,7 +54,7 @@ matrix:
           sources: &sources
             - ubuntu-toolchain-r-test
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-6"
         - CUDA=10.0.130-1
       compiler: gcc
@@ -65,7 +65,7 @@ matrix:
             - g++-6
           sources: *sources
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-7"
         - CUDA=6.5-14
       compiler: gcc
@@ -76,7 +76,7 @@ matrix:
             - g++-7
           sources: *sources
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-7"
         - CUDA=7.0-28
       compiler: gcc
@@ -87,7 +87,7 @@ matrix:
             - g++-7
           sources: *sources
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-7"
         - CUDA=7.5-18
       compiler: gcc
@@ -98,7 +98,7 @@ matrix:
             - g++-7
           sources: *sources
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-7"
         - CUDA=8.0.61-1
       compiler: gcc
@@ -109,7 +109,7 @@ matrix:
             - g++-7
           sources: *sources
     - os: linux
-      env: 
+      env:
         - LINUX_CC="gcc-7"
         - CUDA=10.0.130-1
       compiler: gcc
@@ -119,16 +119,33 @@ matrix:
             - gcc-7
             - g++-7
           sources: *sources
-
+    - os: osx
+      env:
+        - LINUX_CC="cc"
+      osx_image: xcode8.3
+    - os: osx
+      env:
+        - LINUX_CC="cc"
+      osx_image: xcode9.3
+    - os: osx
+      env:
+        - LINUX_CC="cc"
+      osx_image: xcode10
+    - os: osx
+      env:
+        - LINUX_CC="cc"
+      osx_image: xcode10.1
 
 before_install:
-  - source travis-ci/install-cuda-trusty.sh
-  - nvcc --version
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then source travis-ci/install-cuda-trusty.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then nvcc --version ; fi
 
 before_script:
   - mkdir -p build
   - cd build
-  - ../code-generator.py --enable-cuda
+  - echo $TRAVIS_OS_NAME
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ../code-generator.py --enable-cuda ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ../code-generator.py --enable-mac ; fi
 
 script:
-- make all
+- make
