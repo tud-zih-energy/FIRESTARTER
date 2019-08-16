@@ -189,7 +189,7 @@ $MAC
         /* compute advance and align with generally planned period */
 $MAC     /* Mac OS compatibility */
 $MAC     #ifdef __MACH__
-$MAC         advance= ( (current-start_ts) * ns_per_tick ) % period;
+$MAC         advance= ((uint64_t)( (current-start_ts) * ns_per_tick )) % period;
 $MAC     #elif
              advance = ((current.tv_sec - start_ts.tv_sec) * NSEC_PER_SEC + (current.tv_nsec - start_ts.tv_nsec) ) % period;
 $MAC     #endif
