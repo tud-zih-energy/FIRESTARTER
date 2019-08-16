@@ -46,12 +46,6 @@ $TEMPLATE firestarter_global_h.version_info(dest,version.major,version.minor,ver
 #include <stdio.h>
 #include "cpu.h"
 
-$MAC /* Mac OS compatibility */
-$MAC #ifdef __MACH__
-$MAC #include <mach/mach_time.h>
-$MAC #define CLOCK_REALTIME 0
-$MAC #endif
-$MAC
 #define THREAD_WAIT        1
 #define THREAD_WORK        2
 #define THREAD_INIT        3

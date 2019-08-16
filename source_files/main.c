@@ -37,12 +37,6 @@
 #include "watchdog.h"
 #include "help.h"
 
-$MAC /* Mac OS compatibility */
-$MAC #ifdef __MACH__
-$MAC #include <mach/mach_time.h>
-$MAC #define CLOCK_REALTIME 0
-$MAC #endif
-$MAC
 /*
  * Header for local functions
  */
@@ -101,12 +95,6 @@ static char *fsbind = NULL;
  */
 static int tmp1,tmp2;
 
-$MAC /* Mac OS compatibility */
-$MAC #ifdef __MACH__
-$MAC mach_timebase_info_data_t info;
-$MAC static double ns_per_tick;
-$MAC #endif
-$MAC
 /*
  * worker threads
  */
@@ -120,21 +108,6 @@ static cpu_set_t cpuset;
 #endif
 static unsigned long long *cpu_bind;
 
-$MAC /* Mac OS compatibility - clock_gettime is not implemented on OSX */
-$MAC #ifdef __MACH__
-$MAC static int clock_gettime(int id, struct timespec *t)
-$MAC {
-$MAC     uint64_t ts, sec, nsec;
-$MAC
-$MAC     ts = (uint64_t)((double)mach_absolute_time() * ns_per_tick);
-$MAC     sec = ts / 1000000000;
-$MAC     nsec = ts - sec * 1000000000;
-$MAC     t->tv_sec = (time_t)sec;
-$MAC     t->tv_nsec = (long)nsec;
-$MAC     return id;
-$MAC }
-$MAC #endif
-$MAC 
 /*
  * initialize data structures
  */

@@ -29,7 +29,14 @@
 extern unsigned long long LOADVAR;
 int TERMINATE = 0;
 
+$MAC /* Mac OS compatibility */
+$MAC #ifdef __MACH__
 $MAC #include <mach/mach_time.h>
+$MAC #ifndef CLOCK_REALTIME
+$MAC #define CLOCK_REALTIME 0
+$MAC #endif  /* ifndef CLOCK_REALTIME */
+$MAC #endif /* ifdef __MACH__ */
+$MAC
 
 #define FIRESTARTER_gettime(timer) \
 do { \
