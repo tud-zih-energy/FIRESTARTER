@@ -1215,14 +1215,30 @@ int num_cores_per_package()
 
         a=0;
         cpuid(&a,&b,&c,&d);
-        if (a>=4)
+        printf("a-max:%x\n",a);
+        if (a>=0x1f)
+        {
+            a = 0x1f;
+            c = 2;
+            cpuid( &a, &b, &c, &d );
+            num = ( b & 0xffff );
+        }
+        else if (a>=0xb)
+        {
+            a = 0xb;
+            c = 2;
+            cpuid( &a, &b, &c, &d );
+            num = ( b & 0xffff );
+        }
+        else if (a>=4)
         {
             a=4;
-            c=1;
+            c=0;
             cpuid(&a,&b,&c,&d);
             num= (a>>26)+1;
         }
         else num=1;
+        printf("%x %x %x %x\n",a,b,c,d);
 
         if (num>num_cpus()) num=num_cpus();
         return num;
