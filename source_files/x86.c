@@ -1152,12 +1152,12 @@ int cache_shared(int cpu, int id) {
     beg=strstr(tmp,"among");
     if (beg==NULL)
     {
-        beg=strstr(tmp,"per cpu");
+        beg=strstr(tmp,"per thread");
         if (beg!=NULL) return 1;
         else return generic_cache_shared(cpu,id);
     }
     beg+=6;
-    end=strstr(beg,"cpus");
+    end=strstr(beg,"thread");
     if (end!=NULL)*(end--)='\0';
 
     return atoi(beg);
