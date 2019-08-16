@@ -1204,31 +1204,25 @@ int num_cores_per_package()
     {
         /* prefer generic implementation on Processors that might support Hyperthreading */
         /* TODO check if there are any models above 26 that don't have HT*/
-//        if (generic_num_cores_per_package()!=-1)
-//        {
-//            /* Hyperthreading, Netburst*/
-//            if (get_cpu_family()==15) num=generic_num_cores_per_package();
-//            /* Hyperthreading, Nehalem/Atom*/
-//            if ((get_cpu_family()==6)&&(get_cpu_model()>=26)) num=generic_num_cores_per_package();
-//            if (num!=-1) return num;
-//        }
+        if (generic_num_cores_per_package()!=-1)
+        {
+            /* Hyperthreading, Netburst*/
+            if (get_cpu_family()==15) num=generic_num_cores_per_package();
+            /* Hyperthreading, Nehalem/Atom*/
+            if ((get_cpu_family()==6)&&(get_cpu_model()>=26)) num=generic_num_cores_per_package();
+            if (num!=-1) return num;
+        }
 
         a=0;
         cpuid(&a,&b,&c,&d);
-        printf("a-max:%x\n",a);
-        if (a>=1)
+        if (a>=4)
         {
-            a=1;
+            a=4;
             c=0;
             cpuid(&a,&b,&c,&d);
-            num= ( (a>>16) &0xff ) + 1;
-            printf("num %d\n",num);
-
-            if ( d & (1<<28) )
-                num/=2;
+            num= ( a >> 26 ) + 1 ;
         }
         else num=1;
-        printf("%x %x %x %x num %d\n",a,b,c,d, num);
 
         if (num>num_cpus()) num=num_cpus();
         return num;
