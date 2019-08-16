@@ -39,7 +39,7 @@ $MAC         timer = mach_absolute_time(); \
 $MAC     #elif \
     clock_gettime(CLOCK_REALTIME, &timer); \
 $MAC     #endif \
-}
+} \
 while ( 0 )
 
 /* signal load changes to workers */
