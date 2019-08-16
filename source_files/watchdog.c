@@ -36,18 +36,21 @@ $MAC #ifndef CLOCK_REALTIME
 $MAC #define CLOCK_REALTIME 0
 $MAC #endif  /* ifndef CLOCK_REALTIME */
 $MAC #endif /* ifdef __MACH__ */
-$MAC
 
+$MAC #ifdef __MACH__
+$MAC #define FIRESTARTER_gettime(timer) \
+$MAC do { \
+$MAC         timer = mach_absolute_time(); \
+$MAC } \
+$MAC while ( 0 )
+$MAC #elif
 #define FIRESTARTER_gettime(timer) \
 do { \
-$MAC     /* Mac OS compatibility */ \
-$MAC     #ifdef __MACH__ \
-$MAC         timer = mach_absolute_time(); \
-$MAC     #elif \
     clock_gettime(CLOCK_REALTIME, &timer); \
-$MAC     #endif \
 } \
 while ( 0 )
+$MAC #endif
+
 
 /* signal load changes to workers */
 static void set_load(unsigned long long *loadvar, unsigned long long value)
