@@ -970,7 +970,12 @@ int generic_cache_shared(int cpu, int id) {
     char *beg, *end;
     int num = 0;
 
-    generic_cache_info(cpu, id, tmp, sizeof(tmp));
+    /* re-use num for checking return value */
+    num = generic_cache_info(cpu, id, tmp, sizeof(tmp));
+    if ( num == -1 )
+        return -1;
+    num = 0;
+
     beg = strstr(tmp,",")+1;
     if (beg == NULL) return -1;
     else beg++;
