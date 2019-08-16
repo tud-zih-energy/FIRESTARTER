@@ -133,13 +133,15 @@ int watchdog_timer(watchdog_arg_t *arg)
     long long timeout, time, period, load, idle, advance, load_reduction, idle_reduction;
     unsigned long long *loadvar;
     int sleepret;
+    struct timespec target, remaining;
 
     /* Definition of timestamps */
 $MAC     /* Mac OS compatibility */
 $MAC     #ifdef __MACH__
-$MAC         uint64_t start_ts, current, target, remaining;
+$MAC         uint64_t start_ts, current;
+$MAC         double ns_per_tick;
 $MAC     #elif
-    struct timespec start_ts, current, target, remaining;
+    struct timespec start_ts, current;
 $MAC     #endif
 
 $MAC     /* Mac OS compatibility: get resolution of timer */
@@ -187,7 +189,7 @@ $MAC
         /* compute advance and align with generally planned period */
 $MAC     /* Mac OS compatibility */
 $MAC     #ifdef __MACH__
-$MAC         advance= ( (current-start) * info.numer / info.denom ) % period;
+$MAC         advance= ( (current-start_ts) * ns_per_tick ) % period;
 $MAC     #elif
              advance = ((current.tv_sec - start_ts.tv_sec) * NSEC_PER_SEC + (current.tv_nsec - start_ts.tv_nsec) ) % period;
 $MAC     #endif
