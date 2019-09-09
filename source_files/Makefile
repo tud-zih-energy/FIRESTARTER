@@ -28,7 +28,7 @@ LINUX_CC?=gcc
 LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=gnu99 -I. -DAFFINITY
 OPT_STD=-O2
 OPT_ASM=-O0
-LINUX_L_FLAGS=-lpthread -lm
+LINUX_L_FLAGS=-lpthread -lm -static
 
 # source and object files of assembler routines
 $TEMPLATE Makefile.src_obj_files(dest,templates,version)

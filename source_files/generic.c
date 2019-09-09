@@ -46,13 +46,6 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-/* use old memcpy to avoid GLIBC 2.14 dependency */
-/* don't do this with mac builds */
-/* this still is necessary to distribute the binary though :( */
-$MAC #if 0
-__asm__(".symver memcpy, memcpy@GLIBC_2.2.5");
-$MAC #endif
-
 /* buffer for some generic implementations */
 // TODO remove global variables to allow thread safe execution of detection
 static char output[_HW_DETECT_MAX_OUTPUT];
