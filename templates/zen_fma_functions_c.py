@@ -333,7 +333,6 @@ def work_functions(file,architectures,version):
                             # write instruction group to file
                             file.write("        \"{:<40} {:<40} {:<20} {:<20}\" {:<}\n".format(d0_inst, d1_inst, d2_inst, d3_inst, comment))
                             # prepare register numbers for next iteration
-                            # check if it is a store
                             fma_pos   = (fma_pos+1)%fma_io_regs
                             shift_pos = shift_pos +1
                             count += 1
