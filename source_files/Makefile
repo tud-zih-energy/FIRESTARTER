@@ -29,7 +29,8 @@ LINUX_C_FLAGS=-fomit-frame-pointer -Wall -std=gnu99 -I. -DAFFINITY
 OPT_STD=-O2
 OPT_ASM=-O0
 LINUX_L_FLAGS=-lpthread -lm
-$!MAC LINUX_L_FLAGS+= -static
+LINUX_L_FLAGS_STATIC =
+$STATIC LINUX_L_FLAGS_STATIC = -static
 
 # source and object files of assembler routines
 $TEMPLATE Makefile.src_obj_files(dest,templates,version)
@@ -60,7 +61,7 @@ $WIN64
 $ALL $TEMPLATE Makefile.target_all(dest,version.targets)
 $ALL
 FIRESTARTER: generic.o x86.o main.o init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES}
-$TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES} ${LINUX_L_FLAGS}
+$TAB ${LINUX_CC} -o FIRESTARTER  generic.o  main.o  init_functions.o work.o x86.o watchdog.o help.o ${ASM_FUNCTION_OBJ_FILES} ${LINUX_L_FLAGS} ${LINUX_L_FLAGS_STATIC}
 
 $CUDA FIRESTARTER_CUDA: generic.o  x86.o work.o init_functions.o x86.o watchdog.o gpu.o main_cuda.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES}
 $CUDA $TAB ${LINUX_CC} -o FIRESTARTER_CUDA generic.o main_cuda.o init_functions.o work.o x86.o watchdog.o help_cuda.o ${ASM_FUNCTION_OBJ_FILES} gpu.o ${LINUX_CUDA_L_FLAGS}

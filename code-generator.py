@@ -264,9 +264,9 @@ for file in files:
                         line = line.replace("$MAC ","").replace("$MAC","")
                     else:
                         line = ""
-                elif (line.find("$!MAC") == 0):
+                elif (line.find("$STATIC") == 0):
                     if version.enable_mac == 0:
-                        line = line.replace("$!MAC ","").replace("$!MAC","")
+                        line = line.replace("$STATIC ","").replace("$STATIC","")
                     else:
                         line = ""
                 # special condition for Makefiles with multiple targets (at least one option with an extra make target is enabled)
