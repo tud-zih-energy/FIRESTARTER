@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ###############################################################################
 # FIRESTARTER - A Processor Stress Test Utility
@@ -26,8 +26,6 @@ try:
     from configparser import ConfigParser
 except ImportError:
     from ConfigParser import ConfigParser
-
-from fractions import Fraction
 
 # import templates
 from templates import firestarter_global_h, Makefile, work_c, work_h, main_c, main_win64_c
