@@ -27,6 +27,9 @@ $$ TODO Version 2.0
 $$ TODO - add results verification
 $$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
 
+Version 1.7.4
+ - added AMD Naples support (ZEN_FMA)
+
 Version 1.7.3
  - FIRESTARTER_CUDA uses single precision by default when running on GPUs with poor double precision support (requires CUDA 8 or later)
  - FIRESTARTER_CUDA_LEGACY (CUDA 5 or later)
