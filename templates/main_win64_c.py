@@ -86,7 +86,7 @@ def main_set_function_cases(file,architectures,families,templates):
                                 file.write("              case "+cpu_model+":\n")
                             for isa in each.isa:
                                 func_name = 'FUNC_'+each.arch+'_'+each.model+'_'+isa+'_'
-                                file.write("                if (has_feature("+isa.upper().replace('.','_')+")) {\n")
+                                file.write("                if (has_feature("+tmpl.feature_req.upper().replace('.','_')+")) {\n")
                                 for threads in each.threads:
                                     file.write("                    if (threads_per_core == "+threads+") func = "+func_name.upper()+threads.upper()+"T;\n")
                                 file.write("                    if (func == FUNC_NOT_DEFINED) {\n")
