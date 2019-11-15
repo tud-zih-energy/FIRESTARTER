@@ -28,12 +28,21 @@ run 'make' to rebuild from source
 $CUDA FIRESTARTER_CUDA:
 $CUDA 
 $CUDA dependencies:
-$CUDA - nvidia-cuda >=5.0
+$CUDA - nvidia-cuda >=10.0
 $CUDA - gcc >=4.4
 $CUDA 
 $CUDA run ./FIRESTARTER_CUDA
+$CUDA By default, this tool is linked with nvidia-cuda/10.0
+$CUDA
+$CUDA FIRESTARTER_CUDA_LEGACY:
 $CUDA 
-$CUDA By default, this tool is linked with nvidia-cuda/8.0
+$CUDA dependencies:
+$CUDA - nvidia-cuda >=6.5
+$CUDA - gcc >=4.4
+$CUDA
+$CUDA run ./FIRESTARTER_CUDA_LEGACY
+$CUDA By default, this tool is linked with nvidia-cuda/6.5
+$CUDA 
 $CUDA If you have another version you need to recompile: `make clean; make cuda`
 $CUDA Be sure to have the correct LINUX_CUDA_PATH in the Makefile.
 $CUDA 
@@ -44,6 +53,5 @@ $CUDA - if there appears an 'API mismatch' error, check for correct nvidia-drive
 $CUDA   and kernel modules installation
 $CUDA - if GPU Initialization takes too much time (like 15-30 seconds), make sure
 $CUDA   that persistence mode is enabled (use: nvidia-smi --persistence-mode=1)
-$CUDA #end if
 $CUDA 
 
