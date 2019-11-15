@@ -29,6 +29,8 @@ $$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
 
 Version 1.7.4
  - added AMD Zen and Zen+ support (ZEN_FMA)
+ - FIRESTARTER_CUDA requires CUDA 10
+ - FIRESTARTER_CUDA_LEGACY requires CUDA 6.5
 
 Version 1.7.3
  - FIRESTARTER_CUDA uses single precision by default when running on GPUs with poor double precision support (requires CUDA 8 or later)
