@@ -9,10 +9,8 @@ project(FIRESTARTER)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 # set FIRESTARTER version
+find_package(Git)
 if(Git_FOUND)
-	_is_git(${CMAKE_CURRENT_SOURCE_DIR} IN_GIT)
-endif()
-if(IN_GIT)
 	execute_process(COMMAND ${GIT_EXECUTABLE} describe --always --tags --dirty
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE _FIRESTARTER_VERSION_STRING
@@ -23,6 +21,9 @@ else()
 	set(_FIRESTARTER_VERSION_STRING "unknown")
 endif()
 add_compile_definitions(_FIRESTARTER_VERSION_STRING="${_FIRESTARTER_VERSION_STRING}")
+
+string(TIMESTAMP _FIRESTARTER_BUILD_YEAR "%Y")
+add_compile_definitions(_FIRESTARTER_BUILD_YEAR="${_FIRESTARTER_BUILD_YEAR}")
 
 # init git submodules
 include(cmake/GitSubmoduleUpdate.cmake)

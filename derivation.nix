@@ -4,6 +4,7 @@
 , zlib
 , ncurses
 , glibc
+, git
 , static ? false
 }:
 
@@ -12,7 +13,7 @@ stdenv.mkDerivation {
   version = "0.0";
   src = ./.;
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = [ cmake git ];
   buildInputs = [
     llvm
     llvm.lib
