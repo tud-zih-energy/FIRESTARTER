@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 project(FIRESTARTER)
 
-# enable static linking
-#if(DEFINED ${BUILD_STATIC})
-#	SET(CMAKE_EXE_LINKER_FLAGS "-static")
-#endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 # set FIRESTARTER version
@@ -30,12 +25,23 @@ include(cmake/GitSubmoduleUpdate.cmake)
 git_submodule_update()
 
 # enable c++11
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
+SET(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -O2 -fomit-frame-pointer")
+
+#SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -fomit-frame-pointer -Wall -std=gnu99")
 
 find_package(LLVM REQUIRED CONFIG)
 
 include_directories(include)
 
 include(lib/nitro/Nitro.cmake)
+
+include(FindPkgConfig)
+if(NOT DEFINED NIX_BUILD)
+	include(cmake/Hwloc.cmake)
+else()
+	pkg_check_modules(HWLOC REQUIRED hwloc>=2.0)
+endif()
 
 add_subdirectory(src)

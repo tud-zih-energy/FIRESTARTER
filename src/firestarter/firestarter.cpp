@@ -8,17 +8,20 @@
 
 #include <thread>
 
+extern "C" {
+#include <hwloc.h>
+}
+
 using namespace firestarter;
 
 void Firestarter::printEnvironmentSummary(void) {
 
-	// TODO: add number of processors, change to number of cores per package
 	log::info()
 		<< "  system summary:\n"
-		<< "    number of processors: " << "\n"
-		<< "    number of cores:            " << this->numPhysicalCores << "\n"
-		<< "    number of threads per core: " << this->numThreads / this->numPhysicalCores << "\n"
-		<< "    total number of threads:    " << this->numThreads << "\n";
+		<< "    number of processors:        " << this->numPackages << "\n"
+		<< "    number of cores per package: " << this->numPhysicalCoresPerPackage << "\n"
+		<< "    number of threads per core:  " << this->numThreads / this->numPhysicalCoresPerPackage / this->numPackages << "\n"
+		<< "    total number of threads:     " << this->numThreads << "\n";
 
 	std::stringstream ss;
 
@@ -51,7 +54,23 @@ std::unique_ptr<llvm::MemoryBuffer> Firestarter::getFileAsStream(std::string fil
 
 int Firestarter::evaluateEnvironment(void) {
 
-	this->numPhysicalCores = llvm::sys::getHostNumPhysicalCores();
+	int depth;
+	hwloc_topology_t topology;
+
+	hwloc_topology_init(&topology);
+	hwloc_topology_load(topology);
+
+	depth = hwloc_get_type_depth(topology, HWLOC_OBJ_PACKAGE);
+
+	if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
+		this->numPackages = 0;
+	} else {
+		this->numPackages = hwloc_get_nbobjs_by_depth(topology, depth);
+	}
+
+	hwloc_topology_destroy(topology);
+
+	this->numPhysicalCoresPerPackage = llvm::sys::getHostNumPhysicalCores() / this->numPackages;
 	this->numThreads = std::thread::hardware_concurrency();
 
 	llvm::sys::getHostCPUFeatures(this->cpuFeatures);

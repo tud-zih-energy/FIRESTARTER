@@ -29,7 +29,8 @@ namespace firestarter {
 			int hasInvariantRdtsc(void);
 #endif
 
-			unsigned int numPhysicalCores;
+			unsigned int numPackages;
+			unsigned int numPhysicalCoresPerPackage;
 			unsigned int numThreads;
 			std::string architecture = std::string("");
 			std::string vendor = std::string("");
