@@ -31,17 +31,12 @@ SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -fomit-frame-pointer -Wall -std=gnu99")
 
-find_package(LLVM REQUIRED CONFIG)
-
 include_directories(include)
 
 include(lib/nitro/Nitro.cmake)
 
+find_package(LLVM REQUIRED CONFIG)
 include(FindPkgConfig)
-if(NOT DEFINED NIX_BUILD)
-	include(cmake/Hwloc.cmake)
-else()
-	pkg_check_modules(HWLOC REQUIRED hwloc>=2.0)
-endif()
+pkg_check_modules(HWLOC REQUIRED hwloc>=2.0)
 
 add_subdirectory(src)

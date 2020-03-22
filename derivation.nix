@@ -37,7 +37,6 @@ stdenv.mkDerivation {
   ]);
 
   cmakeFlags = [
-    "-DNIX_BUILD=1"
     (stdenv.lib.optional static "-DCMAKE_EXE_LINKER_FLAGS=\"-static\"")
   ];
   enableParalellBuilding = true;
