@@ -63,7 +63,7 @@ int Firestarter::evaluateEnvironment(void) {
 	depth = hwloc_get_type_depth(topology, HWLOC_OBJ_PACKAGE);
 
 	if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-		this->numPackages = 0;
+		this->numPackages = 1;
 	} else {
 		this->numPackages = hwloc_get_nbobjs_by_depth(topology, depth);
 	}
