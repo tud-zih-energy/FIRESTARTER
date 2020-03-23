@@ -8,11 +8,22 @@
 
 #include <thread>
 
-extern "C" {
-#include <hwloc.h>
+using namespace firestarter;
+
+Firestarter::Firestarter(void) {
+
+	hwloc_topology_init(&this->topology);
+
+	// do not filter icaches
+	hwloc_topology_set_cache_types_filter(this->topology, HWLOC_TYPE_FILTER_KEEP_ALL);
+
+	hwloc_topology_load(this->topology);
 }
 
-using namespace firestarter;
+Firestarter::~Firestarter(void) {
+
+	hwloc_topology_destroy(this->topology);
+}
 
 void Firestarter::printEnvironmentSummary(void) {
 
@@ -38,7 +49,69 @@ void Firestarter::printEnvironmentSummary(void) {
 		<< "    processor-name:     " << this->processorName << "\n"
 		<< "    model:              " << this->model << "\n"
 		<< "    frequency:          " << this->clockrate / 1000000 << " MHz\n"
-		<< "    supported features: " << ss.str() << "\n";
+		<< "    supported features: " << ss.str() << "\n"
+		<< "    Caches:";
+
+	std::vector<hwloc_obj_type_t> caches = {
+		HWLOC_OBJ_L1CACHE,
+		HWLOC_OBJ_L1ICACHE,
+		HWLOC_OBJ_L2CACHE,
+		HWLOC_OBJ_L2ICACHE,
+		HWLOC_OBJ_L3CACHE,
+		HWLOC_OBJ_L3ICACHE,
+		HWLOC_OBJ_L4CACHE,
+		HWLOC_OBJ_L5CACHE,
+	};
+
+	std::for_each(std::begin(caches), std::end(caches), [this](hwloc_obj_type_t const& cache) {
+		int width;
+		char string[128];
+		hwloc_obj_t cacheObj;
+		std::stringstream ss;
+
+		width = hwloc_get_nbobjs_by_type(this->topology, cache);
+
+		if (width >= 1) {
+			cacheObj = hwloc_get_obj_by_type(this->topology, cache, 0);
+			hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
+
+			switch (cacheObj->attr->cache.type) {
+			case HWLOC_OBJ_CACHE_DATA:
+					ss << "Level " << cacheObj->attr->cache.depth << " Data";
+					break;
+			case HWLOC_OBJ_CACHE_INSTRUCTION:
+					ss << "Level " << cacheObj->attr->cache.depth << " Instruction";
+					break;
+			case HWLOC_OBJ_CACHE_UNIFIED:
+			default:
+					ss << "Unified Level " << cacheObj->attr->cache.depth;
+					break;
+			}
+
+			ss
+				<< " Cache, "
+				<< cacheObj->attr->cache.size / 1024 << " KiB, ";
+
+			switch (cacheObj->attr->cache.associativity) {
+			case -1:
+				ss << "full";
+				break;
+			case 0:
+				ss << "unknown";
+				break;
+			default:
+				ss << cacheObj->attr->cache.associativity <<  "-way set";
+				break;
+			}
+
+			ss
+				<< " associative, "
+				<< "shared among " << this->numThreads / width << " threads.";
+
+			log::info() << "      - " << ss.str();
+		}
+	});
+
 }
 
 std::unique_ptr<llvm::MemoryBuffer> Firestarter::getFileAsStream(std::string filePath, bool showError) {
@@ -55,20 +128,14 @@ std::unique_ptr<llvm::MemoryBuffer> Firestarter::getFileAsStream(std::string fil
 int Firestarter::evaluateEnvironment(void) {
 
 	int depth;
-	hwloc_topology_t topology;
 
-	hwloc_topology_init(&topology);
-	hwloc_topology_load(topology);
-
-	depth = hwloc_get_type_depth(topology, HWLOC_OBJ_PACKAGE);
+	depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
 
 	if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
 		this->numPackages = 1;
 	} else {
-		this->numPackages = hwloc_get_nbobjs_by_depth(topology, depth);
+		this->numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
 	}
-
-	hwloc_topology_destroy(topology);
 
 	this->numPhysicalCoresPerPackage = llvm::sys::getHostNumPhysicalCores() / this->numPackages;
 	this->numThreads = std::thread::hardware_concurrency();

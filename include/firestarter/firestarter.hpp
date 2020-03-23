@@ -5,7 +5,9 @@
 #include <llvm/Support/MemoryBuffer.h>
 
 extern "C" {
-	#include <firestarter/util.h>
+#include <firestarter/util.h>
+
+#include <hwloc.h>
 }
 
 namespace firestarter {
@@ -13,8 +15,8 @@ namespace firestarter {
 	class Firestarter {
 		public:
 			// TODO: bind this to one cpu
-			Firestarter(void) {};
-			~Firestarter(void) {};
+			Firestarter(void);
+			~Firestarter(void);
 
 			int evaluateEnvironment(void);
 			void printEnvironmentSummary(void);
@@ -29,6 +31,7 @@ namespace firestarter {
 			int hasInvariantRdtsc(void);
 #endif
 
+			hwloc_topology_t topology;
 			unsigned int numPackages;
 			unsigned int numPhysicalCoresPerPackage;
 			unsigned int numThreads;
