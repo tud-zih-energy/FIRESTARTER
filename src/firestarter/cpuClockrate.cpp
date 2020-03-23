@@ -8,8 +8,6 @@
 
 extern "C" {
 #include <firestarter/x86.h>
-
-#include <sys/time.h>
 }
 
 using namespace firestarter;
@@ -143,18 +141,15 @@ int Firestarter::hasInvariantRdtsc()
 // save frequency in highest P-State or use generic fallback if no invarient TSC is available
 int Firestarter::getCpuClockrate(void) {
 	typedef std::chrono::high_resolution_clock Clock;
-	typedef std::chrono::microseconds microseconds;
+	typedef std::chrono::microseconds ticks;
 
 	unsigned long long start1_tsc,start2_tsc,end1_tsc,end2_tsc;
-//	unsigned long long end_time-start_time;
+	unsigned long long time_diff;
 	unsigned long long clock_lower_bound,clock_upper_bound,clock;
 	unsigned long long clockrate=0;
 	int i,num_measurements=0,min_measurements;
 
-	unsigned long long start_time,end_time;
-	struct timeval ts;
-
-	//Clock::time_point start_time, end_time;
+	Clock::time_point start_time, end_time;
 
 	auto scalingGovernor = this->getScalingGovernor();
 	if (nullptr == scalingGovernor) {
@@ -179,10 +174,8 @@ int Firestarter::getCpuClockrate(void) {
 	do {
 			//start timestamp
 			start1_tsc=timestamp();
-        gettimeofday(&ts,NULL);
-			//start_time = Clock::now();
+			start_time = Clock::now();
 			start2_tsc=timestamp();
-        start_time=ts.tv_sec*1000000+ts.tv_usec;
 
 			//waiting
 			do {
@@ -193,19 +186,18 @@ int Firestarter::getCpuClockrate(void) {
 			//end timestamp
 			do{
 				end1_tsc=timestamp();
-          gettimeofday(&ts,NULL);
-				//end_time = Clock::now();
+				end_time = Clock::now();
 				end2_tsc=timestamp();
-          end_time=ts.tv_sec*1000000+ts.tv_usec;
-				//end_time-start_time = std::chrono::duration_cast<microseconds>(end_time - start_time).count();
-			}
-			while (start_time == end_time);
 
-			clock_lower_bound=(((end1_tsc-start2_tsc)*1000000)/(end_time-start_time));
-			clock_upper_bound=(((end2_tsc-start1_tsc)*1000000)/(end_time-start_time));
+				time_diff = std::chrono::duration_cast<ticks>(end_time - start_time).count();
+			}
+			while (0 == time_diff);
+
+			clock_lower_bound=(((end1_tsc-start2_tsc)*1000000)/(time_diff));
+			clock_upper_bound=(((end2_tsc-start1_tsc)*1000000)/(time_diff));
 
 			// if both values differ significantly, the measurement could have been interrupted between 2 rdtsc's
-			if (((double)clock_lower_bound>(((double)clock_upper_bound)*0.999))&&((end_time-start_time)>2000))
+			if (((double)clock_lower_bound>(((double)clock_upper_bound)*0.999))&&((time_diff)>2000))
 			{
 					num_measurements++;
 					clock=(clock_lower_bound+clock_upper_bound)/2;
@@ -213,7 +205,7 @@ int Firestarter::getCpuClockrate(void) {
 					else if (clock<clockrate) clockrate=clock;
 			}
 			i+=2;
-	} while (((end_time-start_time)<10000)||(num_measurements<min_measurements));
+	} while (((time_diff)<10000)||(num_measurements<min_measurements));
 
 	this->clockrate = clockrate;
 
