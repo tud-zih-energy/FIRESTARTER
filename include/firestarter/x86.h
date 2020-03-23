@@ -4,16 +4,20 @@
 #include <firestarter/util.h>
 
 #if defined (__ARCH_X86)
-	#if ((defined (__x86_64__))||(defined (__x86_64))||(defined (x86_64)))
-		#define _64_BIT
-	#elif ((defined (__i386__))||(defined (__i386))||(defined (i386))||(defined (__i486__))||(defined (__i486))||(defined (i486))||(defined (__i586__))||(defined (__i586))||(defined (i586))||(defined (__i686__))||(defined (__i686))||(defined (i686)))
-		#define _32_BIT
-	#endif
+
+#if ((defined (__x86_64__))||(defined (__x86_64))||(defined (x86_64)))
+	#define _64_BIT
+#elif ((defined (__i386__))||(defined (__i386))||(defined (i386))||(defined (__i486__))||(defined (__i486))||(defined (i486))||(defined (__i586__))||(defined (__i586))||(defined (i586))||(defined (__i686__))||(defined (__i686))||(defined (i686)))
+	#define _32_BIT
 #endif
 
-void cpuid(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long *d);
-int has_cpuid(void);
-unsigned long long timestamp(void);
-int has_rdtsc(void);
+static void x86_cpuid(unsigned long long *a, unsigned long long *b, unsigned long long *c, unsigned long long *d);
+static int x86_has_cpuid();
+
+unsigned long long x86_timestamp(void);
+int x86_has_rdtsc(void);
+int x86_has_invariant_rdtsc(const char *vendor);
+
+#endif
 
 #endif

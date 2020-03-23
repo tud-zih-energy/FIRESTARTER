@@ -27,10 +27,6 @@ namespace firestarter {
 			int getCpuClockrate(void);
 			int genericGetCpuClockrate(void);
 
-#ifdef __ARCH_X86
-			int hasInvariantRdtsc(void);
-#endif
-
 			hwloc_topology_t topology;
 			unsigned int numPackages;
 			unsigned int numPhysicalCoresPerPackage;

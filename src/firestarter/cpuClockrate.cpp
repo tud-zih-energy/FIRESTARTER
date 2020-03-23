@@ -81,61 +81,6 @@ int Firestarter::genericGetCpuClockrate(void) {
 
 #ifdef __ARCH_X86
 
-int Firestarter::hasInvariantRdtsc()
-{
-    unsigned long long a=0,b=0,c=0,d=0;
-    int res=0;
-
-    if (has_rdtsc()) {
-
-        /* TSCs are usable if CPU supports only one frequency in C0 (no speedstep/Cool'n'Quite)
-           or if multiple frequencies are available and the constant/invariant TSC feature flag is set */
-
-				if (0 == this->vendor.compare("GenuineIntel")) {
-            /*check if Powermanagement and invariant TSC are supported*/
-            if (has_cpuid())
-            {
-                a=1;
-                cpuid(&a,&b,&c,&d);
-                /* no Frequency control */
-                if ((!(d&(1<<22)))&&(!(c&(1<<7)))) res=1;
-                a=0x80000000;
-                cpuid(&a,&b,&c,&d);
-                if (a >=0x80000007)
-                {
-                    a=0x80000007;
-                    cpuid(&a,&b,&c,&d);
-                    /* invariant TSC */
-                    if (d&(1<<8)) res =1;
-                }
-            }
-        }
-
-				if (0 == this->vendor.compare("AuthenticAMD")) {
-            /*check if Powermanagement and invariant TSC are supported*/
-            if (has_cpuid())
-            {
-                a=0x80000000;
-                cpuid(&a,&b,&c,&d);
-                if (a >=0x80000007)
-                {
-                    a=0x80000007;
-                    cpuid(&a,&b,&c,&d);
-
-                    /* no Frequency control */
-                    if ((!(d&(1<<7)))&&(!(d&(1<<1)))) res=1;
-                    /* invariant TSC */
-                    if (d&(1<<8)) res =1;
-                }
-                /* assuming no frequency control if cpuid does not provide the extended function to test for it */
-                else res=1;
-            }
-        }
-    }
-
-    return res;
-}
-
 // measures clockrate using the Time-Stamp-Counter
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC is available
@@ -159,13 +104,13 @@ int Firestarter::getCpuClockrate(void) {
 	std::string governor = scalingGovernor->getBuffer().str();
 
 	/* non invariant TSCs can be used if CPUs run at fixed frequency */
-	if (!this->hasInvariantRdtsc() && governor.compare("performance") && governor.compare("powersave")) {
+	if (!x86_has_invariant_rdtsc(vendor.c_str()) && governor.compare("performance") && governor.compare("powersave")) {
 		return this->genericGetCpuClockrate();
 	}
 
 	min_measurements=5;
 
-	if (!has_rdtsc()) {
+	if (!x86_has_rdtsc()) {
 		return this->genericGetCpuClockrate();
 	}
 
@@ -173,21 +118,21 @@ int Firestarter::getCpuClockrate(void) {
 
 	do {
 			//start timestamp
-			start1_tsc=timestamp();
+			start1_tsc = x86_timestamp();
 			start_time = Clock::now();
-			start2_tsc=timestamp();
+			start2_tsc = x86_timestamp();
 
 			//waiting
 			do {
-					end1_tsc=timestamp();
+					end1_tsc = x86_timestamp();
 			}
 			while (end1_tsc<start2_tsc+1000000*i);   /* busy waiting */
 
 			//end timestamp
 			do{
-				end1_tsc=timestamp();
+				end1_tsc = x86_timestamp();
 				end_time = Clock::now();
-				end2_tsc=timestamp();
+				end2_tsc = x86_timestamp();
 
 				time_diff = std::chrono::duration_cast<ticks>(end_time - start_time).count();
 			}
