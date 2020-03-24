@@ -1,0 +1,84 @@
+###############################################################################
+# FIRESTARTER - A Processor Stress Test Utility
+# Copyright (C) 2019 TU Dresden, Center for Information Services and High
+# Performance Computing
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Contact: daniel.hackenberg@tu-dresden.de
+###############################################################################
+$$ TODO
+$$ TODO Version 2.x
+$$ TODO - add Mac OS version
+$$ TODO - add AMD Zen support
+$$ TODO
+$$ TODO Version 2.0
+$$ TODO - add results verification
+$$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
+
+Version 1.7.4
+ - added AMD Zen and Zen+ support (ZEN_FMA)
+ - FIRESTARTER_CUDA requires CUDA 10
+ - FIRESTARTER_CUDA_LEGACY requires CUDA 6.5
+
+Version 1.7.3
+ - FIRESTARTER_CUDA uses single precision by default when running on GPUs with poor double precision support (requires CUDA 8 or later)
+ - FIRESTARTER_CUDA_LEGACY (CUDA 5 or later)
+
+Version 1.7.2
+ - fixed CUDA problem with low power consumption
+ - fixed version string
+ - fixed synchronization of CUDA resources
+ - fixed additional thread at CUDA workload
+
+Version 1.7.1
+ - fixed Skylake-X problem in the Win64 version
+
+Version 1.7
+ - added Skylake-SP support
+ - minor fixes
+
+Version 1.6
+ - added Windows version
+
+Version 1.5
+ - added Knights Landing support (AVX512F)
+ - added error handling for restricted cpu sets for --bind and --threads options
+
+Version 1.4
+ - added support for Skylake-H (FMA)
+ - added support for Broadwell-E/EP (FMA)
+ - added automatic selection of fallback function for unsupported processors
+ - added parameters to manually select a code path and the number of threads
+
+Version 1.3
+ - added support for Broadwell-H (FMA)
+$CUDA  - added support for Nvidia GPUs (FIRESTARTER_CUDA)
+
+Version 1.2
+ - added support for Haswell-E/EP (FMA)
+ - added preliminary support for AMD family 15h (FMA)
+
+Version 1.1
+ - added support for Haswell-H (FMA)
+ - added support for Ivy Bridge-E/EP (AVX)
+ - improved support for Sandy Bridge-EP (AVX)
+ - added support for alternating load and idle periods
+ - fixed hardware detection issues with deactivated CPUs
+ - performed an appreciable amount of code maintenance
+
+Version 1.0
+ - support for Sandy Bridge-H, Ivy Bridge-H (AVX)
+ - support for Sandy Bridge-EP (AVX)
+ - support for Nehalem, Westmere (SSE2)
