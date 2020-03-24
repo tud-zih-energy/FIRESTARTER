@@ -66,6 +66,7 @@ void Firestarter::printEnvironmentSummary(void) {
 	std::for_each(std::begin(caches), std::end(caches), [this](hwloc_obj_type_t const& cache) {
 		int width;
 		char string[128];
+		int shared;
 		hwloc_obj_t cacheObj;
 		std::stringstream ss;
 
@@ -90,7 +91,8 @@ void Firestarter::printEnvironmentSummary(void) {
 
 			ss
 				<< " Cache, "
-				<< cacheObj->attr->cache.size / 1024 << " KiB, ";
+				<< cacheObj->attr->cache.size / 1024 << " KiB, "
+				<< cacheObj->attr->cache.linesize << " B Cacheline, ";
 
 			switch (cacheObj->attr->cache.associativity) {
 			case -1:
@@ -104,9 +106,15 @@ void Firestarter::printEnvironmentSummary(void) {
 				break;
 			}
 
-			ss
-				<< " associative, "
-				<< "shared among " << this->numThreads / width << " threads.";
+			ss << " associative, ";
+
+			shared = this->numThreads / width;
+
+			if (shared > 1) {
+				ss << "shared among " << shared << " threads.";
+			} else {
+				ss << "per thread.";
+			}
 
 			log::info() << "      - " << ss.str();
 		}
