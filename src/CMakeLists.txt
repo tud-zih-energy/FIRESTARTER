@@ -1,4 +1,6 @@
-add_executable(firestarter firestarter/main.cpp firestarter/firestarter.cpp firestarter/cpuClockrate.cpp firestarter/x86.c)
+add_executable(firestarter firestarter/main.cpp firestarter/firestarter.cpp firestarter/cpuClockrate.cpp firestarter/x86.c firestarter/threadWorker.cpp)
 
-target_link_libraries(firestarter LLVMSupport)
-target_link_libraries(firestarter hwloc)
+target_link_libraries(firestarter
+	LLVMSupport
+	hwloc
+)

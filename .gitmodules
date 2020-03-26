@@ -1,3 +1,6 @@
 [submodule "lib/nitro"]
 	path = lib/nitro
 	url = https://github.com/tud-zih-energy/nitro.git
+[submodule "lib/cxxopts"]
+	path = lib/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git

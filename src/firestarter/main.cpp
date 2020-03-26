@@ -1,7 +1,7 @@
 #include <firestarter/log.hpp>
 #include <firestarter/firestarter.hpp>
 
-#include <nitro/broken_options/parser.hpp>
+#include <cxxopts.hpp>
 
 int print_copyright(void) {
 
@@ -31,11 +31,9 @@ int print_warranty(void) {
 	return EXIT_SUCCESS;
 }
 
-int print_help(nitro::broken_options::parser parser) {
+int print_help(cxxopts::Options parser) {
 
-	std::stringstream ss;
-	parser.usage(ss);
-	firestarter::log::info() << ss.str() << "\n";
+	firestarter::log::info() << parser.help();
 
 	return EXIT_SUCCESS;
 }
@@ -47,18 +45,24 @@ int main(int argc, char **argv) {
 		<< "FIRESTARTER - A Processor Stress Test Utility, Version " << _FIRESTARTER_VERSION_STRING << "\n"
 		<< "Copyright (C) " << _FIRESTARTER_BUILD_YEAR << " TU Dresden, Center for Information Services and High Performance Computing" << "\n";
 
-	nitro::broken_options::parser parser(argv[0]);
+	cxxopts::Options parser(argv[0]);
 
-	parser.toggle("help", "Display usage information\n").short_name("h");
-	parser.toggle("version", "Display version information\n").short_name("v");
-	parser.toggle("copyright", "Display copyright information\n").short_name("c");
-	parser.toggle("warranty", "Display warranty information\n").short_name("w");
-	parser.toggle("debug", "Display debug output\n").short_name("d");
+	parser.add_options()
+		("h,help", "Display usage information")
+		("v,version", "Display version information")
+		("c,copyright", "Display copyright information")
+		("w,warranty", "Display warranty information")
+		("d,debug", "Display debug output")
+		("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
+		 cxxopts::value<unsigned>()->default_value("0"), "N")
+		;
+
+	int numThreads;
 
 	try {
 		auto options = parser.parse(argc, argv);
 
-		if (options.given("debug")) {
+		if (options.count("debug")) {
 			firestarter::logging::filter<firestarter::logging::record>::set_severity(
 					nitro::log::severity_level::debug);
 		} else {
@@ -66,15 +70,15 @@ int main(int argc, char **argv) {
 					nitro::log::severity_level::info);
 		}
 
-		if (options.given("version")) {
+		if (options.count("version")) {
 			return EXIT_SUCCESS;
 		}
 
-		if (options.given("copyright")) {
+		if (options.count("copyright")) {
 			return print_copyright();
 		}
 
-		if (options.given("warranty")) {
+		if (options.count("warranty")) {
 			return print_warranty();
 		}
 
@@ -83,10 +87,13 @@ int main(int argc, char **argv) {
 			<< "This is free software, and you are welcome to redistribute it\n"
 			<< "under certain conditions; run `" << argv[0] << " -c` for details.\n";
 
-		if (options.given("help")) {
+		if (options.count("help")) {
 			return print_help(parser);
 		}
-	} catch(nitro::except::exception& e) {
+
+		numThreads = options["threads"].as<unsigned>();
+
+	} catch(std::exception& e) {
 		firestarter::log::info() << e.what() << "\n";
 		return print_help(parser);
 	}
@@ -100,6 +107,8 @@ int main(int argc, char **argv) {
 	}
 
 	firestarter->printEnvironmentSummary();
+
+	firestarter->run();
 
 	return EXIT_SUCCESS;
 }

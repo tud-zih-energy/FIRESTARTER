@@ -1,6 +1,8 @@
 #ifndef INCLUDE_FIRESTARTER_FIRESTARTER_HPP
 #define INCLUDE_FIRESTARTER_FIRESTARTER_HPP
 
+#include <firestarter/threadData.hpp>
+
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Support/MemoryBuffer.h>
 
@@ -20,12 +22,14 @@ namespace firestarter {
 
 			int evaluateEnvironment(void);
 			void printEnvironmentSummary(void);
+			void run(void);
 
 		private:
 			std::unique_ptr<llvm::MemoryBuffer> getFileAsStream(std::string filePath, bool showError = true);
 			std::unique_ptr<llvm::MemoryBuffer> getScalingGovernor(void);
 			int getCpuClockrate(void);
 			int genericGetCpuClockrate(void);
+			void threadWorker(ThreadData *threadData);
 
 			hwloc_topology_t topology;
 			unsigned int numPackages;
@@ -37,6 +41,7 @@ namespace firestarter {
 			std::string model = std::string("");
 			unsigned long long clockrate;
 			llvm::StringMap<bool> cpuFeatures;
+			std::vector<ThreadData *> threadData;
 	};
 
 }

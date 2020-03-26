@@ -24,8 +24,8 @@ add_compile_definitions(_FIRESTARTER_BUILD_YEAR="${_FIRESTARTER_BUILD_YEAR}")
 include(cmake/GitSubmoduleUpdate.cmake)
 git_submodule_update()
 
-# enable c++11
-SET(CMAKE_CXX_STANDARD 11)
+# enable c++14
+SET(CMAKE_CXX_STANDARD 14)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -O2 -fomit-frame-pointer")
 
@@ -33,7 +33,9 @@ SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(include)
 
-include(lib/nitro/Nitro.cmake)
+include_directories(lib/nitro/include)
+
+include_directories(lib/cxxopts/include)
 
 find_package(LLVM REQUIRED CONFIG)
 include(FindPkgConfig)
