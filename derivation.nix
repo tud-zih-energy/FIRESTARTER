@@ -43,7 +43,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp src/firestarter $out/bin/
+    cp src/FIRESTARTER $out/bin/
   '';
 
 }

@@ -1,5 +1,5 @@
-#include <firestarter/log.hpp>
-#include <firestarter/firestarter.hpp>
+#include <firestarter/Logging/Log.hpp>
+#include <firestarter/Firestarter.hpp>
 
 #include <cxxopts.hpp>
 

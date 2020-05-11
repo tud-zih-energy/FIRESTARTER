@@ -1,7 +1,7 @@
 #ifndef INCLUDE_FIRESTARTER_X86_H
 #define INCLUDE_FIRESTARTER_X86_H
 
-#include <firestarter/util.h>
+#include <firestarter/Compat/util.h>
 
 #if defined (__ARCH_X86)
 

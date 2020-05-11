@@ -1,5 +1,5 @@
-#include <firestarter/log.hpp>
-#include <firestarter/firestarter.hpp>
+#include <firestarter/Logging/Log.hpp>
+#include <firestarter/Firestarter.hpp>
 
 #include <llvm/ADT/StringRef.h>
 #include <llvm/ADT/SmallVector.h>
@@ -7,7 +7,7 @@
 #include <ctime>
 
 extern "C" {
-#include <firestarter/x86.h>
+#include <firestarter/Compat/x86.h>
 }
 
 using namespace firestarter;

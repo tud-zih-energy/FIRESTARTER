@@ -7,6 +7,8 @@
 #define THREAD_STOP        4
 #define THREAD_INIT_FAILURE 0xffffffff
 
+#include <mutex>
+
 namespace firestarter {
 
 	class ThreadData {
@@ -16,8 +18,9 @@ namespace firestarter {
 
 			int getId(void) { return _id; }
 
-			volatile int comm = THREAD_WAIT;
-			volatile int ack = 0;
+			int comm = THREAD_WAIT;
+			bool ack = false;
+			std::mutex mutex;
 
 		private:
 			int _id;

@@ -1,4 +1,4 @@
-#include <firestarter/x86.h>
+#include <firestarter/Compat/x86.h>
 
 #include <string.h>
 
