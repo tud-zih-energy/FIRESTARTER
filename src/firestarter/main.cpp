@@ -56,6 +56,20 @@ int main(int argc, char **argv) {
 		("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
 		 cxxopts::value<unsigned>()->default_value("0"), "N")
 		;
+	// TODO:
+	// a: list functions
+	// i: use specific function
+	// r report
+	// t timeout
+	// l load
+	// p perdoid
+	// n count
+	// b cpulist (only linux)
+	//
+	// TODO: cuda
+	// f: usegpufloat
+	// g: gpus
+	// m: matrixsize
 
 	int numThreads;
 
