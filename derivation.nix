@@ -38,6 +38,7 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (stdenv.lib.optional static "-DCMAKE_EXE_LINKER_FLAGS=\"-static\"")
+    "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
   ];
   enableParalellBuilding = true;
 

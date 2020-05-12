@@ -7,13 +7,13 @@ using namespace firestarter;
 
 void Firestarter::run(void) {
 
-	log::debug() << "Spawn " << this->numThreads << " threads.";
+	log::debug() << "Spawn " << this->requestedNumThreads << " threads.";
 
-	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->numThreads * sizeof(pthread_t)));
+	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->requestedNumThreads * sizeof(pthread_t)));
 
 	bool ack;
 
-	for (int i=0; i<this->numThreads; i++) {
+	for (int i=0; i<this->requestedNumThreads; i++) {
 		auto td = new ThreadData(i);
 		
 		this->threadData.push_back(std::ref(td));

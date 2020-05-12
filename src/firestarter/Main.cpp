@@ -3,6 +3,8 @@
 
 #include <cxxopts.hpp>
 
+#include <string>
+
 int print_copyright(void) {
 
 	firestarter::log::info() << "\n"
@@ -54,7 +56,11 @@ int main(int argc, char **argv) {
 		("w,warranty", "Display warranty information")
 		("d,debug", "Display debug output")
 		("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
-		 cxxopts::value<unsigned>()->default_value("0"), "N")
+		 cxxopts::value<unsigned>()->default_value("0"), "COUNT")
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+		("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
+		 cxxopts::value<std::string>()->default_value(""), "CPULIST")
+#endif
 		;
 	// TODO:
 	// a: list functions
@@ -63,15 +69,14 @@ int main(int argc, char **argv) {
 	// t timeout
 	// l load
 	// p perdoid
-	// n count
-	// b cpulist (only linux)
 	//
 	// TODO: cuda
 	// f: usegpufloat
 	// g: gpus
 	// m: matrixsize
 
-	int numThreads;
+	unsigned requestedNumThreads;
+	std::string cpuBind = "";
 
 	try {
 		auto options = parser.parse(argc, argv);
@@ -105,10 +110,21 @@ int main(int argc, char **argv) {
 			return print_help(parser);
 		}
 
-		numThreads = options["threads"].as<unsigned>();
+		requestedNumThreads = options["threads"].as<unsigned>();
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+		if (!options["bind"].as<std::string>().empty()) {
+			if (options["threads"].as<unsigned>() != 0) {
+				firestarter::log::error() << "Error: -b/--bind and -n/--threads cannot be used together.";
+				return EXIT_FAILURE;
+			}
+
+			cpuBind = options["bind"].as<std::string>();
+		}
+#endif
 
 	} catch(std::exception& e) {
-		firestarter::log::info() << e.what() << "\n";
+		firestarter::log::error() << e.what() << "\n";
 		return print_help(parser);
 	}
 
@@ -121,6 +137,11 @@ int main(int argc, char **argv) {
 	}
 
 	firestarter->printEnvironmentSummary();
+
+	if (EXIT_SUCCESS != (returnCode = firestarter->setCpuAffinity(requestedNumThreads, cpuBind))) {
+		delete firestarter;
+		return returnCode;
+	}
 
 	firestarter->run();
 

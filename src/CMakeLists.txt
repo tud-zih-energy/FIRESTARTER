@@ -2,6 +2,8 @@ add_executable(FIRESTARTER
 	firestarter/Main.cpp
 	firestarter/Firestarter.cpp
 	firestarter/CpuClockrate.cpp
+	firestarter/CpuAffinity.cpp
+	firestarter/Environment.cpp
 	firestarter/ThreadWorker.cpp
 	firestarter/Compat/x86.c
 )
