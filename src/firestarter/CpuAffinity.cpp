@@ -190,7 +190,55 @@ int Firestarter::setCpuAffinity(unsigned requestedNumThreads, std::string cpuBin
 	}
 #endif
 
+	if (requestedNumThreads > this->numThreads) {
+		requestedNumThreads = this->numThreads;
+	}
+
 	this->requestedNumThreads = requestedNumThreads;
 
 	return EXIT_SUCCESS;
+}
+
+int Firestarter::getCoreIdFromPU(unsigned long long pu) {
+	int width;
+	hwloc_obj_t obj;
+
+	width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+
+	if (width >= 1) {
+		for (int i=0; i<width; i++) {
+			obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+			if (obj->os_index == pu) {
+				for (; obj; obj=obj->parent) {
+					if (obj->type == HWLOC_OBJ_CORE) {
+						return obj->logical_index;
+					}
+				}
+			}
+		}
+	}
+
+	return -1;
+}
+
+int Firestarter::getPkgIdFromPU(unsigned long long pu) {
+	int width;
+	hwloc_obj_t obj;
+
+	width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+
+	if (width >= 1) {
+		for (int i=0; i<width; i++) {
+			obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+			if (obj->os_index == pu) {
+				for (; obj; obj=obj->parent) {
+					if (obj->type == HWLOC_OBJ_PACKAGE) {
+						return obj->logical_index;
+					}
+				}
+			}
+		}
+	}
+	
+	return -1;
 }

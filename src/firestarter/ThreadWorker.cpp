@@ -7,9 +7,31 @@ using namespace firestarter;
 
 void Firestarter::run(void) {
 
-	log::debug() << "Spawn " << this->requestedNumThreads << " threads.";
-
 	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->requestedNumThreads * sizeof(pthread_t)));
+
+	log::info() << "  using " << this->requestedNumThreads << " threads";
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+	bool printCoreIdInfo = false;
+	std::list<unsigned long long>::iterator it;
+	
+	for (it=this->cpuBind.begin(); it != this->cpuBind.end(); it++) {
+		auto i = std::distance(this->cpuBind.begin(), it);
+
+		int coreId = this->getCoreIdFromPU(*it);
+		int pkgId = this->getPkgIdFromPU(*it);
+
+		if (coreId != -1 && pkgId != -1) {
+			log::info() << "    - Thread " << i << " run on CPU " << *it << ", core " << coreId << " in package: " << pkgId;
+
+			printCoreIdInfo = true;
+		}
+	}
+
+	if (printCoreIdInfo) {
+		log::info() << "  The cores are numbered using the logical_index from hwloc.";
+	}
+#endif
 
 	bool ack;
 

@@ -43,6 +43,8 @@ namespace firestarter {
 
 			// CpuAffinity.cpp
 			int parse_cpulist(cpu_set_t *cpuset, const char *fsbind, unsigned *requestedNumThreads);
+			int getCoreIdFromPU(unsigned long long pu);
+			int getPkgIdFromPU(unsigned long long pu);
 
 			// ThreadWorker.cpp
 			static void *threadWorker(void *threadData);
