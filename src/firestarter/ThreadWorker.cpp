@@ -5,7 +5,11 @@
 
 using namespace firestarter;
 
-void Firestarter::run(void) {
+void Firestarter::init(void) {
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+	this->cpu_set(this->cpuBind.front());
+#endif
 
 	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->requestedNumThreads * sizeof(pthread_t)));
 

@@ -30,9 +30,9 @@ namespace firestarter {
 			void printEnvironmentSummary(void);
 
 			// CpuAffinity.cpp
-			int setCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
+			int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
 
-			void run(void);
+			void init(void);
 
 		private:
 			// CpuClockrate.cpp
@@ -45,6 +45,8 @@ namespace firestarter {
 			int parse_cpulist(cpu_set_t *cpuset, const char *fsbind, unsigned *requestedNumThreads);
 			int getCoreIdFromPU(unsigned long long pu);
 			int getPkgIdFromPU(unsigned long long pu);
+			int cpu_allowed(int id);
+			int cpu_set(int id);
 
 			// ThreadWorker.cpp
 			static void *threadWorker(void *threadData);

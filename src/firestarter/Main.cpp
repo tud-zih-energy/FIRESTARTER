@@ -138,12 +138,12 @@ int main(int argc, char **argv) {
 
 	firestarter->printEnvironmentSummary();
 
-	if (EXIT_SUCCESS != (returnCode = firestarter->setCpuAffinity(requestedNumThreads, cpuBind))) {
+	if (EXIT_SUCCESS != (returnCode = firestarter->evaluateCpuAffinity(requestedNumThreads, cpuBind))) {
 		delete firestarter;
 		return returnCode;
 	}
 
-	firestarter->run();
+	firestarter->init();
 
 	return EXIT_SUCCESS;
 }

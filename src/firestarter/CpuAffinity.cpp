@@ -12,9 +12,11 @@ extern "C" {
 #include <errno.h>
 }
 
+// this code is from the C version of FIRESTARTER
+// TODO: replace this with cpu affinity of hwloc
 #define ADD_CPU_SET(cpu,cpuset) \
 	do { \
-		if (cpu_allowed(cpu)) { \
+		if (this->cpu_allowed(cpu)) { \
 			CPU_SET(cpu, &cpuset); \
 		} else { \
 			if (cpu >= this->numThreads ) { \
@@ -29,7 +31,7 @@ extern "C" {
 		} \
 	} while (0)
 
-int cpu_set(int id) {
+int Firestarter::cpu_set(int id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -38,7 +40,7 @@ int cpu_set(int id) {
 	return sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 }
 
-int cpu_allowed(int id) {
+int Firestarter::cpu_allowed(int id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -118,7 +120,7 @@ int Firestarter::parse_cpulist(cpu_set_t *cpusetPtr, const char *fsbind, unsigne
 }
 #endif
 
-int Firestarter::setCpuAffinity(unsigned requestedNumThreads, std::string cpuBind) {
+int Firestarter::evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind) {
 
 	if (requestedNumThreads > 0 && requestedNumThreads > this->numThreads) {
 		log::warn() << "Warning: not enough CPUs for requested number of threads";
@@ -135,7 +137,7 @@ int Firestarter::setCpuAffinity(unsigned requestedNumThreads, std::string cpuBin
 		// use all CPUs if not defined otherwise
 		if (requestedNumThreads == 0) {
 			for (int i=0; i<this->numThreads; i++) {
-				if (cpu_allowed(i)) {
+				if (this->cpu_allowed(i)) {
 					CPU_SET(i, &cpuset);
 					requestedNumThreads++;
 				}
@@ -145,7 +147,7 @@ int Firestarter::setCpuAffinity(unsigned requestedNumThreads, std::string cpuBin
 			int current_cpu = 0;
 			for (int i=0; i< this->numThreads; i++) {
 				// search for available cpu
-				while(!cpu_allowed(current_cpu)) {
+				while(!this->cpu_allowed(current_cpu)) {
 					current_cpu++;
 
 					// if rearhed end of avail cpus or max(int)
