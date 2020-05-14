@@ -1,5 +1,5 @@
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/Firestarter.hpp>
+#include <firestarter/Environment/Environment.hpp>
 
 #include <llvm/Support/Host.h>
 #include <llvm/ADT/Triple.h>
@@ -8,9 +8,24 @@
 
 #include <thread>
 
-using namespace firestarter;
+using namespace firestarter::environment;
 
-void Firestarter::printEnvironmentSummary(void) {
+Environment::Environment(void) {
+
+	hwloc_topology_init(&this->topology);
+
+	// do not filter icaches
+	hwloc_topology_set_cache_types_filter(this->topology, HWLOC_TYPE_FILTER_KEEP_ALL);
+
+	hwloc_topology_load(this->topology);
+}
+
+Environment::~Environment(void) {
+
+	hwloc_topology_destroy(this->topology);
+}
+
+void Environment::printEnvironmentSummary(void) {
 
 	log::info()
 		<< "  system summary:\n"
@@ -107,7 +122,7 @@ void Firestarter::printEnvironmentSummary(void) {
 
 }
 
-std::unique_ptr<llvm::MemoryBuffer> Firestarter::getFileAsStream(std::string filePath, bool showError) {
+std::unique_ptr<llvm::MemoryBuffer> Environment::getFileAsStream(std::string filePath, bool showError) {
 	std::error_code e;
 	llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileStream = llvm::MemoryBuffer::getFileAsStream(filePath);
 	if ((e = fileStream.getError()) && showError) {
@@ -118,7 +133,7 @@ std::unique_ptr<llvm::MemoryBuffer> Firestarter::getFileAsStream(std::string fil
 	return std::move(*fileStream);
 }
 
-int Firestarter::evaluateEnvironment(void) {
+int Environment::evaluateEnvironment(void) {
 
 	int depth;
 

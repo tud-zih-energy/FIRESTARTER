@@ -8,22 +8,22 @@ using namespace firestarter;
 void Firestarter::init(void) {
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
-	this->cpu_set(this->cpuBind.front());
+	this->environment->cpu_set(this->environment->cpuBind.front());
 #endif
 
-	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->requestedNumThreads * sizeof(pthread_t)));
+	this->threads = static_cast<pthread_t *>(std::aligned_alloc(64, this->environment->requestedNumThreads * sizeof(pthread_t)));
 
-	log::info() << "  using " << this->requestedNumThreads << " threads";
+	log::info() << "  using " << this->environment->requestedNumThreads << " threads";
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
 	bool printCoreIdInfo = false;
 	std::list<unsigned long long>::iterator it;
 	
-	for (it=this->cpuBind.begin(); it != this->cpuBind.end(); it++) {
-		auto i = std::distance(this->cpuBind.begin(), it);
+	for (it=this->environment->cpuBind.begin(); it != this->environment->cpuBind.end(); it++) {
+		auto i = std::distance(this->environment->cpuBind.begin(), it);
 
-		int coreId = this->getCoreIdFromPU(*it);
-		int pkgId = this->getPkgIdFromPU(*it);
+		int coreId = this->environment->getCoreIdFromPU(*it);
+		int pkgId = this->environment->getPkgIdFromPU(*it);
 
 		if (coreId != -1 && pkgId != -1) {
 			log::info() << "    - Thread " << i << " run on CPU " << *it << ", core " << coreId << " in package: " << pkgId;
@@ -39,7 +39,7 @@ void Firestarter::init(void) {
 
 	bool ack;
 
-	for (int i=0; i<this->requestedNumThreads; i++) {
+	for (int i=0; i<this->environment->requestedNumThreads; i++) {
 		auto td = new ThreadData(i);
 		
 		this->threadData.push_back(std::ref(td));

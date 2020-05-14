@@ -1,9 +1,9 @@
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/Firestarter.hpp>
+#include <firestarter/Environment/Environment.hpp>
 
 #include <cstdlib>
 
-using namespace firestarter;
+using namespace firestarter::environment;
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
 
@@ -31,7 +31,7 @@ extern "C" {
 		} \
 	} while (0)
 
-int Firestarter::cpu_set(int id) {
+int Environment::cpu_set(int id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -40,7 +40,7 @@ int Firestarter::cpu_set(int id) {
 	return sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 }
 
-int Firestarter::cpu_allowed(int id) {
+int Environment::cpu_allowed(int id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -55,7 +55,7 @@ int Firestarter::cpu_allowed(int id) {
 // this code is from the C version of FIRESTARTER
 // the parsing is ugly and complicated to read.
 // TODO: replace this code with a nice regex
-int Firestarter::parse_cpulist(cpu_set_t *cpusetPtr, const char *fsbind, unsigned *requestedNumThreads) {
+int Environment::parse_cpulist(cpu_set_t *cpusetPtr, const char *fsbind, unsigned *requestedNumThreads) {
 	char *p,*q,*r,*s,*t;
 	int i=0,p_val=0,r_val=0,s_val=0,error=0;
 
@@ -120,7 +120,7 @@ int Firestarter::parse_cpulist(cpu_set_t *cpusetPtr, const char *fsbind, unsigne
 }
 #endif
 
-int Firestarter::evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind) {
+int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind) {
 
 	if (requestedNumThreads > 0 && requestedNumThreads > this->numThreads) {
 		log::warn() << "Warning: not enough CPUs for requested number of threads";
@@ -201,7 +201,7 @@ int Firestarter::evaluateCpuAffinity(unsigned requestedNumThreads, std::string c
 	return EXIT_SUCCESS;
 }
 
-int Firestarter::getCoreIdFromPU(unsigned long long pu) {
+int Environment::getCoreIdFromPU(unsigned long long pu) {
 	int width;
 	hwloc_obj_t obj;
 
@@ -223,7 +223,7 @@ int Firestarter::getCoreIdFromPU(unsigned long long pu) {
 	return -1;
 }
 
-int Firestarter::getPkgIdFromPU(unsigned long long pu) {
+int Environment::getPkgIdFromPU(unsigned long long pu) {
 	int width;
 	hwloc_obj_t obj;
 

@@ -55,6 +55,9 @@ int main(int argc, char **argv) {
 		("c,copyright", "Display copyright information")
 		("w,warranty", "Display warranty information")
 		("d,debug", "Display debug output")
+		("a,avail", "List available functions")
+		("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
+		 cxxopts::value<unsigned>()->default_value("0"), "ID")
 		("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
 		 cxxopts::value<unsigned>()->default_value("0"), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
@@ -74,9 +77,6 @@ int main(int argc, char **argv) {
 	// f: usegpufloat
 	// g: gpus
 	// m: matrixsize
-
-	unsigned requestedNumThreads;
-	std::string cpuBind = "";
 
 	try {
 		auto options = parser.parse(argc, argv);
@@ -110,8 +110,9 @@ int main(int argc, char **argv) {
 			return print_help(parser);
 		}
 
-		requestedNumThreads = options["threads"].as<unsigned>();
+		unsigned requestedNumThreads = options["threads"].as<unsigned>();
 
+		std::string cpuBind = "";
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
 		if (!options["bind"].as<std::string>().empty()) {
 			if (options["threads"].as<unsigned>() != 0) {
@@ -123,27 +124,41 @@ int main(int argc, char **argv) {
 		}
 #endif
 
+		int returnCode;
+		auto firestarter = new firestarter::Firestarter();
+
+		if (EXIT_SUCCESS != (returnCode = firestarter->environment->evaluateEnvironment())) {
+			delete firestarter;
+			return returnCode;
+		}
+
+		if (EXIT_SUCCESS != (returnCode = firestarter->environment->evaluateCpuAffinity(requestedNumThreads, cpuBind))) {
+			delete firestarter;
+			return returnCode;
+		}
+
+		firestarter->environment->evaluateFunctions();
+
+		if (options.count("avail")) {
+			firestarter->environment->printFunctionSummary();
+			return EXIT_SUCCESS;
+		}
+
+		unsigned functionId = options["function"].as<unsigned>();
+
+		if (EXIT_SUCCESS != (returnCode = firestarter->environment->selectFunction(functionId))) {
+			delete firestarter;
+			return returnCode;
+		}
+
+		firestarter->environment->printEnvironmentSummary();
+
+		firestarter->init();
+
 	} catch(std::exception& e) {
 		firestarter::log::error() << e.what() << "\n";
 		return print_help(parser);
 	}
-
-	auto firestarter = new firestarter::Firestarter();
-
-	int returnCode;
-	if (EXIT_SUCCESS != (returnCode = firestarter->evaluateEnvironment())) {
-		delete firestarter;
-		return returnCode;
-	}
-
-	firestarter->printEnvironmentSummary();
-
-	if (EXIT_SUCCESS != (returnCode = firestarter->evaluateCpuAffinity(requestedNumThreads, cpuBind))) {
-		delete firestarter;
-		return returnCode;
-	}
-
-	firestarter->init();
 
 	return EXIT_SUCCESS;
 }
