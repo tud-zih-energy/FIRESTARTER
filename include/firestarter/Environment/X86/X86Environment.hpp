@@ -15,6 +15,8 @@
 #include <firestarter/Environment/X86/Platform/NehalemEPConfig.hpp>
 #include <firestarter/Environment/X86/Platform/BulldozerConfig.hpp>
 
+#include <asmjit/asmjit.h>
+
 #include <functional>
 
 extern "C" {
@@ -29,7 +31,7 @@ namespace firestarter::environment::x86 {
 
 	class X86Environment : public Environment {
 		public:
-			X86Environment() : Environment() {};
+			X86Environment() : Environment(), cpuInfo(asmjit::CpuInfo::host()) {};
 			~X86Environment() {};
 
 			void evaluateFunctions(void) override;
@@ -37,7 +39,15 @@ namespace firestarter::environment::x86 {
 			void printFunctionSummary(void) override;
 
 		private:
+			asmjit::CpuInfo cpuInfo;
+
 			int getCpuClockrate(void) override;
+
+			std::string getModel(void) override {
+				std::stringstream ss;
+				ss << "Family " << cpuInfo.familyId() << ", Model " << cpuInfo.modelId() << ", Stepping " << cpuInfo.stepping();
+				return ss.str();
+			}
 
 			const std::list<std::function<platform::PlatformConfig *(llvm::StringMap<bool> *, unsigned, unsigned, unsigned)>> platformConfigsCtor = {
 				REGISTER_PLATFORMCONFIG(KnightsLandingConfig),

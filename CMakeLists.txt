@@ -31,6 +31,12 @@ SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -fomit-frame-pointer -Wall -std=gnu99")
 
+if(NOT DEFINED ASMJIT_STATIC)
+	set(ASMJIT_STATIC TRUE)
+endif()
+
+include("lib/asmjit/CMakeLists.txt")
+
 include_directories(include)
 include_directories(lib/nitro/include)
 include_directories(lib/cxxopts/include)

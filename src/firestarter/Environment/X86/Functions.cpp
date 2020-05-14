@@ -12,7 +12,7 @@ using namespace firestarter::environment::x86;
 void X86Environment::evaluateFunctions(void) {
 	for (auto ctor : this->platformConfigsCtor) {
 		// add asmjit for model and family detection
-		this->platformConfigs.push_back(ctor(&this->cpuFeatures, 6, 86, this->numThreads / this->numPhysicalCoresPerPackage / this->numPackages));
+		this->platformConfigs.push_back(ctor(&this->cpuFeatures, this->cpuInfo.familyId(), this->cpuInfo.modelId(), this->numThreads / this->numPhysicalCoresPerPackage / this->numPackages));
 	}
 }
 

@@ -183,7 +183,7 @@ int Environment::evaluateEnvironment(void) {
 	llvm::Triple PT(llvm::sys::getProcessTriple());
 
 	this->architecture = PT.getArchName().str();
-	this->model = llvm::sys::getHostCPUName().str();
+	this->model = this->getModel();
 
 	// TODO: define this function to be invarient of current architecture
 	if (EXIT_SUCCESS != this->getCpuClockrate()) {

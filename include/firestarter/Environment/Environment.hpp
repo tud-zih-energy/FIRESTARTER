@@ -47,6 +47,10 @@ namespace firestarter::environment {
 			int cpu_set(int id);
 
 		protected:
+			virtual std::string getModel(void) {
+				return llvm::sys::getHostCPUName().str();
+			}
+
 			// Environment.cpp
 			hwloc_topology_t topology;
 			unsigned int numPackages;
