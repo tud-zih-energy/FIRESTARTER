@@ -21,26 +21,23 @@ namespace firestarter::environment::x86::platform {
 			unsigned _currentFamily;
 			unsigned _currentModel;
 			unsigned _currentThreads;
-			payload::Payload *_payload;
 
 		public:
 			PlatformConfig(std::string name, unsigned family, std::initializer_list<unsigned> models, std::initializer_list<unsigned> threads, unsigned currentFamily, unsigned currentModel, unsigned currentThreads, payload::Payload *payload) :
-				_name(name), _family(family), _models(models), _threads(threads), _currentFamily(currentFamily), _currentModel(currentModel), _currentThreads(currentThreads), _payload(payload) {};
+				_name(name), _family(family), _models(models), _threads(threads), _currentFamily(currentFamily), _currentModel(currentModel), _currentThreads(currentThreads), payload(payload) {};
 
 			~PlatformConfig() {
-				delete _payload;
+				delete payload;
 			}
 
-			payload::Payload *getPayload(void) {
-				return _payload;
-			}
+			payload::Payload *payload;
 
 			std::map<unsigned, std::string> getThreadMap(void) {
 				std::map<unsigned, std::string> threadMap;
 
 				for (auto const& thread : _threads) {
 					std::stringstream functionName;
-					functionName << "FUNC_" << _name << "_" << _payload->getName() << "_" << thread << "T";
+					functionName << "FUNC_" << _name << "_" << payload->getName() << "_" << thread << "T";
 					threadMap[thread] = functionName.str();
 				}
 
@@ -52,13 +49,14 @@ namespace firestarter::environment::x86::platform {
 			}
 
 			bool isAvailable(void) {
-				return _payload->isAvailable();
+				return payload->isAvailable();
 			}
 
-			bool isDefault(void) {
+			bool isDefault(unsigned thread) {
 				return _family == _currentFamily &&
 					(std::find(_models.begin(), _models.end(), _currentModel) != _models.end()) &&
-					(std::find(_threads.begin(), _threads.end(), _currentModel) != _threads.end()) &&
+					(std::find(_threads.begin(), _threads.end(), _currentThreads) != _threads.end()) &&
+					_currentThreads == thread &&
 					isAvailable();
 			}
 	};

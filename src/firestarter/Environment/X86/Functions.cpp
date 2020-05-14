@@ -23,16 +23,35 @@ int X86Environment::selectFunction(unsigned functionId) {
 
 	for (auto config : this->platformConfigs) {
 		for (auto const& [thread, functionName] : config->getThreadMap()) {
-			// found function
+			// the selected function
 			if (id == functionId) {
 				if (!config->isAvailable()) {
-					log::error() << "Error: Function " << functionId << "(\"" << functionName << "\") requires ";
+					log::error() << "Error: Function " << functionId << " (\"" << functionName << "\") requires " << config->payload->getName()
+						<< ", which is not supported by the processor.";
 					return EXIT_FAILURE;
 				}
+				// found function
+				return EXIT_SUCCESS;
+			}
+			// default function
+			if (0 == functionId && config->isDefault(thread)) {
+				log::debug() << "Using default Platform: " << functionName;
 				return EXIT_SUCCESS;
 			}
 			id++;
 		}
+	}
+
+	// no default found
+	// use fallback
+	if (0 == functionId) {
+		log::warn()
+			<< "Warning: " << this->vendor << " " << getModel() << " is not supported by this version of FIRESTARTER!\n"
+			<< "Check project website for updates.";
+
+		// no fallback found
+		log::error() << "Error: No fallback implementation found for available ISA extensions.";
+		return EXIT_FAILURE;
 	}
 
 	log::error() << "Error: unknown function id: " << functionId << ", see --avail for available ids";
