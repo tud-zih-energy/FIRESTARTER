@@ -66,8 +66,6 @@ int main(int argc, char **argv) {
 #endif
 		;
 	// TODO:
-	// a: list functions
-	// i: use specific function
 	// r report
 	// t timeout
 	// l load
