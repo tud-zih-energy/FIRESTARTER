@@ -10,7 +10,7 @@ add_executable(FIRESTARTER
 	firestarter/Environment/X86/Functions.cpp
 	firestarter/Environment/X86/CpuClockrate.cpp
 
-	firestarter/Environment/X86/Payload/Payload.cpp
+	firestarter/Environment/X86/Payload/X86Payload.cpp
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp
 	firestarter/Environment/X86/Payload/FMA4Payload.cpp
 	firestarter/Environment/X86/Payload/FMAPayload.cpp

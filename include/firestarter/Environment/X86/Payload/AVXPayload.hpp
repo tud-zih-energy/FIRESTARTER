@@ -1,24 +1,17 @@
 #ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_AVXPAYLOAD_H
 #define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_AVXPAYLOAD_H
 
-#include <firestarter/Environment/X86/Payload/Payload.hpp>
+#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
-	class AVXPayload : public Payload {
-
-		private:
-	
+	class AVXPayload : public X86Payload {
 		public:
-			AVXPayload(llvm::StringMap<bool> *supportedFeatures) : Payload(supportedFeatures, {"avx"}) {};
+			AVXPayload(llvm::StringMap<bool> *supportedFeatures) : X86Payload(supportedFeatures, {"avx"}, "AVX") {};
 
-			std::string getName(void) override {
-				return "AVX";
-			}
-
-			void compilePayload(llvm::StringMap<unsigned> proportion);
-			std::list<std::string> getAvailableInstructions(void);
-			void init(...);
-			void highLoadFunction(...);
+			void compilePayload(llvm::StringMap<unsigned> proportion) override;
+			std::list<std::string> getAvailableInstructions(void) override;
+			void init(...) override;
+			void highLoadFunction(...) override;
 	};
 }
 

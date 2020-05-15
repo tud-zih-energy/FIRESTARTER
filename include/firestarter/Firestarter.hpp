@@ -4,7 +4,6 @@
 #include <firestarter/ThreadData.hpp>
 
 #include <firestarter/Environment/X86/X86Environment.hpp>
-#include <firestarter/Environment/X86/Platform/PlatformConfig.hpp>
 
 #include <list>
 #include <string>

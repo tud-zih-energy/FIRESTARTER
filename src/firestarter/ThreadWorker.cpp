@@ -90,10 +90,7 @@ void *Firestarter::threadWorker(void *threadData) {
 	
 	auto td = (ThreadData *)threadData;
 	
-	std::cout << "in thread " << td->getId() << std::endl;
-
 	for (;;) {
-
 		td->mutex.lock();
 		int comm = td->comm;
 		td->mutex.unlock();
@@ -115,6 +112,7 @@ void *Firestarter::threadWorker(void *threadData) {
 		// perform stress test
 		case THREAD_WORK:
 			log::debug() << "Thread " << td->getId() << " working.";
+			
 			break;
 		case THREAD_WAIT:
 			break;

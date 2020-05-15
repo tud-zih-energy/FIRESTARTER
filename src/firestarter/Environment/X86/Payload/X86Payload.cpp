@@ -1,8 +1,8 @@
-#include <firestarter/Environment/X86/Payload/Payload.hpp>
+#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 using namespace firestarter::environment::x86::payload;
 
-void Payload::lowLoadFunction(...) {
+void X86Payload::lowLoadFunction(...) {
 #if 0
 	int nap;
 
