@@ -1,7 +1,8 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Environment/Environment.hpp>
 
-#include <cstdlib>
+#include <string>
+#include <regex>
 
 using namespace firestarter::environment;
 
@@ -9,7 +10,6 @@ using namespace firestarter::environment;
 
 extern "C" {
 #include <sched.h>
-#include <errno.h>
 }
 
 // this code is from the C version of FIRESTARTER
@@ -50,73 +50,6 @@ int Environment::cpu_allowed(int id) {
 	}
 
 	return 0;
-}
-
-// this code is from the C version of FIRESTARTER
-// the parsing is ugly and complicated to read.
-// TODO: replace this code with a nice regex
-int Environment::parse_cpulist(cpu_set_t *cpusetPtr, const char *fsbind, unsigned *requestedNumThreads) {
-	char *p,*q,*r,*s,*t;
-	int i=0,p_val=0,r_val=0,s_val=0,error=0;
-
-	cpu_set_t cpuset;
-	std::memcpy(&cpuset, cpusetPtr, sizeof(cpu_set_t));
-
-	errno=0;
-	p=strdup(fsbind);
-	while(p!=NULL) {
-		q=strstr(p,",");
-		if (q) {
-			*q='\0';
-			q++;
-		}
-		s=strstr(p,"/");
-		if (s) {
-			*s='\0';
-			s++;
-			s_val=(int)strtol(s,&t,10);
-			if ((errno) || ((strcmp(t,"\0") && (t[0] !=','))) ) error++;
-		}
-		r=strstr(p,"-");
-		if (r) {
-			*r='\0';
-			r++;
-			r_val=(int)strtol(r,&t,10);
-			if ((errno) || ((strcmp(t,"\0") && (t[0] !=',') && (t[0] !='/'))) ) error++;
-		}
-		p_val=(int)strtol(p,&t,10);
-		if ((errno) || (p_val < 0) || (strcmp(t,"\0"))) error++;
-		if (error) {
-			log::error() << "Error: invalid symbols in CPU list: " << std::string(fsbind);
-			return 127;
-		}
-		if ((s) && (s_val<=0)) {
-			log::error() << "Error: s has to be >= 0 in x-y/s expressions of CPU list: " << std::string(fsbind);
-			return 127;
-		}
-		if ((r) && (r_val < p_val)) {
-			log::error() << "Error: y has to be >= x in x-y expressions of CPU list: " << std::string(fsbind);
-			return 127;
-		}
-		if ((s)&&(r)) for (i=p_val; (int)i<=r_val; i+=s_val) {
-			ADD_CPU_SET(i, cpuset);
-			(*requestedNumThreads)++;
-		}
-		else if (r) for (i=p_val; (int)i<=r_val; i++) {
-			ADD_CPU_SET(i, cpuset);
-			(*requestedNumThreads)++;
-		}
-		else {
-			ADD_CPU_SET(p_val, cpuset);
-			(*requestedNumThreads)++;
-		}
-		p=q;
-	}
-	free(p);
-
-	std::memcpy(cpusetPtr, &cpuset, sizeof(cpu_set_t));
-
-	return EXIT_SUCCESS;
 }
 #endif
 
@@ -164,12 +97,46 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string c
 				current_cpu++;
 			}
 		}
-
 	} else {
 		// parse CPULIST for binding
-		int returnCode;
-		if (EXIT_SUCCESS != (returnCode = this->parse_cpulist(&cpuset, cpuBind.c_str(), &requestedNumThreads))) {
-			return returnCode;
+		const std::string delimiter = ",";
+		const std::regex re("^(?:(\\d+)(?:-([1-9]\\d*)(?:\\/([1-9]\\d*))?)?)$");
+
+		size_t pos = 0;
+
+		std::stringstream ss(cpuBind);
+
+		while (ss.good()) {
+			std::string token;
+			std::smatch m;
+			std::getline(ss, token, ',');;
+
+			if (std::regex_match(token, m, re)) {
+				unsigned long x, y, s;
+
+				x = std::stoul(m[1].str());
+				if (m[2].matched) {
+					y = std::stoul(m[2].str());
+				} else {
+					y = x;
+				}
+				if (m[3].matched) {
+					s = std::stoul(m[3].str());
+				} else {
+					s = 1;
+				}
+				if (y < x) {
+					log::error() << "Error: y has to be >= x in x-y expressions of CPU list: " << token;
+					return EXIT_FAILURE;
+				}
+				for (unsigned long i = x; i <= y; i += s) {
+					ADD_CPU_SET(i, cpuset);
+					requestedNumThreads++;
+				}
+			} else {
+				log::error() << "Error: invalid symbols in CPU list: " << token;
+				return EXIT_FAILURE;
+			}
 		}
 	}
 #else
