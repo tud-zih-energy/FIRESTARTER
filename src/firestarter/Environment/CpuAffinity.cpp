@@ -1,6 +1,7 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Environment/Environment.hpp>
 
+#include <iterator>
 #include <string>
 #include <regex>
 
@@ -31,7 +32,7 @@ extern "C" {
 		} \
 	} while (0)
 
-int Environment::cpu_set(int id) {
+int Environment::cpu_set(unsigned id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -40,7 +41,7 @@ int Environment::cpu_set(int id) {
 	return sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 }
 
-int Environment::cpu_allowed(int id) {
+int Environment::cpu_allowed(unsigned id) {
 	cpu_set_t mask;
 
 	CPU_ZERO(&mask);
@@ -163,12 +164,12 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string c
 		requestedNumThreads = this->numThreads;
 	}
 
-	this->requestedNumThreads = requestedNumThreads;
+	this->_requestedNumThreads = requestedNumThreads;
 
 	return EXIT_SUCCESS;
 }
 
-int Environment::getCoreIdFromPU(unsigned long long pu) {
+int Environment::getCoreIdFromPU(unsigned pu) {
 	int width;
 	hwloc_obj_t obj;
 
@@ -190,7 +191,7 @@ int Environment::getCoreIdFromPU(unsigned long long pu) {
 	return -1;
 }
 
-int Environment::getPkgIdFromPU(unsigned long long pu) {
+int Environment::getPkgIdFromPU(unsigned pu) {
 	int width;
 	hwloc_obj_t obj;
 
@@ -210,4 +211,39 @@ int Environment::getPkgIdFromPU(unsigned long long pu) {
 	}
 	
 	return -1;
+}
+
+void Environment::printThreadSummary(void) {
+	log::info() << "\n  using " << this->requestedNumThreads << " threads";
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+	bool printCoreIdInfo = false;
+	size_t i = 0;
+
+	for (auto const& bind : this->cpuBind) {
+		int coreId = this->getCoreIdFromPU(bind);
+		int pkgId = this->getPkgIdFromPU(bind);
+
+		if (coreId != -1 && pkgId != -1) {
+			log::info() << "    - Thread " << i << " run on CPU " << bind << ", core " << coreId << " in package: " << pkgId;
+			printCoreIdInfo = true;
+		}
+
+		i++;
+	}
+
+	if (printCoreIdInfo) {
+		log::info() << "  The cores are numbered using the logical_index from hwloc.";
+	}
+#endif
+}
+
+int Environment::setCpuAffinity(unsigned thread) {
+	if (thread > this->requestedNumThreads) {
+		log::error() << "Error: Trying to set more CPUs than available.";
+	}
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+	this->cpu_set(this->cpuBind.at(thread));
+#endif
 }

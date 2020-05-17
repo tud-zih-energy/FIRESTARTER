@@ -8,7 +8,7 @@ namespace firestarter::environment::x86::payload {
 		public:
 			AVX512Payload(llvm::StringMap<bool> *supportedFeatures) : X86Payload(supportedFeatures, {"avx512f"}, "AVX512") {};
 
-			void compilePayload(llvm::StringMap<unsigned> proportion) override;
+			void compilePayload(std::map<std::string, unsigned> proportion) override;
 			std::list<std::string> getAvailableInstructions(void) override;
 			void init(...) override;
 			void highLoadFunction(...) override;

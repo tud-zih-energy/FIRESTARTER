@@ -9,9 +9,19 @@ namespace firestarter::environment::x86::platform {
 
 		public:
 			KnightsLandingConfig(llvm::StringMap<bool> *supportedFeatures, unsigned family, unsigned model, unsigned threads) :
-				X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4}, family, model, threads, new payload::AVX512Payload(supportedFeatures)) {};
-
+				X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4},
+						{32768,524288,236279125}, 26214400,
+						family, model, threads, new payload::AVX512Payload(supportedFeatures)) {};
 			~KnightsLandingConfig() {};
+
+			std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
+				return std::map<std::string, unsigned>({
+					{"RAM_P", 3},
+					{"L2_S", 8},
+					{"L1_L", 40},
+					{"REG", 10}
+				});
+			}
 	};
 }
 

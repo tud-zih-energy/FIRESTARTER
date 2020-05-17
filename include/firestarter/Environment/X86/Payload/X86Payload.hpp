@@ -4,24 +4,32 @@
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+#include <llvm/ADT/StringMap.h>
+
+#include <asmjit/x86.h>
+
 namespace firestarter::environment::x86::payload {
 
 	class X86Payload : public environment::payload::Payload {
 		private:
 			// we can use this to check, if our platform support this payload
-			llvm::StringMap<bool> *_supportedFeatures;
-			std::list<std::string> _featureRequests;
+			llvm::StringMap<bool> *supportedFeatures;
+			std::list<std::string> featureRequests;
+			
+		protected:
+			asmjit::CodeHolder code;
+			asmjit::JitRuntime rt;
 	
 		public:
 			X86Payload(llvm::StringMap<bool> *supportedFeatures, std::initializer_list<std::string> featureRequests, std::string name) :
-				Payload(name), _supportedFeatures(supportedFeatures), _featureRequests(featureRequests) {};
+				Payload(name), supportedFeatures(supportedFeatures), featureRequests(featureRequests) {};
 			~X86Payload() {};
 
 			bool isAvailable(void) override {
 				bool available = true;
 
-				for (std::string feature : _featureRequests) {
-					available &= (*_supportedFeatures)[feature];
+				for (std::string feature : featureRequests) {
+					available &= (*supportedFeatures)[feature];
 				}
 
 				return available;

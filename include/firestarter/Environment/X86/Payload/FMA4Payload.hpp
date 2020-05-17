@@ -9,7 +9,7 @@ namespace firestarter::environment::x86::payload {
 		public:
 			FMA4Payload(llvm::StringMap<bool> *supportedFeatures) : X86Payload(supportedFeatures, {"avx", "fma4"}, "FMA4") {};
 
-			void compilePayload(llvm::StringMap<unsigned> proportion) override;
+			void compilePayload(std::map<std::string, unsigned> proportion) override;
 			std::list<std::string> getAvailableInstructions(void) override;
 			void init(...) override;
 			void highLoadFunction(...) override;

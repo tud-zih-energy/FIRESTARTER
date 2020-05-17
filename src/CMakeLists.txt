@@ -19,6 +19,7 @@ add_executable(FIRESTARTER
 )
 
 target_link_libraries(FIRESTARTER
+	Threads::Threads
 	LLVMSupport
 	hwloc
 	AsmJit::AsmJit

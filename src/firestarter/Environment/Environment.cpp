@@ -192,3 +192,7 @@ int Environment::evaluateEnvironment(void) {
 
 	return EXIT_SUCCESS;
 }
+
+unsigned Environment::getNumberOfThreadsPerCore(void) {
+	return this->numThreads / this->numPhysicalCoresPerPackage / this->numPackages;
+}

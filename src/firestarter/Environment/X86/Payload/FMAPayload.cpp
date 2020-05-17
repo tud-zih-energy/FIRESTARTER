@@ -2,7 +2,7 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void FMAPayload::compilePayload(llvm::StringMap<unsigned> proportion) {
+void FMAPayload::compilePayload(std::map<std::string, unsigned> proportion) {
 
 }
 

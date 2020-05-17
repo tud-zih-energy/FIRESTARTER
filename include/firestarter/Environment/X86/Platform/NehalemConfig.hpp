@@ -9,9 +9,18 @@ namespace firestarter::environment::x86::platform {
 
 		public:
 			NehalemConfig(llvm::StringMap<bool> *supportedFeatures, unsigned family, unsigned model, unsigned threads) :
-				X86PlatformConfig("NHM_COREI", 6, {30,37,23}, {1,2}, family, model, threads, new payload::SSE2Payload(supportedFeatures)) {};
-
+				X86PlatformConfig("NHM_COREI", 6, {30,37,23}, {1,2},
+						{32768,262144,1572864}, 104857600,
+						family, model, threads, new payload::SSE2Payload(supportedFeatures)) {};
 			~NehalemConfig() {};
+
+			std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
+				return std::map<std::string, unsigned>({
+					{"RAM_P", 1},
+					{"L1_LS", 70},
+					{"REG", 2}
+				});
+			}
 	};
 }
 

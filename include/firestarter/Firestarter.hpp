@@ -19,21 +19,26 @@ namespace firestarter {
 			Firestarter(void) {
 #if defined(__i386__) || defined(_M_IX86) || \
 		defined(__x86_64__) || defined(_M_X64)
-				environment = new environment::x86::X86Environment();
+				_environment = new environment::x86::X86Environment();
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
 			};
 
 			~Firestarter(void) {
-				delete environment;
+#if defined(__i386__) || defined(_M_IX86) || \
+		defined(__x86_64__) || defined(_M_X64)
+				delete (environment::x86::X86Environment *) _environment;
+#endif
 			};
 
-			environment::Environment *environment;
+			environment::Environment * const &environment = _environment;
 
 			void init(void);
 
 		private:
+			environment::Environment * _environment;
+
 			// ThreadWorker.cpp
 			static void *threadWorker(void *threadData);
 

@@ -12,7 +12,7 @@ using namespace firestarter::environment::x86;
 void X86Environment::evaluateFunctions(void) {
 	for (auto ctor : this->platformConfigsCtor) {
 		// add asmjit for model and family detection
-		this->platformConfigs.push_back(ctor(&this->cpuFeatures, this->cpuInfo.familyId(), this->cpuInfo.modelId(), this->numThreads / this->numPhysicalCoresPerPackage / this->numPackages));
+		this->platformConfigs.push_back(ctor(&this->cpuFeatures, this->cpuInfo.familyId(), this->cpuInfo.modelId(), this->getNumberOfThreadsPerCore()));
 	}
 }
 
@@ -26,16 +26,17 @@ int X86Environment::selectFunction(unsigned functionId) {
 			// the selected function
 			if (id == functionId) {
 				if (!config->isAvailable()) {
-					log::error() << "Error: Function " << functionId << " (\"" << functionName << "\") requires " << config->payload->getName()
+					log::error() << "Error: Function " << functionId << " (\"" << functionName << "\") requires " << config->payload->name
 						<< ", which is not supported by the processor.";
 					return EXIT_FAILURE;
 				}
 				// found function
+				config->printCodePathSummary(thread);
 				return EXIT_SUCCESS;
 			}
 			// default function
-			if (0 == functionId && config->isDefault(thread)) {
-				log::debug() << "Using default Platform: " << functionName;
+			if (0 == functionId && config->isDefault() && thread == this->getNumberOfThreadsPerCore()) {
+				config->printCodePathSummary(thread);
 				return EXIT_SUCCESS;
 			}
 			id++;

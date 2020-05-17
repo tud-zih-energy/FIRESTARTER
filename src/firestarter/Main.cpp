@@ -1,5 +1,6 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Firestarter.hpp>
+#include <firestarter/PayloadRunner/PayloadRunner.hpp>
 
 #include <cxxopts.hpp>
 
@@ -142,6 +143,8 @@ int main(int argc, char **argv) {
 			return EXIT_SUCCESS;
 		}
 
+		firestarter->environment->printEnvironmentSummary();
+
 		unsigned functionId = options["function"].as<unsigned>();
 
 		if (EXIT_SUCCESS != (returnCode = firestarter->environment->selectFunction(functionId))) {
@@ -149,9 +152,15 @@ int main(int argc, char **argv) {
 			return returnCode;
 		}
 
-		firestarter->environment->printEnvironmentSummary();
+		firestarter->environment->printThreadSummary();
 
-		firestarter->init();
+		auto runner = new firestarter::payloadrunner::PayloadRunner(firestarter->environment->getSelectedConfig(), firestarter->environment->getNumberOfThreadsPerCore());
+
+		if (EXIT_SUCCESS != (returnCode = runner->init())) {
+			delete runner;
+			delete firestarter;
+			return returnCode;
+		}
 
 	} catch(std::exception& e) {
 		firestarter::log::error() << e.what() << "\n";

@@ -9,9 +9,20 @@ namespace firestarter::environment::x86::platform {
 
 		public:
 			SandyBridgeEPConfig(llvm::StringMap<bool> *supportedFeatures, unsigned family, unsigned model, unsigned threads) :
-				X86PlatformConfig("SNB_XEONEP", 6, {45,62}, {1,2}, family, model, threads, new payload::AVXPayload(supportedFeatures)) {};
-
+				X86PlatformConfig("SNB_XEONEP", 6, {45,62}, {1,2},
+						{32768,262144,2621440}, 104857600,
+						family, model, threads, new payload::AVXPayload(supportedFeatures)) {};
 			~SandyBridgeEPConfig() {};
+
+			std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
+				return std::map<std::string, unsigned>({
+					{"RAM_L", 3},
+					{"L3_LS", 2},
+					{"L2_LS", 10},
+					{"L1_LS", 90},
+					{"REG", 30}
+				});
+			}
 	};
 }
 
