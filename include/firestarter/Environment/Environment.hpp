@@ -13,71 +13,72 @@ extern "C" {
 }
 
 namespace firestarter::environment {
-	
-	class Environment {
-		public:
-			// Environment.cpp
-			Environment(void);
-			~Environment(void);
 
-			// Environment.cpp
-			int evaluateEnvironment(void);
-			void printEnvironmentSummary(void);
-			unsigned getNumberOfThreadsPerCore(void);
+class Environment {
+public:
+  // Environment.cpp
+  Environment(void);
+  ~Environment(void);
 
-			// CpuAffinity.cpp
-			int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
-			int setCpuAffinity(unsigned thread);
-			void printThreadSummary(void);
+  // Environment.cpp
+  int evaluateEnvironment(void);
+  void printEnvironmentSummary(void);
+  unsigned getNumberOfThreadsPerCore(void);
 
-			virtual void evaluateFunctions(void) =0;
-			virtual int selectFunction(unsigned functionId) =0;
-			virtual void printFunctionSummary(void) =0;
-			virtual platform::PlatformConfig *getSelectedConfig(void) =0;
+  // CpuAffinity.cpp
+  int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
+  int setCpuAffinity(unsigned thread);
+  void printThreadSummary(void);
 
-			const unsigned long long& requestedNumThreads = _requestedNumThreads;
+  virtual void evaluateFunctions(void) = 0;
+  virtual int selectFunction(unsigned functionId) = 0;
+  virtual void printFunctionSummary(void) = 0;
+  virtual platform::PlatformConfig *getSelectedConfig(void) = 0;
 
-		protected:
-			// CpuAffinity.cpp
-			unsigned long long _requestedNumThreads;
+  const unsigned long long &requestedNumThreads = _requestedNumThreads;
 
-			// Environment.cpp
-			unsigned int numPackages;
-			unsigned int numPhysicalCoresPerPackage;
-			unsigned int numThreads;
-			std::string architecture = std::string("");
-			std::string vendor = std::string("");
-			std::string processorName = std::string("");
-			unsigned long long clockrate;
-			llvm::StringMap<bool> cpuFeatures;
+protected:
+  // CpuAffinity.cpp
+  unsigned long long _requestedNumThreads;
 
-			// CpuClockrate.cpp
-			std::unique_ptr<llvm::MemoryBuffer> getScalingGovernor(void);
-			virtual int getCpuClockrate(void);
+  // Environment.cpp
+  unsigned int numPackages;
+  unsigned int numPhysicalCoresPerPackage;
+  unsigned int numThreads;
+  std::string architecture = std::string("");
+  std::string vendor = std::string("");
+  std::string processorName = std::string("");
+  unsigned long long clockrate;
+  llvm::StringMap<bool> cpuFeatures;
 
-		private:
-			// CpuClockrate.cpp
-			std::unique_ptr<llvm::MemoryBuffer> getFileAsStream(std::string filePath, bool showError = true);
+  // CpuClockrate.cpp
+  std::unique_ptr<llvm::MemoryBuffer> getScalingGovernor(void);
+  virtual int getCpuClockrate(void);
 
-			// CpuAffinity.cpp
-			// TODO: replace these functions with the builtins one from hwloc
-			int getCoreIdFromPU(unsigned pu);
-			int getPkgIdFromPU(unsigned pu);
-			int cpu_allowed(unsigned id);
-			int cpu_set(unsigned id);
+private:
+  // CpuClockrate.cpp
+  std::unique_ptr<llvm::MemoryBuffer> getFileAsStream(std::string filePath,
+                                                      bool showError = true);
 
-			virtual std::string getModel(void) {
-				return llvm::sys::getHostCPUName().str();
-			}
+  // CpuAffinity.cpp
+  // TODO: replace these functions with the builtins one from hwloc
+  int getCoreIdFromPU(unsigned pu);
+  int getPkgIdFromPU(unsigned pu);
+  int cpu_allowed(unsigned id);
+  int cpu_set(unsigned id);
 
-			// Environment.cpp
-			hwloc_topology_t topology;
-			std::string model = std::string("");
+  virtual std::string getModel(void) {
+    return llvm::sys::getHostCPUName().str();
+  }
 
-			// CpuAffinity.cpp
-			std::vector<unsigned> cpuBind;
-	};
+  // Environment.cpp
+  hwloc_topology_t topology;
+  std::string model = std::string("");
 
-}
+  // CpuAffinity.cpp
+  std::vector<unsigned> cpuBind;
+};
+
+} // namespace firestarter::environment
 
 #endif

@@ -13,40 +13,40 @@ extern "C" {
 }
 
 namespace firestarter {
-	
-	class Firestarter {
-		public:
-			Firestarter(void) {
-#if defined(__i386__) || defined(_M_IX86) || \
-		defined(__x86_64__) || defined(_M_X64)
-				_environment = new environment::x86::X86Environment();
+
+class Firestarter {
+public:
+  Firestarter(void) {
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+    _environment = new environment::x86::X86Environment();
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
-			};
+  };
 
-			~Firestarter(void) {
-#if defined(__i386__) || defined(_M_IX86) || \
-		defined(__x86_64__) || defined(_M_X64)
-				delete (environment::x86::X86Environment *) _environment;
+  ~Firestarter(void) {
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+    delete (environment::x86::X86Environment *)_environment;
 #endif
-			};
+  };
 
-			environment::Environment * const &environment = _environment;
+  environment::Environment *const &environment = _environment;
 
-			void init(void);
+  void init(void);
 
-		private:
-			environment::Environment * _environment;
+private:
+  environment::Environment *_environment;
 
-			// ThreadWorker.cpp
-			static void *threadWorker(void *threadData);
+  // ThreadWorker.cpp
+  static void *threadWorker(void *threadData);
 
-			// ThreadWorker.cpp
-			pthread_t *threads;
-			std::list<ThreadData *> threadData;
-	};
+  // ThreadWorker.cpp
+  pthread_t *threads;
+  std::list<ThreadData *> threadData;
+};
 
-}
+} // namespace firestarter
 
 #endif

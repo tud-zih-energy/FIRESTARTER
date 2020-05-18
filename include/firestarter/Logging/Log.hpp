@@ -17,29 +17,29 @@
 
 namespace firestarter {
 
-	namespace logging {
+namespace logging {
 
-		using record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute>;
+using record = nitro::log::record<nitro::log::severity_attribute,
+                                  nitro::log::message_attribute>;
 
-		template <typename Record>
-		class formater {
-			public:
-				std::string format(Record& r) {
-					std::stringstream s;
-					s << r.message();
+template <typename Record> class formater {
+public:
+  std::string format(Record &r) {
+    std::stringstream s;
+    s << r.message();
 
-					return s.str();
-				}
-		};
-		
-		template <typename Record>
-		using filter = nitro::log::filter::severity_filter<Record>;
+    return s.str();
+  }
+};
 
-	}
+template <typename Record>
+using filter = nitro::log::filter::severity_filter<Record>;
 
-	using log = nitro::log::logger<logging::record, logging::formater,
-                                 nitro::log::sink::stdout, logging::filter>;
+} // namespace logging
 
-}
+using log = nitro::log::logger<logging::record, logging::formater,
+                               nitro::log::sink::stdout, logging::filter>;
+
+} // namespace firestarter
 
 #endif

@@ -5,20 +5,19 @@
 
 namespace firestarter::payloadrunner {
 
-	class PayloadRunner {
-		public:
-			PayloadRunner(environment::platform::PlatformConfig *config, unsigned threads) : config(config), threads(threads) {};
-			~PayloadRunner() {};
+class PayloadRunner {
+public:
+  PayloadRunner(environment::platform::PlatformConfig *config, unsigned threads)
+      : config(config), threads(threads){};
+  ~PayloadRunner(){};
 
-			int init(void) {
-				return EXIT_SUCCESS;
-			}
+  int init(void) { return EXIT_SUCCESS; }
 
-		private:
-			environment::platform::PlatformConfig *config;
-			unsigned threads;
-	};
+private:
+  environment::platform::PlatformConfig *config;
+  unsigned threads;
+};
 
-}
+} // namespace firestarter::payloadrunner
 
 #endif

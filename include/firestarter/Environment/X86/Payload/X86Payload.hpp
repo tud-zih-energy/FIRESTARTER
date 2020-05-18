@@ -10,36 +10,39 @@
 
 namespace firestarter::environment::x86::payload {
 
-	class X86Payload : public environment::payload::Payload {
-		private:
-			// we can use this to check, if our platform support this payload
-			llvm::StringMap<bool> *supportedFeatures;
-			std::list<std::string> featureRequests;
-			
-		protected:
-			asmjit::CodeHolder code;
-			asmjit::JitRuntime rt;
-	
-		public:
-			X86Payload(llvm::StringMap<bool> *supportedFeatures, std::initializer_list<std::string> featureRequests, std::string name) :
-				Payload(name), supportedFeatures(supportedFeatures), featureRequests(featureRequests) {};
-			~X86Payload() {};
+class X86Payload : public environment::payload::Payload {
+private:
+  // we can use this to check, if our platform support this payload
+  llvm::StringMap<bool> *supportedFeatures;
+  std::list<std::string> featureRequests;
 
-			bool isAvailable(void) override {
-				bool available = true;
+protected:
+  asmjit::CodeHolder code;
+  asmjit::JitRuntime rt;
 
-				for (std::string feature : featureRequests) {
-					available &= (*supportedFeatures)[feature];
-				}
+public:
+  X86Payload(llvm::StringMap<bool> *supportedFeatures,
+             std::initializer_list<std::string> featureRequests,
+             std::string name)
+      : Payload(name), supportedFeatures(supportedFeatures),
+        featureRequests(featureRequests){};
+  ~X86Payload(){};
 
-				return available;
-			};
+  bool isAvailable(void) override {
+    bool available = true;
 
-			// A generic implemenation for all x86 payloads
-			// use cpuid and usleep as low load
-			void lowLoadFunction(...) override;
-	};
+    for (std::string feature : featureRequests) {
+      available &= (*supportedFeatures)[feature];
+    }
 
-}
+    return available;
+  };
+
+  // A generic implemenation for all x86 payloads
+  // use cpuid and usleep as low load
+  void lowLoadFunction(...) override;
+};
+
+} // namespace firestarter::environment::x86::payload
 
 #endif

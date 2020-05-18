@@ -8,26 +8,26 @@
 
 namespace firestarter::environment::payload {
 
-	class Payload {
-		private:
-			std::string _name;
+class Payload {
+private:
+  std::string _name;
 
-		public:
-			Payload(std::string name) : _name(name) {};
-			~Payload() {};
+public:
+  Payload(std::string name) : _name(name){};
+  ~Payload(){};
 
-			const std::string& name = _name;
+  const std::string &name = _name;
 
-			virtual bool isAvailable(void) =0;
+  virtual bool isAvailable(void) = 0;
 
-			virtual void lowLoadFunction(...) =0;
+  virtual void lowLoadFunction(...) = 0;
 
-			virtual void compilePayload(std::map<std::string, unsigned> proportion) =0;
-			virtual std::list<std::string> getAvailableInstructions(void) =0;
-			virtual void init(...) =0;
-			virtual void highLoadFunction(...) =0;
-	};
+  virtual void compilePayload(std::map<std::string, unsigned> proportion) = 0;
+  virtual std::list<std::string> getAvailableInstructions(void) = 0;
+  virtual void init(...) = 0;
+  virtual void highLoadFunction(...) = 0;
+};
 
-}
+} // namespace firestarter::environment::payload
 
 #endif

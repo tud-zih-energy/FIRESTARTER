@@ -2,18 +2,10 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void FMAPayload::compilePayload(std::map<std::string, unsigned> proportion) {
+void FMAPayload::compilePayload(std::map<std::string, unsigned> proportion) {}
 
-}
+std::list<std::string> FMAPayload::getAvailableInstructions(void) {}
 
-std::list<std::string> FMAPayload::getAvailableInstructions(void) {
+void FMAPayload::init(...) {}
 
-}
-
-void FMAPayload::init(...) {
-
-}
-
-void FMAPayload::highLoadFunction(...) {
-
-}
+void FMAPayload::highLoadFunction(...) {}
