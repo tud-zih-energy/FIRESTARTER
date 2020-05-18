@@ -16,7 +16,7 @@ int Environment::getCpuClockrate(void) {
 		return EXIT_FAILURE;
 	}
 
-	llvm::SmallVector<llvm::StringRef, _HW_DETECT_MAX_OUTPUT> lines;
+	llvm::SmallVector<llvm::StringRef, 512> lines;
 	llvm::SmallVector<llvm::StringRef, 2> clockrateVector;
 	procCpuinfo->getBuffer().split(lines, "\n");
 	

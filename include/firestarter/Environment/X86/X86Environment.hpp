@@ -19,10 +19,6 @@
 
 #include <functional>
 
-extern "C" {
-#include <firestarter/Compat/util.h>
-}
-
 #define REGISTER(NAME) \
 	[](llvm::StringMap<bool> *supportedFeatures, unsigned family, unsigned model, unsigned threads) -> \
 		platform::X86PlatformConfig * { return new platform::NAME(supportedFeatures, family, model, threads); }

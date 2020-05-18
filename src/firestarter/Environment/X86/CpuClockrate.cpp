@@ -3,7 +3,7 @@
 #include <ctime>
 
 extern "C" {
-#include <firestarter/Compat/x86.h>
+#include <firestarter/Environment/X86/Compat/x86.h>
 }
 
 using namespace firestarter::environment::x86;

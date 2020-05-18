@@ -9,8 +9,6 @@
 #include <vector>
 
 extern "C" {
-#include <firestarter/Compat/util.h>
-
 #include <hwloc.h>
 }
 

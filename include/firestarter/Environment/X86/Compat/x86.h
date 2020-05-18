@@ -1,9 +1,7 @@
-#ifndef INCLUDE_FIRESTARTER_X86_H
-#define INCLUDE_FIRESTARTER_X86_H
+#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_COMPAT_X86_H
+#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_COMPAT_X86_H
 
-#include <firestarter/Compat/util.h>
-
-#if defined (__ARCH_X86)
+#include <firestarter/Environment/X86/Compat/util.h>
 
 #if ((defined (__x86_64__))||(defined (__x86_64))||(defined (x86_64)))
 	#define _64_BIT
@@ -17,7 +15,5 @@ static int x86_has_cpuid();
 unsigned long long x86_timestamp(void);
 int x86_has_rdtsc(void);
 int x86_has_invariant_rdtsc(const char *vendor);
-
-#endif
 
 #endif

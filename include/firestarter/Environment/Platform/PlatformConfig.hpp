@@ -50,11 +50,11 @@ namespace firestarter::environment::platform {
 					<< "  Used buffersizes per thread:";
 				unsigned i = 1;
 				for (auto const& bytes : dataCacheBufferSize) {
-					log::info() << "    - L" << i << "-Cache: " << bytes << " Bytes";
+					log::info() << "    - L" << i << "-Cache: " << bytes / thread << " Bytes";
 					i++;
 				}
 
-				log::info() << "    - Memory: " << ramBufferSize << " Bytes";
+				log::info() << "    - Memory: " << ramBufferSize / thread << " Bytes";
 			}
 
 			bool isAvailable(void) {

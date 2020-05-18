@@ -1,14 +1,16 @@
 add_executable(FIRESTARTER
 	firestarter/Main.cpp
 	firestarter/ThreadWorker.cpp
-	firestarter/Compat/x86.c
 
 	firestarter/Environment/CpuClockrate.cpp
 	firestarter/Environment/CpuAffinity.cpp
 	firestarter/Environment/Environment.cpp
 
+	# here starts the x86 specific code
 	firestarter/Environment/X86/Functions.cpp
 	firestarter/Environment/X86/CpuClockrate.cpp
+
+	firestarter/Environment/X86/Compat/x86.c
 
 	firestarter/Environment/X86/Payload/X86Payload.cpp
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp

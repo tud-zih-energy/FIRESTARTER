@@ -1,8 +1,6 @@
-#include <firestarter/Compat/x86.h>
+#include <firestarter/Environment/X86/Compat/x86.h>
 
 #include <string.h>
-
-#if defined(__ARCH_X86)
 
 #if defined _64_BIT
 
@@ -177,5 +175,3 @@ int x86_has_invariant_rdtsc(const char *vendor)
 
     return res;
 }
-
-#endif
