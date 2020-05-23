@@ -36,12 +36,16 @@ int X86Environment::selectFunction(unsigned functionId) {
         }
         // found function
         config->printCodePathSummary(thread);
+        this->_selectedConfig =
+            new ::firestarter::environment::platform::Config(config, thread);
         return EXIT_SUCCESS;
       }
       // default function
       if (0 == functionId && config->isDefault() &&
           thread == this->getNumberOfThreadsPerCore()) {
         config->printCodePathSummary(thread);
+        this->_selectedConfig =
+            new ::firestarter::environment::platform::Config(config, thread);
         return EXIT_SUCCESS;
       }
       id++;

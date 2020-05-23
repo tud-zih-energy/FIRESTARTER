@@ -2,7 +2,7 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void SSE2Payload::compilePayload(std::map<std::string, unsigned> proportion) {}
+int SSE2Payload::compilePayload(std::map<std::string, unsigned> proportion) {}
 
 std::list<std::string> SSE2Payload::getAvailableInstructions(void) {}
 

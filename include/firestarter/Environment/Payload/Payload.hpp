@@ -22,7 +22,7 @@ public:
 
   virtual void lowLoadFunction(...) = 0;
 
-  virtual void compilePayload(std::map<std::string, unsigned> proportion) = 0;
+  virtual int compilePayload(std::map<std::string, unsigned> proportion) = 0;
   virtual std::list<std::string> getAvailableInstructions(void) = 0;
   virtual void init(...) = 0;
   virtual void highLoadFunction(...) = 0;

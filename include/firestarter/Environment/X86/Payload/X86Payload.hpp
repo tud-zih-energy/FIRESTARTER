@@ -3,6 +3,7 @@
 
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/ThreadData.hpp>
 
 #include <llvm/ADT/StringMap.h>
 
@@ -17,8 +18,11 @@ private:
   std::list<std::string> featureRequests;
 
 protected:
-  asmjit::CodeHolder code;
+  //  asmjit::CodeHolder code;
   asmjit::JitRuntime rt;
+  // typedef int (*LoadFunction)(firestarter::ThreadData *);
+  typedef int (*LoadFunction)(void);
+  LoadFunction loadFunction = nullptr;
 
 public:
   X86Payload(llvm::StringMap<bool> *supportedFeatures,

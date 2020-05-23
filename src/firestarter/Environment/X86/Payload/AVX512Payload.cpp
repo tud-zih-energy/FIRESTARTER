@@ -2,9 +2,7 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void AVX512Payload::compilePayload(std::map<std::string, unsigned> proportion) {
-
-}
+int AVX512Payload::compilePayload(std::map<std::string, unsigned> proportion) {}
 
 std::list<std::string> AVX512Payload::getAvailableInstructions(void) {}
 

@@ -9,7 +9,7 @@ public:
   FMAPayload(llvm::StringMap<bool> *supportedFeatures)
       : X86Payload(supportedFeatures, {"avx", "fma"}, "FMA"){};
 
-  void compilePayload(std::map<std::string, unsigned> proportion) override;
+  int compilePayload(std::map<std::string, unsigned> proportion) override;
   std::list<std::string> getAvailableInstructions(void) override;
   void init(...) override;
   void highLoadFunction(...) override;

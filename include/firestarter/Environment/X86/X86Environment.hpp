@@ -35,9 +35,6 @@ public:
   void evaluateFunctions(void) override;
   int selectFunction(unsigned functionId) override;
   void printFunctionSummary(void) override;
-  environment::platform::PlatformConfig *getSelectedConfig(void) override {
-    return NULL;
-  }
 
 private:
   asmjit::CpuInfo cpuInfo;

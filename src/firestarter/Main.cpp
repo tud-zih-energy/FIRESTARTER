@@ -1,6 +1,5 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/PayloadRunner/PayloadRunner.hpp>
 
 #include <cxxopts.hpp>
 
@@ -176,12 +175,7 @@ int main(int argc, char **argv) {
 
     firestarter->environment->printThreadSummary();
 
-    auto runner = new firestarter::payloadrunner::PayloadRunner(
-        firestarter->environment->getSelectedConfig(),
-        firestarter->environment->getNumberOfThreadsPerCore());
-
-    if (EXIT_SUCCESS != (returnCode = runner->init())) {
-      delete runner;
+    if (EXIT_SUCCESS != (returnCode = firestarter->init())) {
       delete firestarter;
       return returnCode;
     }

@@ -251,11 +251,14 @@ void Environment::printThreadSummary(void) {
 }
 
 int Environment::setCpuAffinity(unsigned thread) {
-  if (thread > this->requestedNumThreads) {
+  if (thread >= this->requestedNumThreads) {
     log::error() << "Error: Trying to set more CPUs than available.";
+    return EXIT_FAILURE;
   }
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
   this->cpu_set(this->cpuBind.at(thread));
 #endif
+
+  return EXIT_SUCCESS;
 }

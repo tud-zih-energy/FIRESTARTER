@@ -5,9 +5,13 @@
 
 using namespace firestarter;
 
-void Firestarter::init(void) {
+int Firestarter::init(void) {
 
-  this->environment->setCpuAffinity(this->environment->requestedNumThreads);
+  int returnCode;
+
+  if (EXIT_SUCCESS != (returnCode = this->environment->setCpuAffinity(0))) {
+    return EXIT_FAILURE;
+  }
 
   this->threads = static_cast<pthread_t *>(std::aligned_alloc(
       64, this->environment->requestedNumThreads * sizeof(pthread_t)));
@@ -15,7 +19,7 @@ void Firestarter::init(void) {
   bool ack;
 
   for (int i = 0; i < this->environment->requestedNumThreads; i++) {
-    auto td = new ThreadData(i);
+    auto td = new ThreadData(i, this->environment);
 
     this->threadData.push_back(std::ref(td));
 
@@ -57,6 +61,8 @@ void Firestarter::init(void) {
   }
 
   log::debug() << "Stopped all threads.";
+
+  return EXIT_SUCCESS;
 }
 
 void *Firestarter::threadWorker(void *threadData) {
@@ -86,8 +92,9 @@ void *Firestarter::threadWorker(void *threadData) {
       break;
     // perform stress test
     case THREAD_WORK:
-      log::debug() << "Thread " << td->getId() << " working.";
-
+      log::debug() << "Thread " << td->id << " working.";
+      td->environment->selectedConfig->platformConfig->payload->compilePayload(
+          std::map<std::string, unsigned>());
       break;
     case THREAD_WAIT:
       break;

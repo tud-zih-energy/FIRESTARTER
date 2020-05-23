@@ -34,7 +34,7 @@ public:
 
   environment::Environment *const &environment = _environment;
 
-  void init(void);
+  int init(void);
 
 private:
   environment::Environment *_environment;

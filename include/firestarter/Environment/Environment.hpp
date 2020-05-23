@@ -1,6 +1,7 @@
 #ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
 #define INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
 
+#include <firestarter/Environment/Platform/Config.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
 #include <llvm/ADT/StringMap.h>
@@ -33,11 +34,14 @@ public:
   virtual void evaluateFunctions(void) = 0;
   virtual int selectFunction(unsigned functionId) = 0;
   virtual void printFunctionSummary(void) = 0;
-  virtual platform::PlatformConfig *getSelectedConfig(void) = 0;
+
+  platform::Config *const &selectedConfig = _selectedConfig;
 
   const unsigned long long &requestedNumThreads = _requestedNumThreads;
 
 protected:
+  platform::Config *_selectedConfig = nullptr;
+
   // CpuAffinity.cpp
   unsigned long long _requestedNumThreads;
 
