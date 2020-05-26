@@ -21,8 +21,6 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion) {
     return EXIT_FAILURE;
   }
 
-  log::debug() << "The result is: " << this->loadFunction();
-
   // test delete the function pointer from the runtime.
   // this has to be done before the function call to the current one
   this->rt.release(&this->loadFunction);
@@ -34,6 +32,11 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion) {
 
 std::list<std::string> FMAPayload::getAvailableInstructions(void) {}
 
-void FMAPayload::init(...) {}
+void FMAPayload::init(unsigned long long *memoryAddr,
+                      unsigned long long bufferSize) {
+  X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
+}
 
-void FMAPayload::highLoadFunction(...) {}
+void FMAPayload::highLoadFunction(...) {
+  log::debug() << "The result is: " << this->loadFunction();
+}

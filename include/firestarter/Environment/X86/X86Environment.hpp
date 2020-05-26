@@ -32,12 +32,19 @@ public:
   X86Environment() : Environment(), cpuInfo(asmjit::CpuInfo::host()){};
   ~X86Environment(){};
 
+  unsigned long long timestamp(void) override;
+
   void evaluateFunctions(void) override;
   int selectFunction(unsigned functionId) override;
   void printFunctionSummary(void) override;
 
 private:
   asmjit::CpuInfo cpuInfo;
+
+  void cpuid(unsigned long long *a, unsigned long long *b,
+             unsigned long long *c, unsigned long long *d);
+  bool hasRdtsc(void);
+  bool hasInvariantRdtsc(void);
 
   int getCpuClockrate(void) override;
 

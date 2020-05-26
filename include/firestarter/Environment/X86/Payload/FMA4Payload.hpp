@@ -12,8 +12,13 @@ public:
 
   int compilePayload(std::map<std::string, unsigned> proportion) override;
   std::list<std::string> getAvailableInstructions(void) override;
-  void init(...) override;
+  void init(unsigned long long *memoryAddr,
+            unsigned long long bufferSize) override;
   void highLoadFunction(...) override;
+
+  firestarter::environment::payload::Payload *clone(void) override {
+    return new FMA4Payload(this->supportedFeatures);
+  };
 };
 } // namespace firestarter::environment::x86::payload
 

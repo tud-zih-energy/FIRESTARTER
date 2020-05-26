@@ -31,6 +31,8 @@ public:
   int setCpuAffinity(unsigned thread);
   void printThreadSummary(void);
 
+  virtual unsigned long long timestamp(void) = 0;
+
   virtual void evaluateFunctions(void) = 0;
   virtual int selectFunction(unsigned functionId) = 0;
   virtual void printFunctionSummary(void) = 0;

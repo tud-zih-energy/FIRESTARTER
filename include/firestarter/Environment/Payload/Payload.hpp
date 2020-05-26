@@ -24,8 +24,11 @@ public:
 
   virtual int compilePayload(std::map<std::string, unsigned> proportion) = 0;
   virtual std::list<std::string> getAvailableInstructions(void) = 0;
-  virtual void init(...) = 0;
+  virtual void init(unsigned long long *memoryAddr,
+                    unsigned long long bufferSize) = 0;
   virtual void highLoadFunction(...) = 0;
+
+  virtual Payload *clone(void) = 0;
 };
 
 } // namespace firestarter::environment::payload

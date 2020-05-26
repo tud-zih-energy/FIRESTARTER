@@ -2,10 +2,6 @@
 
 #include <ctime>
 
-extern "C" {
-#include <firestarter/Environment/X86/Compat/x86.h>
-}
-
 using namespace firestarter::environment::x86;
 
 // measures clockrate using the Time-Stamp-Counter
@@ -32,14 +28,14 @@ int X86Environment::getCpuClockrate(void) {
   std::string governor = scalingGovernor->getBuffer().str();
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
-  if (!x86_has_invariant_rdtsc(vendor.c_str()) &&
-      governor.compare("performance") && governor.compare("powersave")) {
+  if (!this->hasInvariantRdtsc() && governor.compare("performance") &&
+      governor.compare("powersave")) {
     return Environment::getCpuClockrate();
   }
 
   min_measurements = 5;
 
-  if (!x86_has_rdtsc()) {
+  if (!this->hasRdtsc()) {
     return Environment::getCpuClockrate();
   }
 
@@ -47,20 +43,20 @@ int X86Environment::getCpuClockrate(void) {
 
   do {
     // start timestamp
-    start1_tsc = x86_timestamp();
+    start1_tsc = this->timestamp();
     start_time = Clock::now();
-    start2_tsc = x86_timestamp();
+    start2_tsc = this->timestamp();
 
     // waiting
     do {
-      end1_tsc = x86_timestamp();
+      end1_tsc = this->timestamp();
     } while (end1_tsc < start2_tsc + 1000000 * i); /* busy waiting */
 
     // end timestamp
     do {
-      end1_tsc = x86_timestamp();
+      end1_tsc = this->timestamp();
       end_time = Clock::now();
-      end2_tsc = x86_timestamp();
+      end2_tsc = this->timestamp();
 
       time_diff =
           std::chrono::duration_cast<ticks>(end_time - start_time).count();
