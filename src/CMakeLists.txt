@@ -5,6 +5,7 @@ add_executable(FIRESTARTER
 	firestarter/Environment/CpuClockrate.cpp
 	firestarter/Environment/CpuAffinity.cpp
 	firestarter/Environment/Environment.cpp
+	firestarter/Environment/Payload/Payload.cpp
 
 	# here starts the x86 specific code
 	firestarter/Environment/X86/Functions.cpp

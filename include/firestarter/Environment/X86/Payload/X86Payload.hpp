@@ -23,7 +23,9 @@ protected:
   //  asmjit::CodeHolder code;
   asmjit::JitRuntime rt;
   // typedef int (*LoadFunction)(firestarter::ThreadData *);
-  typedef int (*LoadFunction)(void);
+  typedef unsigned long long (*LoadFunction)(unsigned long long *,
+                                             volatile unsigned long long *,
+                                             unsigned long long);
   LoadFunction loadFunction = nullptr;
 
   llvm::StringMap<bool> *const &supportedFeatures = _supportedFeatures;

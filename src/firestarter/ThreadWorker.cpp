@@ -115,7 +115,9 @@ void *Firestarter::threadWorker(void *threadData) {
 
       // compile payload
       td->config->payload->compilePayload(
-          td->config->platformConfig->getDefaultPayloadSettings());
+          td->config->platformConfig->getDefaultPayloadSettings(),
+          td->config->platformConfig->dataCacheBufferSize,
+          td->config->platformConfig->ramBufferSize, td->config->thread, 1536);
 
       // allocate memory
       td->addrMem = static_cast<unsigned long long *>(std::aligned_alloc(
@@ -140,7 +142,7 @@ void *Firestarter::threadWorker(void *threadData) {
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        td->config->payload->highLoadFunction(td->addrHigh, td->period);
+        td->config->payload->highLoadFunction(td->addrMem, nullptr, 0);
 
         // call low load function
 #ifdef ENABLE_VTRACING

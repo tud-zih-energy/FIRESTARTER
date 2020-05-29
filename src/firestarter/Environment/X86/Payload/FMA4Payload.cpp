@@ -2,7 +2,10 @@
 
 using namespace firestarter::environment::x86::payload;
 
-int FMA4Payload::compilePayload(std::map<std::string, unsigned> proportion) {}
+int FMA4Payload::compilePayload(std::map<std::string, unsigned> proportion,
+                                std::list<unsigned> dataCacheBufferSize,
+                                unsigned ramBufferSize, unsigned thread,
+                                unsigned numberOfLines) {}
 
 std::list<std::string> FMA4Payload::getAvailableInstructions(void) {}
 
@@ -11,4 +14,7 @@ void FMA4Payload::init(unsigned long long *memoryAddr,
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void FMA4Payload::highLoadFunction(...) {}
+unsigned long long
+FMA4Payload::highLoadFunction(unsigned long long *addrMem,
+                              volatile unsigned long long *addrHigh,
+                              unsigned long long iterations){};

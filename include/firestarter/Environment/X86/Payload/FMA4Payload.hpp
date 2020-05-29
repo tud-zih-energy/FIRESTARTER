@@ -10,11 +10,16 @@ public:
   FMA4Payload(llvm::StringMap<bool> *supportedFeatures)
       : X86Payload(supportedFeatures, {"avx", "fma4"}, "FMA4"){};
 
-  int compilePayload(std::map<std::string, unsigned> proportion) override;
+  int compilePayload(std::map<std::string, unsigned> proportion,
+                     std::list<unsigned> dataCacheBufferSize,
+                     unsigned ramBufferSize, unsigned thread,
+                     unsigned numberOfLines) override;
   std::list<std::string> getAvailableInstructions(void) override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;
-  void highLoadFunction(...) override;
+  unsigned long long highLoadFunction(unsigned long long *addrMem,
+                                      volatile unsigned long long *addrHigh,
+                                      unsigned long long iterations) override;
 
   firestarter::environment::payload::Payload *clone(void) override {
     return new FMA4Payload(this->supportedFeatures);
