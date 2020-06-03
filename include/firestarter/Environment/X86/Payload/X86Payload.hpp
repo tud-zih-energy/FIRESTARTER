@@ -53,6 +53,10 @@ public:
             double firstValue, double lastValue);
   // use cpuid and usleep as low load
   void lowLoadFunction(...) override;
+
+  unsigned long long highLoadFunction(unsigned long long *addrMem,
+                                      volatile unsigned long long *addrHigh,
+                                      unsigned long long iterations) override;
 };
 
 } // namespace firestarter::environment::x86::payload

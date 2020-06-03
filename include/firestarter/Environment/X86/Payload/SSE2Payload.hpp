@@ -16,9 +16,6 @@ public:
   std::list<std::string> getAvailableInstructions(void) override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;
-  unsigned long long highLoadFunction(unsigned long long *addrMem,
-                                      volatile unsigned long long *addrHigh,
-                                      unsigned long long iterations) override;
 
   firestarter::environment::payload::Payload *clone(void) override {
     return new SSE2Payload(this->supportedFeatures);

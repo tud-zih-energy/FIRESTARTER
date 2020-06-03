@@ -14,8 +14,3 @@ void SSE2Payload::init(unsigned long long *memoryAddr,
   X86Payload::init(memoryAddr, bufferSize, 1.654738925401e-10,
                    1.654738925401e-15);
 }
-
-unsigned long long
-SSE2Payload::highLoadFunction(unsigned long long *addrMem,
-                              volatile unsigned long long *addrHigh,
-                              unsigned long long iterations){};

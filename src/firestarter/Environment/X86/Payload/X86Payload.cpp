@@ -34,3 +34,10 @@ void X86Payload::init(unsigned long long *memoryAddr,
   for (; i < bufferSize; i++)
     *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * lastValue;
 }
+
+unsigned long long
+X86Payload::highLoadFunction(unsigned long long *addrMem,
+                             volatile unsigned long long *addrHigh,
+                             unsigned long long iterations) {
+  return this->loadFunction(addrMem, addrHigh, iterations);
+}

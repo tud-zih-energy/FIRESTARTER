@@ -13,8 +13,3 @@ void FMA4Payload::init(unsigned long long *memoryAddr,
                        unsigned long long bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
-
-unsigned long long
-FMA4Payload::highLoadFunction(unsigned long long *addrMem,
-                              volatile unsigned long long *addrHigh,
-                              unsigned long long iterations){};
