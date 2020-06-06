@@ -7,10 +7,10 @@
 #define THREAD_STOP 4
 #define THREAD_INIT_FAILURE 0xffffffff
 
+/* DO NOT CHANGE! the asm load-loop tests if load-variable is == 0 */
 #define LOAD_LOW 0
-#define LOAD_HIGH                                                              \
-  1 /* DO NOT CHANGE! the asm load-loop continues until the load-variable is   \
-       != 1 */
+/* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
+#define LOAD_HIGH 1
 #define LOAD_STOP 2
 
 #include <firestarter/Environment/Environment.hpp>
@@ -21,10 +21,12 @@ namespace firestarter {
 
 class ThreadData {
 public:
-  ThreadData(int id, environment::Environment *environment)
+  ThreadData(int id, environment::Environment *environment,
+             volatile unsigned long long *loadVar, unsigned long long period)
       : _id(id), _environment(environment),
         _config(
-            new environment::platform::Config(*environment->selectedConfig)){};
+            new environment::platform::Config(*environment->selectedConfig)),
+        addrHigh(loadVar), period(period){};
   ~ThreadData(){};
 
   const int &id = _id;
@@ -41,7 +43,9 @@ public:
   unsigned long long flops;
   unsigned long long start_tsc;
   unsigned long long stop_tsc;
-  unsigned int period;
+  // period in usecs
+  // used in low load routine to sleep 1/100th of this time
+  unsigned long long period;
 
 private:
   int _id;

@@ -52,7 +52,8 @@ public:
   void init(unsigned long long *memoryAddr, unsigned long long bufferSize,
             double firstValue, double lastValue);
   // use cpuid and usleep as low load
-  void lowLoadFunction(...) override;
+  void lowLoadFunction(volatile unsigned long long *addrHigh,
+                       unsigned long long period) override;
 
   unsigned long long highLoadFunction(unsigned long long *addrMem,
                                       volatile unsigned long long *addrHigh,

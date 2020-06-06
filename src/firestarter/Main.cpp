@@ -68,10 +68,24 @@ int main(int argc, char **argv) {
       "Specify integer ID of the load-function to be used (as listed by "
       "--avail)",
       cxxopts::value<unsigned>()->default_value("0"),
-      "ID")("n,threads",
-            "Specify the number of threads. Cannot be combined with -b | "
-            "--bind, which impicitly specifies the number of threads",
-            cxxopts::value<unsigned>()->default_value("0"), "COUNT")
+      "ID")("t,timeout",
+            "Set the timeout (seconds) after which FIRESTARTER terminates "
+            "itself, default: no timeout",
+            cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")(
+      "l,load",
+      "Set the percentage of high CPU load to LOAD (%) default: 100, valid "
+      "values: 0 <= LOAD <= 100, thredas will be idle in the remaining time, "
+      "frequenc of load changes is determined by -p",
+      cxxopts::value<unsigned>()->default_value("100"),
+      "LOAD")("p,period",
+              "Set the interval length for CPUs to PERIOD (usec), default: "
+              "100000, each interval contains a high load and an idle phase, "
+              "the percentage of high load is defined by -l",
+              cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")(
+      "n,threads",
+      "Specify the number of threads. Cannot be combined with -b | "
+      "--bind, which impicitly specifies the number of threads",
+      cxxopts::value<unsigned>()->default_value("0"), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
       ("b,bind",
        "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", "
@@ -125,15 +139,27 @@ int main(int argc, char **argv) {
       return print_help(parser);
     }
 
+    std::chrono::seconds timeout(options["timeout"].as<unsigned>());
+    unsigned loadPercent = options["load"].as<unsigned>();
+    std::chrono::microseconds period(options["period"].as<unsigned>());
+
+    if (loadPercent > 100) {
+      throw std::invalid_argument("Option -l/--load may not be above 100.");
+    }
+
+    std::chrono::microseconds load = (period * loadPercent) / 100;
+    if (load == period || load == std::chrono::microseconds::zero()) {
+      period = std::chrono::microseconds::zero();
+    }
+
     unsigned requestedNumThreads = options["threads"].as<unsigned>();
 
     std::string cpuBind = "";
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
     if (!options["bind"].as<std::string>().empty()) {
       if (options["threads"].as<unsigned>() != 0) {
-        firestarter::log::error()
-            << "Error: -b/--bind and -n/--threads cannot be used together.";
-        return EXIT_FAILURE;
+        throw std::invalid_argument(
+            "Options -b/--bind and -n/--threads cannot be used together.");
       }
 
       cpuBind = options["bind"].as<std::string>();
@@ -175,13 +201,26 @@ int main(int argc, char **argv) {
 
     firestarter->environment->printThreadSummary();
 
-    if (EXIT_SUCCESS != (returnCode = firestarter->init())) {
+    // setup thread with either high or low load configured at the start
+    // low loads has to know the length of the period
+    if (EXIT_SUCCESS != (returnCode = firestarter->initThreads(
+                             (loadPercent == 0), period.count()))) {
       delete firestarter;
       return returnCode;
     }
 
+    firestarter->signalWork();
+
+    // worker thread for load control
+    firestarter->watchdogWorker(period, load, timeout);
+
+    // wait for watchdog to timeout or until user terminates
+    firestarter->joinThreads();
+
+    firestarter->printPerformanceReport();
+
   } catch (std::exception &e) {
-    firestarter::log::error() << e.what() << "\n";
+    firestarter::log::error() << "Error: " << e.what() << "\n";
     return print_help(parser);
   }
 

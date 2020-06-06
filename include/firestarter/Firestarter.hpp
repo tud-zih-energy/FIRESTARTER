@@ -5,8 +5,10 @@
 
 #include <firestarter/Environment/X86/X86Environment.hpp>
 
+#include <chrono>
 #include <list>
 #include <string>
+#include <utility>
 
 extern "C" {
 #include <pthread.h>
@@ -34,17 +36,26 @@ public:
 
   environment::Environment *const &environment = _environment;
 
-  int init(void);
+  int initThreads(bool lowLoad, unsigned long long period);
+  void joinThreads(void);
+  int watchdogWorker(std::chrono::microseconds period,
+                     std::chrono::microseconds load,
+                     std::chrono::seconds timeout);
+
+  void signalWork(void) { signalThreads(THREAD_WORK); };
+
+  void printPerformanceReport(void);
 
 private:
   environment::Environment *_environment;
 
   // ThreadWorker.cpp
+  void signalThreads(int comm);
   static void *threadWorker(void *threadData);
 
-  // ThreadWorker.cpp
-  pthread_t *threads;
-  std::list<ThreadData *> threadData;
+  std::list<std::pair<pthread_t *, ThreadData *>> threads;
+
+  volatile unsigned long long loadVar;
 };
 
 } // namespace firestarter

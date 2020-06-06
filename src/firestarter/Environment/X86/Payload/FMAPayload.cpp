@@ -78,6 +78,7 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   for (int i = 0; i < 16; i++) {
     frame.addDirtyRegs(Ymm(i));
   }
+  frame.addDirtyRegs(Mm(0));
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
                      l3_count_reg, ram_count_reg, temp_reg, offset_reg,
@@ -94,7 +95,12 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   cb.emitProlog(frame);
   cb.emitArgsAssignment(frame, args);
 
-  // TODO: check if load stop
+  // stop right away if low load is selected
+  auto FunctionExit = cb.newLabel();
+
+  cb.mov(temp_reg, ptr_64(addrHigh_reg));
+  cb.test(temp_reg, temp_reg);
+  cb.jz(FunctionExit);
 
   cb.mov(offset_reg,
          Imm(64)); // increment after each cache/memory access
@@ -265,20 +271,20 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
     cb.bind(NoL3Reset);
   }
   cb.mov(l1_addr, pointer_reg);
-  // TODO: check addrHigh_reg
-  // cb.test(ptr(addrHigh_reg), Imm(1));
-  // cb.jnz(Loop);
-  cb.jmp(Loop);
+
+  cb.test(ptr_64(addrHigh_reg), Imm(1));
+  cb.jnz(Loop);
+
+  cb.bind(FunctionExit);
+
   cb.movq(rax, iter_reg);
-  // TODO: fix return
-  // cb.ret();
+
   cb.emitEpilog(frame);
 
   cb.finalize();
 
   // String sb;
   // cb.dump(sb);
-  // log::debug() << std::string(sb.data());
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {

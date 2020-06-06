@@ -9,10 +9,11 @@
 #endif
 
 #include <cstdlib>
+#include <functional>
 
 using namespace firestarter;
 
-int Firestarter::init(void) {
+int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
 
   int returnCode;
 
@@ -20,13 +21,18 @@ int Firestarter::init(void) {
     return EXIT_FAILURE;
   }
 
-  this->threads = static_cast<pthread_t *>(std::aligned_alloc(
+  // setup load variable to execute low or high load once the threads switch to
+  // work.
+  this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
+
+  // allocate buffer for threads
+  auto threads = static_cast<pthread_t *>(std::aligned_alloc(
       64, this->environment->requestedNumThreads * sizeof(pthread_t)));
 
   bool ack;
 
   for (int i = 0; i < this->environment->requestedNumThreads; i++) {
-    auto td = new ThreadData(i, this->environment);
+    auto td = new ThreadData(i, this->environment, &this->loadVar, period);
 
     auto dataCacheSizeIt =
         td->config->platformConfig->dataCacheBufferSize.begin();
@@ -36,10 +42,15 @@ int Firestarter::init(void) {
                          *std::next(dataCacheSizeIt, 2) + ramBufferSize) /
                         td->config->thread / sizeof(unsigned long long);
 
-    this->threadData.push_back(std::ref(td));
+    // create the thread
+    if (EXIT_SUCCESS != (returnCode = pthread_create(
+                             &threads[i], NULL, threadWorker, std::ref(td)))) {
+      log::error() << "Error: pthread_create failed with returnCode "
+                   << returnCode;
+      return EXIT_FAILURE;
+    }
 
-    auto t =
-        pthread_create(&this->threads[i], NULL, threadWorker, std::ref(td));
+    this->threads.push_back(std::make_pair(&threads[i], std::ref(td)));
 
     // TODO: set thread data high address
     td->mutex.lock();
@@ -55,11 +66,30 @@ int Firestarter::init(void) {
     td->mutex.lock();
     td->ack = false;
     td->mutex.unlock();
+  }
 
-#if 1
+  return EXIT_SUCCESS;
+}
+
+void Firestarter::signalThreads(int comm) {
+  bool ack;
+
+  // start the work
+  for (auto const &thread : this->threads) {
+    auto td = thread.second;
+
     td->mutex.lock();
-    td->comm = THREAD_WORK;
+  }
+
+  for (auto const &thread : this->threads) {
+    auto td = thread.second;
+
+    td->comm = comm;
     td->mutex.unlock();
+  }
+
+  for (auto const &thread : this->threads) {
+    auto td = thread.second;
 
     do {
       td->mutex.lock();
@@ -70,20 +100,37 @@ int Firestarter::init(void) {
     td->mutex.lock();
     td->ack = false;
     td->mutex.unlock();
-#endif
+  }
+}
+
+void Firestarter::joinThreads(void) {
+  // wait for threads after watchdog has requested termination
+  for (auto const &thread : this->threads) {
+    pthread_join(*thread.first, NULL);
+  }
+}
+
+void Firestarter::printPerformanceReport(void) {
+  // performance report
+  unsigned long long startTimestamp = 0xffffffffffffffff;
+  unsigned long long stopTimestamp = 0;
+
+  log::debug() << "\nperformance report:";
+
+  for (auto const &thread : this->threads) {
+    auto td = thread.second;
+
+    // TODO: print thread iteration count and tsc_delta
+
+    if (startTimestamp > td->start_tsc) {
+      startTimestamp = td->start_tsc;
+    }
+    if (stopTimestamp < td->stop_tsc) {
+      stopTimestamp = td->stop_tsc;
+    }
   }
 
-  log::debug() << "Started all work functions.";
-
-  int i = 0;
-  for (ThreadData *td : this->threadData) {
-    pthread_join(this->threads[i], NULL);
-    i++;
-  }
-
-  log::debug() << "Stopped all threads.";
-
-  return EXIT_SUCCESS;
+  // TODO: print performance summary
 }
 
 void *Firestarter::threadWorker(void *threadData) {
@@ -142,7 +189,7 @@ void *Firestarter::threadWorker(void *threadData) {
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        td->config->payload->highLoadFunction(td->addrMem, nullptr, 0);
+        td->config->payload->highLoadFunction(td->addrMem, td->addrHigh, 0);
 
         // call low load function
 #ifdef ENABLE_VTRACING

@@ -2,19 +2,20 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void X86Payload::lowLoadFunction(...) {
+void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
+                                 unsigned long long period) {
   int nap;
 
-  //	nap = period / 100;
+  nap = period / 100;
   __asm__ __volatile__("mfence;"
                        "cpuid;" ::
                            : "eax", "ebx", "ecx", "edx");
   // while signal low load
-  while (true) {
+  while (*addrHigh == LOAD_LOW) {
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");
-    //		usleep(nap);
+    usleep(nap);
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");

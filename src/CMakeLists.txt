@@ -1,6 +1,7 @@
 add_executable(FIRESTARTER
 	firestarter/Main.cpp
 	firestarter/ThreadWorker.cpp
+	firestarter/WatchdogWorker.cpp
 
 	firestarter/Environment/CpuClockrate.cpp
 	firestarter/Environment/CpuAffinity.cpp

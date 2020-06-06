@@ -49,7 +49,8 @@ public:
 
   virtual bool isAvailable(void) = 0;
 
-  virtual void lowLoadFunction(...) = 0;
+  virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
+                               unsigned long long period) = 0;
 
   virtual int compilePayload(std::map<std::string, unsigned> proportion,
                              std::list<unsigned> dataCacheBufferSize,
