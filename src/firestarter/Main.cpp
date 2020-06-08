@@ -96,9 +96,6 @@ int main(int argc, char **argv) {
       ;
   // TODO:
   // r report
-  // t timeout
-  // l load
-  // p perdoid
   //
   // TODO: cuda
   // f: usegpufloat
