@@ -41,12 +41,17 @@ int X86Environment::selectFunction(unsigned functionId) {
         return EXIT_SUCCESS;
       }
       // default function
-      if (0 == functionId && config->isDefault() &&
-          thread == this->getNumberOfThreadsPerCore()) {
-        config->printCodePathSummary(thread);
-        this->_selectedConfig =
-            new ::firestarter::environment::platform::Config(config, thread);
-        return EXIT_SUCCESS;
+      if (0 == functionId && config->isDefault()) {
+        if (thread == this->getNumberOfThreadsPerCore()) {
+          config->printCodePathSummary(thread);
+          this->_selectedConfig =
+              new ::firestarter::environment::platform::Config(config, thread);
+          return EXIT_SUCCESS;
+        } else {
+          log::warn() << "Warning: no " << config->payload->name
+                      << " code path for " << thread << " threads per code!";
+          // use fallback implementation
+        }
       }
       id++;
     }
@@ -55,9 +60,28 @@ int X86Environment::selectFunction(unsigned functionId) {
   // no default found
   // use fallback
   if (0 == functionId) {
-    log::warn() << "Warning: " << this->vendor << " " << getModel()
+    log::warn() << "Warning: " << this->vendor << " " << this->getModel()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
+
+    // loop over available implementation and check if they are marked as
+    // fallback
+    for (auto config : this->platformConfigs) {
+      if (config->isAvailable() && config->isFallback()) {
+        for (auto const &[thread, functionName] : config->getThreadMap()) {
+          if (thread == this->getNumberOfThreadsPerCore()) {
+            log::warn() << "Warning: using function " << functionName
+                        << " as fallback.\n"
+                        << "You can use the parameter --function to try other "
+                           "functions.";
+            this->_selectedConfig =
+                new ::firestarter::environment::platform::Config(config,
+                                                                 thread);
+          }
+        }
+        // TODO: check if selectConfig is there? if not use first fallback.
+      }
+    }
 
     // no fallback found
     log::error() << "Error: No fallback implementation found for available ISA "
@@ -67,7 +91,6 @@ int X86Environment::selectFunction(unsigned functionId) {
 
   log::error() << "Error: unknown function id: " << functionId
                << ", see --avail for available ids";
-
   return EXIT_FAILURE;
 }
 
