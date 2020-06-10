@@ -6,6 +6,7 @@
 #include <llvm/ADT/Triple.h>
 #include <llvm/Support/Host.h>
 
+#include <regex>
 #include <thread>
 
 using namespace firestarter::environment;
@@ -155,29 +156,23 @@ int Environment::evaluateEnvironment(void) {
     return EXIT_FAILURE;
   }
 
-  llvm::SmallVector<llvm::StringRef, 32> lines;
-  llvm::SmallVector<llvm::StringRef, 2> vendor;
-  llvm::SmallVector<llvm::StringRef, 2> modelName;
-  procCpuinfo->getBuffer().split(lines, "\n");
+  std::stringstream ss(procCpuinfo->getBuffer().str());
+  std::string line;
 
-  for (size_t i = 0; i < lines.size(); i++) {
-    if (lines[i].startswith("vendor_id")) {
-      lines[i].split(vendor, ':');
+  while (std::getline(ss, line, '\n')) {
+    const std::regex modelNameRe("^model name.*:(.*)$");
+    const std::regex vendorIdRe("^vendor_id.*:(.*)$");
+    std::smatch m;
+
+    if (std::regex_match(line, m, modelNameRe)) {
+      this->processorName = m[1].str();
+      continue;
     }
-    if (lines[i].startswith("model name")) {
-      lines[i].split(modelName, ':');
-      break;
+
+    if (std::regex_match(line, m, vendorIdRe)) {
+      this->vendor = m[1].str();
+      continue;
     }
-  }
-
-  if (modelName.size() == 2) {
-    this->processorName = modelName[1].str();
-    this->processorName.erase(0, 1);
-  }
-
-  if (vendor.size() == 2) {
-    this->vendor = vendor[1].str();
-    this->vendor.erase(0, 1);
   }
 
   llvm::Triple PT(llvm::sys::getProcessTriple());
