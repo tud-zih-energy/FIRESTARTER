@@ -160,8 +160,8 @@ int Environment::evaluateEnvironment(void) {
   std::string line;
 
   while (std::getline(ss, line, '\n')) {
-    const std::regex modelNameRe("^model name.*:(.*)$");
-    const std::regex vendorIdRe("^vendor_id.*:(.*)$");
+    const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
+    const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
     std::smatch m;
 
     if (std::regex_match(line, m, modelNameRe)) {
