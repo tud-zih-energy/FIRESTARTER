@@ -20,9 +20,9 @@ void X86Environment::evaluateFunctions(void) {
 
 int X86Environment::selectFunction(unsigned functionId) {
   unsigned id = 1;
+  std::string defaultPayloadName("");
 
   // if functionId is 0 get the default or fallback
-
   for (auto config : this->platformConfigs) {
     for (auto const &[thread, functionName] : config->getThreadMap()) {
       // the selected function
@@ -48,9 +48,7 @@ int X86Environment::selectFunction(unsigned functionId) {
               new ::firestarter::environment::platform::Config(config, thread);
           return EXIT_SUCCESS;
         } else {
-          log::warn() << "Warning: no " << config->payload->name
-                      << " code path for " << thread << " threads per code!";
-          // use fallback implementation
+          defaultPayloadName = config->payload->name;
         }
       }
       id++;
@@ -60,6 +58,12 @@ int X86Environment::selectFunction(unsigned functionId) {
   // no default found
   // use fallback
   if (0 == functionId) {
+    if (!defaultPayloadName.empty()) {
+      // default payload available, but number of threads per core is not
+      // supported
+      log::warn() << "Warning: no " << defaultPayloadName << " code path for "
+                  << this->getNumberOfThreadsPerCore() << " threads per code!";
+    }
     log::warn() << "Warning: " << this->vendor << " " << this->getModel()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
