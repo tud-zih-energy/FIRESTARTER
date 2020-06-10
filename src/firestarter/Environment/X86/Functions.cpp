@@ -67,7 +67,7 @@ int X86Environment::selectFunction(unsigned functionId) {
     // loop over available implementation and check if they are marked as
     // fallback
     for (auto config : this->platformConfigs) {
-      if (config->isAvailable() && config->isFallback()) {
+      if (config->isAvailable() /* TODO: && config->isFallback()*/) {
         for (auto const &[thread, functionName] : config->getThreadMap()) {
           if (thread == this->getNumberOfThreadsPerCore()) {
             log::warn() << "Warning: using function " << functionName
