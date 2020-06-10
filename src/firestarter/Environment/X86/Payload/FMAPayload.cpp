@@ -88,12 +88,16 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   }
 
   FuncArgsAssignment args(&func);
-  args.assignAll(pointer_reg, addrHigh_reg, iter_reg);
+  // FIXME: asmjit assigment to mm0 does not seem to be supported
+  args.assignAll(pointer_reg, addrHigh_reg, temp_reg);
   args.updateFuncFrame(frame);
   frame.finalize();
 
   cb.emitProlog(frame);
   cb.emitArgsAssignment(frame, args);
+
+  // FIXME: movq from temp_reg to iter_reg
+  cb.movq(iter_reg, temp_reg);
 
   // stop right away if low load is selected
   auto FunctionExit = cb.newLabel();
