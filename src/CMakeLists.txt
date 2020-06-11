@@ -30,4 +30,5 @@ target_link_libraries(FIRESTARTER
 
 add_dependencies(FIRESTARTER
 	LLVMInstall
+	HwlocInstall
 )
