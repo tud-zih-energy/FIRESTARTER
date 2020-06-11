@@ -43,7 +43,10 @@ include_directories(lib/cxxopts/include)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(LLVM REQUIRED CONFIG)
+
+include(cmake/InstallLLVM.cmake)
+#include(cmake/InstallHwloc.cmake)
+
 include(FindPkgConfig)
 pkg_check_modules(HWLOC REQUIRED hwloc>=2.0)
 
