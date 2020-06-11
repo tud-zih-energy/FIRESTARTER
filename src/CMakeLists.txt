@@ -27,3 +27,7 @@ target_link_libraries(FIRESTARTER
 	hwloc
 	AsmJit::AsmJit
 )
+
+add_dependencies(FIRESTARTER
+	LLVMInstall
+)
