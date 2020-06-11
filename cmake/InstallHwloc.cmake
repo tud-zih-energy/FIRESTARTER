@@ -4,7 +4,7 @@ include(ExternalProject)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	ExternalProject_Add(HwlocInstall
-		PREFIX ${PROJECT_SOURCE_DIR}/lib/hwloc
+		PREFIX ${PROJECT_SOURCE_DIR}/lib/Hwloc
 		DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/download
 		SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 		INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
