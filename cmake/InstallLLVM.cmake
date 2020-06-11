@@ -1,7 +1,5 @@
 # This will install the LLVM dependency for FIRESTARTER
-# Usage:
-#   include(cmake/InstallLLVM.cmake)
-#   install_llvm()
+
 include(ExternalProject)
 
 	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
