@@ -12,10 +12,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		URL_HASH SHA1=17f4d91ccf0cfe694e4000ec2e4e595790393d4c
 		CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen
 		BUILD_IN_SOURCE 1
-		BUILD_COMMAND ${MAKE} -j
-		INSTALL_COMMAND ${MAKE} install
-		LOG_CONFIGURE 1
-		LOG_BUILD 1
+		BUILD_COMMAND make -j
+		INSTALL_COMMAND make install
 	)
 
 	include_directories(${PROJECT_SOURCE_DIR}/lib/Hwloc/install/include)
