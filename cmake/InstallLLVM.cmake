@@ -2,7 +2,8 @@
 
 include(ExternalProject)
 
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if (NOT DEFINED LLVM_SOURCE_DIR)
+	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		ExternalProject_Add(LLVMInstall
 			PREFIX ${PROJECT_SOURCE_DIR}/lib/LLVM
 			DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/LLVM/download
@@ -12,19 +13,20 @@ include(ExternalProject)
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ""
 			INSTALL_COMMAND ""
-		)
+			)
 
-		include_directories(${PROJECT_SOURCE_DIR}/lib/LLVM/sources/include)
-		add_library(LLVMDemangle STATIC IMPORTED)
-		set_target_properties(LLVMDemangle PROPERTIES
-			IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/lib/LLVM/sources/lib/libLLVMDemangle.a
-		)
-		add_library(LLVMSupport STATIC IMPORTED)
-		set_target_properties(LLVMSupport PROPERTIES
-			INTERFACE_LINK_LIBRARIES "rt;dl;tinfo;-lpthread;m;LLVMDemangle"
-	       		IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/lib/LLVM/sources/lib/libLLVMSupport.a
-		)
-
+		SET(LLVM_SOURCE_DIR "${PROJECT_SOURCE_DIR}/lib/LLVM/sources")
 	elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	endif()
+endif()
+
+include_directories(${LLVM_SOURCE_DIR}/include)
+add_library(LLVMDemangle STATIC IMPORTED)
+set_target_properties(LLVMDemangle PROPERTIES
+	IMPORTED_LOCATION ${LLVM_SOURCE_DIR}/lib/libLLVMDemangle.a)
+add_library(LLVMSupport STATIC IMPORTED)
+set_target_properties(LLVMSupport PROPERTIES
+	INTERFACE_LINK_LIBRARIES "rt;dl;tinfo;-lpthread;m;LLVMDemangle"
+	IMPORTED_LOCATION ${LLVM_SOURCE_DIR}/lib/libLLVMSupport.a
+	)

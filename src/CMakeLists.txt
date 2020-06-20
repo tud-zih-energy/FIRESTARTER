@@ -19,16 +19,19 @@ add_executable(FIRESTARTER
 	firestarter/Environment/X86/Payload/FMAPayload.cpp
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
-)
+	)
 
 target_link_libraries(FIRESTARTER
 	Threads::Threads
 	LLVMSupport
 	hwloc
 	AsmJit::AsmJit
-)
+	tinfo
+	)
 
-add_dependencies(FIRESTARTER
-	LLVMInstall
-	HwlocInstall
-)
+if(NOT DEFINED NIX_BUILD)
+	add_dependencies(FIRESTARTER
+		HwlocInstall
+		LLVMInstall
+		)
+endif()
