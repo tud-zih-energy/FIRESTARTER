@@ -1,10 +1,6 @@
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SandyBridgeEPConfig.hpp>
-
 #include <cstdio>
 
 using namespace firestarter::environment::x86;
