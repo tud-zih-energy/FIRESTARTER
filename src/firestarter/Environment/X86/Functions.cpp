@@ -99,22 +99,27 @@ int X86Environment::selectFunction(unsigned functionId) {
 }
 
 void X86Environment::printFunctionSummary() {
-  log::info()
-      << " available load-functions:\n"
-      << "  ID   | NAME                           | available on this system\n"
-      << "  ----------------------------------------------------------------";
+  log::info() << " available load-functions:\n"
+              << "  ID   | NAME                           | available on this "
+                 "system | payload default setting\n"
+              << "  "
+                 "-------------------------------------------------------------"
+                 "-------------------------------------------------------------"
+                 "-----------------------------";
 
   unsigned id = 1;
 
   for (auto const &config : this->platformConfigs) {
     for (auto const &[thread, functionName] : config->getThreadMap()) {
       const char *available = config->isAvailable() ? "yes" : "no";
-      const char *fmt = "  %4u | %-30s | %s";
+      const char *fmt = "  %4u | %-30s | %-24s | %s";
       int sz =
-          std::snprintf(nullptr, 0, fmt, id, functionName.c_str(), available);
+          std::snprintf(nullptr, 0, fmt, id, functionName.c_str(), available,
+                        config->getDefaultPayloadSettingsString().c_str());
       std::vector<char> buf(sz + 1);
       std::snprintf(&buf[0], buf.size(), fmt, id, functionName.c_str(),
-                    available);
+                    available,
+                    config->getDefaultPayloadSettingsString().c_str());
       log::info() << std::string(&buf[0]);
       id++;
     }

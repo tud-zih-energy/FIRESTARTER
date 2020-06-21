@@ -68,6 +68,21 @@ public:
   virtual bool isDefault(void) = 0;
 
   virtual std::map<std::string, unsigned> getDefaultPayloadSettings(void) = 0;
+
+  std::string getDefaultPayloadSettingsString(void) {
+    std::stringstream ss;
+
+    for (auto const &[name, value] : this->getDefaultPayloadSettings()) {
+      ss << name << ":" << value << ",";
+    }
+
+    auto str = ss.str();
+    if (str.size() > 0) {
+      str.pop_back();
+    }
+
+    return str;
+  }
 };
 
 } // namespace firestarter::environment::platform
