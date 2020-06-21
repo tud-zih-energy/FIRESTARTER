@@ -39,7 +39,7 @@ public:
   unsigned long long *addrMem;
   volatile unsigned long long *addrHigh;
   unsigned long long buffersizeMem;
-  unsigned long long iterations;
+  unsigned long long iterations = 0;
   unsigned long long flops;
   unsigned long long start_tsc;
   unsigned long long stop_tsc;

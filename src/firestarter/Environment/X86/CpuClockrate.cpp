@@ -79,7 +79,7 @@ int X86Environment::getCpuClockrate(void) {
     i += 2;
   } while (((time_diff) < 10000) || (num_measurements < min_measurements));
 
-  this->clockrate = clockrate;
+  this->_clockrate = clockrate;
 
   return EXIT_SUCCESS;
 }

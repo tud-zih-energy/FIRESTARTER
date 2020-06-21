@@ -40,6 +40,7 @@ public:
   platform::Config *const &selectedConfig = _selectedConfig;
 
   const unsigned long long &requestedNumThreads = _requestedNumThreads;
+  const unsigned long long &clockrate = _clockrate;
 
 protected:
   platform::Config *_selectedConfig = nullptr;
@@ -54,7 +55,7 @@ protected:
   std::string architecture = std::string("");
   std::string vendor = std::string("");
   std::string processorName = std::string("");
-  unsigned long long clockrate;
+  unsigned long long _clockrate;
   llvm::StringMap<bool> cpuFeatures;
 
   // CpuClockrate.cpp

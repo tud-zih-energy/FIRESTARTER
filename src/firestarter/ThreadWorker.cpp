@@ -115,12 +115,15 @@ void Firestarter::printPerformanceReport(void) {
   unsigned long long startTimestamp = 0xffffffffffffffff;
   unsigned long long stopTimestamp = 0;
 
-  log::debug() << "\nperformance report:";
+  unsigned long long iterations = 0;
+
+  log::debug() << "\nperformance report:\n";
 
   for (auto const &thread : this->threads) {
     auto td = thread.second;
 
-    // TODO: print thread iteration count and tsc_delta
+    log::debug() << "Thread " << td->id << ": " << td->iterations
+                 << " iterations, tsc_delta: " << td->stop_tsc - td->start_tsc;
 
     if (startTimestamp > td->start_tsc) {
       startTimestamp = td->start_tsc;
@@ -128,9 +131,18 @@ void Firestarter::printPerformanceReport(void) {
     if (stopTimestamp < td->stop_tsc) {
       stopTimestamp = td->stop_tsc;
     }
+
+    iterations += td->iterations;
   }
 
-  // TODO: print performance summary
+  double runtime = (double)(stopTimestamp - startTimestamp) /
+                   (double)this->environment->clockrate;
+
+  log::debug() << "\n"
+               << "total iterations: " << iterations << "\n"
+               << "runtime: " << runtime << " seconds ("
+               << stopTimestamp - startTimestamp << " cycles)";
+  // TODO: add estimated floating point performance and memory bandwidth
 }
 
 void *Firestarter::threadWorker(void *threadData) {
@@ -189,7 +201,8 @@ void *Firestarter::threadWorker(void *threadData) {
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        td->config->payload->highLoadFunction(td->addrMem, td->addrHigh, 0);
+        td->iterations = td->config->payload->highLoadFunction(
+            td->addrMem, td->addrHigh, td->iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING

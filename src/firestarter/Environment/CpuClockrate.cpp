@@ -71,8 +71,7 @@ int Environment::getCpuClockrate(void) {
     }
   }
 
-  this->clockrate = std::stoi(clockrate);
-  this->clockrate *= 1000;
+  this->_clockrate = 1000 * std::stoi(clockrate);
 
   return EXIT_SUCCESS;
 }
