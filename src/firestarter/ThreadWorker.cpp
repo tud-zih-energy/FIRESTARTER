@@ -138,11 +138,27 @@ void Firestarter::printPerformanceReport(void) {
   double runtime = (double)(stopTimestamp - startTimestamp) /
                    (double)this->environment->clockrate;
 
-  log::debug() << "\n"
-               << "total iterations: " << iterations << "\n"
-               << "runtime: " << runtime << " seconds ("
-               << stopTimestamp - startTimestamp << " cycles)";
-  // TODO: add estimated floating point performance and memory bandwidth
+  log::debug()
+      << "\n"
+      << "total iterations: " << iterations << "\n"
+      << "runtime: " << runtime << " seconds ("
+      << stopTimestamp - startTimestamp << " cycles)\n"
+      << "\n"
+      << "estimated floating point performance: "
+      << (double)this->threads.front().second->config->payload->flops *
+             0.000000001 * (double)iterations / runtime
+      << " GFLOPS\n"
+      << "estimated memory bandwidth*: "
+      << (double)this->threads.front().second->config->payload->bytes *
+             0.000000001 * (double)iterations / runtime
+      << " GB/s\n"
+      << "\n"
+      << "* this estimate is highly unreliable if --function is used in order "
+         "to "
+         "select\n"
+      << "  a function that is not optimized for your architecture, or if "
+         "FIRESTARTER is\n"
+      << "  executed on an unsupported architecture!";
 }
 
 void *Firestarter::threadWorker(void *threadData) {

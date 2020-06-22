@@ -12,20 +12,49 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
                                std::list<unsigned> dataCacheBufferSize,
                                unsigned ramBufferSize, unsigned thread,
                                unsigned numberOfLines) {
-  CodeHolder code;
-  code.init(this->rt.codeInfo());
-  code.addEmitterOptions(BaseEmitter::kOptionStrictValidation);
-
-  if (nullptr != this->loadFunction) {
-    this->rt.release(&this->loadFunction);
-  }
-
-  Builder cb(&code);
-
+  // Compute the sequence of instruction groups and the number of its repetions
+  // to reach the desired size
   auto sequence = this->generateSequence(proportion);
   auto repetitions =
       this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
 
+  // compute count of flops and memory access for performance report
+  std::map<std::string, unsigned> instructionFlops = {
+      {"REG", 16},  {"L1_L", 16},     {"L1_2L", 16},      {"L1_S", 8},
+      {"L1_LS", 8}, {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},
+      {"L2_S", 8},  {"L2_LS", 8},     {"L2_LS_256", 8},   {"L2_2LS_256", 16},
+      {"L3_L", 16}, {"L3_S", 8},      {"L3_LS", 8},       {"L3_LS_256", 8},
+      {"L3_P", 8},  {"RAM_L", 16},    {"RAM_S", 8},       {"RAM_LS", 8},
+      {"RAM_P", 8}};
+
+  std::map<std::string, unsigned> instructionMemory = {
+      {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
+
+  unsigned flops = 0;
+  unsigned bytes = 0;
+
+  for (const auto &item : sequence) {
+    auto it = instructionFlops.find(item);
+
+    if (it == instructionFlops.end()) {
+      log::error() << "Error: Instruction group " << item << " undefined in "
+                   << name << ".";
+      return EXIT_FAILURE;
+    }
+
+    flops += it->second;
+
+    it = instructionMemory.find(item);
+
+    if (it != instructionMemory.end()) {
+      bytes += it->second;
+    }
+  }
+
+  this->_flops = repetitions * flops;
+  this->_bytes = repetitions * bytes;
+
+  // calculate the buffer sizes
   auto dataCacheBufferSizeIterator = dataCacheBufferSize.begin();
   auto l1_size = *dataCacheBufferSizeIterator / thread;
   std::advance(dataCacheBufferSizeIterator, 1);
@@ -34,6 +63,7 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   auto l3_size = *dataCacheBufferSizeIterator / thread;
   auto ram_size = ramBufferSize / thread;
 
+  // calculate the reset counters for the buffers
   auto l2_loop_count =
       getL2LoopCount(sequence, numberOfLines, l2_size * thread);
   auto l3_loop_count =
@@ -45,6 +75,16 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   // influece.
   log::debug() << "Loop counts: " << l2_loop_count << " " << l3_loop_count
                << " " << ram_loop_count;
+
+  CodeHolder code;
+  code.init(this->rt.codeInfo());
+  code.addEmitterOptions(BaseEmitter::kOptionStrictValidation);
+
+  if (nullptr != this->loadFunction) {
+    this->rt.release(&this->loadFunction);
+  }
+
+  Builder cb(&code);
 
   auto pointer_reg = rax;
   auto l1_addr = rbx;
@@ -210,6 +250,10 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
             Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
         cb.vfmadd231pd(ram_reg, ymm1, ptr(ram_addr, 64));
         cb.add(ram_addr, offset_reg);
+      } else {
+        log::error() << "Error: Instruction group " << item << " not found in "
+                     << this->name << ".";
+        return EXIT_FAILURE;
       }
 
       if (item != "L1_2LS_256" && item != "L2_2LS_256") {

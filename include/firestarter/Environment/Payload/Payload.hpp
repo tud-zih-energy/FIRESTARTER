@@ -16,6 +16,9 @@ private:
                                  const std::string start);
 
 protected:
+  unsigned _flops;
+  unsigned _bytes;
+
   std::vector<std::string>
   generateSequence(const std::map<std::string, unsigned> proportion);
   unsigned getL2SequenceCount(const std::vector<std::string> sequence) {
@@ -46,6 +49,8 @@ public:
   ~Payload(){};
 
   const std::string &name = _name;
+  const unsigned &flops = _flops;
+  const unsigned &bytes = _bytes;
 
   virtual bool isAvailable(void) = 0;
 
