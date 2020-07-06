@@ -1,0 +1,14 @@
+MPERF is a cycle counter that increments at a specific, unchanging rate.  On
+this process it is 3.6 billion times per second (3.6GHz).
+
+APERF is a cycle counter that increments with the current clock frequency.
+
+Sampling both counters at 1000 times a second will lead to a lot of variation
+in the time between samples due to OS jitter.  But, since we're sampling
+those two counters at roughly the same time (within the same ioctl call),
+we can still figure out the average clock frequncy.  
+
+MPERF[n+1] - MPERF[n] is the number of reference cycles between those two
+particular samples.  Divide by 3.6 billion to get the number of seconds.
+
+APERF[n+1] - APERF[n] is the number of actual CPU cycles between those

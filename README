@@ -1,0 +1,118 @@
+###############################################################################
+# FIRESTARTER - A Processor Stress Test Utility
+# Copyright (C) 2019 TU Dresden, Center for Information Services and High
+# Performance Computing
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Contact: daniel.hackenberg@tu-dresden.de
+###############################################################################
+
+FIRESTARTER maximizes the energy consumption of 64-Bit x86 processors by
+generating heavy load on the execution units as well as transferring data
+between the cores and multiple levels of the memory hierarchy.
+
+Supported CPU microarchitectures
+- Intel Nehalem
+- Intel Westmere
+- Intel Sandy Bridge
+- Intel Ivy Bridge
+- Intel Haswell
+- Intel Skylake
+- Intel Knights Landing
+- AMD Bulldozer (experimental)
+- AMD Zen and Zen+
+
+Since version 1.1 it is also possible to create alternating and repetitive
+patterns of high load and idle (-l and -p parameters).
+
+Since version 1.3 it is also possible to stress Nvidia GPUs with support for 
+CUDA 10.0 or later (FIRESTARTER_CUDA with automatic precision switching) or
+CUDA 6.5 or later (FIRESTARTER_CUDA_LEGACY)
+
+Since version 1.x a windows version is included (FIRESTARTER_win64.exe)
+
+WARNING: This software REALLY comes WITHOUT ANY WARRANTY! Some systems cannot
+handle the high load and crash due to overheating. It cannot be ruled out that
+the stress test damages the hardware! USE AT YOUR OWN RISK!
+
+###############################################################################
+Usage: 
+ FIRESTARTER [Options]
+ FIRESTARTER_CUDA [Options]
+
+Options:
+
+-h         | --help             display usage information
+-v         | --version          display version information
+-c         | --copyright        display copyright information
+-w         | --warranty         display warranty information
+-q         | --quiet            disable output to stdout
+-r         | --report           display additional information (overridden by -q)
+-a         | --avail            list available functions
+-i ID      | --function=ID      specify integer ID of the load-function to be
+                                used (as listed by --avail)
+-t TIMEOUT | --timeout=TIMEOUT  set timeout (seconds) after which FIRESTARTER
+                                terminates itself, default: no timeout
+-l LOAD    | --load=LOAD        set the percentage of high load to LOAD (%),
+                                default 100, valid values: 0 <= LOAD <= 100,
+                                threads will be idle in the remaining time,
+                                frequency of load changes is determined by -p
+                                This option does NOT influence the GPU workload.
+-p PERIOD  | --period=PERIOD    set the interval length to PERIOD (us),
+                                default: 100, each interval contains a high
+                                load and an idle phase, the percentage of
+                                high load is defined by -l
+                                This option does NOT influence the GPU workload.
+-n COUNT   | --threads=COUNT    specify the number of threads
+                                cannot be combined with -b | --bind, which
+                                implicitly specifies the number of threads
+-b CPULIST | --bind=CPULIST     select certain CPUs
+                                CPULIST format: "x,y,z", "x-y", "x-y/step",
+                                and any combination of the above
+                                cannot be combined with -n | --threads
+
+CUDA Options:
+-g         | --gpus             number of gpus to use (default: all)
+-f         | --usegpufloat      use single precision matrix multiplications (default: depends on GPU) 
+-d         | --usegpudouble     use double precision matrix multiplications (default: depends on GPU)
+-m         | --matrixsize       size of the Matrix to calculate (default: 12288)
+
+Examples:
+
+./FIRESTARTER                    - starts FIRESTARTER without timeout
+./FIRESTARTER -t 300             - starts a 5 minute run of FIRESTARTER
+./FIRESTARTER -l 50 -t 600       - starts a 10 minute run of FIRESTARTER with
+                                   50% high load and 50% idle time on CPUs and full load on GPUs
+./FIRESTARTER -l 75 -p 2000000   - starts FIRESTARTER with an interval length
+                                   of 2 seconds, 1.5s high load and 0.5s idle on CPUs and full load on GPUs
+###############################################################################
+Build from source:
+1) edit Makefile if necessary (compiler, flags)
+2) build with: make [target]
+       
+possible targets:
+ - linux (default): build 64 bit linux executable "FIRESTARTER"
+ - cuda:            build 64 bit linux executable with additional CUDA support "FIRESTARTER_CUDA"
+ - win64:           build 64 bit windows executable "FIRESTARTER_win64.exe"
+ - all:             build all executables
+
+note:
+- FIRESTARTER typically uses the most advanced SIMD instructions that are
+  available on the supported processor architectures. Therefore, an up-to-date
+  compiler with support for the latest ISA extensions is required.
+- the windows version (target win64/all) is only tested using mingw-w64
+  compilers under Linux for compilation. Building FIRESTARTER in a windows
+  environment may need adoption.
+
