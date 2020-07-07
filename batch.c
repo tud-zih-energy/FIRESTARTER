@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdint.h>
+#define max_ops (10000)
 /* This is what is included from msr_safe.h.
  * Included here for reference.
  
@@ -42,7 +43,7 @@ int print_op( struct msr_batch_op *op );
 
 // Adds a read operation to the batch.  Returns the index of the new
 // op or -1 on error.  Duplicate this for write ops.
-
+/*
 int add_readop_to_batch(struct msr_batch_array *batch, __u16 cpu, __u32 msr){
     batch->numops = batch->numops+1;  // Adding one more op.
     batch->ops = realloc( batch->ops, sizeof(struct msr_batch_op) * batch->numops );
@@ -61,6 +62,9 @@ return 0;
 
 
 }
+
+*/
+
 /*
     first call to add_readop_to_batch using malloc
     malloc returns 0xFFFFFFFFF3847100, the first byte of the 32 bytes that were allocated.
@@ -91,22 +95,26 @@ return 0;
 // Duplicate this for write ops.
 int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 lastcpu, __u32 msr){
     int i;
+    //make an if statement that nakes sure tha firstcpu < lastcpu
+    //
+    if(lastcpu < firstcpu){
+	    printf("arg should be in form (firstcpu, lastcpu) | lastcpu < firstcpu");
+    	exit(-1);
+    }
+    batch->numops = batch->numops+(lastcpu-firstcpu)+1;
     batch->ops = realloc( batch->ops, sizeof(struct msr_batch_op) * batch->numops );
-    for(i=0;, i < batch->lastcpu; i++){
-        batch->ops[i].cpu = firstcpu;
+    for(i=firstcpu; i < lastcpu; i++){
+        batch->ops[i].cpu = i;
         batch->ops[i].isrdmsr = 1;
         batch->ops[i].err = 0;
         batch->ops[i].msr = msr;
         batch->ops[i].msrdata = 0;
         batch->ops[i].wmask = 0;
 
-        printf("MSR value: %" PRIx64 "\n" "CPU core: %" PRIu16, 
+        printf("MSR value: %llu "  "\n" "CPU core:% " PRIu16, 
             batch->ops[i].msrdata,
             batch->ops[i].cpu);
     }
-
-
-
 
     return 0;
 
