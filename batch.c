@@ -1,8 +1,10 @@
-#include "./msr_safe.h"
+#include "msr_safe.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include<sys/ioctl.h>
+#include<fcntl.h>
 #define max_ops (10000)
 /* This is what is included from msr_safe.h.
  * Included here for reference.
@@ -94,16 +96,21 @@ return 0;
 // a different cpu.  Returns the index of the first op or -1 on error.
 // Duplicate this for write ops.
 int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 lastcpu, __u32 msr){
-    int i;
+    int i, fd, rc;
+    fd = open("/dev/cpu/msr_batch", O_RDONLY);
+    rc = ioctl(fd, X86_IOC_MSR_BATCH, &batch);
     //make an if statement that nakes sure tha firstcpu < lastcpu
     //
-    if(lastcpu < firstcpu){
-	    printf("arg should be in form (firstcpu, lastcpu) | lastcpu < firstcpu");
+    if(fd == -1){
+	    perror("error!");
     	exit(-1);
     }
+    
+
+	
     batch->numops = batch->numops+(lastcpu-firstcpu)+1;
     batch->ops = realloc( batch->ops, sizeof(struct msr_batch_op) * batch->numops );
-    for(i=firstcpu; i < lastcpu; i++){
+    for(i = firstcpu; i < lastcpu; i++){
         batch->ops[i].cpu = i;
         batch->ops[i].isrdmsr = 1;
         batch->ops[i].err = 0;
@@ -111,11 +118,23 @@ int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 la
         batch->ops[i].msrdata = 0;
         batch->ops[i].wmask = 0;
 
-        printf("MSR value: %llu "  "\n" "CPU core:% " PRIu16, 
+    if(batch->ops[i].err){
+	    perror("Error");
+	    printf("Errno: %" PRIu32, batch->ops[i].err);
+	    exit(-1);
+    }
+        printf("MSR Add: %" PRIx32 " MSR value: %llu"  " CPU core: %" PRIu16 "\n",
+            batch->ops[i].msr,
             batch->ops[i].msrdata,
             batch->ops[i].cpu);
     }
-
+   if(rc < 0){
+	rc = rc * -1;
+	perror("ioctl failed");
+	printf("Error Code: %d \n ", rc);
+	exit(-1);
+   }	
+	  
     return 0;
 
 }
@@ -189,7 +208,7 @@ int main(){
     
     //add_readops_to_batch( &my_batch, 0, 0x7e );
     //add_readops_to_batch( &my_batch, 0, 0x8e );
-    add_readops_to_batch( &my_batch, 0, 8, 0x611);
+    add_readops_to_batch( &my_batch, 0, 8, 0x7e);
 
     /*
     struct msr_batch_op op[3];
