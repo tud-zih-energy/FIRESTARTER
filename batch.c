@@ -190,22 +190,23 @@ int print_error_ops( struct msr_batch_array *batch ){
 int run_batch( struct msr_batch_array *batch ){
 	int i,fd, rc;
 	fd = open("/dev/cpu/msr_batch", O_RDONLY);
-	print_op(&my_batch);
-    	rc = ioctl(fd, X86_IOC_MSR_BATCH, &batch);
-	
+
     if(fd == -1){
 	    perror("error!");
     	exit(-1);
     }
+
+    for(i=0; i < batch->numops; i++){
+	    print_op(&(batch->ops[i]));
+    }
+    	rc = ioctl(fd, X86_IOC_MSR_BATCH, &batch);
+	
     if(rc < 0){
 	rc = rc * -1;
 	perror("ioctl failed");
 	printf("Error Code: %d \n ", rc);
 	exit(-1);
    }
-    for(i=0; i < batch->numops; i++){
-	    print_op(&(batch->ops[i]));
-    }
 	return 0;	
 
 }
@@ -218,8 +219,8 @@ int main(){
     //add_readops_to_batch( &my_batch, 0, 0x7e );
     //add_readops_to_batch( &my_batch, 0, 0x8e );
 
-    add_readops_to_batch( &my_batch, 0, 8, 0x7e);	
     run_batch(&my_batch);
+    add_readops_to_batch( &my_batch, 0, 8, 0x7e);	
     /*
     struct msr_batch_op op[3];
 
