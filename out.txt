@@ -1,0 +1,22 @@
+ioctl failed: Cannot allocate memory
+batch.c::210 rc=1
+MSR Add: 7e MSR value: 0 CPU core: 0
+MSR Add: 7e MSR value: 0 CPU core: 1
+MSR Add: 7e MSR value: 0 CPU core: 2
+MSR Add: 7e MSR value: 0 CPU core: 3
+MSR Add: 7e MSR value: 0 CPU core: 4
+MSR Add: 7e MSR value: 0 CPU core: 5
+MSR Add: 7e MSR value: 0 CPU core: 6
+MSR Add: 7e MSR value: 0 CPU core: 7
+MSR Add: 7e MSR value: 0 CPU core: 8
+batch.c::194 fd = 3
+cpu: 0  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 1  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 2  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 3  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 4  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 5  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 6  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 7  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+cpu: 8  isrdmsr: 1 err: 0  msraddr: 7e  msrdata: 0   wmask: 0 
+batch.c::206 rc = -1
