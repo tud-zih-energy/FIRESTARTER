@@ -120,14 +120,18 @@ int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 la
     		batch->ops[i].msr,
         	batch->ops[i].msrdata,
         	batch->ops[i].cpu);
-    }
-
-   if(batch->ops[i].err != 0){
-	perror("Error");
-	printf("Errno: %d \n", batch->ops[i].err);
-	exit(-1);
     	}
-	  
+
+	if(batch->ops[i].err != 0){
+		perror("Error");
+		printf("Errno: %d \n", batch->ops[i].err);
+		exit(-1);
+	}
+    
+	if(batch->ops[i].err == -13){
+		perror("MSR permission error check msr_approved_list to make sure MSR is readable");
+		exit(-1);
+	}
     return 0;
 
 }
@@ -165,7 +169,7 @@ int add_writeops_to_batch(struct msr_batch_array *batch, __u16 first_cpu, __u16 
 
 	for(i = first_cpu; i <= last_cpu; i++){
 		batch->ops[i].cpu = i;
-        	batch->ops[i].isrdmsr = 1; //note for monday (7/13) ask Baryy how to write a function that reads msr_approved and checks whether the msr is read/writable 
+        	batch->ops[i].isrdmsr = 1; //note for monday (7/13) ask Barry how to write a function that reads msr_approved and checks whether the msr is read/writable 
         	batch->ops[i].err = 0;
         	batch->ops[i].msr = msr;
         	batch->ops[i].msrdata = 0;
@@ -211,14 +215,17 @@ int print_op( struct msr_batch_op *op ){
 int print_batch( struct msr_batch_array *batch ){
     //This function prints the number of operations in msr_batch_array.numops
     //and then prints each of the ops contains in msr_batch_array.ops.
-   int i;
-    printf("numops: %" PRIu32 "\n", (uint32_t)batch->numops);
-    printf("operations in batch " PRIu32 "\n");
-    for(i=0; i < batch->numops; i++){
-        print_op(&(batch->ops[i]));
+	int i;
+	printf("numops: %" PRIu32 "\n", (uint32_t)batch->numops);
+	printf("operations in batch " PRIu32 "\n");
+   
+	for(i=0; i < batch->numops; i++){
+        	print_op(&(batch->ops[i]));
 
-        }
-    return 0;
+    	}
+	
+	return 0;
+
 }
 
 // Print any ops that have errors by pointer.
