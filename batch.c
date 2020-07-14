@@ -12,13 +12,13 @@ int print_op( struct msr_batch_op *op );
 int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 lastcpu, __u32 msr){
     int i;
     //make an if statement that nakes sure tha firstcpu < lastcpu
-    if(firstcpu > lastcpu){	 
+    if(firstcpu > lastcpu){
 	 printf("arg should be in form (first cpu, last cpu | first cpu < last cpu.");
 	 exit(-1);
     }
-    
 
-	
+
+
     batch->numops = batch->numops+(lastcpu-firstcpu)+1;
     batch->ops = realloc( batch->ops, sizeof(struct msr_batch_op) * batch->numops );
     for(i = firstcpu; i <= lastcpu; i++){
@@ -40,7 +40,7 @@ int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 la
 	printf("Errno: %d \n", batch->ops[i].err);
 	exit(-1);
     	}
-	  
+
     return 0;
 
 }
@@ -48,7 +48,7 @@ int add_readops_to_batch(struct msr_batch_array *batch, __u16 firstcpu, __u16 la
 
 
 int print_op( struct msr_batch_op *op ){
-    printf("cpu: %" PRIu16 "  isrdmsr: %" PRIu16  " err: %" PRId32 "  msraddr: %" PRIx32 "  msrdata: %" PRIu64  "   wmask: %" PRIx64 " \n", 
+    printf("cpu: %" PRIu16 "  isrdmsr: %" PRIu16  " err: %" PRId32 "  msraddr: %" PRIx32 "  msrdata: %" PRIu64  "   wmask: %" PRIx64 " \n",
     (uint16_t)op->cpu,
     (uint16_t)op->isrdmsr,
     (int32_t)op->err,
@@ -99,8 +99,8 @@ int run_batch( struct msr_batch_array *batch ){
 		perror("ioctl failed");
 		fprintf(stderr, "%s::%d rc=%d\n", __FILE__, __LINE__, rc);
 		exit(-1);
-	} 
-	return 0;	
+	}
+	return 0;
 }
 
 int main(){
@@ -115,9 +115,7 @@ int main(){
 	op.msr		= 0xE7;	// MPERF
 	op.msrdata	= 0;
 	op.wmask	= 0;
-    
-*/
-	add_readops_to_batch( &my_batch, 0, 8, 0xE7);	
+	add_readops_to_batch( &my_batch, 0, 8, 0xE7);
 	run_batch(&my_batch);
 	return 0;
 
