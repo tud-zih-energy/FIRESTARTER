@@ -8,10 +8,10 @@ using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-int FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
-                               std::list<unsigned> dataCacheBufferSize,
-                               unsigned ramBufferSize, unsigned thread,
-                               unsigned numberOfLines) {
+int FMAPayload::compilePayload(
+    std::vector<std::pair<std::string, unsigned>> proportion,
+    std::list<unsigned> dataCacheBufferSize, unsigned ramBufferSize,
+    unsigned thread, unsigned numberOfLines) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -54,16 +54,11 @@ int FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> pro
 
   // calculate the reset counters for the buffers
   auto l2_loop_count =
-      getL2LoopCount(sequence, numberOfLines, l2_size * thread);
+      getL2LoopCount(sequence, numberOfLines, l2_size * thread, thread);
   auto l3_loop_count =
-      getL3LoopCount(sequence, numberOfLines, l3_size * thread);
+      getL3LoopCount(sequence, numberOfLines, l3_size * thread, thread);
   auto ram_loop_count =
-      getRAMLoopCount(sequence, numberOfLines, ram_size * thread);
-
-  // TODO: they are sometimes by 1 off. check if this has an significant
-  // influece.
-  log::debug() << "Loop counts: " << l2_loop_count << " " << l3_loop_count
-               << " " << ram_loop_count;
+      getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
 
   CodeHolder code;
   code.init(this->rt.codeInfo());

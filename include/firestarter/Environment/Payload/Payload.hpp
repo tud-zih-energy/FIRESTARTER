@@ -19,8 +19,8 @@ protected:
   unsigned _flops;
   unsigned _bytes;
 
-  std::vector<std::string>
-  generateSequence(const std::vector<std::pair<std::string, unsigned>> proportion);
+  std::vector<std::string> generateSequence(
+      const std::vector<std::pair<std::string, unsigned>> proportion);
   unsigned getL2SequenceCount(const std::vector<std::string> sequence) {
     return getSequenceStartCount(sequence, "L2");
   };
@@ -38,11 +38,14 @@ protected:
   };
 
   unsigned getL2LoopCount(const std::vector<std::string> sequence,
-                          const unsigned numberOfLines, const unsigned size);
+                          const unsigned numberOfLines, const unsigned size,
+                          const unsigned threads);
   unsigned getL3LoopCount(const std::vector<std::string> sequence,
-                          const unsigned numberOfLines, const unsigned size);
+                          const unsigned numberOfLines, const unsigned size,
+                          const unsigned threads);
   unsigned getRAMLoopCount(const std::vector<std::string> sequence,
-                           const unsigned numberOfLines, const unsigned size);
+                           const unsigned numberOfLines, const unsigned size,
+                           const unsigned threads);
 
 public:
   Payload(std::string name) : _name(name){};
@@ -57,10 +60,11 @@ public:
   virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
                                unsigned long long period) = 0;
 
-  virtual int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
-                             std::list<unsigned> dataCacheBufferSize,
-                             unsigned ramBufferSize, unsigned thread,
-                             unsigned numberOfLines) = 0;
+  virtual int
+  compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
+                 std::list<unsigned> dataCacheBufferSize,
+                 unsigned ramBufferSize, unsigned thread,
+                 unsigned numberOfLines) = 0;
   virtual std::list<std::string> getAvailableInstructions(void) = 0;
   virtual void init(unsigned long long *memoryAddr,
                     unsigned long long bufferSize) = 0;

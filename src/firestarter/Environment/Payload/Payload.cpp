@@ -44,33 +44,36 @@ std::vector<std::string> Payload::generateSequence(
 
 unsigned Payload::getL2LoopCount(const std::vector<std::string> sequence,
                                  const unsigned numberOfLines,
-                                 const unsigned size) {
+                                 const unsigned size, const unsigned threads) {
   if (this->getL2SequenceCount(sequence) == 0) {
     return 0;
   }
-  return (0.8 * size / 64 /
+  return (0.8 * size / 64 / threads /
           (this->getL2SequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
+           this->getNumberOfSequenceRepetitions(sequence,
+                                                numberOfLines / threads)));
 }
 
 unsigned Payload::getL3LoopCount(const std::vector<std::string> sequence,
                                  const unsigned numberOfLines,
-                                 const unsigned size) {
+                                 const unsigned size, const unsigned threads) {
   if (this->getL3SequenceCount(sequence) == 0) {
     return 0;
   }
-  return (0.8 * size / 64 /
+  return (0.8 * size / 64 / threads /
           (this->getL3SequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
+           this->getNumberOfSequenceRepetitions(sequence,
+                                                numberOfLines / threads)));
 }
 
 unsigned Payload::getRAMLoopCount(const std::vector<std::string> sequence,
                                   const unsigned numberOfLines,
-                                  const unsigned size) {
+                                  const unsigned size, const unsigned threads) {
   if (this->getRAMSequenceCount(sequence) == 0) {
     return 0;
   }
-  return (1.0 * size / 64 /
+  return (1.0 * size / 64 / threads /
           (this->getRAMSequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
+           this->getNumberOfSequenceRepetitions(sequence,
+                                                numberOfLines / threads)));
 }
