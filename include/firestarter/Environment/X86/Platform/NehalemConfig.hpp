@@ -16,8 +16,8 @@ public:
                           new payload::SSE2Payload(supportedFeatures)){};
   ~NehalemConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>(
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 1}, {"L1_LS", 70}, {"REG", 2}});
   }
 };

@@ -16,8 +16,8 @@ public:
                           new payload::FMA4Payload(supportedFeatures)){};
   ~BulldozerConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>(
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}});
   }
 };

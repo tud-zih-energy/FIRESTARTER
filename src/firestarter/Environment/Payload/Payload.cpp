@@ -18,23 +18,22 @@ unsigned Payload::getSequenceStartCount(const std::vector<std::string> sequence,
 }
 
 std::vector<std::string>
-Payload::generateSequence(const std::map<std::string, unsigned> proportions) {
+Payload::generateSequence(const std::vector<std::pair<std::string, unsigned>> proportions) {
   std::vector<std::string> sequence;
-  auto it = std::begin(proportions);
+  auto proportionsIt = std::begin(proportions);
+	auto insertIt = std::begin(sequence);
 
-  for (int i = 0; i < it->second; i++) {
-    sequence.push_back(it->first);
-  }
-
-  for (++it; it != std::end(proportions); ++it) {
-    if (it->second == 0) {
+	sequence.insert(insertIt, proportionsIt->second, proportionsIt->first);
+	
+  for (++proportionsIt; proportionsIt != std::end(proportions); proportionsIt++) {
+    if (proportionsIt->second == 0) {
       continue;
     }
-    for (int i = 0; i < it->second; i++) {
-      auto insertIt = std::begin(sequence);
-      std::advance(insertIt, 1 + i * floor((sequence.size() + it->second - i) /
-                                           it->second));
-      sequence.insert(insertIt, it->first);
+    for (int i = 0; i < proportionsIt->second; i++) {
+			insertIt = std::begin(sequence);
+      std::advance(insertIt, 1 + floor(i * (sequence.size() + proportionsIt->second - i) /
+                                           (float) proportionsIt->second));
+      sequence.insert(insertIt, proportionsIt->first);
     }
   }
 

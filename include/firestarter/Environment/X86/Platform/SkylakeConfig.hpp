@@ -16,8 +16,8 @@ public:
                           new payload::FMAPayload(supportedFeatures)){};
   ~SkylakeConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>({{"RAM_L", 3},
+	std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
                                             {"L3_LS_256", 5},
                                             {"L2_LS_256", 18},
                                             {"L1_2LS_256", 78},

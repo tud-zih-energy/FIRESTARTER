@@ -9,7 +9,7 @@ public:
   SSE2Payload(llvm::StringMap<bool> *supportedFeatures)
       : X86Payload(supportedFeatures, {"sse2"}, "SSE2"){};
 
-  int compilePayload(std::map<std::string, unsigned> proportion,
+  int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
                      unsigned numberOfLines) override;

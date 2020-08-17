@@ -8,7 +8,7 @@ using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
+int FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                                std::list<unsigned> dataCacheBufferSize,
                                unsigned ramBufferSize, unsigned thread,
                                unsigned numberOfLines) {

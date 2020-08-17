@@ -16,8 +16,8 @@ public:
                           new payload::AVXPayload(supportedFeatures)){};
   ~SandyBridgeEPConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>({{"RAM_L", 3},
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
                                             {"L3_LS", 2},
                                             {"L2_LS", 10},
                                             {"L1_LS", 90},

@@ -16,8 +16,8 @@ public:
                           new payload::FMAPayload(supportedFeatures)){};
   ~HaswellEPConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>(
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 2}, {"L3_LS", 1}, {"L2_LS", 9}, {"L1_LS", 79}, {"REG", 35}});
   }
 };

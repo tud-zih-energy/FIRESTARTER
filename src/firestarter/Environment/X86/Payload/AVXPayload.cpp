@@ -2,7 +2,7 @@
 
 using namespace firestarter::environment::x86::payload;
 
-int AVXPayload::compilePayload(std::map<std::string, unsigned> proportion,
+int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                                std::list<unsigned> dataCacheBufferSize,
                                unsigned ramBufferSize, unsigned thread,
                                unsigned numberOfLines) {}

@@ -20,7 +20,7 @@ protected:
   unsigned _bytes;
 
   std::vector<std::string>
-  generateSequence(const std::map<std::string, unsigned> proportion);
+  generateSequence(const std::vector<std::pair<std::string, unsigned>> proportion);
   unsigned getL2SequenceCount(const std::vector<std::string> sequence) {
     return getSequenceStartCount(sequence, "L2");
   };
@@ -57,7 +57,7 @@ public:
   virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
                                unsigned long long period) = 0;
 
-  virtual int compilePayload(std::map<std::string, unsigned> proportion,
+  virtual int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                              std::list<unsigned> dataCacheBufferSize,
                              unsigned ramBufferSize, unsigned thread,
                              unsigned numberOfLines) = 0;

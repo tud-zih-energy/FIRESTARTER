@@ -10,7 +10,7 @@ public:
   FMA4Payload(llvm::StringMap<bool> *supportedFeatures)
       : X86Payload(supportedFeatures, {"avx", "fma4"}, "FMA4"){};
 
-  int compilePayload(std::map<std::string, unsigned> proportion,
+  int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
                      unsigned numberOfLines) override;

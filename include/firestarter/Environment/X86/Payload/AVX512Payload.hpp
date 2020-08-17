@@ -9,7 +9,7 @@ public:
   AVX512Payload(llvm::StringMap<bool> *supportedFeatures)
       : X86Payload(supportedFeatures, {"avx512f"}, "AVX512"){};
 
-  int compilePayload(std::map<std::string, unsigned> proportion,
+  int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
                      unsigned numberOfLines) override;

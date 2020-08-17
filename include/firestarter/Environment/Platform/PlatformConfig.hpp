@@ -67,7 +67,7 @@ public:
 
   virtual bool isDefault(void) = 0;
 
-  virtual std::map<std::string, unsigned> getDefaultPayloadSettings(void) = 0;
+  virtual std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) = 0;
 
   std::string getDefaultPayloadSettingsString(void) {
     std::stringstream ss;

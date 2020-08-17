@@ -17,8 +17,8 @@ public:
 
   ~SkylakeSPConfig(){};
 
-  std::map<std::string, unsigned> getDefaultPayloadSettings(void) override {
-    return std::map<std::string, unsigned>({{"RAM_S", 3},
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
                                             {"RAM_P", 1},
                                             {"L3_S", 1},
                                             {"L3_P", 1},
