@@ -34,7 +34,8 @@ public:
   virtual unsigned long long timestamp(void) = 0;
 
   virtual void evaluateFunctions(void) = 0;
-  virtual int selectFunction(unsigned functionId) = 0;
+  virtual int selectFunction(unsigned functionId,
+                             bool allowUnavailablePayload) = 0;
   virtual void printFunctionSummary(void) = 0;
 
   platform::Config *const &selectedConfig = _selectedConfig;

@@ -14,7 +14,8 @@ void X86Environment::evaluateFunctions(void) {
   }
 }
 
-int X86Environment::selectFunction(unsigned functionId) {
+int X86Environment::selectFunction(unsigned functionId,
+                                   bool allowUnavailablePayload) {
   unsigned id = 1;
   std::string defaultPayloadName("");
 
@@ -28,7 +29,9 @@ int X86Environment::selectFunction(unsigned functionId) {
                        << functionName << "\") requires "
                        << config->payload->name
                        << ", which is not supported by the processor.";
-          return EXIT_FAILURE;
+          if (!allowUnavailablePayload) {
+            return EXIT_FAILURE;
+          }
         }
         // found function
         config->printCodePathSummary(thread);

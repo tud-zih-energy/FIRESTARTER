@@ -35,7 +35,8 @@ public:
   unsigned long long timestamp(void) override;
 
   void evaluateFunctions(void) override;
-  int selectFunction(unsigned functionId) override;
+  int selectFunction(unsigned functionId,
+                     bool allowUnavailablePayload) override;
   void printFunctionSummary(void) override;
 
 private:

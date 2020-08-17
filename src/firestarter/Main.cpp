@@ -93,7 +93,9 @@ int main(int argc, char **argv) {
        "--threads.",
        cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-      ;
+          ("allow-unavailable-payload",
+           "This option is only for debugging. Do not use it.",
+           cxxopts::value<bool>()->default_value("false"));
   // TODO:
   // r report
   //
@@ -189,9 +191,11 @@ int main(int argc, char **argv) {
     firestarter->environment->printEnvironmentSummary();
 
     unsigned functionId = options["function"].as<unsigned>();
+    bool allowUnavailablePayload =
+        options["allow-unavailable-payload"].as<bool>();
 
-    if (EXIT_SUCCESS !=
-        (returnCode = firestarter->environment->selectFunction(functionId))) {
+    if (EXIT_SUCCESS != (returnCode = firestarter->environment->selectFunction(
+                             functionId, allowUnavailablePayload))) {
       delete firestarter;
       return returnCode;
     }
