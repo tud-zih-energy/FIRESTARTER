@@ -17,22 +17,24 @@ unsigned Payload::getSequenceStartCount(const std::vector<std::string> sequence,
   return i;
 }
 
-std::vector<std::string>
-Payload::generateSequence(const std::vector<std::pair<std::string, unsigned>> proportions) {
+std::vector<std::string> Payload::generateSequence(
+    const std::vector<std::pair<std::string, unsigned>> proportions) {
   std::vector<std::string> sequence;
   auto proportionsIt = std::begin(proportions);
-	auto insertIt = std::begin(sequence);
+  auto insertIt = std::begin(sequence);
 
-	sequence.insert(insertIt, proportionsIt->second, proportionsIt->first);
-	
-  for (++proportionsIt; proportionsIt != std::end(proportions); proportionsIt++) {
+  sequence.insert(insertIt, proportionsIt->second, proportionsIt->first);
+
+  for (++proportionsIt; proportionsIt != std::end(proportions);
+       proportionsIt++) {
     if (proportionsIt->second == 0) {
       continue;
     }
     for (int i = 0; i < proportionsIt->second; i++) {
-			insertIt = std::begin(sequence);
-      std::advance(insertIt, 1 + floor(i * (sequence.size() + proportionsIt->second - i) /
-                                           (float) proportionsIt->second));
+      insertIt = std::begin(sequence);
+      std::advance(insertIt,
+                   1 + floor(i * (sequence.size() + proportionsIt->second - i) /
+                             (float)proportionsIt->second));
       sequence.insert(insertIt, proportionsIt->first);
     }
   }
@@ -46,8 +48,9 @@ unsigned Payload::getL2LoopCount(const std::vector<std::string> sequence,
   if (this->getL2SequenceCount(sequence) == 0) {
     return 0;
   }
-  return 0.8 * (size / 64 / this->getL2SequenceCount(sequence) /
-                this->getNumberOfSequenceRepetitions(sequence, numberOfLines));
+  return (0.8 * size / 64 /
+          (this->getL2SequenceCount(sequence) *
+           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
 }
 
 unsigned Payload::getL3LoopCount(const std::vector<std::string> sequence,
@@ -56,8 +59,9 @@ unsigned Payload::getL3LoopCount(const std::vector<std::string> sequence,
   if (this->getL3SequenceCount(sequence) == 0) {
     return 0;
   }
-  return 0.8 * (size / 64 / this->getL3SequenceCount(sequence) /
-                this->getNumberOfSequenceRepetitions(sequence, numberOfLines));
+  return (0.8 * size / 64 /
+          (this->getL3SequenceCount(sequence) *
+           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
 }
 
 unsigned Payload::getRAMLoopCount(const std::vector<std::string> sequence,
@@ -66,6 +70,7 @@ unsigned Payload::getRAMLoopCount(const std::vector<std::string> sequence,
   if (this->getRAMSequenceCount(sequence) == 0) {
     return 0;
   }
-  return 1.0 * (size / 64 / this->getRAMSequenceCount(sequence) /
-                this->getNumberOfSequenceRepetitions(sequence, numberOfLines));
+  return (1.0 * size / 64 /
+          (this->getRAMSequenceCount(sequence) *
+           this->getNumberOfSequenceRepetitions(sequence, numberOfLines)));
 }
