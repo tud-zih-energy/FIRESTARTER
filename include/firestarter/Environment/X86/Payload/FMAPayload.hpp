@@ -20,6 +20,19 @@ public:
   firestarter::environment::payload::Payload *clone(void) override {
     return new FMAPayload(this->supportedFeatures);
   };
+
+private:
+  const std::map<std::string, unsigned> instructionFlops = {
+      {"REG", 16},  {"L1_L", 16},     {"L1_2L", 16},      {"L1_S", 8},
+      {"L1_LS", 8}, {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},
+      {"L2_S", 8},  {"L2_LS", 8},     {"L2_LS_256", 8},   {"L2_2LS_256", 16},
+      {"L3_L", 16}, {"L3_S", 8},      {"L3_LS", 8},       {"L3_LS_256", 8},
+      {"L3_P", 8},  {"RAM_L", 16},    {"RAM_S", 8},       {"RAM_LS", 8},
+      {"RAM_P", 8}};
+
+  const std::map<std::string, unsigned> instructionMemory = {
+      {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
+
 };
 } // namespace firestarter::environment::x86::payload
 

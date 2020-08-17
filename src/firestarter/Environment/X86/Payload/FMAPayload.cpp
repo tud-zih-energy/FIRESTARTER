@@ -19,24 +19,13 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
       this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
 
   // compute count of flops and memory access for performance report
-  std::map<std::string, unsigned> instructionFlops = {
-      {"REG", 16},  {"L1_L", 16},     {"L1_2L", 16},      {"L1_S", 8},
-      {"L1_LS", 8}, {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},
-      {"L2_S", 8},  {"L2_LS", 8},     {"L2_LS_256", 8},   {"L2_2LS_256", 16},
-      {"L3_L", 16}, {"L3_S", 8},      {"L3_LS", 8},       {"L3_LS_256", 8},
-      {"L3_P", 8},  {"RAM_L", 16},    {"RAM_S", 8},       {"RAM_LS", 8},
-      {"RAM_P", 8}};
-
-  std::map<std::string, unsigned> instructionMemory = {
-      {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
-
   unsigned flops = 0;
   unsigned bytes = 0;
 
   for (const auto &item : sequence) {
-    auto it = instructionFlops.find(item);
+    auto it = this->instructionFlops.find(item);
 
-    if (it == instructionFlops.end()) {
+    if (it == this->instructionFlops.end()) {
       log::error() << "Error: Instruction group " << item << " undefined in "
                    << name << ".";
       return EXIT_FAILURE;
@@ -44,9 +33,9 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
 
     flops += it->second;
 
-    it = instructionMemory.find(item);
+    it = this->instructionMemory.find(item);
 
-    if (it != instructionMemory.end()) {
+    if (it != this->instructionMemory.end()) {
       bytes += it->second;
     }
   }
@@ -423,7 +412,15 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> FMAPayload::getAvailableInstructions(void) {}
+std::list<std::string> FMAPayload::getAvailableInstructions(void) {
+  std::list<std::string> instructions;
+
+  transform(this->instructionFlops.begin(), this->instructionFlops.end(),
+            back_inserter(instructions),
+            [](const auto &item) { return item.first; });
+
+  return instructions;
+}
 
 void FMAPayload::init(unsigned long long *memoryAddr,
                       unsigned long long bufferSize) {
