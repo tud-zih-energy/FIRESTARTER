@@ -74,8 +74,8 @@ int main(int argc, char **argv) {
             cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")(
       "l,load",
       "Set the percentage of high CPU load to LOAD (%) default: 100, valid "
-      "values: 0 <= LOAD <= 100, thredas will be idle in the remaining time, "
-      "frequenc of load changes is determined by -p",
+      "values: 0 <= LOAD <= 100, threads will be idle in the remaining time, "
+      "frequency of load changes is determined by -p",
       cxxopts::value<unsigned>()->default_value("100"),
       "LOAD")("p,period",
               "Set the interval length for CPUs to PERIOD (usec), default: "
