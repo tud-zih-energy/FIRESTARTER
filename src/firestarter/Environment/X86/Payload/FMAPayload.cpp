@@ -194,6 +194,30 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
   unsigned mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
 
+#define L1_INCREMENT_TIMES(n)                                                  \
+  l1_offset += n * 64;                                                         \
+  if (l1_offset < l1_size * 0.5) {                                             \
+    cb.add(l1_addr, offset_reg);                                               \
+  } else {                                                                     \
+    l1_offset = 0;                                                             \
+    cb.mov(l1_addr, pointer_reg);                                              \
+  }
+
+#define L1_INCREMENT() L1_INCREMENT_TIMES(1)
+
+#define L2_INCREMENT_TIMES(n)                                                  \
+  if (n == 1) {                                                                \
+    cb.add(l2_addr, offset_reg);                                               \
+  } else {                                                                     \
+    cb.add(l2_addr, n * 64);                                                   \
+  }
+
+#define L2_INCREMENT() L2_INCREMENT_TIMES(1)
+
+#define L3_INCREMENT() cb.add(l3_addr, offset_reg)
+
+#define RAM_INCREMENT() cb.add(ram_addr, offset_reg)
+
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
       // TODO: add different instructions
@@ -207,49 +231,104 @@ int FMAPayload::compilePayload(std::map<std::string, unsigned> proportion,
         cb.xor_(shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
                 temp_reg);
         mov_dst++;
+      } else if (item == "L1_L") {
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        cb.vfmadd231pd(Ymm(add_dest), ymm1, ymmword_ptr(l1_addr, 32));
+        L1_INCREMENT();
+      } else if (item == "L1_2L") {
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 32));
+        cb.vfmadd231pd(Ymm(mov_dst), ymm1, ymmword_ptr(l1_addr, 64));
+        L1_INCREMENT();
+      } else if (item == "L1_S") {
+        cb.vmovapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        L1_INCREMENT();
       } else if (item == "L1_LS") {
         cb.vmovapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 32));
-        l1_offset += 64;
-        if (l1_offset < l1_size * 0.5) {
-          cb.add(l1_addr, offset_reg);
-        } else {
-          l1_offset = 0;
-          cb.mov(l1_addr, pointer_reg);
-        }
+        L1_INCREMENT();
+      } else if (item == "L1_LS_256") {
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 64));
+        cb.vmovapd(ymmword_ptr(l1_addr, 32), Ymm(add_dest));
+        L1_INCREMENT();
       } else if (item == "L1_2LS_256") {
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 64));
         cb.vfmadd231pd(Ymm(mov_dst), ymm1, ymmword_ptr(l1_addr, 96));
         cb.vmovapd(ymmword_ptr(l1_addr, 32), Ymm(add_dest));
-        l1_offset += 128;
-        if (l1_offset < l1_size * 0.5) {
-          cb.add(l1_addr, Imm(128));
-        } else {
-          l1_offset = 0;
-          cb.mov(l1_addr, pointer_reg);
-        }
+        L1_INCREMENT_TIMES(2);
+      } else if (item == "L2_L") {
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        cb.vfmadd231pd(Ymm(add_dest), ymm1, ymmword_ptr(l2_addr, 64));
+        L2_INCREMENT();
+      } else if (item == "L2_S") {
+        cb.vmovapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        L2_INCREMENT();
       } else if (item == "L2_LS") {
         cb.vmovapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l2_addr, 64));
-        cb.add(l2_addr, offset_reg);
+        L2_INCREMENT();
       } else if (item == "L2_LS_256") {
         cb.vmovapd(ymmword_ptr(l2_addr, 96), Ymm(add_dest));
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ptr(l2_addr, 64));
-        cb.add(l2_addr, offset_reg);
+        L2_INCREMENT();
+      } else if (item == "L2_2LS_256") {
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ptr(l2_addr, 64));
+        cb.vfmadd231pd(Ymm(mov_dst), ymm1, ptr(l2_addr, 96));
+        cb.vmovapd(ymmword_ptr(l2_addr, 32), Ymm(add_dest));
+        L2_INCREMENT_TIMES(2);
+      } else if (item == "L3_L") {
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        cb.vfmadd231pd(Ymm(add_dest), ymm1, ymmword_ptr(l3_addr, 64));
+        L3_INCREMENT();
+      } else if (item == "L3_S") {
+        cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        L3_INCREMENT();
       } else if (item == "L3_LS") {
         cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l3_addr, 64));
-        cb.add(l3_addr, offset_reg);
+        L3_INCREMENT();
       } else if (item == "L3_LS_256") {
-        cb.vmovapd(ymmword_ptr(l2_addr, 96), Ymm(add_dest));
-        cb.vfmadd231pd(Ymm(add_dest), ymm0, ptr(l3_addr, 64));
-        cb.add(l3_addr, offset_reg);
+        cb.vmovapd(ymmword_ptr(l3_addr, 96), Ymm(add_dest));
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l3_addr, 64));
+        L3_INCREMENT();
+      } else if (item == "L3_P") {
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l3_addr, 32));
+        cb.prefetcht2(ptr(l3_addr));
+        L3_INCREMENT();
       } else if (item == "RAM_L") {
         cb.vfmadd231pd(
             Ymm(add_dest), ymm0,
             Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
-        cb.vfmadd231pd(ram_reg, ymm1, ptr(ram_addr, 64));
-        cb.add(ram_addr, offset_reg);
+        cb.vfmadd231pd(ram_reg, ymm1, ymmword_ptr(ram_addr, 64));
+        RAM_INCREMENT();
+      } else if (item == "RAM_S") {
+        cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
+        cb.vfmadd231pd(
+            Ymm(add_dest), ymm0,
+            Ymm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+        RAM_INCREMENT();
+      } else if (item == "RAM_LS") {
+        cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(ram_addr, 32));
+        RAM_INCREMENT();
+      } else if (item == "RAM_P") {
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 32));
+        cb.prefetcht2(ptr(ram_addr));
+        RAM_INCREMENT();
       } else {
         log::error() << "Error: Instruction group " << item << " not found in "
                      << this->name << ".";
