@@ -20,6 +20,15 @@ public:
   firestarter::environment::payload::Payload *clone(void) override {
     return new SSE2Payload(this->supportedFeatures);
   };
+
+private:
+  const std::map<std::string, unsigned> instructionFlops = {
+      {"REG", 2},  {"L1_L", 2},  {"L1_S", 2},  {"L1_LS", 2},  {"L2_L", 2},
+      {"L2_S", 2}, {"L2_LS", 2}, {"L3_L", 2},  {"L3_S", 2},   {"L3_LS", 2},
+      {"L3_P", 2}, {"RAM_L", 2}, {"RAM_S", 2}, {"RAM_LS", 2}, {"RAM_P", 2}};
+
+  const std::map<std::string, unsigned> instructionMemory = {
+      {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
 };
 } // namespace firestarter::environment::x86::payload
 
