@@ -258,7 +258,7 @@ int AVX512Payload::compilePayload(
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmmword_ptr(l3_addr, 128));
         L3_INCREMENT();
       } else if (item == "L3_P") {
-        cb.vfmadd231pd(Zmm(add_dest), zmm0, zmmword_ptr(l3_addr, 64));
+        cb.vfmadd231pd(Zmm(add_dest), zmm0, zmmword_ptr(l1_addr, 64));
         cb.prefetcht2(ptr(l3_addr));
         L3_INCREMENT();
       } else if (item == "RAM_L") {

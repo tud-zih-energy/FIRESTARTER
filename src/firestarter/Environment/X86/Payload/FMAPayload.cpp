@@ -290,7 +290,7 @@ int FMAPayload::compilePayload(
         cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l3_addr, 64));
         L3_INCREMENT();
       } else if (item == "L3_P") {
-        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l3_addr, 32));
+        cb.vfmadd231pd(Ymm(add_dest), ymm0, ymmword_ptr(l1_addr, 32));
         cb.prefetcht2(ptr(l3_addr));
         L3_INCREMENT();
       } else if (item == "RAM_L") {
