@@ -61,14 +61,16 @@ int AVXPayload::compilePayload(
       getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
 
   CodeHolder code;
-  code.init(this->rt.codeInfo());
-  code.addEmitterOptions(BaseEmitter::kOptionStrictValidation);
+  code.init(this->rt.environment());
 
   if (nullptr != this->loadFunction) {
     this->rt.release(&this->loadFunction);
   }
 
   Builder cb(&code);
+  cb.addValidationOptions(
+      BaseEmitter::ValidationOptions::kValidationOptionAssembler |
+      BaseEmitter::ValidationOptions::kValidationOptionIntermediate);
 
   auto pointer_reg = rax;
   auto l1_addr = rbx;
@@ -89,7 +91,8 @@ int AVXPayload::compilePayload(
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
                            volatile unsigned long long *, unsigned long long>(
-      CallConv::kIdHost));
+                CallConv::kIdHost),
+            this->rt.environment());
 
   FuncFrame frame;
   frame.init(func);
@@ -190,7 +193,7 @@ int AVXPayload::compilePayload(
                << " cache line accesses per loop ("
                << ") KB";
 
-  cb.addNode(cb.newAlignNode(kAlignCode, 64));
+  cb.align(kAlignCode, 64);
 
   auto Loop = cb.newLabel();
   cb.bind(Loop);
