@@ -227,11 +227,11 @@ int SSE2Payload::compilePayload(
         cb.addpd(
             Xmm(add_dest),
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.vmovapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
         L1_INCREMENT();
       } else if (item == "L1_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
-        cb.vmovapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         L1_INCREMENT();
       } else if (item == "L2_L") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
@@ -240,11 +240,11 @@ int SSE2Payload::compilePayload(
         cb.addpd(
             Xmm(add_dest),
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.vmovapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
         L2_INCREMENT();
       } else if (item == "L2_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
-        cb.vmovapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
         L2_INCREMENT();
       } else if (item == "L3_L") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
@@ -253,28 +253,28 @@ int SSE2Payload::compilePayload(
         cb.addpd(
             Xmm(add_dest),
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
       } else if (item == "L3_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
-        cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
       } else if (item == "L3_P") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
         cb.prefetcht0(ptr(l3_addr));
         L3_INCREMENT();
       } else if (item == "RAM_L") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(ram_addr, 32));
+        cb.addpd(Xmm(add_dest), xmmword_ptr(ram_addr, 64));
         RAM_INCREMENT();
       } else if (item == "RAM_S") {
         cb.addpd(
             Xmm(add_dest),
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
       } else if (item == "RAM_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
-        cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
+        cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
       } else if (item == "RAM_P") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
