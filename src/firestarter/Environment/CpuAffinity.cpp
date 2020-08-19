@@ -230,7 +230,9 @@ void Environment::printThreadSummary(void) {
   bool printCoreIdInfo = false;
   size_t i = 0;
 
-  for (auto const &bind : this->cpuBind) {
+  std::vector<unsigned> cpuBind(this->cpuBind);
+  cpuBind.resize(this->requestedNumThreads);
+  for (auto const &bind : cpuBind) {
     int coreId = this->getCoreIdFromPU(bind);
     int pkgId = this->getPkgIdFromPU(bind);
 
