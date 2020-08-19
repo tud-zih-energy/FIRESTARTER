@@ -12,6 +12,12 @@ void X86Environment::evaluateFunctions(void) {
         ctor(&this->cpuFeatures, this->cpuInfo.familyId(),
              this->cpuInfo.modelId(), this->getNumberOfThreadsPerCore()));
   }
+
+  for (auto ctor : this->fallbackPlatformConfigsCtor) {
+    this->fallbackPlatformConfigs.push_back(
+        ctor(&this->cpuFeatures, this->cpuInfo.familyId(),
+             this->cpuInfo.modelId(), this->getNumberOfThreadsPerCore()));
+  }
 }
 
 int X86Environment::selectFunction(unsigned functionId,
@@ -69,20 +75,27 @@ int X86Environment::selectFunction(unsigned functionId,
 
     // loop over available implementation and check if they are marked as
     // fallback
-    for (auto config : this->platformConfigs) {
-      if (config->isAvailable() /* TODO: && config->isFallback()*/) {
+    for (auto config : this->fallbackPlatformConfigs) {
+      if (config->isAvailable()) {
+        auto selectedThread = 0;
+        auto selectedFunctionName = std::string("");
         for (auto const &[thread, functionName] : config->getThreadMap()) {
           if (thread == this->getNumberOfThreadsPerCore()) {
-            log::warn() << "Warning: using function " << functionName
-                        << " as fallback.\n"
-                        << "You can use the parameter --function to try other "
-                           "functions.";
-            this->_selectedConfig =
-                new ::firestarter::environment::platform::Config(config,
-                                                                 thread);
+            selectedThread = thread;
+            selectedFunctionName = functionName;
           }
         }
-        // TODO: check if selectConfig is there? if not use first fallback.
+        if (selectedThread == 0) {
+          selectedThread = config->getThreadMap().begin()->first;
+          selectedFunctionName = config->getThreadMap().begin()->second;
+        }
+        this->_selectedConfig =
+            new ::firestarter::environment::platform::Config(config, selectedThread);
+        log::warn() << "Warning: using function " << selectedFunctionName
+                    << " as fallback.\n"
+                    << "You can use the parameter --function to try other "
+                       "functions.";
+        return EXIT_SUCCESS;
       }
     }
 
