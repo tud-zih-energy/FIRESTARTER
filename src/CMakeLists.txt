@@ -17,6 +17,7 @@ add_executable(FIRESTARTER
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp
 	firestarter/Environment/X86/Payload/FMA4Payload.cpp
 	firestarter/Environment/X86/Payload/FMAPayload.cpp
+	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)

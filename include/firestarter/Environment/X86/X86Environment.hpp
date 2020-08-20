@@ -7,6 +7,7 @@
 #include <firestarter/Environment/X86/Platform/HaswellConfig.hpp>
 #include <firestarter/Environment/X86/Platform/HaswellEPConfig.hpp>
 #include <firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp>
+#include <firestarter/Environment/X86/Platform/NaplesConfig.hpp>
 #include <firestarter/Environment/X86/Platform/NehalemConfig.hpp>
 #include <firestarter/Environment/X86/Platform/NehalemEPConfig.hpp>
 #include <firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp>
@@ -67,7 +68,7 @@ private:
           REGISTER(HaswellEPConfig),      REGISTER(SandyBridgeConfig),
           REGISTER(SandyBridgeEPConfig),  REGISTER(NehalemConfig),
           REGISTER(NehalemEPConfig),      REGISTER(BulldozerConfig),
-      };
+          REGISTER(NaplesConfig)};
 
   std::list<platform::X86PlatformConfig *> platformConfigs;
 
