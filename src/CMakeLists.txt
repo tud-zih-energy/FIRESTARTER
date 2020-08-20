@@ -30,6 +30,9 @@ target_link_libraries(FIRESTARTER
 	)
 
 if(NOT DEFINED NIX_BUILD)
+	target_link_libraries(FIRESTARTER
+		xml2
+		)
 	add_dependencies(FIRESTARTER
 		HwlocInstall
 		LLVMInstall

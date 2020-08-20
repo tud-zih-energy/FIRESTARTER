@@ -6,4 +6,4 @@
 	url = https://github.com/jarro2783/cxxopts.git
 [submodule "lib/asmjit"]
 	path = lib/asmjit
-	url = git@github.com:asmjit/asmjit.git
+	url = https://github.com/asmjit/asmjit.git

@@ -1,0 +1,146 @@
+language: cpp
+
+dist: xenial
+sudo: required
+
+git:
+  depth: 3
+
+matrix:
+  include:
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+            - g++-7
+            - libxml2-dev
+      env:
+        - CC="gcc-7"
+        - CXX="g++-7"
+      compiler: gcc
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+            - g++-8
+            - libxml2-dev
+      env:
+        - CC="gcc-8"
+        - CXX="g++-8"
+      compiler: gcc
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-9
+            - g++-9
+            - libxml2-dev
+      env:
+        - CC="gcc-9"
+        - CXX="g++-9"
+      compiler: gcc
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+            - libstdc++-7-dev
+            - libxml2-dev
+      env:
+        - CC="clang-7"
+        - CXX="clang++-7"
+      compiler: clang
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-8
+          packages:
+            - clang-8
+            - libstdc++-7-dev
+            - libxml2-dev
+      env:
+        - CC="clang-8"
+        - CXX="clang++-8"
+      compiler: clang
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-9
+            - libstdc++-7-dev
+            - libxml2-dev
+      env:
+        - CC="clang-9"
+        - CXX="clang++-9"
+      compiler: clang
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-10
+            - libstdc++-7-dev
+            - libxml2-dev
+      env:
+        - CC="clang-10"
+        - CXX="clang++-10"
+      compiler: clang
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-11
+            - libstdc++-7-dev
+            - libxml2-dev
+      env:
+        - CC="clang-11"
+        - CXX="clang++-11"
+      compiler: clang
+
+env:
+  global:
+    - CMAKE_EXE_LINKER_FLAGS="-static"
+    - CMAKE_CXX_FLAGS="-DAFFINITY"
+
+install:
+  - source travis-ci/install-cmake-3-13.sh
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script:
+  - make -j2
