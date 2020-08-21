@@ -190,7 +190,7 @@ void *Firestarter::threadWorker(void *threadData) {
 
       // compile payload
       td->config->payload->compilePayload(
-          td->config->platformConfig->getDefaultPayloadSettings(),
+          td->config->payloadSettings,
           td->config->platformConfig->dataCacheBufferSize,
           td->config->platformConfig->ramBufferSize, td->config->thread, 1536);
 

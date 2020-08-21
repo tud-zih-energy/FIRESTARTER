@@ -38,6 +38,9 @@ public:
   void evaluateFunctions(void) override;
   int selectFunction(unsigned functionId,
                      bool allowUnavailablePayload) override;
+  int selectInstructionGroups(std::string groups) override;
+  void printAvailableInstructionGroups(void) override;
+  void printSelectedCodePathSummary(void) override;
   void printFunctionSummary(void) override;
 
 private:

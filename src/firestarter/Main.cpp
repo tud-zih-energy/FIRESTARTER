@@ -95,7 +95,15 @@ int main(int argc, char **argv) {
 #endif
           ("allow-unavailable-payload",
            "This option is only for debugging. Do not use it.",
-           cxxopts::value<bool>()->default_value("false"));
+           cxxopts::value<bool>()->default_value("false"))(
+              "list-instruction-groups",
+              "List the available instruction groups for the payload of the "
+              "current platform.",
+              cxxopts::value<bool>()->default_value("false"))(
+              "run-instruction-groups",
+              "Run the payload with the specified instruction groups. GROUPS "
+              "format: multiple INST:VAL pairs comma-seperated",
+              cxxopts::value<std::string>()->default_value(""), "GROUPS");
   // TODO:
   // r report
   //
@@ -188,8 +196,6 @@ int main(int argc, char **argv) {
       return EXIT_SUCCESS;
     }
 
-    firestarter->environment->printEnvironmentSummary();
-
     unsigned functionId = options["function"].as<unsigned>();
     bool allowUnavailablePayload =
         options["allow-unavailable-payload"].as<bool>();
@@ -199,6 +205,27 @@ int main(int argc, char **argv) {
       delete firestarter;
       return returnCode;
     }
+
+    if (options["list-instruction-groups"].as<bool>()) {
+      firestarter->environment->printAvailableInstructionGroups();
+      delete firestarter;
+      return EXIT_SUCCESS;
+    }
+
+    std::string instructionGroups =
+        options["run-instruction-groups"].as<std::string>();
+    if (!instructionGroups.empty()) {
+      if (EXIT_SUCCESS !=
+          (returnCode = firestarter->environment->selectInstructionGroups(
+               instructionGroups))) {
+        delete firestarter;
+        return returnCode;
+      }
+    }
+
+    firestarter->environment->printSelectedCodePathSummary();
+
+    firestarter->environment->printEnvironmentSummary();
 
     firestarter->environment->printThreadSummary();
 

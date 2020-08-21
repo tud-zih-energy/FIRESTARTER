@@ -1,7 +1,9 @@
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+#include <algorithm>
 #include <cstdio>
+#include <regex>
 
 using namespace firestarter::environment::x86;
 
@@ -40,7 +42,6 @@ int X86Environment::selectFunction(unsigned functionId,
           }
         }
         // found function
-        config->printCodePathSummary(thread);
         this->_selectedConfig =
             new ::firestarter::environment::platform::Config(config, thread);
         return EXIT_SUCCESS;
@@ -48,7 +49,6 @@ int X86Environment::selectFunction(unsigned functionId,
       // default function
       if (0 == functionId && config->isDefault()) {
         if (thread == this->getNumberOfThreadsPerCore()) {
-          config->printCodePathSummary(thread);
           this->_selectedConfig =
               new ::firestarter::environment::platform::Config(config, thread);
           return EXIT_SUCCESS;
@@ -90,7 +90,8 @@ int X86Environment::selectFunction(unsigned functionId,
           selectedFunctionName = config->getThreadMap().begin()->second;
         }
         this->_selectedConfig =
-            new ::firestarter::environment::platform::Config(config, selectedThread);
+            new ::firestarter::environment::platform::Config(config,
+                                                             selectedThread);
         log::warn() << "Warning: using function " << selectedFunctionName
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
@@ -108,6 +109,74 @@ int X86Environment::selectFunction(unsigned functionId,
   log::error() << "Error: unknown function id: " << functionId
                << ", see --avail for available ids";
   return EXIT_FAILURE;
+}
+
+int X86Environment::selectInstructionGroups(std::string groups) {
+  const std::string delimiter = ",";
+  const std::regex re("^(\\w+):(\\d+)$");
+  const auto availableInstructionGroups =
+      this->selectedConfig->platformConfig->payload->getAvailableInstructions();
+
+  std::stringstream ss(groups);
+  std::vector<std::pair<std::string, unsigned>> payloadSettings = {};
+
+  while (ss.good()) {
+    std::string token;
+    std::smatch m;
+    std::getline(ss, token, ',');
+
+    if (std::regex_match(token, m, re)) {
+      if (std::find(availableInstructionGroups.begin(),
+                    availableInstructionGroups.end(),
+                    m[1].str()) == availableInstructionGroups.end()) {
+        log::error() << "Error: invalid instruction-group: " << m[1].str();
+        return EXIT_FAILURE;
+      }
+      payloadSettings.push_back(
+          std::make_pair(m[1].str(), std::stoul(m[2].str())));
+    } else {
+      log::error() << "Error: invalid symbols in instruction-group: " << token;
+      return EXIT_FAILURE;
+    }
+  }
+
+  this->selectedConfig->setPayloadSettings(payloadSettings);
+
+  log::info() << "  Running custom instruction group: " << groups;
+
+  return EXIT_SUCCESS;
+}
+
+void X86Environment::printAvailableInstructionGroups() {
+  if (this->selectedConfig != nullptr) {
+    std::stringstream ss;
+
+    for (auto const &item : this->selectedConfig->platformConfig->payload
+                                ->getAvailableInstructions()) {
+      ss << item << ",";
+    }
+
+    auto s = ss.str();
+    if (s.size() > 0) {
+      s.pop_back();
+    }
+
+    log::info() << " available instruction-groups for payload "
+                << this->selectedConfig->platformConfig->payload->name << ":\n"
+                << "  " << s;
+  } else {
+    log::debug()
+        << "Can not print available instruction groups: no function selected.";
+  }
+}
+
+void X86Environment::printSelectedCodePathSummary() {
+  if (this->selectedConfig != nullptr) {
+    this->selectedConfig->platformConfig->printCodePathSummary(
+        this->selectedConfig->thread);
+  } else {
+    log::debug() << "Can not print code-path-summary: no function selected.";
+  }
 }
 
 void X86Environment::printFunctionSummary() {

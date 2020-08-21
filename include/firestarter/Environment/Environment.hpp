@@ -36,6 +36,9 @@ public:
   virtual void evaluateFunctions(void) = 0;
   virtual int selectFunction(unsigned functionId,
                              bool allowUnavailablePayload) = 0;
+  virtual int selectInstructionGroups(std::string groups) = 0;
+  virtual void printAvailableInstructionGroups(void) = 0;
+  virtual void printSelectedCodePathSummary(void) = 0;
   virtual void printFunctionSummary(void) = 0;
 
   platform::Config *const &selectedConfig = _selectedConfig;
