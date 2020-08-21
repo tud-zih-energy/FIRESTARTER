@@ -34,6 +34,7 @@ let
       "--disable-libudev"
       "--disable-shared"
       "--disable-doxygen"
+      "--disable-libxml2"
     ];
 
     nativeBuildInputs = [ pkgconfig ];

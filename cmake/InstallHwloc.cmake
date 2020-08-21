@@ -11,7 +11,7 @@ if (NOT DEFINED NIX_BUILD)
 			INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
 			URL https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz
 			URL_HASH SHA1=17f4d91ccf0cfe694e4000ec2e4e595790393d4c
-			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install
