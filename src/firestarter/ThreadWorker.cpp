@@ -51,22 +51,9 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
     }
 
     this->threads.push_back(std::make_pair(&threads[i], std::ref(td)));
-
-    // TODO: set thread data high address
-    td->mutex.lock();
-    td->comm = THREAD_INIT;
-    td->mutex.unlock();
-
-    do {
-      td->mutex.lock();
-      ack = td->ack;
-      td->mutex.unlock();
-    } while (!ack);
-
-    td->mutex.lock();
-    td->ack = false;
-    td->mutex.unlock();
   }
+
+  this->signalThreads(THREAD_INIT);
 
   return EXIT_SUCCESS;
 }
