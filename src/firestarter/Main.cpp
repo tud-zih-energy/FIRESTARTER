@@ -59,51 +59,35 @@ int main(int argc, char **argv) {
 
   cxxopts::Options parser(argv[0]);
 
-  parser.add_options()("h,help", "Display usage information")(
-      "v,version", "Display version information")(
-      "c,copyright", "Display copyright information")(
-      "w,warranty", "Display warranty information")(
-      "d,debug", "Display debug output")("a,avail", "List available functions")(
-      "i,function",
-      "Specify integer ID of the load-function to be used (as listed by "
-      "--avail)",
-      cxxopts::value<unsigned>()->default_value("0"),
-      "ID")("t,timeout",
-            "Set the timeout (seconds) after which FIRESTARTER terminates "
-            "itself, default: no timeout",
-            cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")(
-      "l,load",
-      "Set the percentage of high CPU load to LOAD (%) default: 100, valid "
-      "values: 0 <= LOAD <= 100, threads will be idle in the remaining time, "
-      "frequency of load changes is determined by -p",
-      cxxopts::value<unsigned>()->default_value("100"),
-      "LOAD")("p,period",
-              "Set the interval length for CPUs to PERIOD (usec), default: "
-              "100000, each interval contains a high load and an idle phase, "
-              "the percentage of high load is defined by -l",
-              cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")(
-      "n,threads",
-      "Specify the number of threads. Cannot be combined with -b | "
-      "--bind, which impicitly specifies the number of threads",
+  // clang-format off
+  parser.add_options()
+    ("h,help", "Display usage information")
+    ("v,version", "Display version information")
+    ("c,copyright", "Display copyright information")
+    ("w,warranty", "Display warranty information")
+    ("d,debug", "Display debug output")("a,avail", "List available functions")
+    ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
+      cxxopts::value<unsigned>()->default_value("0"), "ID")
+    ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER terminates itself, default: no timeout",
+      cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
+    ("l,load", "Set the percentage of high CPU load to LOAD (%) default: 100, valid values: 0 <= LOAD <= 100, threads will be idle in the remaining time, frequency of load changes is determined by -p",
+      cxxopts::value<unsigned>()->default_value("100"), "LOAD")
+    ("p,period", "Set the interval length for CPUs to PERIOD (usec), default: 100000, each interval contains a high load and an idle phase, the percentage of high load is defined by -l",
+      cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
+    ("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
       cxxopts::value<unsigned>()->default_value("0"), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
-      ("b,bind",
-       "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", "
-       "and any combination of the above. Cannot be comibned with -n | "
-       "--threads.",
-       cxxopts::value<std::string>()->default_value(""), "CPULIST")
+    ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
+      cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-          ("allow-unavailable-payload",
-           "This option is only for debugging. Do not use it.",
-           cxxopts::value<bool>()->default_value("false"))(
-              "list-instruction-groups",
-              "List the available instruction groups for the payload of the "
-              "current platform.",
-              cxxopts::value<bool>()->default_value("false"))(
-              "run-instruction-groups",
-              "Run the payload with the specified instruction groups. GROUPS "
-              "format: multiple INST:VAL pairs comma-seperated",
-              cxxopts::value<std::string>()->default_value(""), "GROUPS");
+    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
+      cxxopts::value<bool>()->default_value("false"))
+    ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.",
+      cxxopts::value<bool>()->default_value("false"))
+    ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
+      cxxopts::value<std::string>()->default_value(""), "GROUPS");
+  // clang-format on
+
   // TODO:
   // r report
   //
