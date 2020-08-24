@@ -124,21 +124,36 @@ void Firestarter::printPerformanceReport(void) {
 
   double runtime = (double)(stopTimestamp - startTimestamp) /
                    (double)this->environment->clockrate;
+  double gFlops = (double)this->threads.front().second->config->payload->flops *
+                  0.000000001 * (double)iterations / runtime;
+  double bandwidth =
+      (double)this->threads.front().second->config->payload->bytes *
+      0.000000001 * (double)iterations / runtime;
+
+  // format runtime, gflops and bandwidth %.2f
+  const char *fmt = "%.2f";
+  int size;
+
+#define FORMAT(input)                                                          \
+  size = std::snprintf(nullptr, 0, fmt, input);                                \
+  std::vector<char> input##Vector(size + 1);                                   \
+  std::snprintf(&input##Vector[0], input##Vector.size(), fmt, input);          \
+  auto input##String = std::string(&input##Vector[0])
+
+  FORMAT(runtime);
+  FORMAT(gFlops);
+  FORMAT(bandwidth);
+
+#undef FORMAT
 
   log::debug()
       << "\n"
       << "total iterations: " << iterations << "\n"
-      << "runtime: " << runtime << " seconds ("
+      << "runtime: " << runtimeString << " seconds ("
       << stopTimestamp - startTimestamp << " cycles)\n"
       << "\n"
-      << "estimated floating point performance: "
-      << (double)this->threads.front().second->config->payload->flops *
-             0.000000001 * (double)iterations / runtime
-      << " GFLOPS\n"
-      << "estimated memory bandwidth*: "
-      << (double)this->threads.front().second->config->payload->bytes *
-             0.000000001 * (double)iterations / runtime
-      << " GB/s\n"
+      << "estimated floating point performance: " << gFlopsString << " GFLOPS\n"
+      << "estimated memory bandwidth*: " << bandwidthString << " GB/s\n"
       << "\n"
       << "* this estimate is highly unreliable if --function is used in order "
          "to "
