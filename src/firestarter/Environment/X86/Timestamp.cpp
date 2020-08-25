@@ -53,7 +53,7 @@ bool X86Environment::hasInvariantRdtsc(void) {
        or if multiple frequencies are available and the constant/invariant TSC
        feature flag is set */
 
-    if (0 == this->vendor.compare("GenuineIntel")) {
+    if (0 == this->vendor.compare("INTEL")) {
       /*check if Powermanagement and invariant TSC are supported*/
       a = 1;
       this->cpuid(&a, &b, &c, &d);
@@ -73,7 +73,7 @@ bool X86Environment::hasInvariantRdtsc(void) {
       }
     }
 
-    if (0 == this->vendor.compare("AuthenticAMD")) {
+    if (0 == this->vendor.compare("AMD")) {
       /*check if Powermanagement and invariant TSC are supported*/
       a = 0x80000000;
       this->cpuid(&a, &b, &c, &d);

@@ -59,12 +59,18 @@ protected:
   std::string architecture = std::string("");
   std::string vendor = std::string("");
   std::string processorName = std::string("");
-  unsigned long long _clockrate;
+  unsigned long long _clockrate = 0;
   llvm::StringMap<bool> cpuFeatures;
 
   // CpuClockrate.cpp
   std::unique_ptr<llvm::MemoryBuffer> getScalingGovernor(void);
   virtual int getCpuClockrate(void);
+
+  virtual std::string getModel(void) {
+    return llvm::sys::getHostCPUName().str();
+  }
+  virtual std::string getProcessorName(void);
+  virtual std::string getVendor(void);
 
 private:
   // CpuClockrate.cpp
@@ -77,10 +83,6 @@ private:
   int getPkgIdFromPU(unsigned pu);
   int cpu_allowed(unsigned id);
   int cpu_set(unsigned id);
-
-  virtual std::string getModel(void) {
-    return llvm::sys::getHostCPUName().str();
-  }
 
   // Environment.cpp
   hwloc_topology_t topology;

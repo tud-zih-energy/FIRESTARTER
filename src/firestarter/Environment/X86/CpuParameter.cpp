@@ -4,6 +4,7 @@
 
 using namespace firestarter::environment::x86;
 
+#ifndef __APPLE__
 // measures clockrate using the Time-Stamp-Counter
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
@@ -82,4 +83,21 @@ int X86Environment::getCpuClockrate(void) {
   this->_clockrate = clockrate;
 
   return EXIT_SUCCESS;
+}
+#else
+// TODO: get clockrate from intel processor name
+int X86Environment::getCpuClockrate(void) { return EXIT_SUCCESS; }
+#endif
+
+#ifdef __APPLE__
+// use sysctl to detect the name
+std::string X86Environment::getProcessorName(void) { return std::string(""); }
+#else
+std::string X86Environment::getProcessorName(void) {
+  return Environment::getProcessorName();
+}
+#endif
+
+std::string X86Environment::getVendor(void) {
+  return std::string(this->cpuInfo.vendor());
 }

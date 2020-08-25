@@ -52,6 +52,8 @@ private:
   bool hasInvariantRdtsc(void);
 
   int getCpuClockrate(void) override;
+  std::string getProcessorName(void) override;
+  std::string getVendor(void) override;
 
   std::string getModel(void) override {
     std::stringstream ss;

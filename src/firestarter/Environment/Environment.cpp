@@ -51,8 +51,10 @@ void Environment::printEnvironmentSummary(void) {
               << "    vendor:             " << this->vendor << "\n"
               << "    processor-name:     " << this->processorName << "\n"
               << "    model:              " << this->model << "\n"
+#ifndef __APPLE__
               << "    frequency:          " << this->clockrate / 1000000
               << " MHz\n"
+#endif
               << "    supported features: " << ss.str() << "\n"
               << "    Caches:";
 
@@ -151,39 +153,22 @@ int Environment::evaluateEnvironment(void) {
 
   llvm::sys::getHostCPUFeatures(this->cpuFeatures);
 
-  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
-  if (nullptr == procCpuinfo) {
-    return EXIT_FAILURE;
-  }
+  // TODO: x86 get vendor from asmjit
+  // TODO: get model name from sysctl on macos
 
-  std::stringstream ss(procCpuinfo->getBuffer().str());
-  std::string line;
-
-  while (std::getline(ss, line, '\n')) {
-    const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
-    const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
-    std::smatch m;
-
-    if (std::regex_match(line, m, modelNameRe)) {
-      this->processorName = m[1].str();
-      continue;
-    }
-
-    if (std::regex_match(line, m, vendorIdRe)) {
-      this->vendor = m[1].str();
-      continue;
-    }
-  }
+  this->processorName = this->getProcessorName();
+  this->vendor = this->getVendor();
 
   llvm::Triple PT(llvm::sys::getProcessTriple());
 
   this->architecture = PT.getArchName().str();
   this->model = this->getModel();
 
-  // TODO: define this function to be invarient of current architecture
+#ifndef __APPLE__
   if (EXIT_SUCCESS != this->getCpuClockrate()) {
     return EXIT_FAILURE;
   }
+#endif
 
   return EXIT_SUCCESS;
 }
@@ -191,4 +176,50 @@ int Environment::evaluateEnvironment(void) {
 unsigned Environment::getNumberOfThreadsPerCore(void) {
   return this->numThreads / this->numPhysicalCoresPerPackage /
          this->numPackages;
+}
+
+std::string Environment::getProcessorName(void) {
+  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
+  if (nullptr == procCpuinfo) {
+    log::warn() << "Warn: could not open /proc/cpuinfo";
+    return "";
+  }
+
+  std::stringstream ss(procCpuinfo->getBuffer().str());
+  std::string line;
+
+  while (std::getline(ss, line, '\n')) {
+    const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
+    std::smatch m;
+
+    if (std::regex_match(line, m, modelNameRe)) {
+      return m[1].str();
+    }
+  }
+
+  log::warn() << "Warn: could determine processor-name from /proc/cpuinfo";
+  return "";
+}
+
+std::string Environment::getVendor(void) {
+  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
+  if (nullptr == procCpuinfo) {
+    log::warn() << "Warn: could not open /proc/cpuinfo";
+    return "";
+  }
+
+  std::stringstream ss(procCpuinfo->getBuffer().str());
+  std::string line;
+
+  while (std::getline(ss, line, '\n')) {
+    const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
+    std::smatch m;
+
+    if (std::regex_match(line, m, vendorIdRe)) {
+      return m[1].str();
+    }
+  }
+
+  log::warn() << "Warn: could determine vendor from /proc/cpuinfo";
+  return "";
 }
