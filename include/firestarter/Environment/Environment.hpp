@@ -6,8 +6,11 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Support/MemoryBuffer.h>
+#pragma GCC diagnostic pop
 #pragma clang diagnostic pop
 
 #include <vector>

@@ -57,11 +57,16 @@ void set_load(unsigned long long value) {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void sigalrm_handler(int signum) {}
+#pragma GCC diagnostic pop
 #pragma clang diagnostic pop
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static void sigterm_handler(int signum) {
   // required for cases load = {0,100}, which do no enter the loop
   set_load(LOAD_STOP);
@@ -71,6 +76,7 @@ static void sigterm_handler(int signum) {
 
   pthread_kill(watchdog_thread, SIGALRM);
 }
+#pragma GCC diagnostic pop
 #pragma clang diagnostic pop
 
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
