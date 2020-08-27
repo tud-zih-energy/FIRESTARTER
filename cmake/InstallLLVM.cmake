@@ -16,7 +16,7 @@ if (NOT DEFINED LLVM_SOURCE_DIR)
 			)
 
 		SET(LLVM_SOURCE_DIR "${PROJECT_SOURCE_DIR}/lib/LLVM/sources")
-		SET(LLVM_SUPPORT_LINK_LIBRARIES "rt;dl;tinfo;-lpthread;m;LLVMDemangle.a")
+		SET(LLVM_SUPPORT_LINK_LIBRARIES "rt;dl;tinfo;-lpthread;m")
 	elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		ExternalProject_Add(LLVMInstall
 			PREFIX ${PROJECT_SOURCE_DIR}/lib/LLVM
@@ -36,9 +36,6 @@ if (NOT DEFINED LLVM_SOURCE_DIR)
 endif()
 
 include_directories(${LLVM_SOURCE_DIR}/include)
-add_library(LLVMDemangle STATIC IMPORTED)
-set_target_properties(LLVMDemangle PROPERTIES
-	IMPORTED_LOCATION ${LLVM_SOURCE_DIR}/lib/libLLVMDemangle.a)
 add_library(LLVMSupport STATIC IMPORTED)
 set_target_properties(LLVMSupport PROPERTIES
 	INTERFACE_LINK_LIBRARIES "${LLVM_SUPPORT_LINK_LIBRARIES}"
