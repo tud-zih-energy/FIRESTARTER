@@ -91,7 +91,21 @@ int X86Environment::getCpuClockrate(void) { return EXIT_SUCCESS; }
 
 #ifdef __APPLE__
 // use sysctl to detect the name
-std::string X86Environment::getProcessorName(void) { return std::string(""); }
+std::string X86Environment::getProcessorName(void) {
+  std::array<char, 128> buffer;
+  auto cmd = "sysctl -n machdep.cpu.brand_string";
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  if (!pipe) {
+    log::warn() << "Could not determine processor-name";
+  }
+  if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    auto str = std::string(buffer.data());
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+    return str;
+  } else {
+    return "";
+  }
+}
 #else
 std::string X86Environment::getProcessorName(void) {
   return Environment::getProcessorName();

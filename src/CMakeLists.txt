@@ -27,7 +27,6 @@ target_link_libraries(FIRESTARTER
 	LLVMSupport
 	hwloc
 	AsmJit::AsmJit
-	tinfo
 	)
 
 if(NOT DEFINED NIX_BUILD)

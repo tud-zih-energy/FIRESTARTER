@@ -26,7 +26,12 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
   this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
   // allocate buffer for threads
-  auto threads = static_cast<pthread_t *>(std::aligned_alloc(
+  auto threads = static_cast<pthread_t *>(
+#ifdef __APPLE__
+aligned_alloc(
+#else
+std::aligned_alloc(
+#endif
       64, this->environment->requestedNumThreads * sizeof(pthread_t)));
 
   for (unsigned long long i = 0; i < this->environment->requestedNumThreads; i++) {
@@ -195,7 +200,12 @@ void *Firestarter::threadWorker(void *threadData) {
           td->config->platformConfig->ramBufferSize, td->config->thread, 1536);
 
       // allocate memory
-      td->addrMem = static_cast<unsigned long long *>(std::aligned_alloc(
+      td->addrMem = static_cast<unsigned long long *>(
+#ifdef __APPLE__
+aligned_alloc(
+#else
+std::aligned_alloc(
+#endif
           64, td->buffersizeMem * sizeof(unsigned long long)));
       // TODO: handle error
 
