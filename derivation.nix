@@ -35,6 +35,16 @@ let
       "--disable-shared"
       "--disable-doxygen"
       "--disable-libxml2"
+      "--disable-cairo"
+      "--disable-io"
+      "--disable-pci"
+      "--disable-opencl"
+      "--disable-cuda"
+      "--disable-nvml"
+      "--disable-gl"
+      "--disable-libudev"
+      "--disable-plugin-dlopen"
+      "--disable-plugin-ltdl"
     ];
 
     nativeBuildInputs = [ pkgconfig ];
