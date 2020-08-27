@@ -131,7 +131,7 @@ matrix:
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then source travis-ci/install-cmake-3-13.sh; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install cmake; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew upgrade cmake; fi
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CMAKE_EXE_LINKER_FLAGS="-static" && export CMAKE_CXX_FLAGS="-DAFFINITY"; fi
