@@ -121,20 +121,15 @@ matrix:
         - CXX="clang++-11"
       compiler: clang
     - os: osx
-      osx_image: xcode9.2
-    - os: osx
-      osx_image: xcode10.1
-    - os: osx
       osx_image: xcode11.3
     - os: osx
-      osx_image: xcode12u
+      osx_image: xcode12
 
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then source travis-ci/install-cmake-3-13.sh; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew upgrade cmake; fi
 
 before_script:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CMAKE_EXE_LINKER_FLAGS="-static" && export CMAKE_CXX_FLAGS="-DAFFINITY"; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CMAKE_CXX_FLAGS="-DAFFINITY"; fi
   - mkdir build
   - cd build
