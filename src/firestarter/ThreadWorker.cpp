@@ -29,9 +29,7 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
   auto threads = static_cast<pthread_t *>(std::aligned_alloc(
       64, this->environment->requestedNumThreads * sizeof(pthread_t)));
 
-  bool ack;
-
-  for (int i = 0; i < this->environment->requestedNumThreads; i++) {
+  for (unsigned long long i = 0; i < this->environment->requestedNumThreads; i++) {
     auto td = new ThreadData(i, this->environment, &this->loadVar, period);
 
     auto dataCacheSizeIt =

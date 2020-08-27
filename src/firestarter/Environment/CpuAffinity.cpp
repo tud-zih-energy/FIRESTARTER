@@ -74,7 +74,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 
     // use all CPUs if not defined otherwise
     if (requestedNumThreads == 0) {
-      for (int i = 0; i < this->numThreads; i++) {
+      for (unsigned i = 0; i < this->numThreads; i++) {
         if (this->cpu_allowed(i)) {
           CPU_SET(i, &cpuset);
           requestedNumThreads++;
@@ -82,8 +82,8 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
       }
     } else {
       // if -n / --threads is set
-      int current_cpu = 0;
-      for (int i = 0; i < this->numThreads; i++) {
+      unsigned current_cpu = 0;
+      for (unsigned i = 0; i < this->numThreads; i++) {
         // search for available cpu
         while (!this->cpu_allowed(current_cpu)) {
           current_cpu++;
@@ -109,8 +109,6 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
     // parse CPULIST for binding
     const std::string delimiter = ",";
     const std::regex re("^(?:(\\d+)(?:-([1-9]\\d*)(?:\\/([1-9]\\d*))?)?)$");
-
-    size_t pos = 0;
 
     std::stringstream ss(cpuBind);
 
@@ -162,7 +160,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
   }
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
   else {
-    for (int i = 0; i < this->numThreads; i++) {
+    for (unsigned i = 0; i < this->numThreads; i++) {
       if (CPU_ISSET(i, &cpuset)) {
         this->cpuBind.push_back(i);
       }

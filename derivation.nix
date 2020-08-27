@@ -57,7 +57,6 @@ in stdenv.mkDerivation {
   ];
 
   cmakeFlags = [
-    "-DCMAKE_EXE_LINKER_FLAGS=\"-static\""
     "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
     "-DLLVM_SOURCE_DIR=${llvm}"
     "-DHWLOC_LIB_DIR=${hwloc.lib}"

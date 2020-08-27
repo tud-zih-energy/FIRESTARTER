@@ -55,8 +55,13 @@ void set_load(unsigned long long value) {
   __asm__ __volatile__("mfence;");
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 void sigalrm_handler(int signum) {}
+#pragma clang diagnostic pop
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 static void sigterm_handler(int signum) {
   // required for cases load = {0,100}, which do no enter the loop
   set_load(LOAD_STOP);
@@ -66,6 +71,7 @@ static void sigterm_handler(int signum) {
 
   pthread_kill(watchdog_thread, SIGALRM);
 }
+#pragma clang diagnostic pop
 
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
                                 std::chrono::microseconds load,

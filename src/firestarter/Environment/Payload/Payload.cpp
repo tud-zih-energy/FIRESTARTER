@@ -30,7 +30,7 @@ std::vector<std::string> Payload::generateSequence(
     if (proportionsIt->second == 0) {
       continue;
     }
-    for (int i = 0; i < proportionsIt->second; i++) {
+    for (unsigned i = 0; i < proportionsIt->second; i++) {
       insertIt = std::begin(sequence);
       std::advance(insertIt,
                    1 + floor(i * (sequence.size() + proportionsIt->second - i) /

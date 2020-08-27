@@ -26,9 +26,9 @@ public:
   PlatformConfig(std::string name, std::list<unsigned> threads,
                  std::initializer_list<unsigned> dataCacheBufferSize,
                  unsigned ramBufferSize, payload::Payload *payload)
-      : _name(name), _threads(threads),
+      : _name(name), _threads(threads), _payload(payload),
         _dataCacheBufferSize(dataCacheBufferSize),
-        _ramBufferSize(ramBufferSize), _payload(payload){};
+        _ramBufferSize(ramBufferSize){};
   ~PlatformConfig(){};
 
   const std::string &name = _name;
@@ -67,7 +67,8 @@ public:
 
   virtual bool isDefault(void) = 0;
 
-  virtual std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) = 0;
+  virtual std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings(void) = 0;
 
   std::string getDefaultPayloadSettingsString(void) {
     std::stringstream ss;

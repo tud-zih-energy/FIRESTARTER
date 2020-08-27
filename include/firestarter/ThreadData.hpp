@@ -23,10 +23,9 @@ class ThreadData {
 public:
   ThreadData(int id, environment::Environment *environment,
              volatile unsigned long long *loadVar, unsigned long long period)
-      : _id(id), _environment(environment),
+      : addrHigh(loadVar), period(period), _id(id), _environment(environment),
         _config(
-            new environment::platform::Config(*environment->selectedConfig)),
-        addrHigh(loadVar), period(period){};
+            new environment::platform::Config(*environment->selectedConfig)){};
   ~ThreadData(){};
 
   const int &id = _id;

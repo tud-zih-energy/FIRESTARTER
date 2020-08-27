@@ -171,11 +171,11 @@ int AVX512Payload::compilePayload(
   auto Loop = cb.newLabel();
   cb.bind(Loop);
 
-  unsigned shift_pos = 0;
+  auto shift_pos = 0;
   bool left = false;
-  unsigned add_dest = add_start + 1;
-  unsigned mov_dst = trans_start;
-  unsigned mov_src = mov_dst + 1;
+  auto add_dest = add_start + 1;
+  auto mov_dst = trans_start;
+  auto mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT()                                                         \

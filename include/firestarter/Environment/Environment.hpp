@@ -4,8 +4,11 @@
 #include <firestarter/Environment/Platform/Config.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 #include <llvm/ADT/StringMap.h>
 #include <llvm/Support/MemoryBuffer.h>
+#pragma clang diagnostic pop
 
 #include <vector>
 
