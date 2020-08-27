@@ -25,9 +25,9 @@ void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
 void X86Payload::init(unsigned long long *memoryAddr,
                       unsigned long long bufferSize, double firstValue,
                       double lastValue) {
-  int i;
+	unsigned long long i = 0;
 
-  for (i = 0; i < INIT_BLOCKSIZE; i++)
+  for (; i < INIT_BLOCKSIZE; i++)
     *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * firstValue;
   for (; i <= bufferSize - INIT_BLOCKSIZE; i += INIT_BLOCKSIZE)
     std::memcpy(memoryAddr + i, memoryAddr + i - INIT_BLOCKSIZE,

@@ -179,10 +179,10 @@ int ZENFMAPayload::compilePayload(
   auto Loop = cb.newLabel();
   cb.bind(Loop);
 
-  unsigned shift_pos = 0;
+  auto shift_pos = 0;
   bool left = false;
-  unsigned itemCount = 0;
-  unsigned fma_pos = 0;
+  auto itemCount = 0;
+  auto fma_pos = 0;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT()                                                         \
