@@ -67,7 +67,7 @@ int X86Environment::selectFunction(unsigned functionId,
       // default payload available, but number of threads per core is not
       // supported
       log::warn() << "Warning: no " << defaultPayloadName << " code path for "
-                  << this->getNumberOfThreadsPerCore() << " threads per code!";
+                  << this->getNumberOfThreadsPerCore() << " threads per core!";
     }
     log::warn() << "Warning: " << this->vendor << " " << this->getModel()
                 << " is not supported by this version of FIRESTARTER!\n"

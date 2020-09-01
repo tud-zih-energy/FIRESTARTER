@@ -1,3 +1,6 @@
+#include <thread>
+#include <chrono>
+
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 using namespace firestarter::environment::x86::payload;
@@ -15,7 +18,7 @@ void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");
-    usleep(nap);
+    std::this_thread::sleep_for(std::chrono::microseconds(nap));
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");

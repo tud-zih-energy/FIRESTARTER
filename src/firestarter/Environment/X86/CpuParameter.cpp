@@ -4,7 +4,7 @@
 
 using namespace firestarter::environment::x86;
 
-#ifndef __APPLE__
+#if not(defined(__APPLE__) || defined(_WIN32))
 // measures clockrate using the Time-Stamp-Counter
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
@@ -106,6 +106,29 @@ std::string X86Environment::getProcessorName(void) {
     return "";
   }
 }
+#elif defined(_WIN32)
+// use wmic
+std::string X86Environment::getProcessorName(void) {
+  std::array<char, 128> buffer;
+  auto cmd = "wmic cpu get name";
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  if (!pipe) {
+    log::warn() << "Could not determine processor-name";
+  }
+  auto line = 0;
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    if (line != 1) {
+      line++;
+      continue;
+    }
+
+    auto str = std::string(buffer.data());
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+    return str;
+  }
+  return "";
+}
+
 #else
 std::string X86Environment::getProcessorName(void) {
   return Environment::getProcessorName();

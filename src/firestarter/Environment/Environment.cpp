@@ -51,7 +51,7 @@ void Environment::printEnvironmentSummary(void) {
               << "    vendor:             " << this->vendor << "\n"
               << "    processor-name:     " << this->processorName << "\n"
               << "    model:              " << this->model << "\n"
-#ifndef __APPLE__
+#if not(defined(__APPLE__) || defined(_WIN32))
               << "    frequency:          " << this->clockrate / 1000000
               << " MHz\n"
 #endif
@@ -164,7 +164,7 @@ int Environment::evaluateEnvironment(void) {
   this->architecture = PT.getArchName().str();
   this->model = this->getModel();
 
-#ifndef __APPLE__
+#if not(defined(__APPLE__) || defined(_WIN32))
   if (EXIT_SUCCESS != this->getCpuClockrate()) {
     return EXIT_FAILURE;
   }
