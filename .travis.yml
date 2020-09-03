@@ -137,4 +137,3 @@ before_script:
 
 script:
   - make -j2
-  - ./src/FIRESTARTER -t 1
