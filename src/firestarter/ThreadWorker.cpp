@@ -8,17 +8,22 @@
 #include <SCOREP_User.h>
 #endif
 
+#include <cmath>
 #include <cstdlib>
 #include <functional>
 
+#define PAD_SIZE(size, align)                                                  \
+  align *(int)std::ceil((double)size / (double)align)
+
 #if defined(__APPLE__)
-#define ALIGNED_MALLOC(size, align) aligned_alloc(align, size)
+#define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
 #define ALIGNED_FREE free
 #elif defined(__MINGW64__)
-#define ALIGNED_MALLOC(size, align) _mm_malloc(size, align)
+#define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
 #define ALIGNED_FREE _mm_free
 #else
-#define ALIGNED_MALLOC(size, align) std::aligned_alloc(align, size)
+#define ALIGNED_MALLOC(size, align)                                            \
+  std::aligned_alloc(align, PAD_SIZE(size, align))
 #define ALIGNED_FREE std::free
 #endif
 
@@ -37,8 +42,13 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
   this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
   // allocate buffer for threads
-  auto threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
-      this->environment->requestedNumThreads * sizeof(pthread_t), 64));
+  pthread_t *threads = nullptr;
+  if (nullptr ==
+      (threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
+           this->environment->requestedNumThreads * sizeof(pthread_t), 64)))) {
+    log::error() << "Error: Could not allocate pthread_t";
+    return EXIT_FAILURE;
+  }
 
   for (unsigned long long i = 0; i < this->environment->requestedNumThreads;
        i++) {
