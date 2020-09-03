@@ -51,10 +51,8 @@ void Environment::printEnvironmentSummary(void) {
               << "    vendor:             " << this->vendor << "\n"
               << "    processor-name:     " << this->processorName << "\n"
               << "    model:              " << this->model << "\n"
-#ifndef __APPLE__
               << "    frequency:          " << this->clockrate / 1000000
               << " MHz\n"
-#endif
               << "    supported features: " << ss.str() << "\n"
               << "    Caches:";
 
@@ -153,9 +151,6 @@ int Environment::evaluateEnvironment(void) {
 
   llvm::sys::getHostCPUFeatures(this->cpuFeatures);
 
-  // TODO: x86 get vendor from asmjit
-  // TODO: get model name from sysctl on macos
-
   this->processorName = this->getProcessorName();
   this->vendor = this->getVendor();
 
@@ -164,11 +159,9 @@ int Environment::evaluateEnvironment(void) {
   this->architecture = PT.getArchName().str();
   this->model = this->getModel();
 
-#ifndef __APPLE__
   if (EXIT_SUCCESS != this->getCpuClockrate()) {
     return EXIT_FAILURE;
   }
-#endif
 
   return EXIT_SUCCESS;
 }

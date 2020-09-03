@@ -8,8 +8,24 @@
 #include <SCOREP_User.h>
 #endif
 
+#include <cmath>
 #include <cstdlib>
 #include <functional>
+
+#define PAD_SIZE(size, align)                                                  \
+  align *(int)std::ceil((double)size / (double)align)
+
+#if defined(__APPLE__)
+#define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
+#define ALIGNED_FREE free
+#elif defined(__MINGW64__)
+#define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
+#define ALIGNED_FREE _mm_free
+#else
+#define ALIGNED_MALLOC(size, align)                                            \
+  std::aligned_alloc(align, PAD_SIZE(size, align))
+#define ALIGNED_FREE std::free
+#endif
 
 using namespace firestarter;
 
@@ -26,15 +42,16 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
   this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
   // allocate buffer for threads
-  auto threads = static_cast<pthread_t *>(
-#ifdef __APPLE__
-aligned_alloc(
-#else
-std::aligned_alloc(
-#endif
-      64, this->environment->requestedNumThreads * sizeof(pthread_t)));
+  pthread_t *threads = nullptr;
+  if (nullptr ==
+      (threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
+           this->environment->requestedNumThreads * sizeof(pthread_t), 64)))) {
+    log::error() << "Error: Could not allocate pthread_t";
+    return EXIT_FAILURE;
+  }
 
-  for (unsigned long long i = 0; i < this->environment->requestedNumThreads; i++) {
+  for (unsigned long long i = 0; i < this->environment->requestedNumThreads;
+       i++) {
     auto td = new ThreadData(i, this->environment, &this->loadVar, period);
 
     auto dataCacheSizeIt =
@@ -201,12 +218,7 @@ void *Firestarter::threadWorker(void *threadData) {
 
       // allocate memory
       td->addrMem = static_cast<unsigned long long *>(
-#ifdef __APPLE__
-aligned_alloc(
-#else
-std::aligned_alloc(
-#endif
-          64, td->buffersizeMem * sizeof(unsigned long long)));
+          ALIGNED_MALLOC(td->buffersizeMem * sizeof(unsigned long long), 64));
       // TODO: handle error
 
       // call init function
@@ -251,6 +263,7 @@ std::aligned_alloc(
         if (*td->addrHigh == LOAD_STOP) {
           td->stop_tsc = td->environment->timestamp();
 
+          ALIGNED_FREE(td->addrMem);
           pthread_exit(NULL);
         }
       }
@@ -259,6 +272,7 @@ std::aligned_alloc(
       break;
     case THREAD_STOP:
     default:
+      ALIGNED_FREE(td->addrMem);
       pthread_exit(0);
     }
   }

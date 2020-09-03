@@ -68,7 +68,8 @@ in stdenv.mkDerivation {
 
   cmakeFlags = [
     "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
-    "-DLLVM_SOURCE_DIR=${llvm}"
+    "-DLLVM_LIB_DIR=${llvm}"
+    "-DLLVM_INCLUDE_DIR=${llvm}"
     "-DHWLOC_LIB_DIR=${hwloc.lib}"
     "-DHWLOC_INCLUDE_DIR=${hwloc.dev}"
     "-DNIX_BUILD=1"

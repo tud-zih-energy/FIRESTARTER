@@ -52,7 +52,4 @@ find_package(Threads REQUIRED)
 include(cmake/InstallLLVM.cmake)
 include(cmake/InstallHwloc.cmake)
 
-#include(FindPkgConfig)
-#pkg_check_modules(HWLOC REQUIRED hwloc>=2.0)
-
 add_subdirectory(src)

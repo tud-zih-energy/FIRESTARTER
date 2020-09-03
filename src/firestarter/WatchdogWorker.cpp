@@ -59,7 +59,9 @@ void set_load(unsigned long long value) {
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#ifndef _WIN32
 void sigalrm_handler(int signum) {}
+#endif
 #pragma GCC diagnostic pop
 #pragma clang diagnostic pop
 
@@ -74,7 +76,7 @@ static void sigterm_handler(int signum) {
   // used in case of 0 < load < 100
   watchdog_terminate = true;
 
-  pthread_kill(watchdog_thread, SIGALRM);
+  pthread_kill(watchdog_thread, 0);
 }
 #pragma GCC diagnostic pop
 #pragma clang diagnostic pop
@@ -90,17 +92,11 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
   loadvar = &this->loadVar;
 
-  // setup signal handlers
-  sigset_t signal_mask;
-
-  sigemptyset(&signal_mask);
-  sigaddset(&signal_mask, SIGINT);
-  sigaddset(&signal_mask, SIGTERM);
-  pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
-
   watchdog_thread = pthread_self();
 
+#ifndef _WIN32
   std::signal(SIGALRM, sigalrm_handler);
+#endif
 
   std::signal(SIGTERM, sigterm_handler);
   std::signal(SIGINT, sigterm_handler);
