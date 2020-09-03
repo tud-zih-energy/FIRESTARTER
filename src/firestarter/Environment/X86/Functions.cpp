@@ -33,9 +33,8 @@ int X86Environment::selectFunction(unsigned functionId,
       // the selected function
       if (id == functionId) {
         if (!config->isAvailable()) {
-          log::error() << "Error: Function " << functionId << " (\""
-                       << functionName << "\") requires "
-                       << config->payload->name
+          log::error() << "Function " << functionId << " (\"" << functionName
+                       << "\") requires " << config->payload->name
                        << ", which is not supported by the processor.";
           if (!allowUnavailablePayload) {
             return EXIT_FAILURE;
@@ -66,10 +65,10 @@ int X86Environment::selectFunction(unsigned functionId,
     if (!defaultPayloadName.empty()) {
       // default payload available, but number of threads per core is not
       // supported
-      log::warn() << "Warning: no " << defaultPayloadName << " code path for "
+      log::warn() << "No " << defaultPayloadName << " code path for "
                   << this->getNumberOfThreadsPerCore() << " threads per core!";
     }
-    log::warn() << "Warning: " << this->vendor << " " << this->getModel()
+    log::warn() << this->vendor << " " << this->getModel()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
 
@@ -92,7 +91,7 @@ int X86Environment::selectFunction(unsigned functionId,
         this->_selectedConfig =
             new ::firestarter::environment::platform::Config(config,
                                                              selectedThread);
-        log::warn() << "Warning: using function " << selectedFunctionName
+        log::warn() << "Using function " << selectedFunctionName
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
                        "functions.";
@@ -101,12 +100,12 @@ int X86Environment::selectFunction(unsigned functionId,
     }
 
     // no fallback found
-    log::error() << "Error: No fallback implementation found for available ISA "
+    log::error() << "No fallback implementation found for available ISA "
                     "extensions.";
     return EXIT_FAILURE;
   }
 
-  log::error() << "Error: unknown function id: " << functionId
+  log::error() << "unknown function id: " << functionId
                << ", see --avail for available ids";
   return EXIT_FAILURE;
 }
@@ -129,18 +128,17 @@ int X86Environment::selectInstructionGroups(std::string groups) {
       if (std::find(availableInstructionGroups.begin(),
                     availableInstructionGroups.end(),
                     m[1].str()) == availableInstructionGroups.end()) {
-        log::error() << "Error: invalid instruction-group: " << m[1].str();
+        log::error() << "Invalid instruction-group: " << m[1].str();
         return EXIT_FAILURE;
       }
       int num = std::stoul(m[2].str());
       if (num == 0) {
-        log::error()
-            << "Error: instruction-group VAL may not contain number 0";
+        log::error() << "instruction-group VAL may not contain number 0";
         return EXIT_FAILURE;
       }
       payloadSettings.push_back(std::make_pair(m[1].str(), num));
     } else {
-      log::error() << "Error: invalid symbols in instruction-group: " << token;
+      log::error() << "Invalid symbols in instruction-group: " << token;
       return EXIT_FAILURE;
     }
   }
@@ -170,7 +168,7 @@ void X86Environment::printAvailableInstructionGroups() {
                 << this->selectedConfig->platformConfig->payload->name << ":\n"
                 << "  " << s;
   } else {
-    log::debug()
+    log::warn()
         << "Can not print available instruction groups: no function selected.";
   }
 }
@@ -180,7 +178,7 @@ void X86Environment::printSelectedCodePathSummary() {
     this->selectedConfig->platformConfig->printCodePathSummary(
         this->selectedConfig->thread);
   } else {
-    log::debug() << "Can not print code-path-summary: no function selected.";
+    log::warn() << "Can not print code-path-summary: no function selected.";
   }
 }
 

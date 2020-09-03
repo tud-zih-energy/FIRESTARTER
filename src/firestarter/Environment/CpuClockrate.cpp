@@ -28,13 +28,13 @@ int Environment::getCpuClockrate(void) {
     }
   }
 
-  std::string clockrate;
+  std::string clockrate = 0;
 
   if (clockrateVector.size() == 2) {
     clockrate = clockrateVector[1].str();
     clockrate.erase(0, 1);
   } else {
-    firestarter::log::fatal() << "Can't determine clockrate from /proc/cpuinfo";
+    firestarter::log::warn() << "Can't determine clockrate from /proc/cpuinfo";
   }
 
   std::unique_ptr<llvm::MemoryBuffer> scalingGovernor;

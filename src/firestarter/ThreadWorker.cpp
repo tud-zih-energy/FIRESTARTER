@@ -46,7 +46,7 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
   if (nullptr ==
       (threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
            this->environment->requestedNumThreads * sizeof(pthread_t), 64)))) {
-    log::error() << "Error: Could not allocate pthread_t";
+    log::error() << "Could not allocate pthread_t";
     return EXIT_FAILURE;
   }
 
@@ -65,8 +65,7 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
     // create the thread
     if (EXIT_SUCCESS != (returnCode = pthread_create(
                              &threads[i], NULL, threadWorker, std::ref(td)))) {
-      log::error() << "Error: pthread_create failed with returnCode "
-                   << returnCode;
+      log::error() << "pthread_create failed with returnCode " << returnCode;
       return EXIT_FAILURE;
     }
 

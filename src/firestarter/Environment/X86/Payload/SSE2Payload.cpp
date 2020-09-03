@@ -26,8 +26,8 @@ int SSE2Payload::compilePayload(
     auto it = this->instructionFlops.find(item);
 
     if (it == this->instructionFlops.end()) {
-      log::error() << "Error: Instruction group " << item << " undefined in "
-                   << name << ".";
+      log::error() << "Instruction group " << item << " undefined in " << name
+                   << ".";
       return EXIT_FAILURE;
     }
 
@@ -178,15 +178,15 @@ int SSE2Payload::compilePayload(
   cb.mov(ram_addr, pointer_reg);
   cb.add(ram_addr, Imm(l3_size)); // address for RAM-buffer
   cb.mov(l2_count_reg, Imm(l2_loop_count));
-  log::debug() << "reset counter for L2-buffer with "
+  log::trace() << "reset counter for L2-buffer with "
                << " cache line accesses per loop ("
                << ") KB";
   cb.mov(l3_count_reg, Imm(l3_loop_count));
-  log::debug() << "reset counter for L3-buffer with "
+  log::trace() << "reset counter for L3-buffer with "
                << " cache line accesses per loop ("
                << ") KB";
   cb.mov(ram_count_reg, Imm(ram_loop_count));
-  log::debug() << "reset counter for RAM-buffer with "
+  log::trace() << "reset counter for RAM-buffer with "
                << " cache line accesses per loop ("
                << ") KB";
 
@@ -284,7 +284,7 @@ int SSE2Payload::compilePayload(
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
       } else {
-        log::error() << "Error: Instruction group " << item << " not found in "
+        log::error() << "Instruction group " << item << " not found in "
                      << this->name << ".";
         return EXIT_FAILURE;
       }
@@ -368,7 +368,7 @@ int SSE2Payload::compilePayload(
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {
-    log::error() << "Error: Asmjit adding Assembler to JitRuntime failed in "
+    log::error() << "Asmjit adding Assembler to JitRuntime failed in "
                  << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
   }

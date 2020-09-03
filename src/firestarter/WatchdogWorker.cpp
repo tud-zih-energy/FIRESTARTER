@@ -29,7 +29,7 @@
         log::info() << "\nCaught shutdown signal, ending now ...";             \
         break;                                                                 \
       default:                                                                 \
-        log::error() << "Error calling nanosleep: " << errno;                  \
+        log::error() << "Calling nanosleep: " << errno;                        \
         break;                                                                 \
       }                                                                        \
       set_load(LOAD_STOP);                                                     \

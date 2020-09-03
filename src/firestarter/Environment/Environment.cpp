@@ -126,7 +126,7 @@ Environment::getFileAsStream(std::string filePath, bool showError) {
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileStream =
       llvm::MemoryBuffer::getFileAsStream(filePath);
   if ((e = fileStream.getError()) && showError) {
-    firestarter::log::fatal() << filePath << e.message();
+    firestarter::log::error() << filePath << e.message();
     return nullptr;
   }
 
@@ -174,7 +174,7 @@ unsigned Environment::getNumberOfThreadsPerCore(void) {
 std::string Environment::getProcessorName(void) {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
   if (nullptr == procCpuinfo) {
-    log::warn() << "Warn: could not open /proc/cpuinfo";
+    log::warn() << "Could not open /proc/cpuinfo";
     return "";
   }
 
@@ -190,14 +190,14 @@ std::string Environment::getProcessorName(void) {
     }
   }
 
-  log::warn() << "Warn: could determine processor-name from /proc/cpuinfo";
+  log::warn() << "Could determine processor-name from /proc/cpuinfo";
   return "";
 }
 
 std::string Environment::getVendor(void) {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
   if (nullptr == procCpuinfo) {
-    log::warn() << "Warn: could not open /proc/cpuinfo";
+    log::warn() << "Could not open /proc/cpuinfo";
     return "";
   }
 
@@ -213,6 +213,6 @@ std::string Environment::getVendor(void) {
     }
   }
 
-  log::warn() << "Warn: could determine vendor from /proc/cpuinfo";
+  log::warn() << "Could determine vendor from /proc/cpuinfo";
   return "";
 }

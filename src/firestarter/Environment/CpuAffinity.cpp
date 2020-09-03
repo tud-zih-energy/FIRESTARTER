@@ -21,11 +21,10 @@ extern "C" {
       CPU_SET(cpu, &cpuset);                                                   \
     } else {                                                                   \
       if (cpu >= this->numThreads) {                                           \
-        log::error()                                                           \
-            << "Error: The given bind argument (-b/--bind) includes CPU "      \
-            << cpu << " that is not available on this system.";                \
+        log::error() << "The given bind argument (-b/--bind) includes CPU "    \
+                     << cpu << " that is not available on this system.";       \
       } else {                                                                 \
-        log::error() << "Error: The given bind argument (-b/--bind) cannot "   \
+        log::error() << "The given bind argument (-b/--bind) cannot "          \
                         "be implemented with the cpuset given from the OS\n"   \
                      << "This can be caused by the taskset tool, cgroups, "    \
                         "the batch system, or similar mechanisms.\n"           \
@@ -61,7 +60,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
                                      std::string cpuBind) {
 
   if (requestedNumThreads > 0 && requestedNumThreads > this->numThreads) {
-    log::warn() << "Warning: not enough CPUs for requested number of threads";
+    log::warn() << "Not enough CPUs for requested number of threads";
   }
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
@@ -90,7 +89,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 
           // if rearhed end of avail cpus or max(int)
           if (current_cpu >= this->numThreads || current_cpu < 0) {
-            log::error() << "Error: Your are requesting more threads than "
+            log::error() << "You are requesting more threads than "
                             "there are CPUs available in the given cpuset.\n"
                          << "This can be caused by the taskset tool, cgrous, "
                             "the batch system, or similar mechanisms.\n"
@@ -133,9 +132,8 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
           s = 1;
         }
         if (y < x) {
-          log::error()
-              << "Error: y has to be >= x in x-y expressions of CPU list: "
-              << token;
+          log::error() << "y has to be >= x in x-y expressions of CPU list: "
+                       << token;
           return EXIT_FAILURE;
         }
         for (unsigned long i = x; i <= y; i += s) {
@@ -143,7 +141,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
           requestedNumThreads++;
         }
       } else {
-        log::error() << "Error: invalid symbols in CPU list: " << token;
+        log::error() << "Invalid symbols in CPU list: " << token;
         return EXIT_FAILURE;
       }
     }
@@ -155,7 +153,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 #endif
 
   if (requestedNumThreads == 0) {
-    log::error() << "Error: found no usable CPUs!";
+    log::error() << "Found no usable CPUs!";
     return 127;
   }
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
@@ -252,7 +250,7 @@ void Environment::printThreadSummary(void) {
 
 int Environment::setCpuAffinity(unsigned thread) {
   if (thread >= this->requestedNumThreads) {
-    log::error() << "Error: Trying to set more CPUs than available.";
+    log::error() << "Trying to set more CPUs than available.";
     return EXIT_FAILURE;
   }
 

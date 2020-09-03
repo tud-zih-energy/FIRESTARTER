@@ -65,7 +65,10 @@ int main(int argc, char **argv) {
     ("v,version", "Display version information")
     ("c,copyright", "Display copyright information")
     ("w,warranty", "Display warranty information")
-    ("d,debug", "Display debug output")("a,avail", "List available functions")
+    ("q,quiet", "Set log level to Warning")
+    ("r,report", "Display additional information (overridden by -q)")
+    ("d,debug", "Print debug output")
+    ("a,avail", "List available functions")
     ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER terminates itself, default: no timeout",
@@ -88,9 +91,6 @@ int main(int argc, char **argv) {
       cxxopts::value<std::string>()->default_value(""), "GROUPS");
   // clang-format on
 
-  // TODO:
-  // r report
-  //
   // TODO: cuda
   // f: usegpufloat
   // g: gpus
@@ -99,9 +99,15 @@ int main(int argc, char **argv) {
   try {
     auto options = parser.parse(argc, argv);
 
-    if (options.count("debug")) {
+    if (options.count("quiet")) {
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(
+          nitro::log::severity_level::warn);
+    } else if (options.count("report")) {
       firestarter::logging::filter<firestarter::logging::record>::set_severity(
           nitro::log::severity_level::debug);
+    } else if (options.count("debug")) {
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(
+          nitro::log::severity_level::trace);
     } else {
       firestarter::logging::filter<firestarter::logging::record>::set_severity(
           nitro::log::severity_level::info);
@@ -232,7 +238,7 @@ int main(int argc, char **argv) {
     firestarter->printPerformanceReport();
 
   } catch (std::exception &e) {
-    firestarter::log::error() << "Error: " << e.what() << "\n";
+    firestarter::log::error() << e.what() << "\n";
     return print_help(parser);
   }
 

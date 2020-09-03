@@ -22,8 +22,18 @@ namespace logging {
 
 class StdOut {
 public:
-  void sink(nitro::log::severity_level, const std::string &formatted_record) {
-    std::cout << formatted_record << std::endl << std::flush;
+  void sink(nitro::log::severity_level severity,
+            const std::string &formatted_record) {
+    switch (severity) {
+    case nitro::log::severity_level::warn:
+    case nitro::log::severity_level::error:
+    case nitro::log::severity_level::fatal:
+      std::cerr << formatted_record << std::endl << std::flush;
+      break;
+    default:
+      std::cout << formatted_record << std::endl << std::flush;
+      break;
+    }
   }
 };
 
@@ -35,6 +45,24 @@ template <typename Record> class formater {
 public:
   std::string format(Record &r) {
     std::stringstream s;
+
+    switch (r.severity()) {
+    case nitro::log::severity_level::warn:
+      s << "Warning: ";
+      break;
+    case nitro::log::severity_level::error:
+      s << "Error: ";
+      break;
+    case nitro::log::severity_level::fatal:
+      s << "Fatal: ";
+      break;
+    case nitro::log::severity_level::trace:
+      s << "Debug: ";
+      break;
+    default:
+      break;
+    }
+
     s << r.message();
 
     return s.str();
