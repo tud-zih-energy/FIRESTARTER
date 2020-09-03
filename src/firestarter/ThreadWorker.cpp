@@ -18,7 +18,7 @@
 #define ALIGNED_MALLOC(size, align) _mm_malloc(size, align)
 #define ALIGNED_FREE _mm_free
 #else
-#define ALIGNED_MALLOC(size, aling) std::aligned_alloc(align, size)
+#define ALIGNED_MALLOC(size, align) std::aligned_alloc(align, size)
 #define ALIGNED_FREE std::free
 #endif
 
