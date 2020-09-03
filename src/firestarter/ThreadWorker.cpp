@@ -12,13 +12,13 @@
 #include <functional>
 
 #if defined(__APPLE__)
-#define ALIGNED_MALLOC aligned_alloc
+#define ALIGNED_MALLOC(size, align) aligned_alloc(align, size)
 #define ALIGNED_FREE free
 #elif defined(__MINGW64__)
-#define ALIGNED_MALLOC _mm_malloc
+#define ALIGNED_MALLOC(size, align) _mm_malloc(size, align)
 #define ALIGNED_FREE _mm_free
 #else
-#define ALIGNED_MALLOC std::aligned_alloc
+#define ALIGNED_MALLOC(size, aling) std::aligned_alloc(align, size)
 #define ALIGNED_FREE std::free
 #endif
 
