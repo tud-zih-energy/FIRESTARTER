@@ -51,10 +51,8 @@ void Environment::printEnvironmentSummary(void) {
               << "    vendor:             " << this->vendor << "\n"
               << "    processor-name:     " << this->processorName << "\n"
               << "    model:              " << this->model << "\n"
-#if not(defined(__APPLE__) || defined(_WIN32))
               << "    frequency:          " << this->clockrate / 1000000
               << " MHz\n"
-#endif
               << "    supported features: " << ss.str() << "\n"
               << "    Caches:";
 
@@ -152,9 +150,6 @@ int Environment::evaluateEnvironment(void) {
   this->numThreads = std::thread::hardware_concurrency();
 
   llvm::sys::getHostCPUFeatures(this->cpuFeatures);
-
-  // TODO: x86 get vendor from asmjit
-  // TODO: get model name from sysctl on macos
 
   this->processorName = this->getProcessorName();
   this->vendor = this->getVendor();
