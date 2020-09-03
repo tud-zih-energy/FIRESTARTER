@@ -164,11 +164,9 @@ int Environment::evaluateEnvironment(void) {
   this->architecture = PT.getArchName().str();
   this->model = this->getModel();
 
-#if not(defined(__APPLE__) || defined(_WIN32))
   if (EXIT_SUCCESS != this->getCpuClockrate()) {
     return EXIT_FAILURE;
   }
-#endif
 
   return EXIT_SUCCESS;
 }
