@@ -132,8 +132,13 @@ int X86Environment::selectInstructionGroups(std::string groups) {
         log::error() << "Error: invalid instruction-group: " << m[1].str();
         return EXIT_FAILURE;
       }
-      payloadSettings.push_back(
-          std::make_pair(m[1].str(), std::stoul(m[2].str())));
+      int num = std::stoul(m[2].str());
+      if (num == 0) {
+        log::error()
+            << "Error: instruction-group VAL may not contain number 0";
+        return EXIT_FAILURE;
+      }
+      payloadSettings.push_back(std::make_pair(m[1].str(), num));
     } else {
       log::error() << "Error: invalid symbols in instruction-group: " << token;
       return EXIT_FAILURE;
