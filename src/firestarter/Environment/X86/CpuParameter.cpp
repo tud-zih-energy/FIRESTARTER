@@ -94,8 +94,14 @@ int X86Environment::getCpuClockrate(void) {
       clock = (clock_lower_bound + clock_upper_bound) / 2;
       if (clockrate == 0)
         clockrate = clock;
+#ifndef _WIN32
       else if (clock < clockrate)
         clockrate = clock;
+#else
+      else if (clock > clockrate)
+        clockrate = clock;
+#endif
+
     }
     i += 2;
   } while (((time_diff) < 10000) || (num_measurements < min_measurements));
