@@ -4,6 +4,8 @@
 , glibc
 , git
 , pkgconfig
+, cudatoolkit
+, withCuda ? false
 }:
 
 let
@@ -54,7 +56,9 @@ let
     outputs = [ "out" "lib" "dev" "doc" "man" ];
   };
 
-in stdenv.mkDerivation {
+in
+with stdenv.lib;
+stdenv.mkDerivation {
   name = "firestarter";
   version = "0.0";
   src = ./.;
@@ -64,7 +68,7 @@ in stdenv.mkDerivation {
   buildInputs = [
     glibc.static
     (ncurses.override { enableStatic = true; })
-  ];
+  ] ++ optionals withCuda [ cudatoolkit ];
 
   cmakeFlags = [
     "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
@@ -75,6 +79,8 @@ in stdenv.mkDerivation {
     "-DNIX_BUILD=1"
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
+  ] ++ optionals withCuda [
+    "-DBUILD_CUDA=1"
   ];
 
   enableParalellBuilding = true;
@@ -82,6 +88,8 @@ in stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $out/bin
     cp src/FIRESTARTER $out/bin/
+  '' + optionals withCuda ''
+    cp src/FIRESTARTER_CUDA $out/bin/
   '';
 
 }

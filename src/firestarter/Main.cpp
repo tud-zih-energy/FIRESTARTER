@@ -25,6 +25,7 @@
 #include <cxxopts.hpp>
 
 #include <string>
+#include <thread>
 
 int print_copyright(void) {
 
@@ -80,6 +81,8 @@ int main(int argc, char **argv) {
 
   cxxopts::Options parser(argv[0]);
 
+  // TODO: add examples
+
   // clang-format off
   parser.add_options()
     ("h,help", "Display usage information")
@@ -88,14 +91,27 @@ int main(int argc, char **argv) {
     ("w,warranty", "Display warranty information")
     ("q,quiet", "Set log level to Warning")
     ("r,report", "Display additional information (overridden by -q)")
-    ("d,debug", "Print debug output")
+    ("debug", "Print debug output")
     ("a,avail", "List available functions")
     ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
+#ifdef BUILD_CUDA
+    ("f,usegpufloat", "Use single precision matrix multiplications instead of default",
+      cxxopts::value<bool>()->default_value("false"))
+    ("d,usegpudouble", "Use double precision matrix multiplications instead of default",
+      cxxopts::value<bool>()->default_value("false"))
+    ("g,gpus", "Number of gpus to use (default: all)",
+      cxxopts::value<int>()->default_value("-1"))
+    ("m,matrixsize", "Size of the matrix to calculate, default is maximum",
+      cxxopts::value<unsigned>()->default_value("0"))
+#endif
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER terminates itself, default: no timeout",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
-    ("l,load", "Set the percentage of high CPU load to LOAD (%) default: 100, valid values: 0 <= LOAD <= 100, threads will be idle in the remaining time, frequency of load changes is determined by -p",
-      cxxopts::value<unsigned>()->default_value("100"), "LOAD")
+    ("l,load", "Set the percentage of high CPU load to LOAD (%) default: 100, valid values: 0 <= LOAD <= 100, threads will be idle in the remaining time, frequency of load changes is determined by -p."
+#ifdef BUILD_CUDA
+     " This option does NOT influence the GPU workload!"
+#endif
+     , cxxopts::value<unsigned>()->default_value("100"), "LOAD")
     ("p,period", "Set the interval length for CPUs to PERIOD (usec), default: 100000, each interval contains a high load and an idle phase, the percentage of high load is defined by -l",
       cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
     ("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
@@ -111,11 +127,6 @@ int main(int argc, char **argv) {
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS");
   // clang-format on
-
-  // TODO: cuda
-  // f: usegpufloat
-  // g: gpus
-  // m: matrixsize
 
   try {
     auto options = parser.parse(argc, argv);
@@ -187,6 +198,33 @@ int main(int argc, char **argv) {
     int returnCode;
     auto firestarter = new firestarter::Firestarter();
 
+#ifdef BUILD_CUDA
+    bool useGpuFloat = options["usegpufloat"].as<bool>();
+    bool useGpuDouble = options["usegpudouble"].as<bool>();
+
+    if (useGpuFloat && useGpuDouble) {
+      throw std::invalid_argument("Options -f/--usegpufloat and "
+                                  "-d/--usegpudouble cannot be used together.");
+    }
+
+    if (useGpuFloat) {
+      firestarter->gpuStructPointer->use_double = 0;
+    } else if (useGpuDouble) {
+      firestarter->gpuStructPointer->use_double = 1;
+    } else {
+      firestarter->gpuStructPointer->use_double = 2;
+    }
+
+    unsigned matrixSize = options["matrixsize"].as<unsigned>();
+    if (matrixSize > 0 && matrixSize < 64) {
+      throw std::invalid_argument(
+          "Option -m/--matrixsize may not be below 64.");
+    }
+    firestarter->gpuStructPointer->msize = matrixSize;
+
+    firestarter->gpuStructPointer->use_device = options["gpus"].as<int>();
+#endif
+
     if (EXIT_SUCCESS !=
         (returnCode = firestarter->environment->evaluateEnvironment())) {
       delete firestarter;
@@ -248,6 +286,14 @@ int main(int argc, char **argv) {
       return returnCode;
     }
 
+#ifdef BUILD_CUDA
+    pthread_t gpu_thread;
+    pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu, (void *)firestarter->gpuStructPointer);
+    while (firestarter->gpuStructPointer->loadingdone != 1) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+#endif
+
     firestarter->signalWork();
 
     // worker thread for load control
@@ -257,6 +303,8 @@ int main(int argc, char **argv) {
     firestarter->joinThreads();
 
     firestarter->printPerformanceReport();
+
+    delete firestarter;
 
   } catch (std::exception &e) {
     firestarter::log::error() << e.what() << "\n";

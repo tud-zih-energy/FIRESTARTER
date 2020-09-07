@@ -3,5 +3,5 @@
 let
   pkgs = import nixpkgs { overlays = [ (import ./overlay.nix) ]; };
 in with pkgs; [
-  (firestarter.override { "stdenv" = pkgs.clangStdenv; })
+  (firestarter.override { "stdenv" = pkgs.clangStdenv; "withCuda" = true; })
 ]

@@ -1,4 +1,4 @@
-add_executable(FIRESTARTER
+SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
 	firestarter/ThreadWorker.cpp
 	firestarter/WatchdogWorker.cpp
@@ -22,23 +22,68 @@ add_executable(FIRESTARTER
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
-target_link_libraries(FIRESTARTER
+if(DEFINED BUILD_CUDA)
+	add_executable(FIRESTARTER_CUDA
+		${FIRESTARTER_FILES}
+		firestarter/Cuda/Cuda.cpp
+		)
+else()
+	add_executable(FIRESTARTER
+		${FIRESTARTER_FILES}
+		)
+endif()
+
+SET(FIRESTARTER_LINK_LIBRARIES
 	Threads::Threads
 	LLVMSupport
 	hwloc
 	AsmJit::AsmJit
 	)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
+if(DEFINED BUILD_CUDA)
+	find_package(CUDA)
+
+	target_link_libraries(FIRESTARTER_CUDA
+		${FIRESTARTER_LINK_LIBRARIES}
+		${CUDA_LIBRARIES}
+		${CUDA_CUBLAS_LIBRARIES}
+		)
 else()
 	target_link_libraries(FIRESTARTER
-		tinfo
+		${FIRESTARTER_LINK_LIBRARIES}
 		)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
+else()
+	SET(FIRESTARTER_LINK_LIBRARIES_LINUX
+		tinfo
+		)
+
+	if(DEFINED BUILD_CUDA)
+		target_link_libraries(FIRESTARTER_CUDA
+			${FIRESTARTER_LINK_LIBRARIES_LINUX}
+			)
+	else()
+		target_link_libraries(FIRESTARTER
+			${FIRESTARTER_LINK_LIBRARIES_LINUX}
+			)
+	endif()
+endif()
+
 if(NOT DEFINED NIX_BUILD)
-	add_dependencies(FIRESTARTER
+	SET(FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES
 		HwlocInstall
 		LLVMInstall
 		)
+
+	if(DEFINED BUILD_CUDA)
+		add_dependencies(FIRESTARTER_CUDA
+			${FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES}
+			)
+	else()
+		add_dependencies(FIRESTARTER
+			${FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES}
+			)
+	endif()
 endif()

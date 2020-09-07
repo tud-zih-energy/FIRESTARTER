@@ -22,6 +22,10 @@
 #ifndef INCLUDE_FIRESTARTER_FIRESTARTER_HPP
 #define INCLUDE_FIRESTARTER_FIRESTARTER_HPP
 
+#ifdef BUILD_CUDA
+#include <firestarter/Cuda/Cuda.hpp>
+#endif
+
 #include <firestarter/ThreadData.hpp>
 
 #include <firestarter/Environment/X86/X86Environment.hpp>
@@ -46,6 +50,13 @@ public:
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
+
+#ifdef BUILD_CUDA
+    this->_gpuStructPointer =
+        static_cast<cuda::gpustruct_t *>(malloc(sizeof(cuda::gpustruct_t)));
+    this->_gpuStructPointer->loadingdone = 0;
+    this->_gpuStructPointer->loadvar = &this->loadVar;
+#endif
   };
 
   ~Firestarter(void) {
@@ -53,9 +64,17 @@ public:
     defined(_M_X64)
     delete (environment::x86::X86Environment *)_environment;
 #endif
+
+#ifdef BUILD_CUDA
+    free(this->gpuStructPointer);
+#endif
   };
 
   environment::Environment *const &environment = _environment;
+
+#ifdef BUILD_CUDA
+  cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
+#endif
 
   int initThreads(bool lowLoad, unsigned long long period);
   void joinThreads(void);
@@ -70,13 +89,20 @@ public:
 private:
   environment::Environment *_environment;
 
+#ifdef BUILD_CUDA
+  cuda::gpustruct_t *_gpuStructPointer;
+#endif
+
   // ThreadWorker.cpp
   void signalThreads(int comm);
   static void *threadWorker(void *threadData);
 
+  // CudaWorker.cpp
+  static void *cudaWorker(void *cudaData);
+
   std::list<std::pair<pthread_t *, ThreadData *>> threads;
 
-  volatile unsigned long long loadVar;
+  volatile unsigned long long loadVar = LOAD_LOW;
 };
 
 } // namespace firestarter
