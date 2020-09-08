@@ -22,6 +22,7 @@
 #include <firestarter/Environment/X86/X86Environment.hpp>
 
 #include <ctime>
+#include <array>
 
 using namespace firestarter::environment::x86;
 
