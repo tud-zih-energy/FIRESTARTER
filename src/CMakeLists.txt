@@ -28,13 +28,6 @@ target_link_libraries(FIRESTARTER
 	AsmJit::AsmJit
 	)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
-else()
-	target_link_libraries(FIRESTARTER
-		#		tinfo
-		)
-endif()
-
 if(NOT DEFINED NIX_BUILD)
 	add_dependencies(FIRESTARTER
 		HwlocInstall
