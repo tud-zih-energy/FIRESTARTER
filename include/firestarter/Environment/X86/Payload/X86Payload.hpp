@@ -26,8 +26,6 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/ThreadData.hpp>
 
-#include <llvm/ADT/StringMap.h>
-
 #include <asmjit/x86.h>
 
 #define INIT_BLOCKSIZE 1024
@@ -37,8 +35,8 @@ namespace firestarter::environment::x86::payload {
 class X86Payload : public environment::payload::Payload {
 private:
   // we can use this to check, if our platform support this payload
-  llvm::StringMap<bool> *_supportedFeatures;
-  std::list<std::string> featureRequests;
+  asmjit::x86::Features const *const _supportedFeatures;
+  std::list<asmjit::x86::Features::Id> featureRequests;
 
 protected:
   //  asmjit::CodeHolder code;
@@ -49,11 +47,11 @@ protected:
                                              unsigned long long);
   LoadFunction loadFunction = nullptr;
 
-  llvm::StringMap<bool> *const &supportedFeatures = _supportedFeatures;
+  asmjit::x86::Features const *const &supportedFeatures = _supportedFeatures;
 
 public:
-  X86Payload(llvm::StringMap<bool> *supportedFeatures,
-             std::initializer_list<std::string> featureRequests,
+  X86Payload(asmjit::x86::Features const *const supportedFeatures,
+             std::initializer_list<asmjit::x86::Features::Id> featureRequests,
              std::string name)
       : Payload(name), _supportedFeatures(supportedFeatures),
         featureRequests(featureRequests){};
@@ -62,8 +60,8 @@ public:
   bool isAvailable(void) override {
     bool available = true;
 
-    for (std::string feature : featureRequests) {
-      available &= (*supportedFeatures)[feature];
+    for (auto const &feature : featureRequests) {
+      available &= supportedFeatures->has(feature);
     }
 
     return available;

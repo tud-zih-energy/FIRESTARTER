@@ -49,7 +49,6 @@ include_directories(lib/cxxopts/include)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-include(cmake/InstallLLVM.cmake)
 include(cmake/InstallHwloc.cmake)
 
 add_subdirectory(src)

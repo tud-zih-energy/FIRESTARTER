@@ -29,7 +29,7 @@ namespace firestarter::environment::x86::platform {
 class NehalemConfig : public X86PlatformConfig {
 
 public:
-  NehalemConfig(llvm::StringMap<bool> *supportedFeatures, unsigned family,
+  NehalemConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
                 unsigned model, unsigned threads)
       : X86PlatformConfig("NHM_COREI", 6, {30, 37, 23}, {1, 2},
                           {32768, 262144, 1572864}, 104857600, family, model,
@@ -37,7 +37,8 @@ public:
                           new payload::SSE2Payload(supportedFeatures)){};
   ~NehalemConfig(){};
 
-  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings(void) override {
+  std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings(void) override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 1}, {"L1_LS", 70}, {"REG", 2}});
   }

@@ -29,9 +29,9 @@
 #include <firestarter/Environment/X86/Platform/HaswellEPConfig.hpp>
 #include <firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp>
 #include <firestarter/Environment/X86/Platform/NaplesConfig.hpp>
-#include <firestarter/Environment/X86/Platform/RomeConfig.hpp>
 #include <firestarter/Environment/X86/Platform/NehalemConfig.hpp>
 #include <firestarter/Environment/X86/Platform/NehalemEPConfig.hpp>
+#include <firestarter/Environment/X86/Platform/RomeConfig.hpp>
 #include <firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp>
 #include <firestarter/Environment/X86/Platform/SandyBridgeEPConfig.hpp>
 #include <firestarter/Environment/X86/Platform/SkylakeConfig.hpp>
@@ -43,7 +43,7 @@
 #include <functional>
 
 #define REGISTER(NAME)                                                         \
-  [](llvm::StringMap<bool> *supportedFeatures, unsigned family,                \
+  [](const asmjit::x86::Features *supportedFeatures, unsigned family,          \
      unsigned model, unsigned threads) -> platform::X86PlatformConfig * {      \
     return new platform::NAME(supportedFeatures, family, model, threads);      \
   }
@@ -52,7 +52,9 @@ namespace firestarter::environment::x86 {
 
 class X86Environment : public Environment {
 public:
-  X86Environment() : Environment(), cpuInfo(asmjit::CpuInfo::host()){};
+  X86Environment()
+      : Environment("x86_64"), cpuInfo(asmjit::CpuInfo::host()),
+        cpuFeatures(cpuInfo.features<asmjit::x86::Features>()){};
   ~X86Environment(){};
 
   unsigned long long timestamp(void) override;
@@ -67,11 +69,14 @@ public:
 
 private:
   asmjit::CpuInfo cpuInfo;
+  const asmjit::x86::Features cpuFeatures;
 
   void cpuid(unsigned long long *a, unsigned long long *b,
              unsigned long long *c, unsigned long long *d);
   bool hasRdtsc(void);
   bool hasInvariantRdtsc(void);
+
+  std::list<std::string> getCpuFeatures(void) override;
 
   int getCpuClockrate(void) override;
   std::string getProcessorName(void) override;
@@ -88,7 +93,7 @@ private:
   // PlatformConfig. Add new PlatformConfig at the bottom to maintain stable
   // IDs.
   const std::list<std::function<platform::X86PlatformConfig *(
-      llvm::StringMap<bool> *, unsigned, unsigned, unsigned)>>
+      const asmjit::x86::Features *, unsigned, unsigned, unsigned)>>
       platformConfigsCtor = {
           REGISTER(KnightsLandingConfig), REGISTER(SkylakeConfig),
           REGISTER(SkylakeSPConfig),      REGISTER(HaswellConfig),
@@ -101,7 +106,7 @@ private:
 
   // List of fallback PlatformConfig. Add one for each x86 extension.
   const std::list<std::function<platform::X86PlatformConfig *(
-      llvm::StringMap<bool> *, unsigned, unsigned, unsigned)>>
+      const asmjit::x86::Features *, unsigned, unsigned, unsigned)>>
       fallbackPlatformConfigsCtor = {
           REGISTER(SkylakeSPConfig),   // AVX512
           REGISTER(BulldozerConfig),   // FMA4
@@ -114,5 +119,7 @@ private:
 };
 
 } // namespace firestarter::environment::x86
+
+#undef REGISTER
 
 #endif

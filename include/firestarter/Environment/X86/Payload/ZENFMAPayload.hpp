@@ -27,8 +27,11 @@
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload : public X86Payload {
 public:
-  ZENFMAPayload(llvm::StringMap<bool> *supportedFeatures)
-      : X86Payload(supportedFeatures, {"avx", "fma"}, "ZENFMA"){};
+  ZENFMAPayload(const asmjit::x86::Features *const supportedFeatures)
+      : X86Payload(
+            supportedFeatures,
+            {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA},
+            "ZENFMA"){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,

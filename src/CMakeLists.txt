@@ -24,7 +24,6 @@ add_executable(FIRESTARTER
 
 target_link_libraries(FIRESTARTER
 	Threads::Threads
-	LLVMSupport
 	hwloc
 	AsmJit::AsmJit
 	)
@@ -32,13 +31,12 @@ target_link_libraries(FIRESTARTER
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
 else()
 	target_link_libraries(FIRESTARTER
-		tinfo
+		#		tinfo
 		)
 endif()
 
 if(NOT DEFINED NIX_BUILD)
 	add_dependencies(FIRESTARTER
 		HwlocInstall
-		LLVMInstall
 		)
 endif()

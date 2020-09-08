@@ -25,15 +25,6 @@
 #include <firestarter/Environment/Platform/Config.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <llvm/ADT/StringMap.h>
-#include <llvm/Support/MemoryBuffer.h>
-#pragma GCC diagnostic pop
-#pragma clang diagnostic pop
-
 #include <vector>
 
 extern "C" {
@@ -45,7 +36,7 @@ namespace firestarter::environment {
 class Environment {
 public:
   // Environment.cpp
-  Environment(void);
+  Environment(std::string architecture);
   ~Environment(void);
 
   // Environment.cpp
@@ -83,27 +74,20 @@ protected:
   unsigned int numPackages;
   unsigned int numPhysicalCoresPerPackage;
   unsigned int numThreads;
-  std::string architecture = std::string("");
+  std::string architecture;
   std::string vendor = std::string("");
   std::string processorName = std::string("");
   unsigned long long _clockrate = 0;
-  llvm::StringMap<bool> cpuFeatures;
 
   // CpuClockrate.cpp
-  std::unique_ptr<llvm::MemoryBuffer> getScalingGovernor(void);
+  std::stringstream getScalingGovernor(void);
   virtual int getCpuClockrate(void);
 
-  virtual std::string getModel(void) {
-    return llvm::sys::getHostCPUName().str();
-  }
+  virtual std::string getModel(void) { return ""; };
   virtual std::string getProcessorName(void);
   virtual std::string getVendor(void);
 
 private:
-  // CpuClockrate.cpp
-  std::unique_ptr<llvm::MemoryBuffer> getFileAsStream(std::string filePath,
-                                                      bool showError = true);
-
   // CpuAffinity.cpp
   // TODO: replace these functions with the builtins one from hwloc
   int getCoreIdFromPU(unsigned pu);
@@ -114,9 +98,12 @@ private:
   // Environment.cpp
   hwloc_topology_t topology;
   std::string model = std::string("");
+  std::stringstream getFileAsStream(std::string filePath);
 
   // CpuAffinity.cpp
   std::vector<unsigned> cpuBind;
+
+  virtual std::list<std::string> getCpuFeatures(void) { return {}; };
 };
 
 } // namespace firestarter::environment
