@@ -29,9 +29,9 @@ namespace firestarter::environment::x86::platform {
 class RomeConfig : public X86PlatformConfig {
 
 public:
-  RomeConfig(llvm::StringMap<bool> *supportedFeatures, unsigned family,
-               unsigned model, unsigned threads)
-      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1,2},
+  RomeConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
+             unsigned model, unsigned threads)
+      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2},
                           {32768, 524288, 2097152}, 104857600, family, model,
                           threads,
                           new payload::FMAPayload(supportedFeatures)){};

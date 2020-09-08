@@ -27,8 +27,9 @@
 namespace firestarter::environment::x86::payload {
 class SSE2Payload : public X86Payload {
 public:
-  SSE2Payload(llvm::StringMap<bool> *supportedFeatures)
-      : X86Payload(supportedFeatures, {"sse2"}, "SSE2"){};
+  SSE2Payload(const asmjit::x86::Features *const supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kSSE2},
+                   "SSE2"){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,

@@ -27,8 +27,9 @@
 namespace firestarter::environment::x86::payload {
 class AVXPayload : public X86Payload {
 public:
-  AVXPayload(llvm::StringMap<bool> *supportedFeatures)
-      : X86Payload(supportedFeatures, {"avx"}, "AVX"){};
+  AVXPayload(const asmjit::x86::Features *const supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kAVX},
+                   "AVX"){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,

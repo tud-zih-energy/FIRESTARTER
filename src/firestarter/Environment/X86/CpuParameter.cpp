@@ -22,6 +22,7 @@
 #include <firestarter/Environment/X86/X86Environment.hpp>
 
 #include <ctime>
+#include <array>
 
 using namespace firestarter::environment::x86;
 
@@ -42,12 +43,10 @@ int X86Environment::getCpuClockrate(void) {
   Clock::time_point start_time, end_time;
 
 #if not(defined(__APPLE__) || defined(_WIN32))
-  auto scalingGovernor = this->getScalingGovernor();
-  if (nullptr == scalingGovernor) {
+  auto governor = this->getScalingGovernor().str();
+  if (governor.empty()) {
     return EXIT_FAILURE;
   }
-
-  std::string governor = scalingGovernor->getBuffer().str();
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
   if (!this->hasInvariantRdtsc() && governor.compare("performance") &&
@@ -101,7 +100,6 @@ int X86Environment::getCpuClockrate(void) {
       else if (clock > clockrate)
         clockrate = clock;
 #endif
-
     }
     i += 2;
   } while (((time_diff) < 10000) || (num_measurements < min_measurements));
@@ -158,4 +156,25 @@ std::string X86Environment::getProcessorName(void) {
 
 std::string X86Environment::getVendor(void) {
   return std::string(this->cpuInfo.vendor());
+}
+
+std::list<std::string> X86Environment::getCpuFeatures(void) {
+  std::list<std::string> featureList;
+
+  for (int i = 0; i < (int)asmjit::x86::Features::kMaxFeatures; i++) {
+    if (!this->cpuFeatures.has(i)) {
+      continue;
+    }
+
+    asmjit::String sb;
+
+    auto error = asmjit::Formatter::formatFeature(sb, this->cpuInfo.arch(), i);
+    if (error != asmjit::ErrorCode::kErrorOk) {
+      log::warn() << "Formatting cpu features got asmjit error: " << error;
+    }
+
+    featureList.push_back(std::string(sb.data()));
+  }
+
+  return featureList;
 }

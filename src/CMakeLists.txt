@@ -35,7 +35,6 @@ endif()
 
 SET(FIRESTARTER_LINK_LIBRARIES
 	Threads::Threads
-	LLVMSupport
 	hwloc
 	AsmJit::AsmJit
 	)
@@ -54,27 +53,9 @@ else()
 		)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Windows")
-else()
-	SET(FIRESTARTER_LINK_LIBRARIES_LINUX
-		tinfo
-		)
-
-	if(DEFINED BUILD_CUDA)
-		target_link_libraries(FIRESTARTER_CUDA
-			${FIRESTARTER_LINK_LIBRARIES_LINUX}
-			)
-	else()
-		target_link_libraries(FIRESTARTER
-			${FIRESTARTER_LINK_LIBRARIES_LINUX}
-			)
-	endif()
-endif()
-
 if(NOT DEFINED NIX_BUILD)
 	SET(FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES
 		HwlocInstall
-		LLVMInstall
 		)
 
 	if(DEFINED BUILD_CUDA)

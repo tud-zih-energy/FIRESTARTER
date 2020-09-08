@@ -19,8 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
@@ -49,7 +49,7 @@ void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
 void X86Payload::init(unsigned long long *memoryAddr,
                       unsigned long long bufferSize, double firstValue,
                       double lastValue) {
-	unsigned long long i = 0;
+  unsigned long long i = 0;
 
   for (; i < INIT_BLOCKSIZE; i++)
     *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * firstValue;

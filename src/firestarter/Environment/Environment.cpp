@@ -22,17 +22,13 @@
 #include <firestarter/Environment/Environment.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <llvm/ADT/SmallVector.h>
-#include <llvm/ADT/StringRef.h>
-#include <llvm/ADT/Triple.h>
-#include <llvm/Support/Host.h>
-
+#include <fstream>
 #include <regex>
 #include <thread>
 
 using namespace firestarter::environment;
 
-Environment::Environment(void) {
+Environment::Environment(std::string architecture) {
 
   hwloc_topology_init(&this->topology);
 
@@ -41,6 +37,8 @@ Environment::Environment(void) {
                                         HWLOC_TYPE_FILTER_KEEP_ALL);
 
   hwloc_topology_load(this->topology);
+
+  this->architecture = architecture;
 }
 
 Environment::~Environment(void) { hwloc_topology_destroy(this->topology); }
@@ -61,10 +59,8 @@ void Environment::printEnvironmentSummary(void) {
 
   std::stringstream ss;
 
-  for (auto &ent : this->cpuFeatures) {
-    if (ent.getValue()) {
-      ss << ent.getKey().str() << " ";
-    }
+  for (auto &ent : this->getCpuFeatures()) {
+    ss << ent << " ";
   }
 
   log::info() << "  processor characteristics:\n"
@@ -141,17 +137,18 @@ void Environment::printEnvironmentSummary(void) {
       });
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
-Environment::getFileAsStream(std::string filePath, bool showError) {
-  std::error_code e;
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileStream =
-      llvm::MemoryBuffer::getFileAsStream(filePath);
-  if ((e = fileStream.getError()) && showError) {
-    firestarter::log::error() << filePath << e.message();
-    return nullptr;
+std::stringstream Environment::getFileAsStream(std::string filePath) {
+  std::ifstream file(filePath);
+  std::stringstream ss;
+
+  if (!file.is_open()) {
+    log::error() << "Could not open " << filePath;
+  } else {
+    ss << file.rdbuf();
+    file.close();
   }
 
-  return std::move(*fileStream);
+  return ss;
 }
 
 int Environment::evaluateEnvironment(void) {
@@ -162,22 +159,26 @@ int Environment::evaluateEnvironment(void) {
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
     this->numPackages = 1;
+    log::warn() << "Cound not get number of packages";
   } else {
     this->numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
   }
 
-  this->numPhysicalCoresPerPackage =
-      llvm::sys::getHostNumPhysicalCores() / this->numPackages;
-  this->numThreads = std::thread::hardware_concurrency();
+  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_CORE);
 
-  llvm::sys::getHostCPUFeatures(this->cpuFeatures);
+  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
+    this->numPhysicalCoresPerPackage = 1;
+    log::warn() << "Cound not get number of cores";
+  } else {
+    this->numPhysicalCoresPerPackage =
+        hwloc_get_nbobjs_by_depth(this->topology, depth) / this->numPackages;
+  }
+
+  this->numThreads = std::thread::hardware_concurrency();
 
   this->processorName = this->getProcessorName();
   this->vendor = this->getVendor();
 
-  llvm::Triple PT(llvm::sys::getProcessTriple());
-
-  this->architecture = PT.getArchName().str();
   this->model = this->getModel();
 
   if (EXIT_SUCCESS != this->getCpuClockrate()) {
@@ -194,15 +195,13 @@ unsigned Environment::getNumberOfThreadsPerCore(void) {
 
 std::string Environment::getProcessorName(void) {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
-  if (nullptr == procCpuinfo) {
-    log::warn() << "Could not open /proc/cpuinfo";
+  if (procCpuinfo.str().empty()) {
     return "";
   }
 
-  std::stringstream ss(procCpuinfo->getBuffer().str());
   std::string line;
 
-  while (std::getline(ss, line, '\n')) {
+  while (std::getline(procCpuinfo, line, '\n')) {
     const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
     std::smatch m;
 
@@ -217,15 +216,13 @@ std::string Environment::getProcessorName(void) {
 
 std::string Environment::getVendor(void) {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
-  if (nullptr == procCpuinfo) {
-    log::warn() << "Could not open /proc/cpuinfo";
+  if (procCpuinfo.str().empty()) {
     return "";
   }
 
-  std::stringstream ss(procCpuinfo->getBuffer().str());
   std::string line;
 
-  while (std::getline(ss, line, '\n')) {
+  while (std::getline(procCpuinfo, line, '\n')) {
     const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
     std::smatch m;
 

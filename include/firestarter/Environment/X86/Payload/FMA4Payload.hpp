@@ -28,8 +28,11 @@ namespace firestarter::environment::x86::payload {
 
 class FMA4Payload : public X86Payload {
 public:
-  FMA4Payload(llvm::StringMap<bool> *supportedFeatures)
-      : X86Payload(supportedFeatures, {"avx", "fma4"}, "FMA4"){};
+  FMA4Payload(const asmjit::x86::Features *const supportedFeatures)
+      : X86Payload(
+            supportedFeatures,
+            {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA4},
+            "FMA4"){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,

@@ -9,20 +9,6 @@
 }:
 
 let
-  llvm = stdenv.mkDerivation {
-    name = "clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04";
-
-    src = fetchTarball {
-      url = https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/clang+llvm-10.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz;
-      sha256 = "1c51d1h46js96rla5g5dmg6ji7whpaggpj0frwmyr8597p5hgr78";
-    };
-
-    installPhase = ''
-      mkdir -p $out
-      cp -ar {lib,include} $out
-    '';
-  };
-
   hwloc = stdenv.mkDerivation {
     name = "hwloc";
 
@@ -72,8 +58,6 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
-    "-DLLVM_LIB_DIR=${llvm}"
-    "-DLLVM_INCLUDE_DIR=${llvm}"
     "-DHWLOC_LIB_DIR=${hwloc.lib}"
     "-DHWLOC_INCLUDE_DIR=${hwloc.dev}"
     "-DNIX_BUILD=1"

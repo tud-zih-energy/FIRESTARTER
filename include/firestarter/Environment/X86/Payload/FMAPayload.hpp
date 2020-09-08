@@ -27,8 +27,10 @@
 namespace firestarter::environment::x86::payload {
 class FMAPayload : public X86Payload {
 public:
-  FMAPayload(llvm::StringMap<bool> *supportedFeatures)
-      : X86Payload(supportedFeatures, {"avx", "fma"}, "FMA"){};
+  FMAPayload(const asmjit::x86::Features *const supportedFeatures)
+      : X86Payload(supportedFeatures,
+                   {asmjit::x86::Features::kAVX, asmjit::x86::Features::kFMA},
+                   "FMA"){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
@@ -53,7 +55,6 @@ private:
 
   const std::map<std::string, unsigned> instructionMemory = {
       {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
-
 };
 } // namespace firestarter::environment::x86::payload
 
