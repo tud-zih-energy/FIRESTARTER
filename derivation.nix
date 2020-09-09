@@ -1,6 +1,5 @@
 { stdenv
 , cmake
-, ncurses
 , glibc
 , git
 , pkgconfig
@@ -53,7 +52,6 @@ stdenv.mkDerivation {
 
   buildInputs = [
     glibc.static
-    (ncurses.override { enableStatic = true; })
   ] ++ optionals withCuda [ cudatoolkit ];
 
   cmakeFlags = [
@@ -72,8 +70,6 @@ stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $out/bin
     cp src/FIRESTARTER $out/bin/
-  '' + optionals withCuda ''
-    cp src/FIRESTARTER_CUDA $out/bin/
   '';
 
 }

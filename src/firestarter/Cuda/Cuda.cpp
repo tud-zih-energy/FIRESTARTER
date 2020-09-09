@@ -30,11 +30,9 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/ThreadData.hpp>
 
-extern "C" {
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
-}
 
 #define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
   cuda_safe_call(cuerr, dev_index, __FILE__, __LINE__)

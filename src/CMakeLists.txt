@@ -22,17 +22,6 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
-if(DEFINED BUILD_CUDA)
-	add_executable(FIRESTARTER_CUDA
-		${FIRESTARTER_FILES}
-		firestarter/Cuda/Cuda.cpp
-		)
-else()
-	add_executable(FIRESTARTER
-		${FIRESTARTER_FILES}
-		)
-endif()
-
 SET(FIRESTARTER_LINK_LIBRARIES
 	Threads::Threads
 	hwloc
@@ -42,12 +31,29 @@ SET(FIRESTARTER_LINK_LIBRARIES
 if(DEFINED BUILD_CUDA)
 	find_package(CUDA)
 
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBUILD_CUDA")
+
+	add_executable(FIRESTARTER_CUDA
+		${FIRESTARTER_FILES}
+		firestarter/Cuda/Cuda.cpp
+		)
+
 	target_link_libraries(FIRESTARTER_CUDA
 		${FIRESTARTER_LINK_LIBRARIES}
-		${CUDA_LIBRARIES}
-		${CUDA_CUBLAS_LIBRARIES}
+		cuda
+		cudart
+		cublas
 		)
 else()
+	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	else()
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+	endif()
+
+	add_executable(FIRESTARTER
+		${FIRESTARTER_FILES}
+		)
+
 	target_link_libraries(FIRESTARTER
 		${FIRESTARTER_LINK_LIBRARIES}
 		)
