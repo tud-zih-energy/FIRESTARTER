@@ -6,9 +6,13 @@ sudo: required
 git:
   depth: 3
 
-matrix:
+jobs:
   include:
     - os: windows
+    - os: osx
+      osx_image: xcode11.3
+    - os: osx
+      osx_image: xcode12
     - os: linux
       arch: amd64
       addons:
@@ -21,7 +25,7 @@ matrix:
       env:
         - CC="gcc-7"
         - CXX="g++-7"
-      compiler: gcc
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -34,7 +38,7 @@ matrix:
       env:
         - CC="gcc-8"
         - CXX="g++-8"
-      compiler: gcc
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -47,7 +51,7 @@ matrix:
       env:
         - CC="gcc-9"
         - CXX="g++-9"
-      compiler: gcc
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -61,7 +65,7 @@ matrix:
       env:
         - CC="clang-7"
         - CXX="clang++-7"
-      compiler: clang
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -75,7 +79,7 @@ matrix:
       env:
         - CC="clang-8"
         - CXX="clang++-8"
-      compiler: clang
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -90,7 +94,7 @@ matrix:
       env:
         - CC="clang-9"
         - CXX="clang++-9"
-      compiler: clang
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -105,7 +109,7 @@ matrix:
       env:
         - CC="clang-10"
         - CXX="clang++-10"
-      compiler: clang
+        - CUDA=6.5
     - os: linux
       arch: amd64
       addons:
@@ -120,43 +124,345 @@ matrix:
       env:
         - CC="clang-11"
         - CXX="clang++-11"
-      compiler: clang
-    - os: osx
-      osx_image: xcode11.3
-    - os: osx
-      osx_image: xcode12
+        - CUDA=6.5
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+            - g++-7
+      env:
+        - CC="gcc-7"
+        - CXX="g++-7"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+            - g++-8
+      env:
+        - CC="gcc-8"
+        - CXX="g++-8"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-9
+            - g++-9
+      env:
+        - CC="gcc-9"
+        - CXX="g++-9"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+            - libstdc++-7-dev
+      env:
+        - CC="clang-7"
+        - CXX="clang++-7"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-8
+          packages:
+            - clang-8
+            - libstdc++-7-dev
+      env:
+        - CC="clang-8"
+        - CXX="clang++-8"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-9
+            - libstdc++-7-dev
+      env:
+        - CC="clang-9"
+        - CXX="clang++-9"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-10
+            - libstdc++-7-dev
+      env:
+        - CC="clang-10"
+        - CXX="clang++-10"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-11
+            - libstdc++-7-dev
+      env:
+        - CC="clang-11"
+        - CXX="clang++-11"
+        - CUDA=8.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+            - g++-7
+      env:
+        - CC="gcc-7"
+        - CXX="g++-7"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+            - g++-8
+      env:
+        - CC="gcc-8"
+        - CXX="g++-8"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-9
+            - g++-9
+      env:
+        - CC="gcc-9"
+        - CXX="g++-9"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+            - libstdc++-7-dev
+      env:
+        - CC="clang-7"
+        - CXX="clang++-7"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-8
+          packages:
+            - clang-8
+            - libstdc++-7-dev
+      env:
+        - CC="clang-8"
+        - CXX="clang++-8"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-9
+            - libstdc++-7-dev
+      env:
+        - CC="clang-9"
+        - CXX="clang++-9"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-10
+            - libstdc++-7-dev
+      env:
+        - CC="clang-10"
+        - CXX="clang++-10"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-11
+            - libstdc++-7-dev
+      env:
+        - CC="clang-11"
+        - CXX="clang++-11"
+        - CUDA=11.0
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+            - g++-7
+      env:
+        - CC="gcc-7"
+        - CXX="g++-7"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+            - g++-8
+      env:
+        - CC="gcc-8"
+        - CXX="g++-8"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-9
+            - g++-9
+      env:
+        - CC="gcc-9"
+        - CXX="g++-9"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+            - libstdc++-7-dev
+      env:
+        - CC="clang-7"
+        - CXX="clang++-7"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-8
+          packages:
+            - clang-8
+            - libstdc++-7-dev
+      env:
+        - CC="clang-8"
+        - CXX="clang++-8"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-9
+            - libstdc++-7-dev
+      env:
+        - CC="clang-9"
+        - CXX="clang++-9"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-10 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-10
+            - libstdc++-7-dev
+      env:
+        - CC="clang-10"
+        - CXX="clang++-10"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-11
+            - libstdc++-7-dev
+      env:
+        - CC="clang-11"
+        - CXX="clang++-11"
 
 install:
-  - |-
-      case $TRAVIS_OS_NAME in
-        linux)
-          source travis-ci/install-cmake-3-13.sh
-          ;;
-        osx)
-          brew upgrade cmake
-          ;;
-        windows)
-          choco install mingw cmake
-          ;;
-      esac
+  - echo $CUDA
+  - source travis-ci/install-$TRAVIS_OS_NAME.sh
 
 before_script:
   - mkdir build
   - cd build
   - cmake --version
-  - |-
-      case $TRAVIS_OS_NAME in
-        linux)
-          export CMAKE_CXX_FLAGS="-DAFFINITY"
-          cmake ..
-          ;;
-        osx)
-          cmake ..
-          ;;
-        windows)
-          cmake -G "MinGW Makefiles" ..
-          ;;
-      esac
+  - source ../travis-ci/before-$TRAVIS_OS_NAME.sh
 
 script:
   - cmake --build . -j 2
