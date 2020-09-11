@@ -1,14 +1,16 @@
 { stdenv
 , cmake
+, glibc_multi
 , glibc
 , git
 , pkgconfig
 , cudatoolkit
 , withCuda ? false
+, linuxPackages
 }:
 
 let
-  hwloc = stdenv.mkDerivation {
+  hwloc = stdenv.mkDerivation rec {
     name = "hwloc";
 
     src = fetchTarball {
@@ -43,16 +45,17 @@ let
 
 in
 with stdenv.lib;
-stdenv.mkDerivation {
+stdenv.mkDerivation rec {
   name = "firestarter";
   version = "0.0";
   src = ./.;
 
   nativeBuildInputs = [ cmake git ];
 
-  buildInputs = [
-    glibc.static
-  ] ++ optionals withCuda [ cudatoolkit ];
+  buildInputs = if withCuda then
+    [ glibc_multi cudatoolkit linuxPackages.nvidia_x11 ]
+    else
+    [ glibc.static ];
 
   cmakeFlags = [
     "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
@@ -69,7 +72,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp src/FIRESTARTER $out/bin/
+    cp src/FIRESTARTER${optionalString withCuda ''_CUDA''} $out/bin/
   '';
 
 }
