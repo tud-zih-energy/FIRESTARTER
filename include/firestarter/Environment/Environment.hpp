@@ -83,7 +83,7 @@ protected:
   std::stringstream getScalingGovernor(void);
   virtual int getCpuClockrate(void);
 
-  virtual std::string getModel(void) { return ""; };
+  virtual std::string getModel(void) = 0;
   virtual std::string getProcessorName(void);
   virtual std::string getVendor(void);
 
@@ -103,7 +103,7 @@ private:
   // CpuAffinity.cpp
   std::vector<unsigned> cpuBind;
 
-  virtual std::list<std::string> getCpuFeatures(void) { return {}; };
+  virtual std::list<std::string> getCpuFeatures(void) = 0;
 };
 
 } // namespace firestarter::environment
