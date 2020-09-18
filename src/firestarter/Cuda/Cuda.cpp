@@ -28,7 +28,7 @@
 
 #include <firestarter/Cuda/Cuda.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/ThreadData.hpp>
+#include <firestarter/LoadWorkerData.hpp>
 
 #include <cublas_v2.h>
 #include <cuda.h>

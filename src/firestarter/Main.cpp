@@ -101,8 +101,6 @@ int main(int argc, char **argv) {
 
   cxxopts::Options parser(argv[0]);
 
-  // TODO: add examples
-
   // clang-format off
   parser.add_options()
     ("h,help", "Display usage information")
@@ -145,7 +143,9 @@ int main(int argc, char **argv) {
     ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.",
       cxxopts::value<bool>()->default_value("false"))
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
-      cxxopts::value<std::string>()->default_value(""), "GROUPS");
+      cxxopts::value<std::string>()->default_value(""), "GROUPS")
+    ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
+      cxxopts::value<unsigned>()->implicit_value("10"), "DELAY");
   // clang-format on
 
   try {
@@ -197,8 +197,16 @@ int main(int argc, char **argv) {
     }
 
     std::chrono::microseconds load = (period * loadPercent) / 100;
-    if (load == period || load == std::chrono::microseconds::zero()) {
+    if (loadPercent == 100 || load == std::chrono::microseconds::zero()) {
       period = std::chrono::microseconds::zero();
+    }
+
+    bool dumpRegisters = options.count("dump-registers");
+    if (dumpRegisters) {
+      if (timeout != std::chrono::microseconds::zero() && loadPercent != 100) {
+        throw std::invalid_argument("Option --dump-registers may only be used "
+                                    "without a timeout and full load.");
+      }
     }
 
     unsigned requestedNumThreads = options["threads"].as<unsigned>();
@@ -300,15 +308,17 @@ int main(int argc, char **argv) {
 
     // setup thread with either high or low load configured at the start
     // low loads has to know the length of the period
-    if (EXIT_SUCCESS != (returnCode = firestarter->initThreads(
-                             (loadPercent == 0), period.count()))) {
+    if (EXIT_SUCCESS !=
+        (returnCode = firestarter->initLoadWorkers(
+             (loadPercent == 0), period.count(), dumpRegisters))) {
       delete firestarter;
       return returnCode;
     }
 
 #ifdef BUILD_CUDA
     pthread_t gpu_thread;
-    pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu, (void *)firestarter->gpuStructPointer);
+    pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu,
+                   (void *)firestarter->gpuStructPointer);
     while (firestarter->gpuStructPointer->loadingdone != 1) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -316,11 +326,23 @@ int main(int argc, char **argv) {
 
     firestarter->signalWork();
 
+    if (dumpRegisters) {
+      auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
+      if (EXIT_SUCCESS != (returnCode = firestarter->initDumpRegisterWorker(
+                               std::chrono::seconds(dumpTimeDelta)))) {
+        delete firestarter;
+        return returnCode;
+      }
+    }
+
     // worker thread for load control
     firestarter->watchdogWorker(period, load, timeout);
 
     // wait for watchdog to timeout or until user terminates
-    firestarter->joinThreads();
+    firestarter->joinLoadWorkers();
+    if (dumpRegisters) {
+      firestarter->joinDumpRegisterWorker();
+    }
 
     firestarter->printPerformanceReport();
 

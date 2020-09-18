@@ -19,8 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_THREADDATA_HPP
-#define INCLUDE_FIRESTARTER_THREADDATA_HPP
+#ifndef INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
+#define INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
 
 #define THREAD_WAIT 1
 #define THREAD_WORK 2
@@ -40,14 +40,16 @@
 
 namespace firestarter {
 
-class ThreadData {
+class LoadWorkerData {
 public:
-  ThreadData(int id, environment::Environment *environment,
-             volatile unsigned long long *loadVar, unsigned long long period)
-      : addrHigh(loadVar), period(period), _id(id), _environment(environment),
+  LoadWorkerData(int id, environment::Environment *environment,
+                 volatile unsigned long long *loadVar,
+                 unsigned long long period, bool dumpRegisters)
+      : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
+        _id(id), _environment(environment),
         _config(
             new environment::platform::Config(*environment->selectedConfig)){};
-  ~ThreadData(){};
+  ~LoadWorkerData(){};
 
   const int &id = _id;
   environment::Environment *const &environment = _environment;
@@ -66,6 +68,7 @@ public:
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
   unsigned long long period;
+  bool dumpRegisters;
 
 private:
   int _id;

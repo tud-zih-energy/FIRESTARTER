@@ -1,7 +1,8 @@
 SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
-	firestarter/ThreadWorker.cpp
+	firestarter/LoadWorker.cpp
 	firestarter/WatchdogWorker.cpp
+	firestarter/DumpRegisterWorker.cpp
 
 	firestarter/Environment/CpuClockrate.cpp
 	firestarter/Environment/CpuAffinity.cpp

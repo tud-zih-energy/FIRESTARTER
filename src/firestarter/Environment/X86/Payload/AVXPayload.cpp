@@ -32,7 +32,7 @@ using namespace asmjit::x86;
 int AVXPayload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> proportion,
     std::list<unsigned> dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines) {
+    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -326,7 +326,9 @@ int AVXPayload::compilePayload(
 
       add_dest++;
       if (add_dest > add_end) {
-        add_dest = add_start;
+        // DO NOT REMOVE the + 1. It serves for the good of ymm0. If it was to
+        // be overriden, the values in the other registers would rise up to inf.
+        add_dest = add_start + 1;
       }
       mov_dst++;
       if (mov_dst > trans_end) {
@@ -382,7 +384,26 @@ int AVXPayload::compilePayload(
   cb.inc(iter_reg); // increment iteration counter
   cb.mov(l1_addr, pointer_reg);
 
-  cb.test(ptr_64(addrHigh_reg), Imm(1));
+  if (dumpRegisters) {
+    auto SkipRegistersDump = cb.newLabel();
+
+    cb.test(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
+    cb.jnz(SkipRegistersDump);
+
+    // dump all the zmm register
+    for (int i = 0; i < (int)this->registerCount; i++) {
+      cb.vmovapd(
+          zmmword_ptr(pointer_reg, -64 - this->registerSize * 8 * (i + 1)),
+          Zmm(i));
+    }
+
+    // set read flag
+    cb.mov(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
+
+    cb.bind(SkipRegistersDump);
+  }
+
+  cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));
   cb.jnz(Loop);
 
   cb.bind(FunctionExit);

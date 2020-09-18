@@ -68,12 +68,18 @@ protected:
                            const unsigned threads);
 
 public:
-  Payload(std::string name) : _name(name){};
+  Payload(std::string name, unsigned registerSize, unsigned registerCount)
+      : _name(name), registerSize(registerSize), registerCount(registerCount){};
   ~Payload(){};
 
   const std::string &name = _name;
   const unsigned &flops = _flops;
   const unsigned &bytes = _bytes;
+
+  // size of used simd registers in bytes
+  const unsigned registerSize;
+  // number of used simd registers
+  const unsigned registerCount;
 
   virtual bool isAvailable(void) = 0;
 
@@ -84,7 +90,7 @@ public:
   compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                  std::list<unsigned> dataCacheBufferSize,
                  unsigned ramBufferSize, unsigned thread,
-                 unsigned numberOfLines) = 0;
+                 unsigned numberOfLines, bool dumpRegisters) = 0;
   virtual std::list<std::string> getAvailableInstructions(void) = 0;
   virtual void init(unsigned long long *memoryAddr,
                     unsigned long long bufferSize) = 0;

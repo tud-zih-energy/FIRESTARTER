@@ -24,7 +24,9 @@
 
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/ThreadData.hpp>
+
+#include <firestarter/DumpRegisterWorkerData.hpp>
+#include <firestarter/LoadWorkerData.hpp>
 
 #include <asmjit/x86.h>
 
@@ -52,8 +54,9 @@ protected:
 public:
   X86Payload(asmjit::x86::Features const *const supportedFeatures,
              std::initializer_list<asmjit::x86::Features::Id> featureRequests,
-             std::string name)
-      : Payload(name), _supportedFeatures(supportedFeatures),
+             std::string name, unsigned registerSize, unsigned registerCount)
+      : Payload(name, registerSize, registerCount),
+        _supportedFeatures(supportedFeatures),
         featureRequests(featureRequests){};
   ~X86Payload(){};
 

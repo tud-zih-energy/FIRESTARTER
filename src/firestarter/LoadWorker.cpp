@@ -50,8 +50,8 @@
 
 using namespace firestarter;
 
-int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
-
+int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
+                                 bool dumpRegisters) {
   int returnCode;
 
   if (EXIT_SUCCESS != (returnCode = this->environment->setCpuAffinity(0))) {
@@ -73,7 +73,8 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
 
   for (unsigned long long i = 0; i < this->environment->requestedNumThreads;
        i++) {
-    auto td = new ThreadData(i, this->environment, &this->loadVar, period);
+    auto td = new LoadWorkerData(i, this->environment, &this->loadVar, period,
+                                 dumpRegisters);
 
     auto dataCacheSizeIt =
         td->config->platformConfig->dataCacheBufferSize.begin();
@@ -84,38 +85,39 @@ int Firestarter::initThreads(bool lowLoad, unsigned long long period) {
                         td->config->thread / sizeof(unsigned long long);
 
     // create the thread
-    if (EXIT_SUCCESS != (returnCode = pthread_create(
-                             &threads[i], NULL, threadWorker, std::ref(td)))) {
+    if (EXIT_SUCCESS !=
+        (returnCode = pthread_create(&threads[i], NULL, loadThreadWorker,
+                                     std::ref(td)))) {
       log::error() << "pthread_create failed with returnCode " << returnCode;
       return EXIT_FAILURE;
     }
 
-    this->threads.push_back(std::make_pair(&threads[i], std::ref(td)));
+    this->loadThreads.push_back(std::make_pair(&threads[i], std::ref(td)));
   }
 
-  this->signalThreads(THREAD_INIT);
+  this->signalLoadWorkers(THREAD_INIT);
 
   return EXIT_SUCCESS;
 }
 
-void Firestarter::signalThreads(int comm) {
+void Firestarter::signalLoadWorkers(int comm) {
   bool ack;
 
   // start the work
-  for (auto const &thread : this->threads) {
+  for (auto const &thread : this->loadThreads) {
     auto td = thread.second;
 
     td->mutex.lock();
   }
 
-  for (auto const &thread : this->threads) {
+  for (auto const &thread : this->loadThreads) {
     auto td = thread.second;
 
     td->comm = comm;
     td->mutex.unlock();
   }
 
-  for (auto const &thread : this->threads) {
+  for (auto const &thread : this->loadThreads) {
     auto td = thread.second;
 
     do {
@@ -130,9 +132,9 @@ void Firestarter::signalThreads(int comm) {
   }
 }
 
-void Firestarter::joinThreads(void) {
+void Firestarter::joinLoadWorkers(void) {
   // wait for threads after watchdog has requested termination
-  for (auto const &thread : this->threads) {
+  for (auto const &thread : this->loadThreads) {
     pthread_join(*thread.first, NULL);
   }
 }
@@ -146,7 +148,7 @@ void Firestarter::printPerformanceReport(void) {
 
   log::debug() << "\nperformance report:\n";
 
-  for (auto const &thread : this->threads) {
+  for (auto const &thread : this->loadThreads) {
     auto td = thread.second;
 
     log::debug() << "Thread " << td->id << ": " << td->iterations
@@ -164,10 +166,11 @@ void Firestarter::printPerformanceReport(void) {
 
   double runtime = (double)(stopTimestamp - startTimestamp) /
                    (double)this->environment->clockrate;
-  double gFlops = (double)this->threads.front().second->config->payload->flops *
-                  0.000000001 * (double)iterations / runtime;
+  double gFlops =
+      (double)this->loadThreads.front().second->config->payload->flops *
+      0.000000001 * (double)iterations / runtime;
   double bandwidth =
-      (double)this->threads.front().second->config->payload->bytes *
+      (double)this->loadThreads.front().second->config->payload->bytes *
       0.000000001 * (double)iterations / runtime;
 
   // format runtime, gflops and bandwidth %.2f
@@ -203,11 +206,22 @@ void Firestarter::printPerformanceReport(void) {
       << "  executed on an unsupported architecture!";
 }
 
-void *Firestarter::threadWorker(void *threadData) {
+void *Firestarter::loadThreadWorker(void *loadWorkerData) {
 
   int old = THREAD_WAIT;
 
-  auto td = (ThreadData *)threadData;
+  auto td = reinterpret_cast<LoadWorkerData *>(loadWorkerData);
+
+  // use REGISTER_MAX_NUM cache lines for the dumped registers
+  // and another cache line for the control variable.
+  // as we are doing aligned moves we only have the option to waste a whole
+  // cacheline
+  unsigned long long addrOffset =
+      td->dumpRegisters
+          ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
+          : 0;
+
+  pthread_setname_np(pthread_self(), "LoadWorker");
 
   for (;;) {
     td->mutex.lock();
@@ -234,12 +248,24 @@ void *Firestarter::threadWorker(void *threadData) {
       td->config->payload->compilePayload(
           td->config->payloadSettings,
           td->config->platformConfig->dataCacheBufferSize,
-          td->config->platformConfig->ramBufferSize, td->config->thread, 1536);
+          td->config->platformConfig->ramBufferSize, td->config->thread, 1536,
+          td->dumpRegisters);
 
       // allocate memory
-      td->addrMem = static_cast<unsigned long long *>(
-          ALIGNED_MALLOC(td->buffersizeMem * sizeof(unsigned long long), 64));
+      // if we should dump some registers, we use the first part of the memory
+      // for them.
+      td->addrMem =
+          reinterpret_cast<unsigned long long *>(ALIGNED_MALLOC(
+              (td->buffersizeMem + addrOffset) * sizeof(unsigned long long),
+              64)) +
+          addrOffset;
+
       // TODO: handle error
+
+      if (td->dumpRegisters) {
+        reinterpret_cast<DumpRegisterStruct *>(td->addrMem - addrOffset)
+            ->dumpVar = DumpVariable::Wait;
+      }
 
       // call init function
       td->config->payload->init(td->addrMem, td->buffersizeMem);
@@ -283,7 +309,7 @@ void *Firestarter::threadWorker(void *threadData) {
         if (*td->addrHigh == LOAD_STOP) {
           td->stop_tsc = td->environment->timestamp();
 
-          ALIGNED_FREE(td->addrMem);
+          ALIGNED_FREE(td->addrMem - addrOffset);
           pthread_exit(NULL);
         }
       }
@@ -292,7 +318,7 @@ void *Firestarter::threadWorker(void *threadData) {
       break;
     case THREAD_STOP:
     default:
-      ALIGNED_FREE(td->addrMem);
+      ALIGNED_FREE(td->addrMem - addrOffset);
       pthread_exit(0);
     }
   }

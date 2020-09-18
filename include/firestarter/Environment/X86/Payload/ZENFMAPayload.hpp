@@ -31,12 +31,12 @@ public:
       : X86Payload(
             supportedFeatures,
             {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA},
-            "ZENFMA"){};
+            "ZENFMA", 4, 16){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines) override;
+                     unsigned numberOfLines, bool dumpRegisters) override;
   std::list<std::string> getAvailableInstructions(void) override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;

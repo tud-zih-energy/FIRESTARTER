@@ -29,12 +29,12 @@ class SSE2Payload : public X86Payload {
 public:
   SSE2Payload(const asmjit::x86::Features *const supportedFeatures)
       : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kSSE2},
-                   "SSE2"){};
+                   "SSE2", 2, 16){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines) override;
+                     unsigned numberOfLines, bool dumpRegisters) override;
   std::list<std::string> getAvailableInstructions(void) override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;

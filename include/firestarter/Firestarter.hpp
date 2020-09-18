@@ -26,9 +26,13 @@
 #include <firestarter/Cuda/Cuda.hpp>
 #endif
 
-#include <firestarter/ThreadData.hpp>
+#include <firestarter/DumpRegisterWorkerData.hpp>
+#include <firestarter/LoadWorkerData.hpp>
 
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
 #include <firestarter/Environment/X86/X86Environment.hpp>
+#endif
 
 #include <chrono>
 #include <list>
@@ -52,8 +56,8 @@ public:
 #endif
 
 #ifdef BUILD_CUDA
-    this->_gpuStructPointer =
-        static_cast<cuda::gpustruct_t *>(malloc(sizeof(cuda::gpustruct_t)));
+    this->_gpuStructPointer = reinterpret_cast<cuda::gpustruct_t *>(
+        malloc(sizeof(cuda::gpustruct_t)));
     this->_gpuStructPointer->loadingdone = 0;
     this->_gpuStructPointer->loadvar = &this->loadVar;
 #endif
@@ -62,7 +66,7 @@ public:
   ~Firestarter(void) {
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
-    delete (environment::x86::X86Environment *)_environment;
+    delete dynamic_cast<environment::x86::X86Environment *>(_environment);
 #endif
 
 #ifdef BUILD_CUDA
@@ -76,15 +80,22 @@ public:
   cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
 #endif
 
-  int initThreads(bool lowLoad, unsigned long long period);
-  void joinThreads(void);
+  // LoadThreadWorker.cpp
+  int initLoadWorkers(bool lowLoad, unsigned long long period,
+                      bool dumpRegisters);
+  void joinLoadWorkers(void);
+  void printPerformanceReport(void);
+
+  void signalWork(void) { signalLoadWorkers(THREAD_WORK); };
+
+  // WatchdogWorker.cpp
   int watchdogWorker(std::chrono::microseconds period,
                      std::chrono::microseconds load,
                      std::chrono::seconds timeout);
 
-  void signalWork(void) { signalThreads(THREAD_WORK); };
-
-  void printPerformanceReport(void);
+  // DumpRegisterWorker.cpp
+  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta);
+  void joinDumpRegisterWorker(void);
 
 private:
   environment::Environment *_environment;
@@ -93,16 +104,22 @@ private:
   cuda::gpustruct_t *_gpuStructPointer;
 #endif
 
-  // ThreadWorker.cpp
-  void signalThreads(int comm);
-  static void *threadWorker(void *threadData);
+  // LoadThreadWorker.cpp
+  void signalLoadWorkers(int comm);
+  static void *loadThreadWorker(void *loadWorkerData);
 
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
-  std::list<std::pair<pthread_t *, ThreadData *>> threads;
+  // DumpRegisterWorker.cpp
+  static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
 
+  // variable to control the load of the threads
   volatile unsigned long long loadVar = LOAD_LOW;
+
+  std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
+
+  pthread_t dumpRegisterWorkerThread;
 };
 
 } // namespace firestarter
