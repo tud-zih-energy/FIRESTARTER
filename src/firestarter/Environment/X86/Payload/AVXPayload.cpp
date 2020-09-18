@@ -390,11 +390,11 @@ int AVXPayload::compilePayload(
     cb.test(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
     cb.jnz(SkipRegistersDump);
 
-    // dump all the zmm register
+    // dump all the ymm register
     for (int i = 0; i < (int)this->registerCount; i++) {
       cb.vmovapd(
-          zmmword_ptr(pointer_reg, -64 - this->registerSize * 8 * (i + 1)),
-          Zmm(i));
+          ymmword_ptr(pointer_reg, -64 - this->registerSize * 8 * (i + 1)),
+          Ymm(i));
     }
 
     // set read flag
