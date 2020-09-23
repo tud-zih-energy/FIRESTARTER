@@ -39,12 +39,12 @@ public:
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings(void) override {
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 8},
-                                                          {"L3_L", 53},
-                                                          {"L2_L", 37},
-                                                          {"L1_2LS_256", 33},
-                                                          {"L1_LS_256", 66},
-                                                          {"REG", 22}});
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 10},
+                                                          {"L3_L", 25},
+                                                          {"L2_L", 91},
+                                                          {"L1_2LS_256", 72},
+                                                          {"L1_LS_256", 82},
+                                                          {"REG", 75}});
   }
 };
 } // namespace firestarter::environment::x86::platform
