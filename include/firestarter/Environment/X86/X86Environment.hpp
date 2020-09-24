@@ -55,7 +55,6 @@ public:
   X86Environment()
       : Environment("x86_64"), cpuInfo(asmjit::CpuInfo::host()),
         cpuFeatures(cpuInfo.features<asmjit::x86::Features>()){};
-  ~X86Environment(){};
 
   unsigned long long timestamp(void) override;
 

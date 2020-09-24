@@ -64,10 +64,7 @@ public:
   };
 
   ~Firestarter(void) {
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-    delete dynamic_cast<environment::x86::X86Environment *>(_environment);
-#endif
+    delete _environment;
 
 #ifdef BUILD_CUDA
     free(this->gpuStructPointer);

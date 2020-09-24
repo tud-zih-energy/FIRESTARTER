@@ -37,7 +37,7 @@ class Environment {
 public:
   // Environment.cpp
   Environment(std::string architecture);
-  ~Environment(void);
+  virtual ~Environment(void);
 
   // Environment.cpp
   int evaluateEnvironment(void);
