@@ -145,7 +145,9 @@ int main(int argc, char **argv) {
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
-      cxxopts::value<unsigned>()->implicit_value("10"), "DELAY");
+      cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
+    ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
+      cxxopts::value<std::string>()->default_value(""));
   // clang-format on
 
   try {
@@ -328,8 +330,10 @@ int main(int argc, char **argv) {
 
     if (dumpRegisters) {
       auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
-      if (EXIT_SUCCESS != (returnCode = firestarter->initDumpRegisterWorker(
-                               std::chrono::seconds(dumpTimeDelta)))) {
+      if (EXIT_SUCCESS !=
+          (returnCode = firestarter->initDumpRegisterWorker(
+               std::chrono::seconds(dumpTimeDelta),
+               options["dump-registers-outpath"].as<std::string>()))) {
         delete firestarter;
         return returnCode;
       }

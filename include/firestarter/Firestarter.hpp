@@ -91,7 +91,8 @@ public:
                      std::chrono::seconds timeout);
 
   // DumpRegisterWorker.cpp
-  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta);
+  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
+                             std::string dumpFilePath);
   void joinDumpRegisterWorker(void);
 
 private:

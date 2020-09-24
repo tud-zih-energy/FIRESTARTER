@@ -25,6 +25,7 @@
 #include <firestarter/LoadWorkerData.hpp>
 
 #include <chrono>
+#include <filesystem>
 
 namespace firestarter {
 
@@ -47,12 +48,21 @@ struct DumpRegisterStruct {
 class DumpRegisterWorkerData {
 public:
   DumpRegisterWorkerData(LoadWorkerData *loadWorkerData,
-                         std::chrono::seconds dumpTimeDelta)
-      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta){};
+                         std::chrono::seconds dumpTimeDelta,
+                         std::string dumpFilePath)
+      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
+    // if dumpFilePath is empty, use current working directory
+    if (dumpFilePath.empty()) {
+      this->dumpFilePath = std::filesystem::current_path();
+    } else {
+      this->dumpFilePath = std::filesystem::path(dumpFilePath);
+    }
+  };
   ~DumpRegisterWorkerData(){};
 
   LoadWorkerData *const loadWorkerData;
   const std::chrono::seconds dumpTimeDelta;
+  std::filesystem::path dumpFilePath;
 };
 
 } // namespace firestarter

@@ -22,6 +22,7 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+#include <fstream>
 #include <thread>
 
 using namespace firestarter;
@@ -51,10 +52,11 @@ static std::string registerNameBySize(unsigned registerSize) {
 }
 } // namespace
 
-int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta) {
+int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
+                                        std::string dumpFilePath) {
 
   auto data = new DumpRegisterWorkerData(this->loadThreads.begin()->second,
-                                         dumpTimeDelta);
+                                         dumpTimeDelta, dumpFilePath);
 
   pthread_create(&this->dumpRegisterWorkerThread, NULL, dumpRegisterWorker,
                  std::ref(data));
@@ -95,6 +97,30 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
   unsigned long long *current = reinterpret_cast<unsigned long long *>(
       malloc(sizeof(unsigned long long) * offset));
 
+  auto dumpFile = std::ofstream(data->dumpFilePath / "hamming_distance.csv");
+
+  // dump the header to the csv file
+  dumpFile << "total_hamming_distance,";
+  for (int i = 0; i < registerCount; i++) {
+    for (int j = 0; j < registerSize; j++) {
+      dumpFile << registerPrefix << i << "[" << j << "]";
+
+      if (j != registerSize - 1) {
+        dumpFile << ",";
+      }
+    }
+
+    if (i != registerCount - 1) {
+      dumpFile << ",";
+    }
+  }
+  dumpFile << std::endl << std::flush;
+
+  // do not output the hamming distance for the first run
+  bool skipFirst = true;
+
+  // continue until stop and dump the registers every data->dumpTimeDelta
+  // seconds
   for (; *data->loadWorkerData->addrHigh != LOAD_STOP;) {
     // signal the thread to dump its largest SIMD registers
     *dumpVar = DumpVariable::Start;
@@ -107,35 +133,47 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
     std::memcpy(current, (void *)dumpMemAddr,
                 sizeof(unsigned long long) * offset);
 
-    log::trace() << "DUMP:";
-
-    for (int i = registerCount - 1; i >= 0; i--) {
-      auto registerNum = registerCount - 1 - i;
-
-      std::stringstream valSs;
-      std::stringstream hdSs;
-
-      valSs << registerPrefix << registerNum << " ";
-      hdSs << registerPrefix << registerNum << " ";
-
-      for (auto j = 0; j < registerSize; j++) {
-        auto index = registerSize * i + j;
-        auto v = reinterpret_cast<double *>(current)[index];
-        auto hd = static_cast<unsigned long long>(
-            hammingDistance(current[index], last[index]));
-
-        valSs << v << " ";
-        hdSs << hd << " ";
+    // skip the first output, as we first have to get some valid values for last
+    if (!skipFirst) {
+      // calculate the total hamming distance
+      int totalHammingDistance = 0;
+      for (int i = 0; i < registerCount * registerSize; i++) {
+        totalHammingDistance += hammingDistance(current[i], last[i]);
       }
 
-      log::trace() << valSs.str();
-      log::trace() << hdSs.str();
+      dumpFile << totalHammingDistance << ",";
+
+      // dump the hamming distance of each double (last, current) pair
+      for (int i = registerCount - 1; i >= 0; i--) {
+        auto registerNum = registerCount - 1 - i;
+
+        for (auto j = 0; j < registerSize; j++) {
+          auto index = registerSize * i + j;
+          auto hd = static_cast<unsigned long long>(
+              hammingDistance(current[index], last[index]));
+
+          dumpFile << hd;
+          if (j != registerSize - 1) {
+            dumpFile << ",";
+          }
+        }
+
+        if (i != 0) {
+          dumpFile << ",";
+        }
+      }
+
+      dumpFile << std::endl << std::flush;
+    } else {
+      skipFirst = false;
     }
 
     std::memcpy(last, current, sizeof(unsigned long long) * offset);
 
     std::this_thread::sleep_for(std::chrono::seconds(data->dumpTimeDelta));
   }
+
+  dumpFile.close();
 
   free(last);
   free(current);
