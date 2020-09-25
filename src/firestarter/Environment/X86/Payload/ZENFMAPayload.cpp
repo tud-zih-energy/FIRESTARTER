@@ -107,7 +107,7 @@ int ZENFMAPayload::compilePayload(
   auto iter_reg = mm0;
   auto shift_reg = std::vector<Gp>({rdi, rsi, rdx});
   auto nr_shift_regs = 3;
-  auto fma_io_regs = 6;
+  auto nr_add_regs = 11;
   auto ram_reg = ymm15;
 
   FuncDetail func;
@@ -159,11 +159,11 @@ int ZENFMAPayload::compilePayload(
   }
   // Initialize AVX-Registers for FMA Operations
   cb.vmovapd(ymm0, ymmword_ptr(pointer_reg));
-  auto fma_input_start = 1;
-  auto fma_input_end = fma_input_start + fma_io_regs - 1;
-  auto fma_output_start = fma_input_end + 1;
-  auto fma_output_end = fma_output_start + fma_io_regs - 1;
-  for (int i = fma_input_start; i < fma_output_end; i++) {
+  cb.vmovapd(ymm1, ymmword_ptr(pointer_reg, 32));
+
+  auto add_regs_start = 2;
+  auto add_regs_end = add_regs_start + nr_add_regs - 1;
+  for (int i = add_regs_start; i <= add_regs_end; i++) {
     cb.vmovapd(Ymm(i), ymmword_ptr(pointer_reg, 256 + i * 32));
   }
 
@@ -203,7 +203,7 @@ int ZENFMAPayload::compilePayload(
   auto shift_pos = 0;
   bool left = false;
   auto itemCount = 0;
-  auto fma_pos = 0;
+  auto add_dest = add_regs_start;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT()                                                         \
@@ -223,9 +223,21 @@ int ZENFMAPayload::compilePayload(
 
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
+
+      // swap second and third param of fma instruction to force bitchanges on
+      // the pipes to its execution units
+      Ymm secondParam;
+      Ymm thirdParam;
+      if (0 == itemCount % 2) {
+        secondParam = ymm0;
+        thirdParam = ymm1;
+      } else {
+        secondParam = ymm1;
+        thirdParam = ymm0;
+      }
+
       if (item == "REG") {
-        cb.vfmadd231pd(Ymm(fma_input_start + fma_pos), ymm0,
-                       Ymm(fma_output_start + fma_pos));
+        cb.vfmadd231pd(Ymm(add_dest), secondParam, thirdParam);
         cb.xor_(temp_reg,
                 shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs]);
         if (left) {
@@ -234,24 +246,21 @@ int ZENFMAPayload::compilePayload(
           cb.shl(shift_reg[shift_pos], Imm(1));
         }
       } else if (item == "L1_LS") {
-        cb.vfmadd231pd(Ymm(fma_input_start + fma_pos), ymm0,
-                       ymmword_ptr(l1_addr, 32));
-        cb.vmovapd(ymmword_ptr(l1_addr, 64), Ymm(fma_input_start + fma_pos));
+        cb.vfmadd231pd(Ymm(add_dest), secondParam, ymmword_ptr(l1_addr, 32));
+        cb.vmovapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         L1_INCREMENT();
       } else if (item == "L2_L") {
-        cb.vfmadd231pd(Ymm(fma_input_start + fma_pos), ymm0,
-                       ymmword_ptr(l2_addr, 64));
+        cb.vfmadd231pd(Ymm(add_dest), secondParam, ymmword_ptr(l2_addr, 64));
         cb.xor_(temp_reg,
                 shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs]);
         L2_INCREMENT();
       } else if (item == "L3_L") {
-        cb.vfmadd231pd(Ymm(fma_input_start + fma_pos), ymm0,
-                       ymmword_ptr(l3_addr, 64));
+        cb.vfmadd231pd(Ymm(add_dest), secondParam, ymmword_ptr(l3_addr, 64));
         cb.xor_(temp_reg,
                 shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs]);
         L3_INCREMENT();
       } else if (item == "RAM_L") {
-        cb.vfmadd231pd(Ymm(ram_reg), ymm0, ymmword_ptr(ram_addr, 32));
+        cb.vfmadd231pd(Ymm(ram_reg), secondParam, ymmword_ptr(ram_addr, 32));
         cb.xor_(temp_reg,
                 shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs]);
         RAM_INCREMENT();
@@ -261,23 +270,32 @@ int ZENFMAPayload::compilePayload(
         return EXIT_FAILURE;
       }
 
-      switch (itemCount % 4) {
-      case 0:
-        cb.vpsrlq(Xmm(13), Xmm(13), Imm(1));
-        break;
-      case 1:
-        cb.vpsllq(Xmm(14), Xmm(14), Imm(1));
-        break;
-      case 2:
-        cb.vpsllq(Xmm(13), Xmm(13), Imm(1));
-        break;
-      case 3:
-        cb.vpsrlq(Xmm(14), Xmm(14), Imm(1));
-        break;
+      // make sure the shifts do could end up shifting out the data one end.
+      if (itemCount < (int)(sequence.size() * repetitions -
+                            (sequence.size() * repetitions) % 4)) {
+        switch (itemCount % 4) {
+        case 0:
+          cb.vpsrlq(Xmm(13), Xmm(13), Imm(1));
+          break;
+        case 1:
+          cb.vpsllq(Xmm(14), Xmm(14), Imm(1));
+          break;
+        case 2:
+          cb.vpsllq(Xmm(13), Xmm(13), Imm(1));
+          break;
+        case 3:
+          cb.vpsrlq(Xmm(14), Xmm(14), Imm(1));
+          break;
+        }
       }
 
       itemCount++;
-      fma_pos = (fma_pos + 1) % fma_io_regs;
+
+      add_dest++;
+      if (add_dest > add_regs_end) {
+        add_dest = add_regs_start;
+      }
+
       shift_pos++;
       if (shift_pos == nr_shift_regs) {
         shift_pos = 0;
