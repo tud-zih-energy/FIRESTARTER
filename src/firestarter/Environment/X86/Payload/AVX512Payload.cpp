@@ -217,7 +217,6 @@ int AVX512Payload::compilePayload(
 
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
-      // TODO: add different instructions
       if (item == "REG") {
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmm2);
         cb.vfmadd231pd(Zmm(mov_dst), zmm2, zmm1);
