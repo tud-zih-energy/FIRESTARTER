@@ -70,7 +70,9 @@ void Firestarter::joinDumpRegisterWorker(void) {
 
 void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
+#ifndef __APPLE__
   pthread_setname_np(pthread_self(), "DumpRegWorker");
+#endif
 
   auto data = reinterpret_cast<DumpRegisterWorkerData *>(dumpRegisterData);
 

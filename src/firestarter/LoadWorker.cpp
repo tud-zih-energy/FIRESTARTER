@@ -221,7 +221,9 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
           ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
           : 0;
 
+#ifndef __APPLE__
   pthread_setname_np(pthread_self(), "LoadWorker");
+#endif
 
   for (;;) {
     td->mutex.lock();
