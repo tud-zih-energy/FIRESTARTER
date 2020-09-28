@@ -147,7 +147,7 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
       // dump the hamming distance of each double (last, current) pair
       for (int i = registerCount - 1; i >= 0; i--) {
-        auto registerNum = registerCount - 1 - i;
+        // auto registerNum = registerCount - 1 - i;
 
         for (auto j = 0; j < registerSize; j++) {
           auto index = registerSize * i + j;
