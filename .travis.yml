@@ -20,12 +20,41 @@ jobs:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - gcc-7
-            - g++-7
+            - gcc-9
+            - g++-9
       env:
-        - CC="gcc-7"
-        - CXX="g++-7"
-        - CUDA=6.5
+        - CC="gcc-9"
+        - CXX="g++-9"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-9
+            - libstdc++-9-dev
+      env:
+        - CC="clang-9"
+        - CXX="clang++-9"
+    - os: linux
+      arch: amd64
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-11
+            - libstdc++-9-dev
+      env:
+        - CC="clang-11"
+        - CXX="clang++-11"
     - os: linux
       arch: amd64
       addons:
@@ -45,13 +74,14 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-7
-            - libstdc++-7-dev
+            - clang-9
+            - libstdc++-9-dev
       env:
-        - CC="clang-7"
-        - CXX="clang++-7"
+        - CC="clang-9"
+        - CXX="clang++-9"
         - CUDA=6.5
     - os: linux
       arch: amd64
@@ -59,11 +89,13 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
             - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-11
-            - libstdc++-7-dev
+            - libstdc++-9-dev
       env:
         - CC="clang-11"
         - CXX="clang++-11"
@@ -75,19 +107,6 @@ jobs:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - gcc-7
-            - g++-7
-      env:
-        - CC="gcc-7"
-        - CXX="g++-7"
-        - CUDA=8.0
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
             - gcc-9
             - g++-9
       env:
@@ -100,13 +119,14 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-7
-            - libstdc++-7-dev
+            - clang-9
+            - libstdc++-9-dev
       env:
-        - CC="clang-7"
-        - CXX="clang++-7"
+        - CC="clang-9"
+        - CXX="clang++-9"
         - CUDA=8.0
     - os: linux
       arch: amd64
@@ -114,28 +134,17 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
             - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-11
-            - libstdc++-7-dev
+            - libstdc++-9-dev
       env:
         - CC="clang-11"
         - CXX="clang++-11"
         - CUDA=8.0
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gcc-7
-            - g++-7
-      env:
-        - CC="gcc-7"
-        - CXX="g++-7"
-        - CUDA=11.0
     - os: linux
       arch: amd64
       addons:
@@ -155,13 +164,14 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-7
-            - libstdc++-7-dev
+            - clang-9
+            - libstdc++-9-dev
       env:
-        - CC="clang-7"
-        - CXX="clang++-7"
+        - CC="clang-9"
+        - CXX="clang++-9"
         - CUDA=11.0
     - os: linux
       arch: amd64
@@ -169,66 +179,17 @@ jobs:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-9 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
             - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-11
-            - libstdc++-7-dev
+            - libstdc++-9-dev
       env:
         - CC="clang-11"
         - CXX="clang++-11"
         - CUDA=11.0
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gcc-7
-            - g++-7
-      env:
-        - CC="gcc-7"
-        - CXX="g++-7"
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - gcc-9
-            - g++-9
-      env:
-        - CC="gcc-9"
-        - CXX="g++-9"
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-xenial-7
-          packages:
-            - clang-7
-            - libstdc++-7-dev
-      env:
-        - CC="clang-7"
-        - CXX="clang++-7"
-    - os: linux
-      arch: amd64
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - clang-11
-            - libstdc++-7-dev
-      env:
-        - CC="clang-11"
-        - CXX="clang++-11"
 
 install:
   - echo $CUDA

@@ -19,6 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#ifdef DEBUG_FEATURES
+
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
@@ -70,9 +72,7 @@ void Firestarter::joinDumpRegisterWorker(void) {
 
 void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
-#ifndef __APPLE__
   pthread_setname_np(pthread_self(), "DumpRegWorker");
-#endif
 
   auto data = reinterpret_cast<DumpRegisterWorkerData *>(dumpRegisterData);
 
@@ -182,3 +182,5 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
   return NULL;
 }
+
+#endif

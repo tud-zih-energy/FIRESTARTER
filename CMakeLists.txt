@@ -36,6 +36,11 @@ else()
 	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections -Wl,--strip-all")
 endif()
 
+# enable debug features on linux
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_FEATURES")
+endif()
+
 if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()

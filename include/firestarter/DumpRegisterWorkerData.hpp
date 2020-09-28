@@ -25,7 +25,6 @@
 #include <firestarter/LoadWorkerData.hpp>
 
 #include <chrono>
-#include <filesystem>
 
 namespace firestarter {
 
@@ -44,6 +43,16 @@ struct DumpRegisterStruct {
 };
 
 #undef REGISTER_MAX_NUM
+
+} // namespace firestarter
+
+#ifdef DEBUG_FEATURES
+
+// current mingw gcc version 8 has a bug, which causes this include to abort the
+// compilation
+#include <filesystem>
+
+namespace firestarter {
 
 class DumpRegisterWorkerData {
 public:
@@ -66,5 +75,7 @@ public:
 };
 
 } // namespace firestarter
+
+#endif
 
 #endif

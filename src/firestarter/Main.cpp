@@ -138,16 +138,20 @@ int main(int argc, char **argv) {
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
-      cxxopts::value<bool>()->default_value("false"))
     ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.",
       cxxopts::value<bool>()->default_value("false"))
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
+#ifdef DEBUG_FEATURES
+    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
+      cxxopts::value<bool>()->default_value("false"))
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
       cxxopts::value<std::string>()->default_value(""));
+#else
+    ;
+#endif
   // clang-format on
 
   try {
@@ -203,6 +207,7 @@ int main(int argc, char **argv) {
       period = std::chrono::microseconds::zero();
     }
 
+#ifdef DEBUG_FEATURES
     bool dumpRegisters = options.count("dump-registers");
     if (dumpRegisters) {
       if (timeout != std::chrono::microseconds::zero() && loadPercent != 100) {
@@ -210,6 +215,9 @@ int main(int argc, char **argv) {
                                     "without a timeout and full load.");
       }
     }
+#else
+    bool dumpRegisters = false;
+#endif
 
     unsigned requestedNumThreads = options["threads"].as<unsigned>();
 
@@ -328,6 +336,7 @@ int main(int argc, char **argv) {
 
     firestarter->signalWork();
 
+#ifdef DEBUG_FEATURES
     if (dumpRegisters) {
       auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
       if (EXIT_SUCCESS !=
@@ -338,15 +347,18 @@ int main(int argc, char **argv) {
         return returnCode;
       }
     }
+#endif
 
     // worker thread for load control
     firestarter->watchdogWorker(period, load, timeout);
 
     // wait for watchdog to timeout or until user terminates
     firestarter->joinLoadWorkers();
+#ifdef DEBUG_FEATURES
     if (dumpRegisters) {
       firestarter->joinDumpRegisterWorker();
     }
+#endif
 
     firestarter->printPerformanceReport();
 

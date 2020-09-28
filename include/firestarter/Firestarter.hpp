@@ -90,10 +90,12 @@ public:
                      std::chrono::microseconds load,
                      std::chrono::seconds timeout);
 
+#ifdef DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
   void joinDumpRegisterWorker(void);
+#endif
 
 private:
   environment::Environment *_environment;
@@ -109,15 +111,19 @@ private:
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
+#ifdef DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
+#endif
 
   // variable to control the load of the threads
   volatile unsigned long long loadVar = LOAD_LOW;
 
   std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
 
+#ifdef DEBUG_FEATURES
   pthread_t dumpRegisterWorkerThread;
+#endif
 };
 
 } // namespace firestarter
