@@ -24,6 +24,10 @@
 #include <cerrno>
 #include <csignal>
 
+#ifdef ENABLE_SCOREP
+#include <SCOREP_User.h>
+#endif
+
 #define NSEC_PER_SEC 1000000000
 
 #define DO_SLEEP(sleepret, target, remaining)                                  \
