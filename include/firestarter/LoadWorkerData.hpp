@@ -47,13 +47,13 @@ public:
                  unsigned long long period, bool dumpRegisters)
       : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
         _id(id), _environment(environment),
-        _config(
-            new environment::platform::Config(*environment->selectedConfig)){};
+        _config(new environment::platform::RuntimeConfig(
+            *environment->selectedConfig)){};
   ~LoadWorkerData(){};
 
   const int &id = _id;
   environment::Environment *const &environment = _environment;
-  environment::platform::Config *const &config = _config;
+  environment::platform::RuntimeConfig *const &config = _config;
 
   int comm = THREAD_WAIT;
   bool ack = false;
@@ -73,7 +73,7 @@ public:
 private:
   int _id;
   environment::Environment *_environment;
-  environment::platform::Config *_config;
+  environment::platform::RuntimeConfig *_config;
 };
 
 } // namespace firestarter

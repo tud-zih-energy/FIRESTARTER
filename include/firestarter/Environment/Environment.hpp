@@ -22,8 +22,8 @@
 #ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
 #define INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
 
-#include <firestarter/Environment/Platform/Config.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
+#include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 
 #include <vector>
 
@@ -59,13 +59,13 @@ public:
   virtual void printSelectedCodePathSummary(void) = 0;
   virtual void printFunctionSummary(void) = 0;
 
-  platform::Config *const &selectedConfig = _selectedConfig;
+  platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
 
   const unsigned long long &requestedNumThreads = _requestedNumThreads;
   const unsigned long long &clockrate = _clockrate;
 
 protected:
-  platform::Config *_selectedConfig = nullptr;
+  platform::RuntimeConfig *_selectedConfig = nullptr;
 
   // CpuAffinity.cpp
   unsigned long long _requestedNumThreads;
@@ -78,6 +78,7 @@ protected:
   std::string vendor = std::string("");
   std::string processorName = std::string("");
   unsigned long long _clockrate = 0;
+  unsigned instructionCacheSize = 0;
 
   // CpuClockrate.cpp
   std::stringstream getScalingGovernor(void);

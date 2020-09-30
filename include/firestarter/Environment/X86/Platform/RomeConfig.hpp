@@ -31,7 +31,7 @@ class RomeConfig : public X86PlatformConfig {
 public:
   RomeConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
              unsigned model, unsigned threads)
-      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2},
+      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0,
                           {32768, 524288, 2097152}, 104857600, family, model,
                           threads,
                           new payload::FMAPayload(supportedFeatures)){};

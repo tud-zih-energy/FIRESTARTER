@@ -31,8 +31,9 @@ using namespace asmjit::x86;
 
 int FMA4Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> proportion,
-    std::list<unsigned> dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
+    unsigned instructionCacheSize, std::list<unsigned> dataCacheBufferSize,
+    unsigned ramBufferSize, unsigned thread, unsigned numberOfLines,
+    bool dumpRegisters) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -65,6 +66,7 @@ int FMA4Payload::compilePayload(
   this->_bytes = repetitions * bytes;
 
   // calculate the buffer sizes
+  auto l1i_cache_size = instructionCacheSize / thread;
   auto dataCacheBufferSizeIterator = dataCacheBufferSize.begin();
   auto l1_size = *dataCacheBufferSizeIterator / thread;
   std::advance(dataCacheBufferSizeIterator, 1);
@@ -416,6 +418,26 @@ int FMA4Payload::compilePayload(
     log::error() << "Asmjit adding Assembler to JitRuntime failed in "
                  << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
+  }
+
+  // skip if we could not determine cache size
+  if (l1i_cache_size != 0) {
+    auto loopSize = code.labelOffset(FunctionExit) - code.labelOffset(Loop);
+    auto instructionCachePercentage = 100 * loopSize / l1i_cache_size;
+
+    if (instructionCachePercentage < 70) {
+      log::warn() << "Using less than 70% of L1i-Cache.";
+    }
+
+    if (loopSize > l1i_cache_size) {
+      log::warn() << "Work-loop is bigger than the L1i-Cache.";
+    }
+
+    log::trace() << "Using " << loopSize << " of " << l1i_cache_size
+                 << " Bytes (" << instructionCachePercentage
+                 << "%) from the L1i-Cache for the work-loop.";
+    log::trace() << "Sequence size: " << sequence.size();
+    log::trace() << "Repetition count: " << repetitions;
   }
 
   return EXIT_SUCCESS;
