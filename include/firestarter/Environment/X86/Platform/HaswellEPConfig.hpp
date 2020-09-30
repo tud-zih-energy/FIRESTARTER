@@ -32,8 +32,8 @@ public:
   HaswellEPConfig(const asmjit::x86::Features *supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0,
-                          {32768, 262144, 2621440}, 104857600, family, model,
-                          threads,
+                          {32768, 262144, 2621440}, 104857600, 1536, family,
+                          model, threads,
                           new payload::FMAPayload(supportedFeatures)){};
   ~HaswellEPConfig(){};
 

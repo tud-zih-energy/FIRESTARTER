@@ -32,8 +32,8 @@ public:
   BulldozerConfig(const asmjit::x86::Features *supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0,
-                          {16384, 1048576, 786432}, 104857600, family, model,
-                          threads,
+                          {16384, 1048576, 786432}, 104857600, 1536, family,
+                          model, threads,
                           new payload::FMA4Payload(supportedFeatures)){};
   ~BulldozerConfig(){};
 

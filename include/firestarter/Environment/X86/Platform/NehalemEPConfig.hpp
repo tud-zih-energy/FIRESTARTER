@@ -32,8 +32,8 @@ public:
   NehalemEPConfig(const asmjit::x86::Features *supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
-                          {32768, 262144, 2097152}, 104857600, family, model,
-                          threads,
+                          {32768, 262144, 2097152}, 104857600, 1536, family,
+                          model, threads,
                           new payload::SSE2Payload(supportedFeatures)){};
   ~NehalemEPConfig(){};
 

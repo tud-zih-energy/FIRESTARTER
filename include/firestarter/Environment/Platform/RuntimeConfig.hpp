@@ -35,6 +35,7 @@ private:
   unsigned _instructionCacheSize;
   std::list<unsigned> _dataCacheBufferSize;
   unsigned _ramBufferSize;
+  unsigned _lines;
 
 public:
   RuntimeConfig(PlatformConfig *platformConfig, unsigned thread,
@@ -43,7 +44,8 @@ public:
         _payloadSettings(platformConfig->getDefaultPayloadSettings()),
         _instructionCacheSize(platformConfig->instructionCacheSize),
         _dataCacheBufferSize(platformConfig->dataCacheBufferSize),
-        _ramBufferSize(platformConfig->ramBufferSize) {
+        _ramBufferSize(platformConfig->ramBufferSize),
+        _lines(platformConfig->lines) {
     if (detectedInstructionCacheSize != 0) {
       this->_instructionCacheSize = detectedInstructionCacheSize;
     }
@@ -52,9 +54,9 @@ public:
       : _platformConfig(c.platformConfig),
         _payload(c.platformConfig->payload->clone()), _thread(c.thread),
         _payloadSettings(c.payloadSettings),
-        _instructionCacheSize(c._instructionCacheSize),
-        _dataCacheBufferSize(c._dataCacheBufferSize),
-        _ramBufferSize(c._ramBufferSize){};
+        _instructionCacheSize(c.instructionCacheSize),
+        _dataCacheBufferSize(c.dataCacheBufferSize),
+        _ramBufferSize(c.ramBufferSize), _lines(c.lines){};
   ~RuntimeConfig(void);
 
   PlatformConfig *const &platformConfig = _platformConfig;
@@ -65,6 +67,7 @@ public:
   const unsigned &instructionCacheSize = _instructionCacheSize;
   const std::list<unsigned> &dataCacheBufferSize = _dataCacheBufferSize;
   const unsigned &ramBufferSize = _ramBufferSize;
+  const unsigned &lines = _lines;
 
   void setPayloadSettings(
       std::vector<std::pair<std::string, unsigned>> payloadSettings) {

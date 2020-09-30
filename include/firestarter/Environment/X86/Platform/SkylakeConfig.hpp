@@ -32,8 +32,8 @@ public:
   SkylakeConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
                 unsigned model, unsigned threads)
       : X86PlatformConfig("SKL_COREI", 6, {78, 94}, {1, 2}, 0,
-                          {32768, 262144, 1572864}, 104857600, family, model,
-                          threads,
+                          {32768, 262144, 1572864}, 104857600, 1536, family,
+                          model, threads,
                           new payload::FMAPayload(supportedFeatures)){};
   ~SkylakeConfig(){};
 

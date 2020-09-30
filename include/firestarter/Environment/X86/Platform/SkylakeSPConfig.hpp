@@ -32,8 +32,8 @@ public:
   SkylakeSPConfig(const asmjit::x86::Features *supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0,
-                          {32768, 1048576, 1441792}, 1048576000, family, model,
-                          threads,
+                          {32768, 1048576, 1441792}, 1048576000, 1536, family,
+                          model, threads,
                           new payload::AVX512Payload(supportedFeatures)){};
 
   ~SkylakeSPConfig(){};

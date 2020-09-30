@@ -32,8 +32,8 @@ public:
   KnightsLandingConfig(const asmjit::x86::Features *supportedFeatures,
                        unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4}, 0,
-                          {32768, 524288, 236279125}, 26214400, family, model,
-                          threads,
+                          {32768, 524288, 236279125}, 26214400, 1536, family,
+                          model, threads,
                           new payload::AVX512Payload(supportedFeatures)){};
   ~KnightsLandingConfig(){};
 

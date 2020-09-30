@@ -43,22 +43,25 @@ protected:
   unsigned _instructionCacheSize;
   std::list<unsigned> _dataCacheBufferSize;
   unsigned _ramBufferSize;
+  unsigned _lines;
 
 public:
   PlatformConfig(std::string name, std::list<unsigned> threads,
                  unsigned instructionCacheSize,
                  std::initializer_list<unsigned> dataCacheBufferSize,
-                 unsigned ramBufferSize, payload::Payload *payload)
+                 unsigned ramBufferSize, unsigned lines,
+                 payload::Payload *payload)
       : _name(name), _threads(threads), _payload(payload),
         _instructionCacheSize(instructionCacheSize),
         _dataCacheBufferSize(dataCacheBufferSize),
-        _ramBufferSize(ramBufferSize){};
+        _ramBufferSize(ramBufferSize), _lines(lines){};
   ~PlatformConfig(){};
 
   const std::string &name = _name;
   const unsigned &instructionCacheSize = _instructionCacheSize;
   const std::list<unsigned> &dataCacheBufferSize = _dataCacheBufferSize;
   const unsigned &ramBufferSize = _ramBufferSize;
+  const unsigned &lines = _lines;
   payload::Payload *const &payload = _payload;
 
   std::map<unsigned, std::string> getThreadMap(void) {
