@@ -56,6 +56,7 @@ public:
                              bool allowUnavailablePayload) = 0;
   virtual int selectInstructionGroups(std::string groups) = 0;
   virtual void printAvailableInstructionGroups(void) = 0;
+  virtual void setLineCount(unsigned lineCount) = 0;
   virtual void printSelectedCodePathSummary(void) = 0;
   virtual void printFunctionSummary(void) = 0;
 

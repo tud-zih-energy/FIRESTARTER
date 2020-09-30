@@ -196,6 +196,10 @@ void X86Environment::printAvailableInstructionGroups() {
   }
 }
 
+void X86Environment::setLineCount(unsigned lineCount) {
+  this->selectedConfig->setLineCount(lineCount);
+}
+
 void X86Environment::printSelectedCodePathSummary() {
   if (this->selectedConfig != nullptr) {
     this->selectedConfig->printCodePathSummary();

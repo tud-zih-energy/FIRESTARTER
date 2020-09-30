@@ -142,6 +142,8 @@ int main(int argc, char **argv) {
       cxxopts::value<bool>()->default_value("false"))
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
+    ("set-line-count", "Set the number of lines for a payload.",
+      cxxopts::value<unsigned>()->default_value("0"))
 #ifdef DEBUG_FEATURES
     ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
       cxxopts::value<bool>()->default_value("false"))
@@ -308,6 +310,11 @@ int main(int argc, char **argv) {
         delete firestarter;
         return returnCode;
       }
+    }
+
+    unsigned lineCount = options["set-line-count"].as<unsigned>();
+    if (lineCount != 0) {
+      firestarter->environment->setLineCount(lineCount);
     }
 
     firestarter->environment->printSelectedCodePathSummary();

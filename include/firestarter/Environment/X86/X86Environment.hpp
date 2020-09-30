@@ -63,6 +63,7 @@ public:
                      bool allowUnavailablePayload) override;
   int selectInstructionGroups(std::string groups) override;
   void printAvailableInstructionGroups(void) override;
+  void setLineCount(unsigned lineCount) override;
   void printSelectedCodePathSummary(void) override;
   void printFunctionSummary(void) override;
 

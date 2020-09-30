@@ -74,6 +74,8 @@ public:
     this->_payloadSettings = payloadSettings;
   }
 
+  void setLineCount(unsigned lineCount) { this->_lines = lineCount; }
+
   void printCodePathSummary(void) {
     log::info() << "\n"
                 << "  Taking " << platformConfig->payload->name
