@@ -422,10 +422,6 @@ int SSE2Payload::compilePayload(
     auto loopSize = code.labelOffset(FunctionExit) - code.labelOffset(Loop);
     auto instructionCachePercentage = 100 * loopSize / l1i_cache_size;
 
-    if (instructionCachePercentage < 70) {
-      log::warn() << "Using less than 70% of L1i-Cache.";
-    }
-
     if (loopSize > l1i_cache_size) {
       log::warn() << "Work-loop is bigger than the L1i-Cache.";
     }
