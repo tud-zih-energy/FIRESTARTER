@@ -19,23 +19,23 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_CONFIG_HPP
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_CONFIG_HPP
+#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
+#define INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
 
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
 namespace firestarter::environment::platform {
 
-class Config {
+class RuntimeConfig {
 public:
-  Config(PlatformConfig *platformConfig, unsigned thread)
+  RuntimeConfig(PlatformConfig *platformConfig, unsigned thread)
       : _platformConfig(platformConfig), _payload(nullptr), _thread(thread),
         _payloadSettings(platformConfig->getDefaultPayloadSettings()){};
-  Config(const Config &c)
+  RuntimeConfig(const RuntimeConfig &c)
       : _platformConfig(c.platformConfig),
         _payload(c.platformConfig->payload->clone()), _thread(c.thread),
         _payloadSettings(c.payloadSettings){};
-  ~Config(void);
+  ~RuntimeConfig(void);
 
   PlatformConfig *const &platformConfig = _platformConfig;
   payload::Payload *const &payload = _payload;

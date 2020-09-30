@@ -63,14 +63,16 @@ int X86Environment::selectFunction(unsigned functionId,
         }
         // found function
         this->_selectedConfig =
-            new ::firestarter::environment::platform::Config(config, thread);
+            new ::firestarter::environment::platform::RuntimeConfig(config,
+                                                                    thread);
         return EXIT_SUCCESS;
       }
       // default function
       if (0 == functionId && config->isDefault()) {
         if (thread == this->getNumberOfThreadsPerCore()) {
           this->_selectedConfig =
-              new ::firestarter::environment::platform::Config(config, thread);
+              new ::firestarter::environment::platform::RuntimeConfig(config,
+                                                                      thread);
           return EXIT_SUCCESS;
         } else {
           defaultPayloadName = config->payload->name;
@@ -110,8 +112,8 @@ int X86Environment::selectFunction(unsigned functionId,
           selectedFunctionName = config->getThreadMap().begin()->second;
         }
         this->_selectedConfig =
-            new ::firestarter::environment::platform::Config(config,
-                                                             selectedThread);
+            new ::firestarter::environment::platform::RuntimeConfig(
+                config, selectedThread);
         log::warn() << "Using function " << selectedFunctionName
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
