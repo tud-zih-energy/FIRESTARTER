@@ -31,7 +31,7 @@ class NaplesConfig : public X86PlatformConfig {
 public:
   NaplesConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
                unsigned model, unsigned threads)
-      : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2},
+      : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0,
                           {65536, 524288, 2097152}, 104857600, family, model,
                           threads,
                           new payload::ZENFMAPayload(supportedFeatures)){};

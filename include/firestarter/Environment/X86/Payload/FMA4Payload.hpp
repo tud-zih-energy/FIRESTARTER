@@ -35,6 +35,7 @@ public:
             "FMA4", 4, 16){};
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
+                     unsigned instructionCacheSize,
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
                      unsigned numberOfLines, bool dumpRegisters) override;

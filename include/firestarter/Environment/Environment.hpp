@@ -78,6 +78,7 @@ protected:
   std::string vendor = std::string("");
   std::string processorName = std::string("");
   unsigned long long _clockrate = 0;
+  unsigned instructionCacheSize = 0;
 
   // CpuClockrate.cpp
   std::stringstream getScalingGovernor(void);

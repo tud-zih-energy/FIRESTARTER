@@ -40,19 +40,23 @@ private:
   payload::Payload *_payload;
 
 protected:
+  unsigned _instructionCacheSize;
   std::list<unsigned> _dataCacheBufferSize;
   unsigned _ramBufferSize;
 
 public:
   PlatformConfig(std::string name, std::list<unsigned> threads,
+                 unsigned instructionCacheSize,
                  std::initializer_list<unsigned> dataCacheBufferSize,
                  unsigned ramBufferSize, payload::Payload *payload)
       : _name(name), _threads(threads), _payload(payload),
+        _instructionCacheSize(instructionCacheSize),
         _dataCacheBufferSize(dataCacheBufferSize),
         _ramBufferSize(ramBufferSize){};
   ~PlatformConfig(){};
 
   const std::string &name = _name;
+  const unsigned &instructionCacheSize = _instructionCacheSize;
   const std::list<unsigned> &dataCacheBufferSize = _dataCacheBufferSize;
   const unsigned &ramBufferSize = _ramBufferSize;
   payload::Payload *const &payload = _payload;
@@ -68,20 +72,6 @@ public:
     }
 
     return threadMap;
-  }
-
-  void printCodePathSummary(unsigned thread) {
-    log::info() << "\n"
-                << "  Taking " << payload->name << " path optimized for "
-                << name << " - " << thread << " thread(s) per core\n"
-                << "  Used buffersizes per thread:";
-    unsigned i = 1;
-    for (auto const &bytes : dataCacheBufferSize) {
-      log::info() << "    - L" << i << "-Cache: " << bytes / thread << " Bytes";
-      i++;
-    }
-
-    log::info() << "    - Memory: " << ramBufferSize / thread << " Bytes";
   }
 
   bool isAvailable(void) { return payload->isAvailable(); }

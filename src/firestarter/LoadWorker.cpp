@@ -248,10 +248,9 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
 
       // compile payload
       td->config->payload->compilePayload(
-          td->config->payloadSettings,
-          td->config->platformConfig->dataCacheBufferSize,
-          td->config->platformConfig->ramBufferSize, td->config->thread, 1536,
-          td->dumpRegisters);
+          td->config->payloadSettings, td->config->instructionCacheSize,
+          td->config->dataCacheBufferSize, td->config->ramBufferSize,
+          td->config->thread, 1536, td->dumpRegisters);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory

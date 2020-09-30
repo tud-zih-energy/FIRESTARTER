@@ -185,6 +185,19 @@ int Environment::evaluateEnvironment(void) {
     return EXIT_FAILURE;
   }
 
+  // get L1i-Cache size
+  int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_L1ICACHE);
+
+  if (width >= 1) {
+    char string[128];
+    hwloc_obj_t cacheObj =
+        hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_L1ICACHE, 0);
+    hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
+    this->instructionCacheSize = cacheObj->attr->cache.size /
+                                 (this->numThreads / width) *
+                                 this->getNumberOfThreadsPerCore();
+  }
+
   return EXIT_SUCCESS;
 }
 

@@ -31,7 +31,7 @@ class HaswellEPConfig : public X86PlatformConfig {
 public:
   HaswellEPConfig(const asmjit::x86::Features *supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2},
+      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0,
                           {32768, 262144, 2621440}, 104857600, family, model,
                           threads,
                           new payload::FMAPayload(supportedFeatures)){};
@@ -39,8 +39,11 @@ public:
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings(void) override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}});
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 8},
+                                                          {"L3_LS", 1},
+                                                          {"L2_LS", 29},
+                                                          {"L1_LS", 100},
+                                                          {"REG", 100}});
   }
 };
 } // namespace firestarter::environment::x86::platform

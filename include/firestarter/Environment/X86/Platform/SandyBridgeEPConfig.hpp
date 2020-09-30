@@ -31,7 +31,7 @@ class SandyBridgeEPConfig : public X86PlatformConfig {
 public:
   SandyBridgeEPConfig(const asmjit::x86::Features *supportedFeatures,
                       unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("SNB_XEONEP", 6, {45, 62}, {1, 2},
+      : X86PlatformConfig("SNB_XEONEP", 6, {45, 62}, {1, 2}, 0,
                           {32768, 262144, 2621440}, 104857600, family, model,
                           threads,
                           new payload::AVXPayload(supportedFeatures)){};
