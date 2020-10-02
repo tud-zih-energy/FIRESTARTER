@@ -30,7 +30,7 @@ SET(FIRESTARTER_LINK_LIBRARIES
 	)
 
 if(DEFINED BUILD_CUDA)
-	find_package(CUDA)
+	find_package(CUDA REQUIRED)
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBUILD_CUDA")
 
@@ -46,6 +46,7 @@ if(DEFINED BUILD_CUDA)
 		cublas
 		)
 else()
+	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	else()
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
