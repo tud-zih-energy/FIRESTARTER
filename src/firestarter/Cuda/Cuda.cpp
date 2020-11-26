@@ -27,8 +27,8 @@
  *****************************************************************************/
 
 #include <firestarter/Cuda/Cuda.hpp>
-#include <firestarter/Logging/Log.hpp>
 #include <firestarter/LoadWorkerData.hpp>
+#include <firestarter/Logging/Log.hpp>
 
 #include <cublas_v2.h>
 #include <cuda.h>
@@ -250,9 +250,10 @@ static void *create_load(void *index) {
 
   // check if the user has not set a matrix OR has set a too big matrixsite and
   // if this is true: set a good matrixsize
-  if (!size_use || ((size_use * size_use * (pthread_use_double
-                         ? sizeof(double)
-                         : sizeof(float)) * 3 > memory_avail))) {
+  if (!size_use ||
+      ((size_use * size_use *
+            (pthread_use_double ? sizeof(double) : sizeof(float)) * 3 >
+        memory_avail))) {
     size_use = round_up(
         (int)(0.8 *
               sqrt(((memory_avail) /
