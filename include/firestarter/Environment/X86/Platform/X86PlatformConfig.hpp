@@ -50,7 +50,7 @@ public:
 
   ~X86PlatformConfig(){};
 
-  bool isDefault(void) override {
+  bool isDefault() override {
     return _family == _currentFamily &&
            (std::find(_models.begin(), _models.end(), _currentModel) !=
             _models.end()) &&

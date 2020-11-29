@@ -38,7 +38,7 @@ public:
   ~SkylakeSPConfig(){};
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
                                                           {"RAM_P", 1},
                                                           {"L3_S", 1},

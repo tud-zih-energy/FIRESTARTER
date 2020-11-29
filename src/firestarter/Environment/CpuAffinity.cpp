@@ -240,7 +240,7 @@ int Environment::getPkgIdFromPU(unsigned pu) {
   return -1;
 }
 
-void Environment::printThreadSummary(void) {
+void Environment::printThreadSummary() {
   log::info() << "\n  using " << this->requestedNumThreads << " threads";
 
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)

@@ -46,7 +46,7 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(void) {
+  Firestarter() {
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
     _environment = new environment::x86::X86Environment();
@@ -62,7 +62,7 @@ public:
 #endif
   };
 
-  ~Firestarter(void) {
+  ~Firestarter() {
     delete _environment;
 
 #ifdef BUILD_CUDA
@@ -79,10 +79,10 @@ public:
   // LoadThreadWorker.cpp
   int initLoadWorkers(bool lowLoad, unsigned long long period,
                       bool dumpRegisters);
-  void joinLoadWorkers(void);
-  void printPerformanceReport(void);
+  void joinLoadWorkers();
+  void printPerformanceReport();
 
-  void signalWork(void) { signalLoadWorkers(THREAD_WORK); };
+  void signalWork() { signalLoadWorkers(THREAD_WORK); };
 
   // WatchdogWorker.cpp
   int watchdogWorker(std::chrono::microseconds period,
@@ -93,7 +93,7 @@ public:
   // DumpRegisterWorker.cpp
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
-  void joinDumpRegisterWorker(void);
+  void joinDumpRegisterWorker();
 #endif
 
 private:

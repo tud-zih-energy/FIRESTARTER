@@ -35,11 +35,11 @@ public:
                      std::list<unsigned> dataCacheBufferSize,
                      unsigned ramBufferSize, unsigned thread,
                      unsigned numberOfLines, bool dumpRegisters) override;
-  std::list<std::string> getAvailableInstructions(void) override;
+  std::list<std::string> getAvailableInstructions() override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;
 
-  firestarter::environment::payload::Payload *clone(void) override {
+  firestarter::environment::payload::Payload *clone() override {
     return new AVX512Payload(this->supportedFeatures);
   };
 

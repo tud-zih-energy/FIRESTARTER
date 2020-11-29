@@ -41,9 +41,9 @@ Environment::Environment(std::string architecture) {
   this->architecture = architecture;
 }
 
-Environment::~Environment(void) { hwloc_topology_destroy(this->topology); }
+Environment::~Environment() { hwloc_topology_destroy(this->topology); }
 
-void Environment::printEnvironmentSummary(void) {
+void Environment::printEnvironmentSummary() {
 
   log::info() << "  system summary:\n"
               << "    number of processors:        " << this->numPackages
@@ -151,7 +151,7 @@ std::stringstream Environment::getFileAsStream(std::string filePath) {
   return ss;
 }
 
-int Environment::evaluateEnvironment(void) {
+int Environment::evaluateEnvironment() {
 
   int depth;
 
@@ -201,12 +201,12 @@ int Environment::evaluateEnvironment(void) {
   return EXIT_SUCCESS;
 }
 
-unsigned Environment::getNumberOfThreadsPerCore(void) {
+unsigned Environment::getNumberOfThreadsPerCore() {
   return this->numThreads / this->numPhysicalCoresPerPackage /
          this->numPackages;
 }
 
-std::string Environment::getProcessorName(void) {
+std::string Environment::getProcessorName() {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
   if (procCpuinfo.str().empty()) {
     return "";
@@ -227,7 +227,7 @@ std::string Environment::getProcessorName(void) {
   return "";
 }
 
-std::string Environment::getVendor(void) {
+std::string Environment::getVendor() {
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
   if (procCpuinfo.str().empty()) {
     return "";

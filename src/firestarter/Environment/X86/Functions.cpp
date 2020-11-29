@@ -28,7 +28,7 @@
 
 using namespace firestarter::environment::x86;
 
-void X86Environment::evaluateFunctions(void) {
+void X86Environment::evaluateFunctions() {
   for (auto ctor : this->platformConfigsCtor) {
     // add asmjit for model and family detection
     this->platformConfigs.push_back(

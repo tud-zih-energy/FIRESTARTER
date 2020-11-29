@@ -412,7 +412,7 @@ int AVX512Payload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AVX512Payload::getAvailableInstructions(void) {
+std::list<std::string> AVX512Payload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

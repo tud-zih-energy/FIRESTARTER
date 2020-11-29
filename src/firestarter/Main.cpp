@@ -27,7 +27,7 @@
 #include <string>
 #include <thread>
 
-int print_copyright(void) {
+int print_copyright() {
 
   firestarter::log::info()
       << "\n"
@@ -45,7 +45,7 @@ int print_copyright(void) {
   return EXIT_SUCCESS;
 }
 
-int print_warranty(void) {
+int print_warranty() {
 
   firestarter::log::info()
       << "\n"

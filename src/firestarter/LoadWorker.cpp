@@ -132,14 +132,14 @@ void Firestarter::signalLoadWorkers(int comm) {
   }
 }
 
-void Firestarter::joinLoadWorkers(void) {
+void Firestarter::joinLoadWorkers() {
   // wait for threads after watchdog has requested termination
   for (auto const &thread : this->loadThreads) {
     pthread_join(*thread.first, NULL);
   }
 }
 
-void Firestarter::printPerformanceReport(void) {
+void Firestarter::printPerformanceReport() {
   // performance report
   unsigned long long startTimestamp = 0xffffffffffffffff;
   unsigned long long stopTimestamp = 0;

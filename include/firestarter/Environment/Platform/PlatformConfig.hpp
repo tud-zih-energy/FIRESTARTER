@@ -63,7 +63,7 @@ public:
   const unsigned &lines = _lines;
   payload::Payload *const &payload = _payload;
 
-  std::map<unsigned, std::string> getThreadMap(void) {
+  std::map<unsigned, std::string> getThreadMap() {
     std::map<unsigned, std::string> threadMap;
 
     for (auto const &thread : _threads) {
@@ -76,14 +76,14 @@ public:
     return threadMap;
   }
 
-  bool isAvailable(void) { return payload->isAvailable(); }
+  bool isAvailable() { return payload->isAvailable(); }
 
-  virtual bool isDefault(void) = 0;
+  virtual bool isDefault() = 0;
 
   virtual std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) = 0;
+  getDefaultPayloadSettings() = 0;
 
-  std::string getDefaultPayloadSettingsString(void) {
+  std::string getDefaultPayloadSettingsString() {
     std::stringstream ss;
 
     for (auto const &[name, value] : this->getDefaultPayloadSettings()) {

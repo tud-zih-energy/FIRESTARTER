@@ -80,7 +80,7 @@ public:
   // number of used simd registers
   const unsigned registerCount;
 
-  virtual bool isAvailable(void) = 0;
+  virtual bool isAvailable() = 0;
 
   virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
                                unsigned long long period) = 0;
@@ -91,7 +91,7 @@ public:
                  std::list<unsigned> dataCacheBufferSize,
                  unsigned ramBufferSize, unsigned thread,
                  unsigned numberOfLines, bool dumpRegisters) = 0;
-  virtual std::list<std::string> getAvailableInstructions(void) = 0;
+  virtual std::list<std::string> getAvailableInstructions() = 0;
   virtual void init(unsigned long long *memoryAddr,
                     unsigned long long bufferSize) = 0;
   virtual unsigned long long
@@ -99,7 +99,7 @@ public:
                    volatile unsigned long long *addrHigh,
                    unsigned long long iterations) = 0;
 
-  virtual Payload *clone(void) = 0;
+  virtual Payload *clone() = 0;
 };
 
 } // namespace firestarter::environment::payload

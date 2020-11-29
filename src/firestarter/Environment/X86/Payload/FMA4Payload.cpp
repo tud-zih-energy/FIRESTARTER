@@ -439,7 +439,7 @@ int FMA4Payload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> FMA4Payload::getAvailableInstructions(void) {
+std::list<std::string> FMA4Payload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

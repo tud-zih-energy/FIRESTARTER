@@ -36,28 +36,28 @@ class Environment {
 public:
   // Environment.cpp
   Environment(std::string architecture);
-  virtual ~Environment(void);
+  virtual ~Environment();
 
   // Environment.cpp
-  int evaluateEnvironment(void);
-  void printEnvironmentSummary(void);
-  unsigned getNumberOfThreadsPerCore(void);
+  int evaluateEnvironment();
+  void printEnvironmentSummary();
+  unsigned getNumberOfThreadsPerCore();
 
   // CpuAffinity.cpp
   int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
   int setCpuAffinity(unsigned thread);
-  void printThreadSummary(void);
+  void printThreadSummary();
 
-  virtual unsigned long long timestamp(void) = 0;
+  virtual unsigned long long timestamp() = 0;
 
-  virtual void evaluateFunctions(void) = 0;
+  virtual void evaluateFunctions() = 0;
   virtual int selectFunction(unsigned functionId,
                              bool allowUnavailablePayload) = 0;
   virtual int selectInstructionGroups(std::string groups) = 0;
-  virtual void printAvailableInstructionGroups(void) = 0;
+  virtual void printAvailableInstructionGroups() = 0;
   virtual void setLineCount(unsigned lineCount) = 0;
-  virtual void printSelectedCodePathSummary(void) = 0;
-  virtual void printFunctionSummary(void) = 0;
+  virtual void printSelectedCodePathSummary() = 0;
+  virtual void printFunctionSummary() = 0;
 
   platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
 
@@ -81,12 +81,12 @@ protected:
   unsigned instructionCacheSize = 0;
 
   // CpuClockrate.cpp
-  std::stringstream getScalingGovernor(void);
-  virtual int getCpuClockrate(void);
+  std::stringstream getScalingGovernor();
+  virtual int getCpuClockrate();
 
-  virtual std::string getModel(void) = 0;
-  virtual std::string getProcessorName(void);
-  virtual std::string getVendor(void);
+  virtual std::string getModel() = 0;
+  virtual std::string getProcessorName();
+  virtual std::string getVendor();
 
 private:
   // CpuAffinity.cpp
@@ -104,7 +104,7 @@ private:
   // CpuAffinity.cpp
   std::vector<unsigned> cpuBind;
 
-  virtual std::list<std::string> getCpuFeatures(void) = 0;
+  virtual std::list<std::string> getCpuFeatures() = 0;
 };
 
 } // namespace firestarter::environment

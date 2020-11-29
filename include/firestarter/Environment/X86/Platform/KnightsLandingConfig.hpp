@@ -37,7 +37,7 @@ public:
   ~KnightsLandingConfig(){};
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 3}, {"L2_S", 8}, {"L1_L", 40}, {"REG", 10}});
   }

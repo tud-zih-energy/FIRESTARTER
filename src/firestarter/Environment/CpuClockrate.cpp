@@ -26,12 +26,12 @@
 
 using namespace firestarter::environment;
 
-std::stringstream Environment::getScalingGovernor(void) {
+std::stringstream Environment::getScalingGovernor() {
   return this->getFileAsStream(
       "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
 }
 
-int Environment::getCpuClockrate(void) {
+int Environment::getCpuClockrate() {
   std::string clockrate = "0";
 
   auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");

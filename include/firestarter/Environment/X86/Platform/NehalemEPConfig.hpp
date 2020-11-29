@@ -37,7 +37,7 @@ public:
   ~NehalemEPConfig(){};
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
   }

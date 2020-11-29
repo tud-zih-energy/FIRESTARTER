@@ -448,7 +448,7 @@ int FMAPayload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> FMAPayload::getAvailableInstructions(void) {
+std::list<std::string> FMAPayload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

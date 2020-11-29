@@ -24,7 +24,7 @@
 using namespace firestarter::environment::x86;
 
 // this is only implemented for 64 bit.
-unsigned long long X86Environment::timestamp(void) {
+unsigned long long X86Environment::timestamp() {
   unsigned long long reg_a, reg_d;
 
   if (!this->hasRdtsc()) {
@@ -64,7 +64,7 @@ bool X86Environment::hasRdtsc() {
   return false;
 }
 
-bool X86Environment::hasInvariantRdtsc(void) {
+bool X86Environment::hasInvariantRdtsc() {
   unsigned long long a = 0, b = 0, c = 0, d = 0;
 
   if (this->hasRdtsc()) {

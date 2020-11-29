@@ -56,7 +56,7 @@ public:
         _instructionCacheSize(c.instructionCacheSize),
         _dataCacheBufferSize(c.dataCacheBufferSize),
         _ramBufferSize(c.ramBufferSize), _lines(c.lines){};
-  ~RuntimeConfig(void);
+  ~RuntimeConfig();
 
   PlatformConfig *const &platformConfig = _platformConfig;
   payload::Payload *const &payload = _payload;
@@ -75,7 +75,7 @@ public:
 
   void setLineCount(unsigned lineCount) { this->_lines = lineCount; }
 
-  void printCodePathSummary(void) {
+  void printCodePathSummary() {
     log::info() << "\n"
                 << "  Taking " << platformConfig->payload->name
                 << " path optimized for " << platformConfig->name << " - "

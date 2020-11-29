@@ -445,7 +445,7 @@ int AVXPayload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AVXPayload::getAvailableInstructions(void) {
+std::list<std::string> AVXPayload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

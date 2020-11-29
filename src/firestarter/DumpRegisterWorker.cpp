@@ -66,7 +66,7 @@ int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
   return EXIT_SUCCESS;
 }
 
-void Firestarter::joinDumpRegisterWorker(void) {
+void Firestarter::joinDumpRegisterWorker() {
   pthread_join(this->dumpRegisterWorkerThread, NULL);
 }
 

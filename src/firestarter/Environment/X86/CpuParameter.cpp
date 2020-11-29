@@ -30,7 +30,7 @@ using namespace firestarter::environment::x86;
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
 // is available
-int X86Environment::getCpuClockrate(void) {
+int X86Environment::getCpuClockrate() {
   typedef std::chrono::high_resolution_clock Clock;
   typedef std::chrono::microseconds ticks;
 
@@ -111,7 +111,7 @@ int X86Environment::getCpuClockrate(void) {
 
 #ifdef __APPLE__
 // use sysctl to detect the name
-std::string X86Environment::getProcessorName(void) {
+std::string X86Environment::getProcessorName() {
   std::array<char, 128> buffer;
   auto cmd = "sysctl -n machdep.cpu.brand_string";
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -128,7 +128,7 @@ std::string X86Environment::getProcessorName(void) {
 }
 #elif defined(_WIN32)
 // use wmic
-std::string X86Environment::getProcessorName(void) {
+std::string X86Environment::getProcessorName() {
   std::array<char, 128> buffer;
   auto cmd = "wmic cpu get name";
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -149,16 +149,16 @@ std::string X86Environment::getProcessorName(void) {
   return "";
 }
 #else
-std::string X86Environment::getProcessorName(void) {
+std::string X86Environment::getProcessorName() {
   return Environment::getProcessorName();
 }
 #endif
 
-std::string X86Environment::getVendor(void) {
+std::string X86Environment::getVendor() {
   return std::string(this->cpuInfo.vendor());
 }
 
-std::list<std::string> X86Environment::getCpuFeatures(void) {
+std::list<std::string> X86Environment::getCpuFeatures() {
   std::list<std::string> featureList;
 
   for (int i = 0; i < (int)asmjit::x86::Features::kMaxFeatures; i++) {

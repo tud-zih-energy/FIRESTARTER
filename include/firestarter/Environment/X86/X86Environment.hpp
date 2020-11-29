@@ -55,16 +55,16 @@ public:
       : Environment("x86_64"), cpuInfo(asmjit::CpuInfo::host()),
         cpuFeatures(cpuInfo.features<asmjit::x86::Features>()){};
 
-  unsigned long long timestamp(void) override;
+  unsigned long long timestamp() override;
 
-  void evaluateFunctions(void) override;
+  void evaluateFunctions() override;
   int selectFunction(unsigned functionId,
                      bool allowUnavailablePayload) override;
   int selectInstructionGroups(std::string groups) override;
-  void printAvailableInstructionGroups(void) override;
+  void printAvailableInstructionGroups() override;
   void setLineCount(unsigned lineCount) override;
-  void printSelectedCodePathSummary(void) override;
-  void printFunctionSummary(void) override;
+  void printSelectedCodePathSummary() override;
+  void printFunctionSummary() override;
 
 private:
   asmjit::CpuInfo cpuInfo;
@@ -72,16 +72,16 @@ private:
 
   void cpuid(unsigned long long *a, unsigned long long *b,
              unsigned long long *c, unsigned long long *d);
-  bool hasRdtsc(void);
-  bool hasInvariantRdtsc(void);
+  bool hasRdtsc();
+  bool hasInvariantRdtsc();
 
-  std::list<std::string> getCpuFeatures(void) override;
+  std::list<std::string> getCpuFeatures() override;
 
-  int getCpuClockrate(void) override;
-  std::string getProcessorName(void) override;
-  std::string getVendor(void) override;
+  int getCpuClockrate() override;
+  std::string getProcessorName() override;
+  std::string getVendor() override;
 
-  std::string getModel(void) override {
+  std::string getModel() override {
     std::stringstream ss;
     ss << "Family " << cpuInfo.familyId() << ", Model " << cpuInfo.modelId()
        << ", Stepping " << cpuInfo.stepping();

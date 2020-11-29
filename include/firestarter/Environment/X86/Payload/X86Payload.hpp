@@ -59,7 +59,7 @@ public:
         featureRequests(featureRequests){};
   ~X86Payload(){};
 
-  bool isAvailable(void) override {
+  bool isAvailable() override {
     bool available = true;
 
     for (auto const &feature : featureRequests) {

@@ -436,7 +436,7 @@ int SSE2Payload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> SSE2Payload::getAvailableInstructions(void) {
+std::list<std::string> SSE2Payload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

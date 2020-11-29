@@ -403,7 +403,7 @@ int ZENFMAPayload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> ZENFMAPayload::getAvailableInstructions(void) {
+std::list<std::string> ZENFMAPayload::getAvailableInstructions() {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),
