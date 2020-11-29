@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_X86ENVIRONMENT_HPP
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_X86ENVIRONMENT_HPP
+#pragma once
 
 #include <firestarter/Environment/Environment.hpp>
 
@@ -121,5 +120,3 @@ private:
 } // namespace firestarter::environment::x86
 
 #undef REGISTER
-
-#endif

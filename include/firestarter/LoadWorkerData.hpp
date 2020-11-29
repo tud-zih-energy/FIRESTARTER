@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
-#define INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
+#pragma once
 
 #define THREAD_WAIT 1
 #define THREAD_WORK 2
@@ -77,5 +76,3 @@ private:
 };
 
 } // namespace firestarter
-
-#endif

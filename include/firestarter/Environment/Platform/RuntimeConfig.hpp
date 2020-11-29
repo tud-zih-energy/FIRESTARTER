@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
+#pragma once
 
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
@@ -100,5 +99,3 @@ public:
 };
 
 } // namespace firestarter::environment::platform
-
-#endif

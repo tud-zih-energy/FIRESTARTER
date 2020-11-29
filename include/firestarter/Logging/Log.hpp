@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_LOG_HPP
-#define INCLUDE_FIRESTARTER_LOG_HPP
+#pragma once
 
 #include <nitro/log/log.hpp>
 #include <nitro/log/severity.hpp>
@@ -99,5 +98,3 @@ using log = nitro::log::logger<logging::record, logging::formater,
                                firestarter::logging::StdOut, logging::filter>;
 
 } // namespace firestarter
-
-#endif

@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SANDYBRIDGECONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SANDYBRIDGECONFIG_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/AVXPayload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
@@ -47,5 +46,3 @@ public:
   }
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

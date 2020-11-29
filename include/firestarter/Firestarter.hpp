@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_FIRESTARTER_HPP
-#define INCLUDE_FIRESTARTER_FIRESTARTER_HPP
+#pragma once
 
 #ifdef BUILD_CUDA
 #include <firestarter/Cuda/Cuda.hpp>
@@ -127,5 +126,3 @@ private:
 };
 
 } // namespace firestarter
-
-#endif
