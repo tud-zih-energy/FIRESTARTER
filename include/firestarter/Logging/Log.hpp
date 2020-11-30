@@ -51,7 +51,7 @@ public:
       std::cerr << formatted_record << std::endl << std::flush;
       break;
     default:
-      std::cout << formatted_record << std::endl << std::flush;
+      std::cout << formatted_record << std::endl;
       break;
     }
   }
