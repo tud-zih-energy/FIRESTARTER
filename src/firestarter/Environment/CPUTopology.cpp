@@ -48,7 +48,8 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
          << "    vendor:             " << this->vendor() << "\n"
          << "    processor-name:     " << this->processorName() << "\n"
          << "    model:              " << this->model() << "\n"
-         << "    frequency:          " << this->clockrate() / 1e6 << " MHz\n"
+         << "    frequency:          " << this->clockrate() / 1000000
+         << " MHz\n"
          << "    supported features: " << ss.str() << "\n"
          << "    Caches:";
 
