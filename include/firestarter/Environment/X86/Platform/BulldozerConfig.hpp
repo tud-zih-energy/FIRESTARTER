@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class BulldozerConfig : public X86PlatformConfig {
 
 public:
-  BulldozerConfig(const asmjit::x86::Features *supportedFeatures,
+  BulldozerConfig(asmjit::x86::Features const &supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0,
                           {16384, 1048576, 786432}, 104857600, 1536, family,

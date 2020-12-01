@@ -266,12 +266,6 @@ int main(int argc, char **argv) {
 #endif
 
     if (EXIT_SUCCESS !=
-        (returnCode = firestarter->environment->evaluateEnvironment())) {
-      delete firestarter;
-      return returnCode;
-    }
-
-    if (EXIT_SUCCESS !=
         (returnCode = firestarter->environment->evaluateCpuAffinity(
              requestedNumThreads, cpuBind))) {
       delete firestarter;
@@ -319,7 +313,7 @@ int main(int argc, char **argv) {
 
     firestarter->environment->printSelectedCodePathSummary();
 
-    firestarter->environment->printEnvironmentSummary();
+    firestarter::log::info() << firestarter->environment->topology();
 
     firestarter->environment->printThreadSummary();
 

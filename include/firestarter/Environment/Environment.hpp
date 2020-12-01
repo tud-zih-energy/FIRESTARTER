@@ -21,34 +21,22 @@
 
 #pragma once
 
+#include <firestarter/Environment/CPUTopology.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 
 #include <vector>
 
-extern "C" {
-#include <hwloc.h>
-}
-
 namespace firestarter::environment {
 
 class Environment {
 public:
-  // Environment.cpp
-  Environment(std::string architecture);
-  virtual ~Environment();
+  Environment(CPUTopology *topology) : _topology(topology) {}
+  ~Environment() {}
 
-  // Environment.cpp
-  int evaluateEnvironment();
-  void printEnvironmentSummary();
-  unsigned getNumberOfThreadsPerCore();
-
-  // CpuAffinity.cpp
   int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
   int setCpuAffinity(unsigned thread);
   void printThreadSummary();
-
-  virtual unsigned long long timestamp() = 0;
 
   virtual void evaluateFunctions() = 0;
   virtual int selectFunction(unsigned functionId,
@@ -62,49 +50,21 @@ public:
   platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
 
   const unsigned long long &requestedNumThreads = _requestedNumThreads;
-  const unsigned long long &clockrate = _clockrate;
+
+  CPUTopology const &topology() { return *_topology; }
 
 protected:
   platform::RuntimeConfig *_selectedConfig = nullptr;
+  CPUTopology *_topology = nullptr;
 
-  // CpuAffinity.cpp
   unsigned long long _requestedNumThreads;
 
-  // Environment.cpp
-  unsigned int numPackages;
-  unsigned int numPhysicalCoresPerPackage;
-  unsigned int numThreads;
-  std::string architecture;
-  std::string vendor = std::string("");
-  std::string processorName = std::string("");
-  unsigned long long _clockrate = 0;
-  unsigned instructionCacheSize = 0;
-
-  // CpuClockrate.cpp
-  std::stringstream getScalingGovernor();
-  virtual int getCpuClockrate();
-
-  virtual std::string getModel() = 0;
-  virtual std::string getProcessorName();
-  virtual std::string getVendor();
-
 private:
-  // CpuAffinity.cpp
   // TODO: replace these functions with the builtins one from hwloc
-  int getCoreIdFromPU(unsigned pu);
-  int getPkgIdFromPU(unsigned pu);
   int cpu_allowed(unsigned id);
   int cpu_set(unsigned id);
 
-  // Environment.cpp
-  hwloc_topology_t topology;
-  std::string model = std::string("");
-  std::stringstream getFileAsStream(std::string filePath);
-
-  // CpuAffinity.cpp
   std::vector<unsigned> cpuBind;
-
-  virtual std::list<std::string> getCpuFeatures() = 0;
 };
 
 } // namespace firestarter::environment

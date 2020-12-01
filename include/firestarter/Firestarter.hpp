@@ -70,7 +70,10 @@ public:
 #endif
   };
 
-  environment::Environment *const &environment = _environment;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  environment::x86::X86Environment *const &environment = _environment;
+#endif
 
 #ifdef BUILD_CUDA
   cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
@@ -97,7 +100,10 @@ public:
 #endif
 
 private:
-  environment::Environment *_environment;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  environment::x86::X86Environment *_environment;
+#endif
 
 #ifdef BUILD_CUDA
   cuda::gpustruct_t *_gpuStructPointer;

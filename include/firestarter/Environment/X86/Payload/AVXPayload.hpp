@@ -26,7 +26,7 @@
 namespace firestarter::environment::x86::payload {
 class AVXPayload : public X86Payload {
 public:
-  AVXPayload(const asmjit::x86::Features *const supportedFeatures)
+  AVXPayload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kAVX}, "AVX",
                    4, 16){};
 
@@ -40,7 +40,7 @@ public:
             unsigned long long bufferSize) override;
 
   firestarter::environment::payload::Payload *clone() override {
-    return new AVXPayload(this->supportedFeatures);
+    return new AVXPayload(this->supportedFeatures());
   };
 
 private:

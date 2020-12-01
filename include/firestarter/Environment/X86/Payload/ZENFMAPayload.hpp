@@ -26,7 +26,7 @@
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload : public X86Payload {
 public:
-  ZENFMAPayload(const asmjit::x86::Features *const supportedFeatures)
+  ZENFMAPayload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(
             supportedFeatures,
             {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA},
@@ -42,7 +42,7 @@ public:
             unsigned long long bufferSize) override;
 
   firestarter::environment::payload::Payload *clone() override {
-    return new ZENFMAPayload(this->supportedFeatures);
+    return new ZENFMAPayload(this->supportedFeatures());
   };
 
 private:

@@ -26,7 +26,7 @@
 namespace firestarter::environment::x86::payload {
 class FMAPayload : public X86Payload {
 public:
-  FMAPayload(const asmjit::x86::Features *const supportedFeatures)
+  FMAPayload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures,
                    {asmjit::x86::Features::kAVX, asmjit::x86::Features::kFMA},
                    "FMA", 4, 16){};
@@ -41,7 +41,7 @@ public:
             unsigned long long bufferSize) override;
 
   firestarter::environment::payload::Payload *clone() override {
-    return new FMAPayload(this->supportedFeatures);
+    return new FMAPayload(this->supportedFeatures());
   };
 
 private:

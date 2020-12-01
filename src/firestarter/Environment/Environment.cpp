@@ -22,228 +22,219 @@
 #include <firestarter/Environment/Environment.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <fstream>
+#include <iterator>
 #include <regex>
-#include <thread>
+#include <string>
 
 using namespace firestarter::environment;
 
-Environment::Environment(std::string architecture) {
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
 
-  hwloc_topology_init(&this->topology);
-
-  // do not filter icaches
-  hwloc_topology_set_cache_types_filter(this->topology,
-                                        HWLOC_TYPE_FILTER_KEEP_ALL);
-
-  hwloc_topology_load(this->topology);
-
-  this->architecture = architecture;
+extern "C" {
+#include <sched.h>
 }
 
-Environment::~Environment() { hwloc_topology_destroy(this->topology); }
+// this code is from the C version of FIRESTARTER
+// TODO: replace this with cpu affinity of hwloc
+#define ADD_CPU_SET(cpu, cpuset)                                               \
+  do {                                                                         \
+    if (this->cpu_allowed(cpu)) {                                              \
+      CPU_SET(cpu, &cpuset);                                                   \
+    } else {                                                                   \
+      if (cpu >= this->topology().numThreads()) {                              \
+        log::error() << "The given bind argument (-b/--bind) includes CPU "    \
+                     << cpu << " that is not available on this system.";       \
+      } else {                                                                 \
+        log::error() << "The given bind argument (-b/--bind) cannot "          \
+                        "be implemented with the cpuset given from the OS\n"   \
+                     << "This can be caused by the taskset tool, cgroups, "    \
+                        "the batch system, or similar mechanisms.\n"           \
+                     << "Please fix the argument to match the restrictions.";  \
+      }                                                                        \
+      return EACCES;                                                           \
+    }                                                                          \
+  } while (0)
 
-void Environment::printEnvironmentSummary() {
+int Environment::cpu_set(unsigned id) {
+  cpu_set_t mask;
 
-  log::info() << "  system summary:\n"
-              << "    number of processors:        " << this->numPackages
-              << "\n"
-              << "    number of cores per package: "
-              << this->numPhysicalCoresPerPackage << "\n"
-              << "    number of threads per core:  "
-              << this->numThreads / this->numPhysicalCoresPerPackage /
-                     this->numPackages
-              << "\n"
-              << "    total number of threads:     " << this->numThreads
-              << "\n";
+  CPU_ZERO(&mask);
+  CPU_SET(id, &mask);
 
-  std::stringstream ss;
+  return sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+}
 
-  for (auto &ent : this->getCpuFeatures()) {
-    ss << ent << " ";
+int Environment::cpu_allowed(unsigned id) {
+  cpu_set_t mask;
+
+  CPU_ZERO(&mask);
+
+  if (!sched_getaffinity(0, sizeof(cpu_set_t), &mask)) {
+    return CPU_ISSET(id, &mask);
   }
 
-  log::info() << "  processor characteristics:\n"
-              << "    architecture:       " << this->architecture << "\n"
-              << "    vendor:             " << this->vendor << "\n"
-              << "    processor-name:     " << this->processorName << "\n"
-              << "    model:              " << this->model << "\n"
-              << "    frequency:          " << this->clockrate / 1000000
-              << " MHz\n"
-              << "    supported features: " << ss.str() << "\n"
-              << "    Caches:";
+  return 0;
+}
+#endif
 
-  std::vector<hwloc_obj_type_t> caches = {
-      HWLOC_OBJ_L1CACHE,  HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE,
-      HWLOC_OBJ_L2ICACHE, HWLOC_OBJ_L3CACHE,  HWLOC_OBJ_L3ICACHE,
-      HWLOC_OBJ_L4CACHE,  HWLOC_OBJ_L5CACHE,
-  };
+int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
+                                     std::string cpuBind) {
 
-  std::for_each(
-      std::begin(caches), std::end(caches),
-      [this](hwloc_obj_type_t const &cache) {
-        int width;
-        char string[128];
-        int shared;
-        hwloc_obj_t cacheObj;
-        std::stringstream ss;
+  if (requestedNumThreads > 0 &&
+      requestedNumThreads > this->topology().numThreads()) {
+    log::warn() << "Not enough CPUs for requested number of threads";
+  }
 
-        width = hwloc_get_nbobjs_by_type(this->topology, cache);
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+  cpu_set_t cpuset;
 
-        if (width >= 1) {
-          cacheObj = hwloc_get_obj_by_type(this->topology, cache, 0);
-          hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
+  CPU_ZERO(&cpuset);
 
-          switch (cacheObj->attr->cache.type) {
-          case HWLOC_OBJ_CACHE_DATA:
-            ss << "Level " << cacheObj->attr->cache.depth << " Data";
-            break;
-          case HWLOC_OBJ_CACHE_INSTRUCTION:
-            ss << "Level " << cacheObj->attr->cache.depth << " Instruction";
-            break;
-          case HWLOC_OBJ_CACHE_UNIFIED:
-          default:
-            ss << "Unified Level " << cacheObj->attr->cache.depth;
-            break;
-          }
+  if (cpuBind.empty()) {
+    // no cpu binding defined
 
-          ss << " Cache, " << cacheObj->attr->cache.size / 1024 << " KiB, "
-             << cacheObj->attr->cache.linesize << " B Cacheline, ";
-
-          switch (cacheObj->attr->cache.associativity) {
-          case -1:
-            ss << "full";
-            break;
-          case 0:
-            ss << "unknown";
-            break;
-          default:
-            ss << cacheObj->attr->cache.associativity << "-way set";
-            break;
-          }
-
-          ss << " associative, ";
-
-          shared = this->numThreads / width;
-
-          if (shared > 1) {
-            ss << "shared among " << shared << " threads.";
-          } else {
-            ss << "per thread.";
-          }
-
-          log::info() << "      - " << ss.str();
+    // use all CPUs if not defined otherwise
+    if (requestedNumThreads == 0) {
+      for (unsigned i = 0; i < this->topology().numThreads(); i++) {
+        if (this->cpu_allowed(i)) {
+          CPU_SET(i, &cpuset);
+          requestedNumThreads++;
         }
-      });
-}
+      }
+    } else {
+      // if -n / --threads is set
+      unsigned current_cpu = 0;
+      for (unsigned i = 0; i < this->topology().numThreads(); i++) {
+        // search for available cpu
+        while (!this->cpu_allowed(current_cpu)) {
+          current_cpu++;
 
-std::stringstream Environment::getFileAsStream(std::string filePath) {
-  std::ifstream file(filePath);
-  std::stringstream ss;
+          // if rearhed end of avail cpus or max(int)
+          if (current_cpu >= this->topology().numThreads() || current_cpu < 0) {
+            log::error() << "You are requesting more threads than "
+                            "there are CPUs available in the given cpuset.\n"
+                         << "This can be caused by the taskset tool, cgrous, "
+                            "the batch system, or similar mechanisms.\n"
+                         << "Please fix the -n/--threads argument to match the "
+                            "restrictions.";
+            return EACCES;
+          }
+        }
+        ADD_CPU_SET(current_cpu, cpuset);
 
-  if (!file.is_open()) {
-    log::error() << "Could not open " << filePath;
+        // next cpu for next thread (or one of the following)
+        current_cpu++;
+      }
+    }
   } else {
-    ss << file.rdbuf();
-    file.close();
+    // parse CPULIST for binding
+    const std::string delimiter = ",";
+    const std::regex re("^(?:(\\d+)(?:-([1-9]\\d*)(?:\\/([1-9]\\d*))?)?)$");
+
+    std::stringstream ss(cpuBind);
+
+    while (ss.good()) {
+      std::string token;
+      std::smatch m;
+      std::getline(ss, token, ',');
+      ;
+
+      if (std::regex_match(token, m, re)) {
+        unsigned long x, y, s;
+
+        x = std::stoul(m[1].str());
+        if (m[2].matched) {
+          y = std::stoul(m[2].str());
+        } else {
+          y = x;
+        }
+        if (m[3].matched) {
+          s = std::stoul(m[3].str());
+        } else {
+          s = 1;
+        }
+        if (y < x) {
+          log::error() << "y has to be >= x in x-y expressions of CPU list: "
+                       << token;
+          return EXIT_FAILURE;
+        }
+        for (unsigned long i = x; i <= y; i += s) {
+          ADD_CPU_SET(i, cpuset);
+          requestedNumThreads++;
+        }
+      } else {
+        log::error() << "Invalid symbols in CPU list: " << token;
+        return EXIT_FAILURE;
+      }
+    }
+  }
+#else
+  if (requestedNumThreads == 0) {
+    requestedNumThreads = this->topology().numThreads();
+  }
+#endif
+
+  if (requestedNumThreads == 0) {
+    log::error() << "Found no usable CPUs!";
+    return 127;
+  }
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+  else {
+    for (unsigned i = 0; i < this->topology().numThreads(); i++) {
+      if (CPU_ISSET(i, &cpuset)) {
+        this->cpuBind.push_back(i);
+      }
+    }
+  }
+#endif
+
+  if (requestedNumThreads > this->topology().numThreads()) {
+    requestedNumThreads = this->topology().numThreads();
   }
 
-  return ss;
-}
-
-int Environment::evaluateEnvironment() {
-
-  int depth;
-
-  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
-
-  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    this->numPackages = 1;
-    log::warn() << "Cound not get number of packages";
-  } else {
-    this->numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
-  }
-
-  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_CORE);
-
-  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    this->numPhysicalCoresPerPackage = 1;
-    log::warn() << "Cound not get number of cores";
-  } else {
-    this->numPhysicalCoresPerPackage =
-        hwloc_get_nbobjs_by_depth(this->topology, depth) / this->numPackages;
-  }
-
-  this->numThreads = std::thread::hardware_concurrency();
-
-  this->processorName = this->getProcessorName();
-  this->vendor = this->getVendor();
-
-  this->model = this->getModel();
-
-  if (EXIT_SUCCESS != this->getCpuClockrate()) {
-    return EXIT_FAILURE;
-  }
-
-  // get L1i-Cache size
-  int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_L1ICACHE);
-
-  if (width >= 1) {
-    char string[128];
-    hwloc_obj_t cacheObj =
-        hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_L1ICACHE, 0);
-    hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
-    this->instructionCacheSize = cacheObj->attr->cache.size /
-                                 (this->numThreads / width) *
-                                 this->getNumberOfThreadsPerCore();
-  }
+  this->_requestedNumThreads = requestedNumThreads;
 
   return EXIT_SUCCESS;
 }
 
-unsigned Environment::getNumberOfThreadsPerCore() {
-  return this->numThreads / this->numPhysicalCoresPerPackage /
-         this->numPackages;
+void Environment::printThreadSummary() {
+  log::info() << "\n  using " << this->requestedNumThreads << " threads";
+
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+  bool printCoreIdInfo = false;
+  size_t i = 0;
+
+  std::vector<unsigned> cpuBind(this->cpuBind);
+  cpuBind.resize(this->requestedNumThreads);
+  for (auto const &bind : cpuBind) {
+    int coreId = this->topology().getCoreIdFromPU(bind);
+    int pkgId = this->topology().getPkgIdFromPU(bind);
+
+    if (coreId != -1 && pkgId != -1) {
+      log::info() << "    - Thread " << i << " run on CPU " << bind << ", core "
+                  << coreId << " in package: " << pkgId;
+      printCoreIdInfo = true;
+    }
+
+    i++;
+  }
+
+  if (printCoreIdInfo) {
+    log::info()
+        << "  The cores are numbered using the logical_index from hwloc.";
+  }
+#endif
 }
 
-std::string Environment::getProcessorName() {
-  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
-  if (procCpuinfo.str().empty()) {
-    return "";
+int Environment::setCpuAffinity(unsigned thread) {
+  if (thread >= this->requestedNumThreads) {
+    log::error() << "Trying to set more CPUs than available.";
+    return EXIT_FAILURE;
   }
 
-  std::string line;
+#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+  this->cpu_set(this->cpuBind.at(thread));
+#endif
 
-  while (std::getline(procCpuinfo, line, '\n')) {
-    const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
-    std::smatch m;
-
-    if (std::regex_match(line, m, modelNameRe)) {
-      return m[1].str();
-    }
-  }
-
-  log::warn() << "Could determine processor-name from /proc/cpuinfo";
-  return "";
-}
-
-std::string Environment::getVendor() {
-  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
-  if (procCpuinfo.str().empty()) {
-    return "";
-  }
-
-  std::string line;
-
-  while (std::getline(procCpuinfo, line, '\n')) {
-    const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
-    std::smatch m;
-
-    if (std::regex_match(line, m, vendorIdRe)) {
-      return m[1].str();
-    }
-  }
-
-  log::warn() << "Could determine vendor from /proc/cpuinfo";
-  return "";
+  return EXIT_SUCCESS;
 }

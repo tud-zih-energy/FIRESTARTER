@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class NehalemEPConfig : public X86PlatformConfig {
 
 public:
-  NehalemEPConfig(const asmjit::x86::Features *supportedFeatures,
+  NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
                           {32768, 262144, 2097152}, 104857600, 1536, family,

@@ -26,7 +26,7 @@
 namespace firestarter::environment::x86::payload {
 class SSE2Payload : public X86Payload {
 public:
-  SSE2Payload(const asmjit::x86::Features *const supportedFeatures)
+  SSE2Payload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kSSE2},
                    "SSE2", 2, 16){};
 
@@ -40,7 +40,7 @@ public:
             unsigned long long bufferSize) override;
 
   firestarter::environment::payload::Payload *clone() override {
-    return new SSE2Payload(this->supportedFeatures);
+    return new SSE2Payload(this->supportedFeatures());
   };
 
 private:

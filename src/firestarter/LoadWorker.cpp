@@ -165,7 +165,7 @@ void Firestarter::printPerformanceReport() {
   }
 
   double runtime = (double)(stopTimestamp - startTimestamp) /
-                   (double)this->environment->clockrate;
+                   (double)this->environment->topology().clockrate();
   double gFlops =
       (double)this->loadThreads.front().second->config->payload->flops *
       0.000000001 * (double)iterations / runtime;
@@ -274,7 +274,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
     // perform stress test
     case THREAD_WORK:
       // record threads start timestamp
-      td->start_tsc = td->environment->timestamp();
+      td->start_tsc = td->environment->topology().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -308,7 +308,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
 
         // terminate if master signals end of run and record stop timestamp
         if (*td->addrHigh == LOAD_STOP) {
-          td->stop_tsc = td->environment->timestamp();
+          td->stop_tsc = td->environment->topology().timestamp();
 
           ALIGNED_FREE(td->addrMem - addrOffset);
           pthread_exit(NULL);
