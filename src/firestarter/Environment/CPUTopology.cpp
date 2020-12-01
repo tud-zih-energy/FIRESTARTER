@@ -285,7 +285,6 @@ CPUTopology::CPUTopology(std::string architecture)
     auto str = std::string(buffer.data());
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
     this->_processorName = str;
-    return str;
   }
 #endif
 
