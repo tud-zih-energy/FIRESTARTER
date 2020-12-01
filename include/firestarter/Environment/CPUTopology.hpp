@@ -40,6 +40,7 @@ public:
   unsigned numThreads() const {
     return _numThreadsPerCore * _numCoresPerPackage * _numPackages;
   }
+  unsigned maxNumThreads() const;
   unsigned numThreadsPerCore() const { return _numThreadsPerCore; }
   unsigned numCoresPerPackage() const { return _numCoresPerPackage; }
   unsigned numPackages() const { return _numPackages; }
@@ -64,7 +65,7 @@ public:
   int getCoreIdFromPU(unsigned pu) const;
 
 protected:
-  std::string const &scalingGovernor() const;
+  std::string scalingGovernor() const;
   std::ostream &print(std::ostream &stream) const;
 
 private:

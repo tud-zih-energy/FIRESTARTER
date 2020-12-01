@@ -315,11 +315,10 @@ std::stringstream CPUTopology::getFileAsStream(std::string const &filePath) {
   return ss;
 }
 
-std::string const &CPUTopology::scalingGovernor() const {
-  auto str = this->getFileAsStream(
-                     "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
-                 .str();
-  return std::move(str);
+std::string CPUTopology::scalingGovernor() const {
+  return this
+      ->getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+      .str();
 }
 
 int CPUTopology::getCoreIdFromPU(unsigned pu) const {
@@ -364,4 +363,17 @@ int CPUTopology::getPkgIdFromPU(unsigned pu) const {
   }
 
   return -1;
+}
+
+unsigned CPUTopology::maxNumThreads() const {
+  hwloc_obj_t obj;
+  int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+  unsigned max = 0;
+
+  for (int i = 0; i < width; i++) {
+    obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+    max = max < obj->os_index ? obj->os_index : max;
+  }
+
+  return max + 1;
 }

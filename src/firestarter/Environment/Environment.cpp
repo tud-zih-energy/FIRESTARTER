@@ -95,7 +95,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 
     // use all CPUs if not defined otherwise
     if (requestedNumThreads == 0) {
-      for (unsigned i = 0; i < this->topology().numThreads(); i++) {
+      for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
         if (this->cpu_allowed(i)) {
           CPU_SET(i, &cpuset);
           requestedNumThreads++;
@@ -103,27 +103,28 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
       }
     } else {
       // if -n / --threads is set
-      unsigned current_cpu = 0;
-      for (unsigned i = 0; i < this->topology().numThreads(); i++) {
-        // search for available cpu
-        while (!this->cpu_allowed(current_cpu)) {
-          current_cpu++;
-
-          // if rearhed end of avail cpus or max(int)
-          if (current_cpu >= this->topology().numThreads() || current_cpu < 0) {
-            log::error() << "You are requesting more threads than "
-                            "there are CPUs available in the given cpuset.\n"
-                         << "This can be caused by the taskset tool, cgrous, "
-                            "the batch system, or similar mechanisms.\n"
-                         << "Please fix the -n/--threads argument to match the "
-                            "restrictions.";
-            return EACCES;
-          }
+      unsigned cpu_count = 0;
+      for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
+        // skip if cpu is not available
+        if (!this->cpu_allowed(i)) {
+          continue;
         }
-        ADD_CPU_SET(current_cpu, cpuset);
-
-        // next cpu for next thread (or one of the following)
-        current_cpu++;
+        ADD_CPU_SET(i, cpuset);
+        cpu_count++;
+        // we reached the desired amounts of threads
+        if (cpu_count >= requestedNumThreads) {
+          break;
+        }
+      }
+      // requested to many threads
+      if (cpu_count < requestedNumThreads) {
+        log::error() << "You are requesting more threads than "
+                        "there are CPUs available in the given cpuset.\n"
+                     << "This can be caused by the taskset tool, cgrous, "
+                        "the batch system, or similar mechanisms.\n"
+                     << "Please fix the -n/--threads argument to match the "
+                        "restrictions.";
+        return EACCES;
       }
     }
   } else {
@@ -180,7 +181,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
   }
 #if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
   else {
-    for (unsigned i = 0; i < this->topology().numThreads(); i++) {
+    for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
       if (CPU_ISSET(i, &cpuset)) {
         this->cpuBind.push_back(i);
       }
