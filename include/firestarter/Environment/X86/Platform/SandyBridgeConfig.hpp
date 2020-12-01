@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0,
                           {32768, 262144, 1572864}, 104857600, 1536, family,
                           model, threads,
-                          new payload::AVXPayload(supportedFeatures)){};
-  ~SandyBridgeConfig(){};
+                          new payload::AVXPayload(supportedFeatures)) {}
+  ~SandyBridgeConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

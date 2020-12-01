@@ -31,7 +31,7 @@ public:
       : X86Payload(
             supportedFeatures,
             {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA4},
-            "FMA4", 4, 16){};
+            "FMA4", 4, 16) {}
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      unsigned instructionCacheSize,

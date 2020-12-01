@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("NHM_COREI", 6, {30, 37, 23}, {1, 2}, 0,
                           {32768, 262144, 1572864}, 104857600, 1536, family,
                           model, threads,
-                          new payload::SSE2Payload(supportedFeatures)){};
-  ~NehalemConfig(){};
+                          new payload::SSE2Payload(supportedFeatures)) {}
+  ~NehalemConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

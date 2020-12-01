@@ -66,7 +66,7 @@ public:
       this->dumpFilePath = std::filesystem::path(dumpFilePath);
     }
   };
-  ~DumpRegisterWorkerData(){};
+  ~DumpRegisterWorkerData() {}
 
   LoadWorkerData *const loadWorkerData;
   const std::chrono::seconds dumpTimeDelta;

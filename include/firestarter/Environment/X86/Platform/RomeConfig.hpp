@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0,
                           {32768, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
-                          new payload::FMAPayload(supportedFeatures)){};
-  ~RomeConfig(){};
+                          new payload::FMAPayload(supportedFeatures)) {}
+  ~RomeConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

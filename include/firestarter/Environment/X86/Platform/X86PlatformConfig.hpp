@@ -46,9 +46,9 @@ public:
       : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize,
                        ramBuffersize, lines, payload),
         _family(family), _models(models), _currentFamily(currentFamily),
-        _currentModel(currentModel), _currentThreads(currentThreads){};
+        _currentModel(currentModel), _currentThreads(currentThreads) {}
 
-  ~X86PlatformConfig(){};
+  ~X86PlatformConfig() {}
 
   bool isDefault() override {
     return _family == _currentFamily &&

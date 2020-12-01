@@ -53,8 +53,8 @@ public:
       : _name(name), _threads(threads), _payload(payload),
         _instructionCacheSize(instructionCacheSize),
         _dataCacheBufferSize(dataCacheBufferSize),
-        _ramBufferSize(ramBufferSize), _lines(lines){};
-  ~PlatformConfig(){};
+        _ramBufferSize(ramBufferSize), _lines(lines) {}
+  ~PlatformConfig() {}
 
   const std::string &name = _name;
   const unsigned &instructionCacheSize = _instructionCacheSize;

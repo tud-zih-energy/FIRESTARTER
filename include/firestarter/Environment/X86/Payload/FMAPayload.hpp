@@ -29,7 +29,7 @@ public:
   FMAPayload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures,
                    {asmjit::x86::Features::kAVX, asmjit::x86::Features::kFMA},
-                   "FMA", 4, 16){};
+                   "FMA", 4, 16) {}
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      unsigned instructionCacheSize,

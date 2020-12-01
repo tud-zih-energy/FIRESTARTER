@@ -55,7 +55,7 @@ public:
         _payloadSettings(c.payloadSettings),
         _instructionCacheSize(c.instructionCacheSize),
         _dataCacheBufferSize(c.dataCacheBufferSize),
-        _ramBufferSize(c.ramBufferSize), _lines(c.lines){};
+        _ramBufferSize(c.ramBufferSize), _lines(c.lines) {}
   ~RuntimeConfig();
 
   PlatformConfig *const &platformConfig = _platformConfig;

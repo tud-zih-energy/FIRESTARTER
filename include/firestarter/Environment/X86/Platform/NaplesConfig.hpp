@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0,
                           {65536, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
-                          new payload::ZENFMAPayload(supportedFeatures)){};
-  ~NaplesConfig(){};
+                          new payload::ZENFMAPayload(supportedFeatures)) {}
+  ~NaplesConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

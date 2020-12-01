@@ -68,8 +68,8 @@ protected:
 
 public:
   Payload(std::string name, unsigned registerSize, unsigned registerCount)
-      : _name(name), registerSize(registerSize), registerCount(registerCount){};
-  ~Payload(){};
+      : _name(name), registerSize(registerSize), registerCount(registerCount) {}
+  ~Payload() {}
 
   const std::string &name = _name;
   const unsigned &flops = _flops;

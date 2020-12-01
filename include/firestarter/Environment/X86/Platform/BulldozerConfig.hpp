@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0,
                           {16384, 1048576, 786432}, 104857600, 1536, family,
                           model, threads,
-                          new payload::FMA4Payload(supportedFeatures)){};
-  ~BulldozerConfig(){};
+                          new payload::FMA4Payload(supportedFeatures)) {}
+  ~BulldozerConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

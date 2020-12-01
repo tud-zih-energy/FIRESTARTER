@@ -28,7 +28,7 @@ class AVX512Payload : public X86Payload {
 public:
   AVX512Payload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kAVX512_F},
-                   "AVX512", 8, 32){};
+                   "AVX512", 8, 32) {}
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      unsigned instructionCacheSize,

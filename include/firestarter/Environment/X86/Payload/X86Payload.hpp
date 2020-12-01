@@ -58,8 +58,8 @@ public:
              std::string name, unsigned registerSize, unsigned registerCount)
       : Payload(name, registerSize, registerCount),
         _supportedFeatures(supportedFeatures),
-        featureRequests(featureRequests){};
-  ~X86Payload(){};
+        featureRequests(featureRequests) {}
+  ~X86Payload() {}
 
   bool isAvailable() override {
     bool available = true;

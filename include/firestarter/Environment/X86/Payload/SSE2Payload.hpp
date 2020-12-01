@@ -28,7 +28,7 @@ class SSE2Payload : public X86Payload {
 public:
   SSE2Payload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kSSE2},
-                   "SSE2", 2, 16){};
+                   "SSE2", 2, 16) {}
 
   int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
                      unsigned instructionCacheSize,

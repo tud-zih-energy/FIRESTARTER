@@ -33,9 +33,9 @@ public:
       : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0,
                           {32768, 1048576, 1441792}, 1048576000, 1536, family,
                           model, threads,
-                          new payload::AVX512Payload(supportedFeatures)){};
+                          new payload::AVX512Payload(supportedFeatures)) {}
 
-  ~SkylakeSPConfig(){};
+  ~SkylakeSPConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

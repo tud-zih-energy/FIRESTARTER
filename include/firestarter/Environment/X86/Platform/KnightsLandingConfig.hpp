@@ -33,8 +33,8 @@ public:
       : X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4}, 0,
                           {32768, 524288, 236279125}, 26214400, 1536, family,
                           model, threads,
-                          new payload::AVX512Payload(supportedFeatures)){};
-  ~KnightsLandingConfig(){};
+                          new payload::AVX512Payload(supportedFeatures)) {}
+  ~KnightsLandingConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {

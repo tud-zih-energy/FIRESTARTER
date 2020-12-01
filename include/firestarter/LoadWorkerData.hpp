@@ -47,8 +47,8 @@ public:
       : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
         _id(id), _environment(environment),
         _config(new environment::platform::RuntimeConfig(
-            *environment->selectedConfig)){};
-  ~LoadWorkerData(){};
+            *environment->selectedConfig)) {}
+  ~LoadWorkerData() {}
 
   const int &id = _id;
   environment::Environment *const &environment = _environment;

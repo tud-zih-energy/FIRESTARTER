@@ -34,8 +34,8 @@ public:
       : X86PlatformConfig("SNB_XEONEP", 6, {45, 62}, {1, 2}, 0,
                           {32768, 262144, 2621440}, 104857600, 1536, family,
                           model, threads,
-                          new payload::AVXPayload(supportedFeatures)){};
-  ~SandyBridgeEPConfig(){};
+                          new payload::AVXPayload(supportedFeatures)) {}
+  ~SandyBridgeEPConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() override {
