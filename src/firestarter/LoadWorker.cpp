@@ -32,6 +32,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <functional>
+#include <thread>
 
 #define PAD_SIZE(size, align)                                                  \
   align *(int)std::ceil((double)size / (double)align)
@@ -237,6 +238,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
       td->ack = true;
       td->mutex.unlock();
     } else {
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
       continue;
     }
 
