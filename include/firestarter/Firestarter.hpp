@@ -72,7 +72,9 @@ public:
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
-  environment::x86::X86Environment *const &environment = _environment;
+  environment::x86::X86Environment &environment() const {
+    return *_environment;
+  }
 #endif
 
 #ifdef BUILD_CUDA

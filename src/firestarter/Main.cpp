@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
 #endif
 
     int returnCode;
-    auto firestarter = new firestarter::Firestarter();
+    firestarter::Firestarter firestarter;
 
 #ifdef BUILD_CUDA
     bool useGpuFloat = options["usegpufloat"].as<bool>();
@@ -248,11 +248,11 @@ int main(int argc, char **argv) {
     }
 
     if (useGpuFloat) {
-      firestarter->gpuStructPointer->use_double = 0;
+      firestarter.gpuStructPointer->use_double = 0;
     } else if (useGpuDouble) {
-      firestarter->gpuStructPointer->use_double = 1;
+      firestarter.gpuStructPointer->use_double = 1;
     } else {
-      firestarter->gpuStructPointer->use_double = 2;
+      firestarter.gpuStructPointer->use_double = 2;
     }
 
     unsigned matrixSize = options["matrixsize"].as<unsigned>();
@@ -260,22 +260,21 @@ int main(int argc, char **argv) {
       throw std::invalid_argument(
           "Option -m/--matrixsize may not be below 64.");
     }
-    firestarter->gpuStructPointer->msize = matrixSize;
+    firestarter.gpuStructPointer->msize = matrixSize;
 
-    firestarter->gpuStructPointer->use_device = options["gpus"].as<int>();
+    firestarter.gpuStructPointer->use_device = options["gpus"].as<int>();
 #endif
 
     if (EXIT_SUCCESS !=
-        (returnCode = firestarter->environment->evaluateCpuAffinity(
+        (returnCode = firestarter.environment().evaluateCpuAffinity(
              requestedNumThreads, cpuBind))) {
-      delete firestarter;
       return returnCode;
     }
 
-    firestarter->environment->evaluateFunctions();
+    firestarter.environment().evaluateFunctions();
 
     if (options.count("avail")) {
-      firestarter->environment->printFunctionSummary();
+      firestarter.environment().printFunctionSummary();
       return EXIT_SUCCESS;
     }
 
@@ -283,15 +282,13 @@ int main(int argc, char **argv) {
     bool allowUnavailablePayload =
         options["allow-unavailable-payload"].as<bool>();
 
-    if (EXIT_SUCCESS != (returnCode = firestarter->environment->selectFunction(
+    if (EXIT_SUCCESS != (returnCode = firestarter.environment().selectFunction(
                              functionId, allowUnavailablePayload))) {
-      delete firestarter;
       return returnCode;
     }
 
     if (options["list-instruction-groups"].as<bool>()) {
-      firestarter->environment->printAvailableInstructionGroups();
-      delete firestarter;
+      firestarter.environment().printAvailableInstructionGroups();
       return EXIT_SUCCESS;
     }
 
@@ -299,71 +296,66 @@ int main(int argc, char **argv) {
         options["run-instruction-groups"].as<std::string>();
     if (!instructionGroups.empty()) {
       if (EXIT_SUCCESS !=
-          (returnCode = firestarter->environment->selectInstructionGroups(
+          (returnCode = firestarter.environment().selectInstructionGroups(
                instructionGroups))) {
-        delete firestarter;
         return returnCode;
       }
     }
 
     unsigned lineCount = options["set-line-count"].as<unsigned>();
     if (lineCount != 0) {
-      firestarter->environment->setLineCount(lineCount);
+      firestarter.environment().setLineCount(lineCount);
     }
 
-    firestarter->environment->printSelectedCodePathSummary();
+    firestarter.environment().printSelectedCodePathSummary();
 
-    firestarter::log::info() << firestarter->environment->topology();
+    firestarter::log::info() << firestarter.environment().topology();
 
-    firestarter->environment->printThreadSummary();
+    firestarter.environment().printThreadSummary();
 
     // setup thread with either high or low load configured at the start
     // low loads has to know the length of the period
     if (EXIT_SUCCESS !=
-        (returnCode = firestarter->initLoadWorkers(
+        (returnCode = firestarter.initLoadWorkers(
              (loadPercent == 0), period.count(), dumpRegisters))) {
-      delete firestarter;
       return returnCode;
     }
 
 #ifdef BUILD_CUDA
     pthread_t gpu_thread;
     pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu,
-                   (void *)firestarter->gpuStructPointer);
-    while (firestarter->gpuStructPointer->loadingdone != 1) {
+                   (void *)firestarter.gpuStructPointer);
+    while (firestarter.gpuStructPointer->loadingdone != 1) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 #endif
 
-    firestarter->signalWork();
+    firestarter.signalWork();
 
 #ifdef DEBUG_FEATURES
     if (dumpRegisters) {
       auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
       if (EXIT_SUCCESS !=
-          (returnCode = firestarter->initDumpRegisterWorker(
+          (returnCode = firestarter.initDumpRegisterWorker(
                std::chrono::seconds(dumpTimeDelta),
                options["dump-registers-outpath"].as<std::string>()))) {
-        delete firestarter;
         return returnCode;
       }
     }
 #endif
 
     // worker thread for load control
-    firestarter->watchdogWorker(period, load, timeout);
+    firestarter.watchdogWorker(period, load, timeout);
 
     // wait for watchdog to timeout or until user terminates
-    firestarter->joinLoadWorkers();
+    firestarter.joinLoadWorkers();
 #ifdef DEBUG_FEATURES
     if (dumpRegisters) {
-      firestarter->joinDumpRegisterWorker();
+      firestarter.joinDumpRegisterWorker();
     }
 #endif
 
-    firestarter->printPerformanceReport();
-
-    delete firestarter;
+    firestarter.printPerformanceReport();
 
   } catch (std::exception &e) {
     firestarter::log::error() << e.what() << "\n";

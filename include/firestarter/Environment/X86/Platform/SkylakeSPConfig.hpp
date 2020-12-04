@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class SkylakeSPConfig : public X86PlatformConfig {
+class SkylakeSPConfig final : public X86PlatformConfig {
 
 public:
   SkylakeSPConfig(asmjit::x86::Features const &supportedFeatures,
@@ -35,10 +35,8 @@ public:
                           model, threads,
                           new payload::AVX512Payload(supportedFeatures)) {}
 
-  ~SkylakeSPConfig() {}
-
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
                                                           {"RAM_P", 1},
                                                           {"L3_S", 1},

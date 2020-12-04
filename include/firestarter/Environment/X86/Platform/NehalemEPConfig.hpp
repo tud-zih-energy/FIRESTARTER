@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class NehalemEPConfig : public X86PlatformConfig {
+class NehalemEPConfig final : public X86PlatformConfig {
 
 public:
   NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
@@ -34,10 +34,9 @@ public:
                           {32768, 262144, 2097152}, 104857600, 1536, family,
                           model, threads,
                           new payload::SSE2Payload(supportedFeatures)) {}
-  ~NehalemEPConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
   }

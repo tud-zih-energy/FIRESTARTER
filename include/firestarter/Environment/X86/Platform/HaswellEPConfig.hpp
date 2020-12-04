@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class HaswellEPConfig : public X86PlatformConfig {
+class HaswellEPConfig final : public X86PlatformConfig {
 
 public:
   HaswellEPConfig(asmjit::x86::Features const &supportedFeatures,
@@ -34,10 +34,9 @@ public:
                           {32768, 262144, 2621440}, 104857600, 1536, family,
                           model, threads,
                           new payload::FMAPayload(supportedFeatures)) {}
-  ~HaswellEPConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 8},
                                                           {"L3_LS", 1},
                                                           {"L2_LS", 29},

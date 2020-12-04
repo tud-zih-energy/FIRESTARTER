@@ -48,9 +48,7 @@ public:
         _family(family), _models(models), _currentFamily(currentFamily),
         _currentModel(currentModel), _currentThreads(currentThreads) {}
 
-  ~X86PlatformConfig() {}
-
-  bool isDefault() override {
+  bool isDefault() const override {
     return _family == _currentFamily &&
            (std::find(_models.begin(), _models.end(), _currentModel) !=
             _models.end()) &&

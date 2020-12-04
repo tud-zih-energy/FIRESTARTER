@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class NaplesConfig : public X86PlatformConfig {
+class NaplesConfig final : public X86PlatformConfig {
 
 public:
   NaplesConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
@@ -34,10 +34,9 @@ public:
                           {65536, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
                           new payload::ZENFMAPayload(supportedFeatures)) {}
-  ~NaplesConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
                                                           {"L3_L", 14},
                                                           {"L2_L", 75},

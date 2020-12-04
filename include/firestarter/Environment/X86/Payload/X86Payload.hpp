@@ -48,7 +48,7 @@ protected:
                                              unsigned long long);
   LoadFunction loadFunction = nullptr;
 
-  asmjit::x86::Features const &supportedFeatures() {
+  asmjit::x86::Features const &supportedFeatures() const {
     return this->_supportedFeatures;
   }
 
@@ -59,9 +59,8 @@ public:
       : Payload(name, registerSize, registerCount),
         _supportedFeatures(supportedFeatures),
         featureRequests(featureRequests) {}
-  ~X86Payload() {}
 
-  bool isAvailable() override {
+  bool isAvailable() const override {
     bool available = true;
 
     for (auto const &feature : featureRequests) {

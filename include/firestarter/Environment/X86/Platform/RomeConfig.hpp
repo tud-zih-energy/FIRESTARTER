@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class RomeConfig : public X86PlatformConfig {
+class RomeConfig final : public X86PlatformConfig {
 
 public:
   RomeConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
@@ -34,10 +34,9 @@ public:
                           {32768, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
                           new payload::FMAPayload(supportedFeatures)) {}
-  ~RomeConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 10},
                                                           {"L3_L", 25},
                                                           {"L2_L", 91},

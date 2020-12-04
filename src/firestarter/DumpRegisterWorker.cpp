@@ -76,9 +76,8 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
   auto data = reinterpret_cast<DumpRegisterWorkerData *>(dumpRegisterData);
 
-  auto payload = data->loadWorkerData->config->payload;
-  int registerCount = payload->registerCount;
-  int registerSize = payload->registerSize;
+  int registerCount = data->loadWorkerData->config().payload().registerCount();
+  int registerSize = data->loadWorkerData->config().payload().registerSize();
   std::string registerPrefix = registerNameBySize(registerSize);
   auto offset = sizeof(DumpRegisterStruct) / sizeof(unsigned long long);
 

@@ -25,6 +25,7 @@
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 
+#include <cassert>
 #include <vector>
 
 namespace firestarter::environment {
@@ -32,7 +33,11 @@ namespace firestarter::environment {
 class Environment {
 public:
   Environment(CPUTopology *topology) : _topology(topology) {}
-  ~Environment() {}
+  ~Environment() {
+    if (_selectedConfig != nullptr) {
+      delete _selectedConfig;
+    }
+  }
 
   int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
   int setCpuAffinity(unsigned thread);
@@ -47,22 +52,30 @@ public:
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
+  platform::RuntimeConfig &selectedConfig() const {
+    assert(("No RuntimeConfig selected", _selectedConfig != nullptr));
+    return *_selectedConfig;
+  }
 
-  const unsigned long long &requestedNumThreads = _requestedNumThreads;
+  unsigned long long requestedNumThreads() const {
+    return _requestedNumThreads;
+  }
 
-  CPUTopology const &topology() { return *_topology; }
+  CPUTopology const &topology() const {
+    assert(_topology != nullptr);
+    return *_topology;
+  }
 
 protected:
   platform::RuntimeConfig *_selectedConfig = nullptr;
   CPUTopology *_topology = nullptr;
 
+private:
   unsigned long long _requestedNumThreads;
 
-private:
   // TODO: replace these functions with the builtins one from hwloc
-  int cpu_allowed(unsigned id);
-  int cpu_set(unsigned id);
+  int cpuAllowed(unsigned id);
+  int cpuSet(unsigned id);
 
   std::vector<unsigned> cpuBind;
 };
