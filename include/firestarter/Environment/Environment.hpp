@@ -19,95 +19,65 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_ENVIRONMENT_HPP
+#pragma once
 
+#include <firestarter/Environment/CPUTopology.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 
+#include <cassert>
 #include <vector>
-
-extern "C" {
-#include <hwloc.h>
-}
 
 namespace firestarter::environment {
 
 class Environment {
 public:
-  // Environment.cpp
-  Environment(std::string architecture);
-  virtual ~Environment(void);
+  Environment(CPUTopology *topology) : _topology(topology) {}
+  ~Environment() {
+    if (_selectedConfig != nullptr) {
+      delete _selectedConfig;
+    }
+  }
 
-  // Environment.cpp
-  int evaluateEnvironment(void);
-  void printEnvironmentSummary(void);
-  unsigned getNumberOfThreadsPerCore(void);
-
-  // CpuAffinity.cpp
   int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
   int setCpuAffinity(unsigned thread);
-  void printThreadSummary(void);
+  void printThreadSummary();
 
-  virtual unsigned long long timestamp(void) = 0;
-
-  virtual void evaluateFunctions(void) = 0;
+  virtual void evaluateFunctions() = 0;
   virtual int selectFunction(unsigned functionId,
                              bool allowUnavailablePayload) = 0;
   virtual int selectInstructionGroups(std::string groups) = 0;
-  virtual void printAvailableInstructionGroups(void) = 0;
+  virtual void printAvailableInstructionGroups() = 0;
   virtual void setLineCount(unsigned lineCount) = 0;
-  virtual void printSelectedCodePathSummary(void) = 0;
-  virtual void printFunctionSummary(void) = 0;
+  virtual void printSelectedCodePathSummary() = 0;
+  virtual void printFunctionSummary() = 0;
 
-  platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
+  platform::RuntimeConfig &selectedConfig() const {
+    assert(("No RuntimeConfig selected", _selectedConfig != nullptr));
+    return *_selectedConfig;
+  }
 
-  const unsigned long long &requestedNumThreads = _requestedNumThreads;
-  const unsigned long long &clockrate = _clockrate;
+  unsigned long long requestedNumThreads() const {
+    return _requestedNumThreads;
+  }
+
+  CPUTopology const &topology() const {
+    assert(_topology != nullptr);
+    return *_topology;
+  }
 
 protected:
   platform::RuntimeConfig *_selectedConfig = nullptr;
-
-  // CpuAffinity.cpp
-  unsigned long long _requestedNumThreads;
-
-  // Environment.cpp
-  unsigned int numPackages;
-  unsigned int numPhysicalCoresPerPackage;
-  unsigned int numThreads;
-  std::string architecture;
-  std::string vendor = std::string("");
-  std::string processorName = std::string("");
-  unsigned long long _clockrate = 0;
-  unsigned instructionCacheSize = 0;
-
-  // CpuClockrate.cpp
-  std::stringstream getScalingGovernor(void);
-  virtual int getCpuClockrate(void);
-
-  virtual std::string getModel(void) = 0;
-  virtual std::string getProcessorName(void);
-  virtual std::string getVendor(void);
+  CPUTopology *_topology = nullptr;
 
 private:
-  // CpuAffinity.cpp
+  unsigned long long _requestedNumThreads;
+
   // TODO: replace these functions with the builtins one from hwloc
-  int getCoreIdFromPU(unsigned pu);
-  int getPkgIdFromPU(unsigned pu);
-  int cpu_allowed(unsigned id);
-  int cpu_set(unsigned id);
+  int cpuAllowed(unsigned id);
+  int cpuSet(unsigned id);
 
-  // Environment.cpp
-  hwloc_topology_t topology;
-  std::string model = std::string("");
-  std::stringstream getFileAsStream(std::string filePath);
-
-  // CpuAffinity.cpp
   std::vector<unsigned> cpuBind;
-
-  virtual std::list<std::string> getCpuFeatures(void) = 0;
 };
 
 } // namespace firestarter::environment
-
-#endif

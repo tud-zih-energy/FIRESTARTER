@@ -19,16 +19,17 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_RUNTIMECONFIG_HPP
+#pragma once
 
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
+
+#include <cassert>
 
 namespace firestarter::environment::platform {
 
 class RuntimeConfig {
 private:
-  PlatformConfig *_platformConfig;
+  PlatformConfig const &_platformConfig;
   payload::Payload *_payload;
   unsigned _thread;
   std::vector<std::pair<std::string, unsigned>> _payloadSettings;
@@ -38,67 +39,79 @@ private:
   unsigned _lines;
 
 public:
-  RuntimeConfig(PlatformConfig *platformConfig, unsigned thread,
+  RuntimeConfig(PlatformConfig const &platformConfig, unsigned thread,
                 unsigned detectedInstructionCacheSize)
       : _platformConfig(platformConfig), _payload(nullptr), _thread(thread),
-        _payloadSettings(platformConfig->getDefaultPayloadSettings()),
-        _instructionCacheSize(platformConfig->instructionCacheSize),
-        _dataCacheBufferSize(platformConfig->dataCacheBufferSize),
-        _ramBufferSize(platformConfig->ramBufferSize),
-        _lines(platformConfig->lines) {
+        _payloadSettings(platformConfig.getDefaultPayloadSettings()),
+        _instructionCacheSize(platformConfig.instructionCacheSize()),
+        _dataCacheBufferSize(platformConfig.dataCacheBufferSize()),
+        _ramBufferSize(platformConfig.ramBufferSize()),
+        _lines(platformConfig.lines()) {
     if (detectedInstructionCacheSize != 0) {
       this->_instructionCacheSize = detectedInstructionCacheSize;
     }
   };
-  RuntimeConfig(const RuntimeConfig &c)
-      : _platformConfig(c.platformConfig),
-        _payload(c.platformConfig->payload->clone()), _thread(c.thread),
-        _payloadSettings(c.payloadSettings),
-        _instructionCacheSize(c.instructionCacheSize),
-        _dataCacheBufferSize(c.dataCacheBufferSize),
-        _ramBufferSize(c.ramBufferSize), _lines(c.lines){};
-  ~RuntimeConfig(void);
 
-  PlatformConfig *const &platformConfig = _platformConfig;
-  payload::Payload *const &payload = _payload;
-  const unsigned &thread = _thread;
-  const std::vector<std::pair<std::string, unsigned>> &payloadSettings =
-      _payloadSettings;
-  const unsigned &instructionCacheSize = _instructionCacheSize;
-  const std::list<unsigned> &dataCacheBufferSize = _dataCacheBufferSize;
-  const unsigned &ramBufferSize = _ramBufferSize;
-  const unsigned &lines = _lines;
+  RuntimeConfig(const RuntimeConfig &c)
+      : _platformConfig(c.platformConfig()),
+        _payload(c.platformConfig().payload().clone()), _thread(c.thread()),
+        _payloadSettings(c.payloadSettings()),
+        _instructionCacheSize(c.instructionCacheSize()),
+        _dataCacheBufferSize(c.dataCacheBufferSize()),
+        _ramBufferSize(c.ramBufferSize()), _lines(c.lines()) {}
+
+  ~RuntimeConfig() {
+    if (_payload != nullptr) {
+      delete _payload;
+    }
+  }
+
+  PlatformConfig const &platformConfig() const { return _platformConfig; }
+  payload::Payload &payload() const {
+    assert(("Payload pointer is null. Each thread has to use it's own "
+            "RuntimeConfig",
+            _payload != nullptr));
+    return *_payload;
+  }
+  unsigned thread() const { return _thread; }
+  const std::vector<std::pair<std::string, unsigned>> &payloadSettings() const {
+    return _payloadSettings;
+  }
+  unsigned instructionCacheSize() const { return _instructionCacheSize; }
+  const std::list<unsigned> &dataCacheBufferSize() const {
+    return _dataCacheBufferSize;
+  }
+  unsigned ramBufferSize() const { return _ramBufferSize; }
+  unsigned lines() const { return _lines; }
 
   void setPayloadSettings(
-      std::vector<std::pair<std::string, unsigned>> payloadSettings) {
+      std::vector<std::pair<std::string, unsigned>> const &payloadSettings) {
     this->_payloadSettings = payloadSettings;
   }
 
   void setLineCount(unsigned lineCount) { this->_lines = lineCount; }
 
-  void printCodePathSummary(void) {
+  void printCodePathSummary() const {
     log::info() << "\n"
-                << "  Taking " << platformConfig->payload->name
-                << " path optimized for " << platformConfig->name << " - "
-                << thread << " thread(s) per core\n"
+                << "  Taking " << platformConfig().payload().name()
+                << " path optimized for " << platformConfig().name() << " - "
+                << thread() << " thread(s) per core\n"
                 << "  Used buffersizes per thread:";
 
-    if (instructionCacheSize != 0) {
-      log::info() << "    - L1i-Cache: " << instructionCacheSize / thread
+    if (instructionCacheSize() != 0) {
+      log::info() << "    - L1i-Cache: " << instructionCacheSize() / thread()
                   << " Bytes";
     }
 
     unsigned i = 1;
-    for (auto const &bytes : dataCacheBufferSize) {
-      log::info() << "    - L" << i << "d-Cache: " << bytes / thread
+    for (auto const &bytes : dataCacheBufferSize()) {
+      log::info() << "    - L" << i << "d-Cache: " << bytes / thread()
                   << " Bytes";
       i++;
     }
 
-    log::info() << "    - Memory: " << ramBufferSize / thread << " Bytes";
+    log::info() << "    - Memory: " << ramBufferSize() / thread() << " Bytes";
   }
 };
 
 } // namespace firestarter::environment::platform
-
-#endif

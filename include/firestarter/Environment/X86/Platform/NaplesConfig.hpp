@@ -19,26 +19,24 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_NAPLESCONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_NAPLESCONFIG_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/ZENFMAPayload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class NaplesConfig : public X86PlatformConfig {
+class NaplesConfig final : public X86PlatformConfig {
 
 public:
-  NaplesConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
+  NaplesConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
                unsigned model, unsigned threads)
       : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0,
                           {65536, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
-                          new payload::ZENFMAPayload(supportedFeatures)){};
-  ~NaplesConfig(){};
+                          new payload::ZENFMAPayload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
                                                           {"L3_L", 14},
                                                           {"L2_L", 75},
@@ -47,5 +45,3 @@ public:
   }
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

@@ -30,10 +30,10 @@ using namespace asmjit;
 using namespace asmjit::x86;
 
 int FMAPayload::compilePayload(
-    std::vector<std::pair<std::string, unsigned>> proportion,
-    unsigned instructionCacheSize, std::list<unsigned> dataCacheBufferSize,
-    unsigned ramBufferSize, unsigned thread, unsigned numberOfLines,
-    bool dumpRegisters) {
+    std::vector<std::pair<std::string, unsigned>> const &proportion,
+    unsigned instructionCacheSize,
+    std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
+    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -48,7 +48,7 @@ int FMAPayload::compilePayload(
     auto it = this->instructionFlops.find(item);
 
     if (it == this->instructionFlops.end()) {
-      log::error() << "Instruction group " << item << " undefined in " << name
+      log::error() << "Instruction group " << item << " undefined in " << name()
                    << ".";
       return EXIT_FAILURE;
     }
@@ -321,7 +321,7 @@ int FMAPayload::compilePayload(
         RAM_INCREMENT();
       } else {
         log::error() << "Instruction group " << item << " not found in "
-                     << this->name << ".";
+                     << this->name() << ".";
         return EXIT_FAILURE;
       }
 
@@ -396,9 +396,9 @@ int FMAPayload::compilePayload(
     cb.jnz(SkipRegistersDump);
 
     // dump all the ymm register
-    for (int i = 0; i < (int)this->registerCount; i++) {
+    for (int i = 0; i < (int)this->registerCount(); i++) {
       cb.vmovapd(
-          ymmword_ptr(pointer_reg, -64 - this->registerSize * 8 * (i + 1)),
+          ymmword_ptr(pointer_reg, -64 - this->registerSize() * 8 * (i + 1)),
           Ymm(i));
     }
 
@@ -448,7 +448,7 @@ int FMAPayload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> FMAPayload::getAvailableInstructions(void) {
+std::list<std::string> FMAPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),

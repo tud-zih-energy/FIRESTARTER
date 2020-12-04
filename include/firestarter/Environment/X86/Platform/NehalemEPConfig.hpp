@@ -19,30 +19,26 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_NEHALEMEPCONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_NEHALEMEPCONFIG_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class NehalemEPConfig : public X86PlatformConfig {
+class NehalemEPConfig final : public X86PlatformConfig {
 
 public:
-  NehalemEPConfig(const asmjit::x86::Features *supportedFeatures,
+  NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
                           {32768, 262144, 2097152}, 104857600, 1536, family,
                           model, threads,
-                          new payload::SSE2Payload(supportedFeatures)){};
-  ~NehalemEPConfig(){};
+                          new payload::SSE2Payload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
   }
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

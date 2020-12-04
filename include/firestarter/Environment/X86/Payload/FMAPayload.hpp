@@ -19,30 +19,29 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_FMAPAYLOAD_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_FMAPAYLOAD_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
-class FMAPayload : public X86Payload {
+class FMAPayload final : public X86Payload {
 public:
-  FMAPayload(const asmjit::x86::Features *const supportedFeatures)
+  FMAPayload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(supportedFeatures,
                    {asmjit::x86::Features::kAVX, asmjit::x86::Features::kFMA},
-                   "FMA", 4, 16){};
+                   "FMA", 4, 16) {}
 
-  int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
-                     unsigned instructionCacheSize,
-                     std::list<unsigned> dataCacheBufferSize,
-                     unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines, bool dumpRegisters) override;
-  std::list<std::string> getAvailableInstructions(void) override;
+  int compilePayload(
+      std::vector<std::pair<std::string, unsigned>> const &proportion,
+      unsigned instructionCacheSize,
+      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
+      unsigned thread, unsigned numberOfLines, bool dumpRegisters) override;
+  std::list<std::string> getAvailableInstructions() const override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;
 
-  firestarter::environment::payload::Payload *clone(void) override {
-    return new FMAPayload(this->supportedFeatures);
+  firestarter::environment::payload::Payload *clone() const override {
+    return new FMAPayload(this->supportedFeatures());
   };
 
 private:
@@ -58,5 +57,3 @@ private:
       {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
 };
 } // namespace firestarter::environment::x86::payload
-
-#endif

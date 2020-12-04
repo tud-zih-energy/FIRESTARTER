@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_DUMPREGISTERWORKERDATA_HPP
-#define INCLUDE_FIRESTARTER_DUMPREGISTERWORKERDATA_HPP
+#pragma once
 
 #include <firestarter/LoadWorkerData.hpp>
 
@@ -67,7 +66,7 @@ public:
       this->dumpFilePath = std::filesystem::path(dumpFilePath);
     }
   };
-  ~DumpRegisterWorkerData(){};
+  ~DumpRegisterWorkerData() {}
 
   LoadWorkerData *const loadWorkerData;
   const std::chrono::seconds dumpTimeDelta;
@@ -75,7 +74,5 @@ public:
 };
 
 } // namespace firestarter
-
-#endif
 
 #endif

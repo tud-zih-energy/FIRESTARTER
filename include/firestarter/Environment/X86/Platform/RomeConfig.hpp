@@ -19,26 +19,24 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_ROMECONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_ROMECONFIG_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class RomeConfig : public X86PlatformConfig {
+class RomeConfig final : public X86PlatformConfig {
 
 public:
-  RomeConfig(const asmjit::x86::Features *supportedFeatures, unsigned family,
+  RomeConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
              unsigned model, unsigned threads)
       : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0,
                           {32768, 524288, 2097152}, 104857600, 1536, family,
                           model, threads,
-                          new payload::FMAPayload(supportedFeatures)){};
-  ~RomeConfig(){};
+                          new payload::FMAPayload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 10},
                                                           {"L3_L", 25},
                                                           {"L2_L", 91},
@@ -48,5 +46,3 @@ public:
   }
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

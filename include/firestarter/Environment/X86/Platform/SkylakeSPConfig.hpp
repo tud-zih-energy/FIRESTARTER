@@ -19,27 +19,24 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SKYLAKESPCONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SKYLAKESPCONFIG_H
+#pragma once
 
 #include <firestarter/Environment/X86/Payload/AVX512Payload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class SkylakeSPConfig : public X86PlatformConfig {
+class SkylakeSPConfig final : public X86PlatformConfig {
 
 public:
-  SkylakeSPConfig(const asmjit::x86::Features *supportedFeatures,
+  SkylakeSPConfig(asmjit::x86::Features const &supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0,
                           {32768, 1048576, 1441792}, 1048576000, 1536, family,
                           model, threads,
-                          new payload::AVX512Payload(supportedFeatures)){};
-
-  ~SkylakeSPConfig(){};
+                          new payload::AVX512Payload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
                                                           {"RAM_P", 1},
                                                           {"L3_S", 1},
@@ -53,5 +50,3 @@ public:
   }
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

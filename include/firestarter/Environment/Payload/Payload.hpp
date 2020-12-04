@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PAYLOAD_PAYLOAD_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_PAYLOAD_PAYLOAD_H
+#pragma once
 
 #include <initializer_list>
 #include <list>
@@ -32,67 +31,68 @@ namespace firestarter::environment::payload {
 class Payload {
 private:
   std::string _name;
-  unsigned getSequenceStartCount(const std::vector<std::string> sequence,
+  unsigned getSequenceStartCount(const std::vector<std::string> &sequence,
                                  const std::string start);
 
 protected:
   unsigned _flops;
   unsigned _bytes;
+  // size of used simd registers in bytes
+  unsigned _registerSize;
+  // number of used simd registers
+  unsigned _registerCount;
 
   std::vector<std::string> generateSequence(
-      const std::vector<std::pair<std::string, unsigned>> proportion);
-  unsigned getL2SequenceCount(const std::vector<std::string> sequence) {
+      const std::vector<std::pair<std::string, unsigned>> &proportion);
+  unsigned getL2SequenceCount(const std::vector<std::string> &sequence) {
     return getSequenceStartCount(sequence, "L2");
   };
-  unsigned getL3SequenceCount(const std::vector<std::string> sequence) {
+  unsigned getL3SequenceCount(const std::vector<std::string> &sequence) {
     return getSequenceStartCount(sequence, "L3");
   };
-  unsigned getRAMSequenceCount(const std::vector<std::string> sequence) {
+  unsigned getRAMSequenceCount(const std::vector<std::string> &sequence) {
     return getSequenceStartCount(sequence, "RAM");
   };
 
   unsigned
-  getNumberOfSequenceRepetitions(const std::vector<std::string> sequence,
+  getNumberOfSequenceRepetitions(const std::vector<std::string> &sequence,
                                  const unsigned numberOfLines) {
     return numberOfLines / sequence.size();
   };
 
-  unsigned getL2LoopCount(const std::vector<std::string> sequence,
+  unsigned getL2LoopCount(const std::vector<std::string> &sequence,
                           const unsigned numberOfLines, const unsigned size,
                           const unsigned threads);
-  unsigned getL3LoopCount(const std::vector<std::string> sequence,
+  unsigned getL3LoopCount(const std::vector<std::string> &sequence,
                           const unsigned numberOfLines, const unsigned size,
                           const unsigned threads);
-  unsigned getRAMLoopCount(const std::vector<std::string> sequence,
+  unsigned getRAMLoopCount(const std::vector<std::string> &sequence,
                            const unsigned numberOfLines, const unsigned size,
                            const unsigned threads);
 
 public:
   Payload(std::string name, unsigned registerSize, unsigned registerCount)
-      : _name(name), registerSize(registerSize), registerCount(registerCount){};
-  ~Payload(){};
+      : _name(name), _registerSize(registerSize),
+        _registerCount(registerCount) {}
+  virtual ~Payload() {}
 
-  const std::string &name = _name;
-  const unsigned &flops = _flops;
-  const unsigned &bytes = _bytes;
+  const std::string &name() const { return _name; }
+  unsigned flops() const { return _flops; }
+  unsigned bytes() const { return _bytes; }
+  unsigned registerSize() const { return _registerSize; }
+  unsigned registerCount() const { return _registerCount; }
 
-  // size of used simd registers in bytes
-  const unsigned registerSize;
-  // number of used simd registers
-  const unsigned registerCount;
-
-  virtual bool isAvailable(void) = 0;
+  virtual bool isAvailable() const = 0;
 
   virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
                                unsigned long long period) = 0;
 
-  virtual int
-  compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
-                 unsigned instructionCacheSize,
-                 std::list<unsigned> dataCacheBufferSize,
-                 unsigned ramBufferSize, unsigned thread,
-                 unsigned numberOfLines, bool dumpRegisters) = 0;
-  virtual std::list<std::string> getAvailableInstructions(void) = 0;
+  virtual int compilePayload(
+      std::vector<std::pair<std::string, unsigned>> const &proportion,
+      unsigned instructionCacheSize,
+      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
+      unsigned thread, unsigned numberOfLines, bool dumpRegisters) = 0;
+  virtual std::list<std::string> getAvailableInstructions() const = 0;
   virtual void init(unsigned long long *memoryAddr,
                     unsigned long long bufferSize) = 0;
   virtual unsigned long long
@@ -100,9 +100,7 @@ public:
                    volatile unsigned long long *addrHigh,
                    unsigned long long iterations) = 0;
 
-  virtual Payload *clone(void) = 0;
+  virtual Payload *clone() const = 0;
 };
 
 } // namespace firestarter::environment::payload
-
-#endif

@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_PAYLOAD_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PAYLOAD_PAYLOAD_H
+#pragma once
 
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
@@ -37,7 +36,7 @@ namespace firestarter::environment::x86::payload {
 class X86Payload : public environment::payload::Payload {
 private:
   // we can use this to check, if our platform support this payload
-  asmjit::x86::Features const *const _supportedFeatures;
+  asmjit::x86::Features const &_supportedFeatures;
   std::list<asmjit::x86::Features::Id> featureRequests;
 
 protected:
@@ -49,22 +48,23 @@ protected:
                                              unsigned long long);
   LoadFunction loadFunction = nullptr;
 
-  asmjit::x86::Features const *const &supportedFeatures = _supportedFeatures;
+  asmjit::x86::Features const &supportedFeatures() const {
+    return this->_supportedFeatures;
+  }
 
 public:
-  X86Payload(asmjit::x86::Features const *const supportedFeatures,
+  X86Payload(asmjit::x86::Features const &supportedFeatures,
              std::initializer_list<asmjit::x86::Features::Id> featureRequests,
              std::string name, unsigned registerSize, unsigned registerCount)
       : Payload(name, registerSize, registerCount),
         _supportedFeatures(supportedFeatures),
-        featureRequests(featureRequests){};
-  ~X86Payload(){};
+        featureRequests(featureRequests) {}
 
-  bool isAvailable(void) override {
+  bool isAvailable() const override {
     bool available = true;
 
     for (auto const &feature : featureRequests) {
-      available &= supportedFeatures->has(feature);
+      available &= this->_supportedFeatures.has(feature);
     }
 
     return available;
@@ -89,5 +89,3 @@ public:
 };
 
 } // namespace firestarter::environment::x86::payload
-
-#endif

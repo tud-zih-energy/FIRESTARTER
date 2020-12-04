@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
-#define INCLUDE_FIRESTARTER_LOADWORKERDATA_HPP
+#pragma once
 
 #define THREAD_WAIT 1
 #define THREAD_WORK 2
@@ -42,18 +41,21 @@ namespace firestarter {
 
 class LoadWorkerData {
 public:
-  LoadWorkerData(int id, environment::Environment *environment,
+  LoadWorkerData(int id, environment::Environment &environment,
                  volatile unsigned long long *loadVar,
                  unsigned long long period, bool dumpRegisters)
       : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
         _id(id), _environment(environment),
         _config(new environment::platform::RuntimeConfig(
-            *environment->selectedConfig)){};
-  ~LoadWorkerData(){};
+            environment.selectedConfig())) {}
 
-  const int &id = _id;
-  environment::Environment *const &environment = _environment;
-  environment::platform::RuntimeConfig *const &config = _config;
+  ~LoadWorkerData() { delete _config; }
+
+  int id() const { return _id; }
+  environment::Environment &environment() const { return _environment; }
+  environment::platform::RuntimeConfig const &config() const {
+    return *_config;
+  }
 
   int comm = THREAD_WAIT;
   bool ack = false;
@@ -72,10 +74,8 @@ public:
 
 private:
   int _id;
-  environment::Environment *_environment;
+  environment::Environment &_environment;
   environment::platform::RuntimeConfig *_config;
 };
 
 } // namespace firestarter
-
-#endif

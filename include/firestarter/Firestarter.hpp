@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_FIRESTARTER_HPP
-#define INCLUDE_FIRESTARTER_FIRESTARTER_HPP
+#pragma once
 
 #ifdef BUILD_CUDA
 #include <firestarter/Cuda/Cuda.hpp>
@@ -47,7 +46,7 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(void) {
+  Firestarter() {
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
     _environment = new environment::x86::X86Environment();
@@ -63,7 +62,7 @@ public:
 #endif
   };
 
-  ~Firestarter(void) {
+  ~Firestarter() {
     delete _environment;
 
 #ifdef BUILD_CUDA
@@ -71,7 +70,12 @@ public:
 #endif
   };
 
-  environment::Environment *const &environment = _environment;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  environment::x86::X86Environment &environment() const {
+    return *_environment;
+  }
+#endif
 
 #ifdef BUILD_CUDA
   cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
@@ -80,10 +84,10 @@ public:
   // LoadThreadWorker.cpp
   int initLoadWorkers(bool lowLoad, unsigned long long period,
                       bool dumpRegisters);
-  void joinLoadWorkers(void);
-  void printPerformanceReport(void);
+  void joinLoadWorkers();
+  void printPerformanceReport();
 
-  void signalWork(void) { signalLoadWorkers(THREAD_WORK); };
+  void signalWork() { signalLoadWorkers(THREAD_WORK); };
 
   // WatchdogWorker.cpp
   int watchdogWorker(std::chrono::microseconds period,
@@ -94,11 +98,14 @@ public:
   // DumpRegisterWorker.cpp
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
-  void joinDumpRegisterWorker(void);
+  void joinDumpRegisterWorker();
 #endif
 
 private:
-  environment::Environment *_environment;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  environment::x86::X86Environment *_environment;
+#endif
 
 #ifdef BUILD_CUDA
   cuda::gpustruct_t *_gpuStructPointer;
@@ -127,5 +134,3 @@ private:
 };
 
 } // namespace firestarter
-
-#endif

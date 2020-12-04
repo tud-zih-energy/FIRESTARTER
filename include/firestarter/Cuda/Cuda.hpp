@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_CUDA_CUDA_HPP
-#define INCLUDE_FIRESTARTER_CUDA_CUDA_HPP
+#pragma once
 
 namespace firestarter::cuda {
 
@@ -39,5 +38,3 @@ typedef struct {
 void *init_gpu(void *gpu);
 
 } // namespace firestarter::cuda
-
-#endif

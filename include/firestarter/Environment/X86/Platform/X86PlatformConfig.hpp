@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_X86PLATFORMCONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_X86PLATFORMCONFIG_H
+#pragma once
 
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
@@ -47,11 +46,9 @@ public:
       : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize,
                        ramBuffersize, lines, payload),
         _family(family), _models(models), _currentFamily(currentFamily),
-        _currentModel(currentModel), _currentThreads(currentThreads){};
+        _currentModel(currentModel), _currentThreads(currentThreads) {}
 
-  ~X86PlatformConfig(){};
-
-  bool isDefault(void) override {
+  bool isDefault() const override {
     return _family == _currentFamily &&
            (std::find(_models.begin(), _models.end(), _currentModel) !=
             _models.end()) &&
@@ -60,5 +57,3 @@ public:
 };
 
 } // namespace firestarter::environment::x86::platform
-
-#endif

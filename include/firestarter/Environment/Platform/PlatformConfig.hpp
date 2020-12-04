@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_PLATFORMCONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_PLATFORM_PLATFORMCONFIG_H
+#pragma once
 
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
@@ -54,37 +53,39 @@ public:
       : _name(name), _threads(threads), _payload(payload),
         _instructionCacheSize(instructionCacheSize),
         _dataCacheBufferSize(dataCacheBufferSize),
-        _ramBufferSize(ramBufferSize), _lines(lines){};
-  ~PlatformConfig(){};
+        _ramBufferSize(ramBufferSize), _lines(lines) {}
+  virtual ~PlatformConfig() { delete _payload; }
 
-  const std::string &name = _name;
-  const unsigned &instructionCacheSize = _instructionCacheSize;
-  const std::list<unsigned> &dataCacheBufferSize = _dataCacheBufferSize;
-  const unsigned &ramBufferSize = _ramBufferSize;
-  const unsigned &lines = _lines;
-  payload::Payload *const &payload = _payload;
+  const std::string &name() const { return _name; }
+  unsigned instructionCacheSize() const { return _instructionCacheSize; }
+  const std::list<unsigned> &dataCacheBufferSize() const {
+    return _dataCacheBufferSize;
+  }
+  unsigned ramBufferSize() const { return _ramBufferSize; }
+  unsigned lines() const { return _lines; }
+  payload::Payload const &payload() const { return *_payload; }
 
-  std::map<unsigned, std::string> getThreadMap(void) {
+  std::map<unsigned, std::string> getThreadMap() const {
     std::map<unsigned, std::string> threadMap;
 
     for (auto const &thread : _threads) {
       std::stringstream functionName;
-      functionName << "FUNC_" << name << "_" << payload->name << "_" << thread
-                   << "T";
+      functionName << "FUNC_" << name() << "_" << payload().name() << "_"
+                   << thread << "T";
       threadMap[thread] = functionName.str();
     }
 
     return threadMap;
   }
 
-  bool isAvailable(void) { return payload->isAvailable(); }
+  bool isAvailable() const { return payload().isAvailable(); }
 
-  virtual bool isDefault(void) = 0;
+  virtual bool isDefault() const = 0;
 
   virtual std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings(void) = 0;
+  getDefaultPayloadSettings() const = 0;
 
-  std::string getDefaultPayloadSettingsString(void) {
+  std::string getDefaultPayloadSettingsString() const {
     std::stringstream ss;
 
     for (auto const &[name, value] : this->getDefaultPayloadSettings()) {
@@ -101,5 +102,3 @@ public:
 };
 
 } // namespace firestarter::environment::platform
-
-#endif

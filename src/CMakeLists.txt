@@ -4,15 +4,13 @@ SET(FIRESTARTER_FILES
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
 
-	firestarter/Environment/CpuClockrate.cpp
-	firestarter/Environment/CpuAffinity.cpp
 	firestarter/Environment/Environment.cpp
+	firestarter/Environment/CPUTopology.cpp
 	firestarter/Environment/Payload/Payload.cpp
 
 	# here starts the x86 specific code
-	firestarter/Environment/X86/Functions.cpp
-	firestarter/Environment/X86/CpuParameter.cpp
-	firestarter/Environment/X86/Timestamp.cpp
+	firestarter/Environment/X86/X86Environment.cpp
+	firestarter/Environment/X86/X86CPUTopology.cpp
 
 	firestarter/Environment/X86/Payload/X86Payload.cpp
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp

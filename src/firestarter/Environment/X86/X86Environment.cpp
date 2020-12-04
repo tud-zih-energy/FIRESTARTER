@@ -28,18 +28,18 @@
 
 using namespace firestarter::environment::x86;
 
-void X86Environment::evaluateFunctions(void) {
+void X86Environment::evaluateFunctions() {
   for (auto ctor : this->platformConfigsCtor) {
     // add asmjit for model and family detection
     this->platformConfigs.push_back(
-        ctor(&this->cpuFeatures, this->cpuInfo.familyId(),
-             this->cpuInfo.modelId(), this->getNumberOfThreadsPerCore()));
+        ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
+             this->topology().modelId(), this->topology().numThreadsPerCore()));
   }
 
   for (auto ctor : this->fallbackPlatformConfigsCtor) {
     this->fallbackPlatformConfigs.push_back(
-        ctor(&this->cpuFeatures, this->cpuInfo.familyId(),
-             this->cpuInfo.modelId(), this->getNumberOfThreadsPerCore()));
+        ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
+             this->topology().modelId(), this->topology().numThreadsPerCore()));
   }
 }
 
@@ -55,7 +55,7 @@ int X86Environment::selectFunction(unsigned functionId,
       if (id == functionId) {
         if (!config->isAvailable()) {
           log::error() << "Function " << functionId << " (\"" << functionName
-                       << "\") requires " << config->payload->name
+                       << "\") requires " << config->payload().name()
                        << ", which is not supported by the processor.";
           if (!allowUnavailablePayload) {
             return EXIT_FAILURE;
@@ -64,18 +64,18 @@ int X86Environment::selectFunction(unsigned functionId,
         // found function
         this->_selectedConfig =
             new ::firestarter::environment::platform::RuntimeConfig(
-                config, thread, this->instructionCacheSize);
+                *config, thread, this->topology().instructionCacheSize());
         return EXIT_SUCCESS;
       }
       // default function
       if (0 == functionId && config->isDefault()) {
-        if (thread == this->getNumberOfThreadsPerCore()) {
+        if (thread == this->topology().numThreadsPerCore()) {
           this->_selectedConfig =
               new ::firestarter::environment::platform::RuntimeConfig(
-                  config, thread, this->instructionCacheSize);
+                  *config, thread, this->topology().instructionCacheSize());
           return EXIT_SUCCESS;
         } else {
-          defaultPayloadName = config->payload->name;
+          defaultPayloadName = config->payload().name();
         }
       }
       id++;
@@ -89,9 +89,10 @@ int X86Environment::selectFunction(unsigned functionId,
       // default payload available, but number of threads per core is not
       // supported
       log::warn() << "No " << defaultPayloadName << " code path for "
-                  << this->getNumberOfThreadsPerCore() << " threads per core!";
+                  << this->topology().numThreadsPerCore()
+                  << " threads per core!";
     }
-    log::warn() << this->vendor << " " << this->getModel()
+    log::warn() << this->topology().vendor() << " " << this->topology().model()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
 
@@ -102,7 +103,7 @@ int X86Environment::selectFunction(unsigned functionId,
         auto selectedThread = 0;
         auto selectedFunctionName = std::string("");
         for (auto const &[thread, functionName] : config->getThreadMap()) {
-          if (thread == this->getNumberOfThreadsPerCore()) {
+          if (thread == this->topology().numThreadsPerCore()) {
             selectedThread = thread;
             selectedFunctionName = functionName;
           }
@@ -113,7 +114,8 @@ int X86Environment::selectFunction(unsigned functionId,
         }
         this->_selectedConfig =
             new ::firestarter::environment::platform::RuntimeConfig(
-                config, selectedThread, this->instructionCacheSize);
+                *config, selectedThread,
+                this->topology().instructionCacheSize());
         log::warn() << "Using function " << selectedFunctionName
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
@@ -136,8 +138,10 @@ int X86Environment::selectFunction(unsigned functionId,
 int X86Environment::selectInstructionGroups(std::string groups) {
   const std::string delimiter = ",";
   const std::regex re("^(\\w+):(\\d+)$");
-  const auto availableInstructionGroups =
-      this->selectedConfig->platformConfig->payload->getAvailableInstructions();
+  const auto availableInstructionGroups = this->selectedConfig()
+                                              .platformConfig()
+                                              .payload()
+                                              .getAvailableInstructions();
 
   std::stringstream ss(groups);
   std::vector<std::pair<std::string, unsigned>> payloadSettings = {};
@@ -166,7 +170,7 @@ int X86Environment::selectInstructionGroups(std::string groups) {
     }
   }
 
-  this->selectedConfig->setPayloadSettings(payloadSettings);
+  this->selectedConfig().setPayloadSettings(payloadSettings);
 
   log::info() << "  Running custom instruction group: " << groups;
 
@@ -174,38 +178,32 @@ int X86Environment::selectInstructionGroups(std::string groups) {
 }
 
 void X86Environment::printAvailableInstructionGroups() {
-  if (this->selectedConfig != nullptr) {
-    std::stringstream ss;
+  std::stringstream ss;
 
-    for (auto const &item : this->selectedConfig->platformConfig->payload
-                                ->getAvailableInstructions()) {
-      ss << item << ",";
-    }
-
-    auto s = ss.str();
-    if (s.size() > 0) {
-      s.pop_back();
-    }
-
-    log::info() << " available instruction-groups for payload "
-                << this->selectedConfig->platformConfig->payload->name << ":\n"
-                << "  " << s;
-  } else {
-    log::warn()
-        << "Can not print available instruction groups: no function selected.";
+  for (auto const &item : this->selectedConfig()
+                              .platformConfig()
+                              .payload()
+                              .getAvailableInstructions()) {
+    ss << item << ",";
   }
+
+  auto s = ss.str();
+  if (s.size() > 0) {
+    s.pop_back();
+  }
+
+  log::info() << " available instruction-groups for payload "
+              << this->selectedConfig().platformConfig().payload().name()
+              << ":\n"
+              << "  " << s;
 }
 
 void X86Environment::setLineCount(unsigned lineCount) {
-  this->selectedConfig->setLineCount(lineCount);
+  this->selectedConfig().setLineCount(lineCount);
 }
 
 void X86Environment::printSelectedCodePathSummary() {
-  if (this->selectedConfig != nullptr) {
-    this->selectedConfig->printCodePathSummary();
-  } else {
-    log::warn() << "Can not print code-path-summary: no function selected.";
-  }
+  this->selectedConfig().printCodePathSummary();
 }
 
 void X86Environment::printFunctionSummary() {
