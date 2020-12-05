@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_MEASUREMENT_SUMMARY_HPP
-#define INCLUDE_FIRESTARTER_MEASUREMENT_SUMMARY_HPP
+#pragma once
 
 #include <firestarter/Measurement/TimeValue.hpp>
 
@@ -47,5 +46,3 @@ struct Summary {
 };
 
 } // namespace firestarter::measurement
-
-#endif

@@ -40,6 +40,15 @@ MeasurementWorker::~MeasurementWorker(void) {
   pthread_cancel(this->workerThread);
 
   pthread_join(this->workerThread, NULL);
+
+  for (auto const &[key, value] : this->values) {
+    auto metric = this->findMetricByName(key);
+    if (metric == nullptr) {
+      continue;
+    }
+
+    metric->fini();
+  }
 }
 
 std::vector<std::string> MeasurementWorker::getAvailableMetricNames(void) {
@@ -66,7 +75,10 @@ MeasurementWorker::findMetricByName(std::string metricName) {
   return const_cast<const metric_interface_t *>(*metric);
 }
 
-unsigned MeasurementWorker::initMetrics(std::vector<std::string> const& metricNames) {
+// this must be called by the main thread.
+// if not done so things like perf_event_attr.inherit might not work as expected
+unsigned
+MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
   pthread_mutex_lock(&this->values_mutex);
 
   unsigned count = 0;
@@ -172,6 +184,10 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
 
     auto callbackTime =
         std::chrono::microseconds(metric_interface->callback_time);
+    if (callbackTime.count() == 0) {
+      continue;
+    }
+
     auto currentTime = clock::now();
 
     callbackQueue.push(

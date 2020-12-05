@@ -35,7 +35,7 @@ namespace firestarter::environment {
 class CPUTopology {
 public:
   CPUTopology(std::string architecture);
-  ~CPUTopology();
+  virtual ~CPUTopology();
 
   unsigned numThreads() const {
     return _numThreadsPerCore * _numCoresPerPackage * _numPackages;

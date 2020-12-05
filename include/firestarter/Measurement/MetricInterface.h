@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_MEASUREMENT_METRICINTERFACE_H
-#define INCLUDE_FIRESTARTER_MEASUREMENT_METRICINTERFACE_H
+#pragma once
 
 typedef enum {
   METRIC_ABSOLUTE = 0,
@@ -60,5 +59,3 @@ typedef struct {
   const char *(*get_error)(void);
 
 } metric_interface_t;
-
-#endif

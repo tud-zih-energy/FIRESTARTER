@@ -26,6 +26,10 @@
 #include <fstream>
 #include <regex>
 
+extern "C" {
+#include <stdio.h>
+}
+
 using namespace firestarter::environment;
 
 std::ostream &CPUTopology::print(std::ostream &stream) const {

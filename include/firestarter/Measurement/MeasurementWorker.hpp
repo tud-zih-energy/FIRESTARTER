@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_MEASUREMENT_MEASUREMENTWORKER_HPP
-#define INCLUDE_FIRESTARTER_MEASUREMENT_MEASUREMENTWORKER_HPP
+#pragma once
 
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Measurement/Summary.hpp>
@@ -30,6 +29,7 @@
 #include <map>
 
 extern "C" {
+#include <firestarter/Measurement/Metric/PerfIPC.h>
 #include <firestarter/Measurement/Metric/RAPL.h>
 #include <firestarter/Measurement/MetricInterface.h>
 
@@ -42,7 +42,7 @@ class MeasurementWorker {
 private:
   pthread_t workerThread;
 
-  std::vector<metric_interface_t *> metrics = {&rapl_metric};
+  std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric};
 
   pthread_mutex_t values_mutex;
   std::map<std::string, std::vector<TimeValue>> values = {};
@@ -79,5 +79,3 @@ public:
 };
 
 } // namespace firestarter::measurement
-
-#endif

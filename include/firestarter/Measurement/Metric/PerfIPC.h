@@ -25,4 +25,4 @@ extern "C" {
 #include <firestarter/Measurement/MetricInterface.h>
 }
 
-extern metric_interface_t rapl_metric;
+extern metric_interface_t perf_ipc_metric;
