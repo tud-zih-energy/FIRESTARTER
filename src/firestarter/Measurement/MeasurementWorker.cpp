@@ -29,7 +29,34 @@ using namespace firestarter::measurement;
 MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval,
                                      unsigned long long numThreads)
     : updateInterval(updateInterval), numThreads(numThreads) {
+
   // TODO: add finding metrics with dlopen
+
+  std::stringstream ss;
+  unsigned maxLength = 0;
+  std::map<std::string, bool> available;
+
+  for (auto const &name : this->metricNames()) {
+    maxLength = maxLength < name.size() ? name.size() : maxLength;
+    auto metric = this->findMetricByName(name);
+    if (metric == nullptr) {
+      available[name] = false;
+      continue;
+    }
+    int returnCode = metric->init();
+    metric->fini();
+    available[name] = returnCode == EXIT_SUCCESS ? true : false;
+  }
+
+  unsigned padding = maxLength > 6 ? maxLength - 6 : 0;
+  ss << "  METRIC" << std::string(padding + 1, ' ') << "| available\n";
+  ss << "  " << std::string(padding + 7, '-') << "-----------\n";
+  for (auto const &[key, value] : available) {
+    ss << "  " << key << std::string(padding + 7 - key.size(), ' ') << "| ";
+    ss << (value ? "yes" : "no") << "\n";
+  }
+
+  this->availableMetricsString = ss.str();
 
   pthread_create(&this->workerThread, NULL,
                  reinterpret_cast<void *(*)(void *)>(
@@ -37,7 +64,7 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval,
                  this);
 }
 
-MeasurementWorker::~MeasurementWorker(void) {
+MeasurementWorker::~MeasurementWorker() {
   pthread_cancel(this->workerThread);
 
   pthread_join(this->workerThread, NULL);
@@ -52,7 +79,7 @@ MeasurementWorker::~MeasurementWorker(void) {
   }
 }
 
-std::vector<std::string> MeasurementWorker::getAvailableMetricNames(void) {
+std::vector<std::string> MeasurementWorker::metricNames() {
   std::vector<std::string> metrics;
   std::transform(
       this->metrics.begin(), this->metrics.end(), std::back_inserter(metrics),
@@ -80,7 +107,7 @@ MeasurementWorker::findMetricByName(std::string metricName) {
 // if not done so things like perf_event_attr.inherit might not work as expected
 unsigned
 MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
-  pthread_mutex_lock(&this->values_mutex);
+  this->values_mutex.lock();
 
   unsigned count = 0;
 
@@ -112,12 +139,12 @@ MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
     }
   }
 
-  pthread_mutex_unlock(&this->values_mutex);
+  this->values_mutex.unlock();
 
   return count;
 }
 
-void MeasurementWorker::startMeasurement(void) {
+void MeasurementWorker::startMeasurement() {
   this->startTime = std::chrono::high_resolution_clock::now();
 }
 
@@ -133,7 +160,7 @@ MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
 
   std::map<std::string, Summary> measurment = {};
 
-  pthread_mutex_lock(&this->values_mutex);
+  this->values_mutex.lock();
 
   for (auto &[key, values] : this->values) {
     auto begin = std::find_if(values.begin(), values.end(), findAll);
@@ -149,12 +176,14 @@ MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
     measurment[key] = sum;
   }
 
-  pthread_mutex_unlock(&this->values_mutex);
+  this->values_mutex.unlock();
 
   return measurment;
 }
 
 int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
+
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   auto _this = reinterpret_cast<MeasurementWorker *>(measurementWorker);
 
@@ -178,7 +207,7 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
                       decltype(callbackTupleComparator)>
       callbackQueue(callbackTupleComparator);
 
-  pthread_mutex_lock(&_this->values_mutex);
+  _this->values_mutex.lock();
 
   for (auto const &[key, value] : _this->values) {
     auto metric_interface = _this->findMetricByName(key);
@@ -195,7 +224,7 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
         std::make_tuple(metric_interface->callback, callbackTime, currentTime));
   }
 
-  pthread_mutex_unlock(&_this->values_mutex);
+  _this->values_mutex.unlock();
 
   auto nextFetch = clock::now() + _this->updateInterval;
 
@@ -203,7 +232,7 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
     auto now = clock::now();
 
     if (nextFetch <= now) {
-      pthread_mutex_lock(&_this->values_mutex);
+      _this->values_mutex.lock();
 
       for (auto &[metricName, values] : _this->values) {
         auto metric_interface = _this->findMetricByName(metricName);
@@ -220,7 +249,7 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
         }
       }
 
-      pthread_mutex_unlock(&_this->values_mutex);
+      _this->values_mutex.unlock();
 
       nextFetch = now + _this->updateInterval;
     }

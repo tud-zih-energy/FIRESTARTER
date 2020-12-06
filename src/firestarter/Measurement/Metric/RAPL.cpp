@@ -42,7 +42,6 @@ struct reader_def {
   long long int last_reading;
   long long int overflow;
   long long int max;
-  pthread_mutex_t mutex;
 };
 
 static std::vector<struct reader_def *> readers = {};
@@ -51,6 +50,8 @@ static int fini(void) {
   for (auto &def : readers) {
     free(def);
   }
+
+  readers.clear();
 
   return EXIT_SUCCESS;
 }
@@ -184,8 +185,6 @@ static int get_reading(double *value) {
     long long int reading;
     std::string buffer;
 
-    pthread_mutex_lock(&def->mutex);
-
     std::ifstream energyReadingStream(fs::path(def->path) / "energy_uj");
     std::getline(energyReadingStream, buffer);
     std::sscanf(buffer.c_str(), "%llu", &reading);
@@ -198,8 +197,6 @@ static int get_reading(double *value) {
 
     finalReading +=
         1.0E-6 * (double)(def->overflow * def->max + def->last_reading);
-
-    pthread_mutex_unlock(&def->mutex);
   }
 
   if (value != nullptr) {

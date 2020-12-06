@@ -157,6 +157,8 @@ int main(int argc, const char **argv) {
       cxxopts::value<std::string>()->default_value(""))
 #endif
 #if defined(linux) || defined(__linux__)
+    ("list-metrics", "List the available metrics.",
+      cxxopts::value<bool>()->default_value("false"))
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
       cxxopts::value<bool>()->default_value("false"))
     ("measurement-interval", "Interval of measurements in milliseconds.",
@@ -330,14 +332,21 @@ int main(int argc, const char **argv) {
 
     firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
 
-    if (options["measurement"].as<bool>()) {
+    if (options["measurement"].as<bool>() ||
+        options["list-metrics"].as<bool>()) {
       measurementWorker = new firestarter::measurement::MeasurementWorker(
           measurementInterval, firestarter.environment().requestedNumThreads());
 
+      if (options["list-metrics"].as<bool>()) {
+        firestarter::log::info() << measurementWorker->availableMetrics();
+        delete measurementWorker;
+        return EXIT_SUCCESS;
+      }
+
       // TODO: select the metrics
       // init all metrics
-      auto count = measurementWorker->initMetrics(
-          measurementWorker->getAvailableMetricNames());
+      auto count =
+          measurementWorker->initMetrics(measurementWorker->metricNames());
 
       if (count == 0) {
         firestarter::log::error() << "No metrics initialized";

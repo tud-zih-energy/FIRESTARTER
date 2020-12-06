@@ -62,6 +62,7 @@ static int fini(void) {
     close(instructions_fd);
     instructions_fd = -1;
   }
+  init_done = false;
   return EXIT_SUCCESS;
 }
 

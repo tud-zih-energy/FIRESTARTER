@@ -27,6 +27,7 @@
 
 #include <chrono>
 #include <map>
+#include <mutex>
 
 extern "C" {
 #include <firestarter/Measurement/Metric/Perf.h>
@@ -45,7 +46,7 @@ private:
   std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric,
                                                &perf_freq_metric};
 
-  pthread_mutex_t values_mutex;
+  std::mutex values_mutex;
   std::map<std::string, std::vector<TimeValue>> values = {};
 
   static int *dataAcquisitionWorker(void *measurementWorker);
@@ -59,23 +60,29 @@ private:
   // some metric values have to be devided by this
   const unsigned long long numThreads;
 
+  std::string availableMetricsString;
+
 public:
   // creates the worker thread
   MeasurementWorker(std::chrono::milliseconds updateInterval,
                     unsigned long long numThreads);
 
   // stops the worker threads
-  ~MeasurementWorker(void);
+  ~MeasurementWorker();
+
+  std::string const &availableMetrics() const {
+    return this->availableMetricsString;
+  }
 
   // returns a list of metrics
-  std::vector<std::string> getAvailableMetricNames(void);
+  std::vector<std::string> metricNames();
 
   // setup the selected metrics
   // return the count of initialized metrics
   unsigned initMetrics(std::vector<std::string> const &metricNames);
 
   // start the measurement
-  void startMeasurement(void);
+  void startMeasurement();
 
   // get the measurement values begining from measurement start until now.
   std::map<std::string, Summary> getValues(
