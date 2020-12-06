@@ -331,8 +331,8 @@ int main(int argc, const char **argv) {
     firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
 
     if (options["measurement"].as<bool>()) {
-      measurementWorker =
-          new firestarter::measurement::MeasurementWorker(measurementInterval);
+      measurementWorker = new firestarter::measurement::MeasurementWorker(
+          measurementInterval, firestarter.environment().requestedNumThreads());
 
       // TODO: select the metrics
       // init all metrics

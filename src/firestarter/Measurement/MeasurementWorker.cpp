@@ -26,8 +26,9 @@
 
 using namespace firestarter::measurement;
 
-MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval)
-    : updateInterval(updateInterval) {
+MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval,
+                                     unsigned long long numThreads)
+    : updateInterval(updateInterval), numThreads(numThreads) {
   // TODO: add finding metrics with dlopen
 
   pthread_create(&this->workerThread, NULL,
@@ -210,6 +211,10 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
         double value;
 
         if (EXIT_SUCCESS == metric_interface->get_reading(&value)) {
+          if (metric_interface->type & METRIC_DIVIDE_BY_THREAD_COUNT) {
+            value /= (double)_this->numThreads;
+          }
+
           auto tv = TimeValue(std::chrono::high_resolution_clock::now(), value);
           values.push_back(tv);
         }

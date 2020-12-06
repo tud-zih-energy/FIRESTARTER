@@ -25,7 +25,7 @@
 namespace fs = std::filesystem;
 
 extern "C" {
-#include <firestarter/Measurement/Metric/PerfIPC.h>
+#include <firestarter/Measurement/Metric/Perf.h>
 #include <firestarter/Measurement/MetricInterface.h>
 
 #include <linux/perf_event.h>
@@ -35,16 +35,16 @@ extern "C" {
 
 #define PERF_EVENT_PARANOID "/proc/sys/kernel/perf_event_paranoid"
 
-static const char *unit = std::string("").c_str();
-static unsigned long long callback_time = 0;
+struct read_format {
+  uint64_t value;
+};
+
 static std::string errorString = "";
 
 static int cpu_cycles_fd = -1;
 static int instructions_fd = -1;
-
-struct read_format {
-  uint64_t value;
-};
+static bool init_done = false;
+static int init_value;
 
 static struct read_format last[2];
 
@@ -56,14 +56,20 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
 static int fini(void) {
   if (!(cpu_cycles_fd < 0)) {
     close(cpu_cycles_fd);
+    cpu_cycles_fd = -1;
   }
   if (!(instructions_fd < 0)) {
     close(instructions_fd);
+    instructions_fd = -1;
   }
   return EXIT_SUCCESS;
 }
 
 static int init(void) {
+  if (init_done) {
+    return init_value;
+  }
+
   if (!fs::exists(PERF_EVENT_PARANOID)) {
     // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     // The official way of knowing if perf_event_open() support is enabled
@@ -72,20 +78,21 @@ static int init(void) {
     errorString =
         "syscall perf_event_open not supported or file " PERF_EVENT_PARANOID
         " does not exist";
+    init_value = EXIT_FAILURE;
+    init_done = true;
     return EXIT_FAILURE;
   }
 
-  struct perf_event_attr cpu_cycles_attr = {
-      .type = PERF_TYPE_HARDWARE,
-      .size = sizeof(struct perf_event_attr),
-      .config = PERF_COUNT_HW_CPU_CYCLES,
-      .read_format = 0,
-      .disabled = 0,
-      .inherit = 1,
-      .exclude_kernel = 1,
-      .exclude_hv = 1,
-      .inherit_stat = 1,
-  };
+  struct perf_event_attr cpu_cycles_attr;
+  std::memset(&cpu_cycles_attr, 0, sizeof(struct perf_event_attr));
+  cpu_cycles_attr.type = PERF_TYPE_HARDWARE;
+  cpu_cycles_attr.size = sizeof(struct perf_event_attr);
+  cpu_cycles_attr.config = PERF_COUNT_HW_CPU_CYCLES;
+  cpu_cycles_attr.inherit = 1;
+  cpu_cycles_attr.exclude_kernel = 1;
+  cpu_cycles_attr.exclude_hv = 1;
+  cpu_cycles_attr.inherit_stat = 1;
+
   if ((cpu_cycles_fd = perf_event_open(
            &cpu_cycles_attr,
            // pid == 0 and cpu == -1
@@ -99,20 +106,20 @@ static int init(void) {
            -1, 0)) < 0) {
     fini();
     errorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
+    init_value = EXIT_FAILURE;
+    init_done = true;
     return EXIT_FAILURE;
   }
 
-  struct perf_event_attr instructions_attr = {
-      .type = PERF_TYPE_HARDWARE,
-      .size = sizeof(struct perf_event_attr),
-      .config = PERF_COUNT_HW_INSTRUCTIONS,
-      .read_format = 0,
-      .disabled = 0,
-      .inherit = 1,
-      .exclude_kernel = 1,
-      .exclude_hv = 1,
-      .inherit_stat = 1,
-  };
+  struct perf_event_attr instructions_attr;
+  std::memset(&instructions_attr, 0, sizeof(struct perf_event_attr));
+  instructions_attr.type = PERF_TYPE_HARDWARE;
+  instructions_attr.size = sizeof(struct perf_event_attr);
+  instructions_attr.config = PERF_COUNT_HW_INSTRUCTIONS;
+  instructions_attr.inherit = 1;
+  instructions_attr.exclude_kernel = 1;
+  instructions_attr.exclude_hv = 1;
+  instructions_attr.inherit_stat = 1;
 
   if ((instructions_fd = perf_event_open(
            &instructions_attr,
@@ -127,6 +134,8 @@ static int init(void) {
            -1, 0)) < 0) {
     fini();
     errorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
+    init_value = EXIT_FAILURE;
+    init_done = true;
     return EXIT_FAILURE;
   }
 
@@ -138,19 +147,25 @@ static int init(void) {
   if (0 == read(cpu_cycles_fd, &last[0], sizeof(*last))) {
     fini();
     errorString = "PERF_COUNT_HW_CPU_CYCLES read failed in init";
+    init_value = EXIT_FAILURE;
+    init_done = true;
     return EXIT_FAILURE;
   }
 
   if (0 == read(instructions_fd, &last[1], sizeof(*last))) {
     fini();
     errorString = "PERF_COUNT_HW_INSTRUCTIONS read failed in init";
+    init_value = EXIT_FAILURE;
+    init_done = true;
     return EXIT_FAILURE;
   }
 
+  init_value = EXIT_SUCCESS;
+  init_done = true;
   return EXIT_SUCCESS;
 }
 
-static int get_reading(double *value) {
+static int get_reading(double *ipc_value, double *freq_value) {
 
   if (cpu_cycles_fd < 0 || instructions_fd < 0) {
     fini();
@@ -171,19 +186,29 @@ static int get_reading(double *value) {
     return EXIT_FAILURE;
   }
 
-  uint64_t diff[2];
-  diff[0] = read_values[0].value - last[0].value;
-  diff[1] = read_values[1].value - last[1].value;
+  if (ipc_value != nullptr) {
+    uint64_t diff[2];
+    diff[0] = read_values[0].value - last[0].value;
+    diff[1] = read_values[1].value - last[1].value;
 
-  double ipc = (double)diff[1] / (double)diff[0];
+    std::memcpy(last, read_values, sizeof(last));
 
-  std::memcpy(last, read_values, sizeof(last));
+    *ipc_value = (double)diff[1] / (double)diff[0];
+  }
 
-  if (value != nullptr) {
-    *value = ipc;
+  if (freq_value != nullptr) {
+    *freq_value = (double)read_values[0].value / 1e9;
   }
 
   return EXIT_SUCCESS;
+}
+
+static int get_reading_ipc(double *value) {
+  return get_reading(value, nullptr);
+}
+
+static int get_reading_freq(double *value) {
+  return get_reading(nullptr, value);
 }
 
 static const char *get_error(void) {
@@ -194,10 +219,21 @@ static const char *get_error(void) {
 
 metric_interface_t perf_ipc_metric = {.name = "perf-ipc",
                                       .type = METRIC_ABSOLUTE,
-                                      .unit = unit,
-                                      .callback_time = callback_time,
-                                      .callback = NULL,
+                                      .unit = "",
+                                      .callback_time = 0,
+                                      .callback = nullptr,
                                       .init = init,
                                       .fini = fini,
-                                      .get_reading = get_reading,
+                                      .get_reading = get_reading_ipc,
                                       .get_error = get_error};
+
+metric_interface_t perf_freq_metric = {.name = "perf-freq",
+                                       .type = METRIC_ACCUMALATIVE |
+                                               METRIC_DIVIDE_BY_THREAD_COUNT,
+                                       .unit = "GHz",
+                                       .callback_time = 0,
+                                       .callback = nullptr,
+                                       .init = init,
+                                       .fini = fini,
+                                       .get_reading = get_reading_freq,
+                                       .get_error = get_error};

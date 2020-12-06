@@ -29,7 +29,7 @@
 #include <map>
 
 extern "C" {
-#include <firestarter/Measurement/Metric/PerfIPC.h>
+#include <firestarter/Measurement/Metric/Perf.h>
 #include <firestarter/Measurement/Metric/RAPL.h>
 #include <firestarter/Measurement/MetricInterface.h>
 
@@ -42,7 +42,8 @@ class MeasurementWorker {
 private:
   pthread_t workerThread;
 
-  std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric};
+  std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric,
+                                               &perf_freq_metric};
 
   pthread_mutex_t values_mutex;
   std::map<std::string, std::vector<TimeValue>> values = {};
@@ -55,9 +56,13 @@ private:
 
   std::chrono::high_resolution_clock::time_point startTime;
 
+  // some metric values have to be devided by this
+  const unsigned long long numThreads;
+
 public:
   // creates the worker thread
-  MeasurementWorker(std::chrono::milliseconds updateInterval);
+  MeasurementWorker(std::chrono::milliseconds updateInterval,
+                    unsigned long long numThreads);
 
   // stops the worker threads
   ~MeasurementWorker(void);

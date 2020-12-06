@@ -22,14 +22,16 @@
 #pragma once
 
 typedef enum {
-  METRIC_ABSOLUTE = 0,
-  METRIC_ACCUMALATIVE = 1,
+  METRIC_ABSOLUTE = 1 << 0,
+  METRIC_ACCUMALATIVE = 1 << 1,
+  METRIC_DIVIDE_BY_THREAD_COUNT = 1 << 2,
 } metric_type_t;
 
 typedef struct {
   const char *name;
 
-  metric_type_t type;
+	// type with bitfield from metric_type_t
+  unsigned type;
 
   const char *unit;
 

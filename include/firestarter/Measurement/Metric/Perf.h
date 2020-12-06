@@ -26,3 +26,5 @@ extern "C" {
 }
 
 extern metric_interface_t perf_ipc_metric;
+
+extern metric_interface_t perf_freq_metric;

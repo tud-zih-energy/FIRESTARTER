@@ -29,12 +29,12 @@ using namespace firestarter::measurement;
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
 Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
                            std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType) {
+                           unsigned metricType) {
   std::vector<TimeValue> values = {};
 
   // TODO: i would really like to make this code a bit more readable, but i
   // could not find a way yet.
-  if (metricType == METRIC_ACCUMALATIVE) {
+  if (metricType & METRIC_ACCUMALATIVE) {
     TimeValue prev;
 
     if (begin != end) {
