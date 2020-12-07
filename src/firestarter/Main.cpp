@@ -159,6 +159,8 @@ int main(int argc, const char **argv) {
 #if defined(linux) || defined(__linux__)
     ("list-metrics", "List the available metrics.",
       cxxopts::value<bool>()->default_value("false"))
+    ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
+      cxxopts::value<std::vector<std::string>>())
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
       cxxopts::value<bool>()->default_value("false"))
     ("measurement-interval", "Interval of measurements in milliseconds.",
@@ -329,13 +331,15 @@ int main(int argc, const char **argv) {
         std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
     auto measurementInterval = std::chrono::milliseconds(
         options["measurement-interval"].as<unsigned>());
+    auto metricPath = options["metric-path"].as<std::vector<std::string>>();
 
     firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
 
     if (options["measurement"].as<bool>() ||
         options["list-metrics"].as<bool>()) {
       measurementWorker = new firestarter::measurement::MeasurementWorker(
-          measurementInterval, firestarter.environment().requestedNumThreads());
+          measurementInterval, firestarter.environment().requestedNumThreads(),
+          metricPath);
 
       if (options["list-metrics"].as<bool>()) {
         firestarter::log::info() << measurementWorker->availableMetrics();

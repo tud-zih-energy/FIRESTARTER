@@ -62,10 +62,13 @@ private:
 
   std::string availableMetricsString;
 
+  std::vector<void *> _metricDylibs = {};
+
 public:
   // creates the worker thread
   MeasurementWorker(std::chrono::milliseconds updateInterval,
-                    unsigned long long numThreads);
+                    unsigned long long numThreads,
+                    std::vector<std::string> const &metricDylibs);
 
   // stops the worker threads
   ~MeasurementWorker();

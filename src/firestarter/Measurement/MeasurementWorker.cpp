@@ -24,13 +24,49 @@
 #include <queue>
 #include <thread>
 
+extern "C" {
+#include <dlfcn.h>
+}
+
 using namespace firestarter::measurement;
 
-MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval,
-                                     unsigned long long numThreads)
+MeasurementWorker::MeasurementWorker(
+    std::chrono::milliseconds updateInterval, unsigned long long numThreads,
+    std::vector<std::string> const &metricDylibs)
     : updateInterval(updateInterval), numThreads(numThreads) {
 
-  // TODO: add finding metrics with dlopen
+  // open dylibs and find metric symbol.
+  // create an entry in _metricDylibs with handle from dlopen and
+  // metric_interface_t structure. add this structe as a pointer to metrics.
+  for (auto const &dylib : metricDylibs) {
+    void *handle;
+    const char *filename = dylib.c_str();
+
+    handle = dlopen(filename, RTLD_LAZY);
+
+    if (!handle) {
+      firestarter::log::error() << filename << ": " << dlerror();
+      continue;
+    }
+
+    // clear existing error
+    dlerror();
+
+    metric_interface_t *metric = nullptr;
+
+    metric = (metric_interface_t *)dlsym(handle, "metric");
+
+    char *error;
+    if ((error = dlerror()) != NULL) {
+      firestarter::log::error() << filename << ": " << error;
+      dlclose(handle);
+      continue;
+    }
+
+    // lets push our metric object and the handle
+    this->_metricDylibs.push_back(handle);
+    this->metrics.push_back(metric);
+  }
 
   std::stringstream ss;
   unsigned maxLength = 0;
@@ -76,6 +112,10 @@ MeasurementWorker::~MeasurementWorker() {
     }
 
     metric->fini();
+  }
+
+  for (auto handle : this->_metricDylibs) {
+    dlclose(handle);
   }
 }
 
