@@ -17,7 +17,16 @@ else()
 endif()
 add_compile_definitions(_FIRESTARTER_VERSION_STRING="${_FIRESTARTER_VERSION_STRING}")
 
-string(TIMESTAMP _FIRESTARTER_BUILD_YEAR "%Y")
+if(Git_FOUND)
+	execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ci HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		OUTPUT_VARIABLE _FIRESTARTER_BUILD_YEAR
+		)
+	string(SUBSTRING ${_FIRESTARTER_BUILD_YEAR} 0 4 _FIRESTARTER_BUILD_YEAR)
+else()
+	message(AUTHOR_WARNING "Cannot detect FIRESTARTER build year.")
+	set(_FIRESTARTER_BUILD_YEAR "unknown")
+endif()
 add_compile_definitions(_FIRESTARTER_BUILD_YEAR="${_FIRESTARTER_BUILD_YEAR}")
 
 # init git submodules
