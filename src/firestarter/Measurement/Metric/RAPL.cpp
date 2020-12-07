@@ -33,8 +33,6 @@ extern "C" {
 
 #define RAPL_PATH "/sys/class/powercap"
 
-static const char *unit = std::string("J").c_str();
-static unsigned long long callback_time = 30000000;
 static std::string errorString = "";
 
 struct reader_def {
@@ -46,7 +44,7 @@ struct reader_def {
 
 static std::vector<struct reader_def *> readers = {};
 
-static int fini(void) {
+static int32_t fini(void) {
   for (auto &def : readers) {
     free(def);
   }
@@ -56,7 +54,7 @@ static int fini(void) {
   return EXIT_SUCCESS;
 }
 
-static int init(void) {
+static int32_t init(void) {
   errorString = "";
 
   if (!fs::exists(RAPL_PATH)) {
@@ -178,7 +176,7 @@ static int init(void) {
   return EXIT_SUCCESS;
 }
 
-static int get_reading(double *value) {
+static int32_t get_reading(double *value) {
   double finalReading = 0.0;
 
   for (auto &def : readers) {
@@ -218,8 +216,8 @@ static void callback(void) { get_reading(nullptr); }
 
 metric_interface_t rapl_metric = {.name = "sysfs-powercap-rapl",
                                   .type = METRIC_ACCUMALATIVE,
-                                  .unit = unit,
-                                  .callback_time = callback_time,
+                                  .unit = "J",
+                                  .callback_time = 30000000,
                                   .callback = callback,
                                   .init = init,
                                   .fini = fini,

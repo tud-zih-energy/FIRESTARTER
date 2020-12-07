@@ -44,7 +44,7 @@ static std::string errorString = "";
 static int cpu_cycles_fd = -1;
 static int instructions_fd = -1;
 static bool init_done = false;
-static int init_value;
+static int32_t init_value;
 
 static struct read_format last[2];
 
@@ -53,7 +53,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
   return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
-static int fini(void) {
+static int32_t fini(void) {
   if (!(cpu_cycles_fd < 0)) {
     close(cpu_cycles_fd);
     cpu_cycles_fd = -1;
@@ -66,7 +66,7 @@ static int fini(void) {
   return EXIT_SUCCESS;
 }
 
-static int init(void) {
+static int32_t init(void) {
   if (init_done) {
     return init_value;
   }
@@ -166,7 +166,7 @@ static int init(void) {
   return EXIT_SUCCESS;
 }
 
-static int get_reading(double *ipc_value, double *freq_value) {
+static int32_t get_reading(double *ipc_value, double *freq_value) {
 
   if (cpu_cycles_fd < 0 || instructions_fd < 0) {
     fini();
@@ -204,11 +204,11 @@ static int get_reading(double *ipc_value, double *freq_value) {
   return EXIT_SUCCESS;
 }
 
-static int get_reading_ipc(double *value) {
+static int32_t get_reading_ipc(double *value) {
   return get_reading(value, nullptr);
 }
 
-static int get_reading_freq(double *value) {
+static int32_t get_reading_freq(double *value) {
   return get_reading(nullptr, value);
 }
 

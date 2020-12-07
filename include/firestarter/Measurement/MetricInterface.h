@@ -21,7 +21,7 @@
 
 #pragma once
 
-typedef enum {
+typedef enum : uint32_t {
   METRIC_ABSOLUTE = 1 << 0,
   METRIC_ACCUMALATIVE = 1 << 1,
   METRIC_DIVIDE_BY_THREAD_COUNT = 1 << 2,
@@ -31,14 +31,14 @@ typedef struct {
   const char *name;
 
 	// type with bitfield from metric_type_t
-  unsigned type;
+  uint32_t type;
 
   const char *unit;
 
   // get the time in microseconds, the callback function has to be called.
   // this is usefull if we have a counter and it will overrun periodically.
   // if the callbackTime is zero, then no callback will happen
-  unsigned long long callback_time;
+  uint64_t callback_time;
 
   // this function will get called periodically
   void (*callback)(void);
@@ -47,15 +47,15 @@ typedef struct {
   // returns EXIT_SUCCESS on success.
   // after calling this function, the unit and callbackTime must be initialized
   // and are ought not to be changed.
-  int (*init)(void);
+  int32_t (*init)(void);
 
   // deinit the metric.
-  int (*fini)(void);
+  int32_t (*fini)(void);
 
   // get a reading of the metric
   // return EXIT_SUCCESS on if we got a new value.
   // else return EXIT_FAILURE
-  int (*get_reading)(double *value);
+  int32_t (*get_reading)(double *value);
 
   // get the error in case of EXIT_FAILURE
   const char *(*get_error)(void);
