@@ -71,14 +71,18 @@ public:
   };
 
     // A generic implemenation for all x86 payloads
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
   void init(unsigned long long *memoryAddr, unsigned long long bufferSize,
             double firstValue, double lastValue);
 #pragma GCC diagnostic pop
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
   // use cpuid and usleep as low load
   void lowLoadFunction(volatile unsigned long long *addrHigh,
                        unsigned long long period) override;
