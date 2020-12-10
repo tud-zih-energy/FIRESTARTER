@@ -34,6 +34,7 @@ class Environment {
 public:
   Environment(CPUTopology *topology) : _topology(topology) {}
   ~Environment() {
+    delete this->_topology;
     if (_selectedConfig != nullptr) {
       delete _selectedConfig;
     }

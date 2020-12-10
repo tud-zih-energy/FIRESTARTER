@@ -22,6 +22,10 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+#if defined(linux) || defined(__linux__)
+#include <firestarter/Measurement/MeasurementWorker.hpp>
+#endif
+
 #include <cxxopts.hpp>
 
 #include <string>
@@ -86,7 +90,7 @@ int print_help(cxxopts::Options parser) {
   return EXIT_SUCCESS;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, const char **argv) {
 
   // TODO: get year number on build
   firestarter::log::info()
@@ -148,10 +152,23 @@ int main(int argc, char **argv) {
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
-      cxxopts::value<std::string>()->default_value(""));
-#else
-    ;
+      cxxopts::value<std::string>()->default_value(""))
 #endif
+#if defined(linux) || defined(__linux__)
+    ("list-metrics", "List the available metrics.",
+      cxxopts::value<bool>()->default_value("false"))
+    ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
+      cxxopts::value<std::vector<std::string>>()->default_value(""))
+    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
+      cxxopts::value<bool>()->default_value("false"))
+    ("measurement-interval", "Interval of measurements in milliseconds.",
+      cxxopts::value<unsigned>()->default_value("100"))
+    ("start-delta", "Cut of first N milliseconds of measurement.",
+      cxxopts::value<unsigned>()->default_value("5000"), "N")
+    ("stop-delta", "Cut of last N milliseconds of measurement.",
+      cxxopts::value<unsigned>()->default_value("2000"), "N")
+#endif
+    ;
   // clang-format on
 
   try {
@@ -305,6 +322,42 @@ int main(int argc, char **argv) {
       firestarter.environment().setLineCount(lineCount);
     }
 
+#if defined(linux) || defined(__linux__)
+    auto startDelta =
+        std::chrono::milliseconds(options["start-delta"].as<unsigned>());
+    auto stopDelta =
+        std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
+    auto measurementInterval = std::chrono::milliseconds(
+        options["measurement-interval"].as<unsigned>());
+    auto metricPath = options["metric-path"].as<std::vector<std::string>>();
+
+    firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
+
+    if (options["measurement"].as<bool>() ||
+        options["list-metrics"].as<bool>()) {
+      measurementWorker = new firestarter::measurement::MeasurementWorker(
+          measurementInterval, firestarter.environment().requestedNumThreads(),
+          metricPath);
+
+      if (options["list-metrics"].as<bool>()) {
+        firestarter::log::info() << measurementWorker->availableMetrics();
+        delete measurementWorker;
+        return EXIT_SUCCESS;
+      }
+
+      // TODO: select the metrics
+      // init all metrics
+      auto count =
+          measurementWorker->initMetrics(measurementWorker->metricNames());
+
+      if (count == 0) {
+        firestarter::log::error() << "No metrics initialized";
+        delete measurementWorker;
+        return EXIT_FAILURE;
+      }
+    }
+#endif
+
     firestarter.environment().printSelectedCodePathSummary();
 
     firestarter::log::info() << firestarter.environment().topology();
@@ -325,6 +378,13 @@ int main(int argc, char **argv) {
                    (void *)firestarter.gpuStructPointer);
     while (firestarter.gpuStructPointer->loadingdone != 1) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+#endif
+
+#if defined(linux) || defined(__linux__)
+    // if measurement is enabled, start it here
+    if (nullptr != measurementWorker) {
+      measurementWorker->startMeasurement();
     }
 #endif
 
@@ -354,6 +414,23 @@ int main(int argc, char **argv) {
 #endif
 
     firestarter.printPerformanceReport();
+
+#if defined(linux) || defined(__linux__)
+    // if measurment is enabled, stop it here
+    if (nullptr != measurementWorker) {
+      // TODO: clear this up
+      firestarter::log::info()
+          << "metric,num_timepoints,duration_ms,average,stddev";
+      for (auto const &[name, sum] :
+           measurementWorker->getValues(startDelta, stopDelta)) {
+        firestarter::log::info()
+            << std::quoted(name) << "," << sum.num_timepoints << ","
+            << sum.duration.count() << "," << sum.average << "," << sum.stddev;
+      }
+
+      delete measurementWorker;
+    }
+#endif
 
   } catch (std::exception &e) {
     firestarter::log::error() << e.what() << "\n";

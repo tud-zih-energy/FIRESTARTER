@@ -55,7 +55,6 @@ public:
   X86Environment() : Environment(new X86CPUTopology()) {}
 
   ~X86Environment() {
-    delete reinterpret_cast<X86CPUTopology *>(this->_topology);
     for (auto const &config : platformConfigs) {
       delete config;
     }

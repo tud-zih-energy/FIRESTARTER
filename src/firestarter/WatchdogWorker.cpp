@@ -80,18 +80,24 @@ void set_load(unsigned long long value) {
   __asm__ __volatile__("mfence;");
 }
 
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #ifndef _WIN32
 void sigalrm_handler(int signum) {}
 #endif
 #pragma GCC diagnostic pop
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 static void sigterm_handler(int signum) {
@@ -104,7 +110,9 @@ static void sigterm_handler(int signum) {
   pthread_kill(watchdog_thread, 0);
 }
 #pragma GCC diagnostic pop
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
                                 std::chrono::microseconds load,

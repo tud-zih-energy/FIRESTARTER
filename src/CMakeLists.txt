@@ -21,11 +21,30 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+
+		# measurement stuff
+		firestarter/Measurement/MeasurementWorker.cpp
+		firestarter/Measurement/Summary.cpp
+		firestarter/Measurement/Metric/RAPL.cpp
+		firestarter/Measurement/Metric/Perf.cpp
+		)
+endif()
+
 SET(FIRESTARTER_LINK_LIBRARIES
 	Threads::Threads
 	hwloc
 	AsmJit::AsmJit
 	)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	SET(FIRESTARTER_LINK_LIBRARIES
+		${FIRESTARTER_LINK_LIBRARIES}
+		-ldl
+		)
+endif()
 
 if(DEFINED BUILD_CUDA)
 	find_package(CUDA REQUIRED)
