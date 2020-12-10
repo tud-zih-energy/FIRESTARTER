@@ -21,7 +21,9 @@
 
 #pragma once
 
-typedef enum : uint32_t {
+#include <stdint.h>
+
+typedef enum {
   METRIC_ABSOLUTE = 1 << 0,
   METRIC_ACCUMALATIVE = 1 << 1,
   METRIC_DIVIDE_BY_THREAD_COUNT = 1 << 2,
@@ -30,7 +32,7 @@ typedef enum : uint32_t {
 typedef struct {
   const char *name;
 
-	// type with bitfield from metric_type_t
+  // type with bitfield from metric_type_t
   uint32_t type;
 
   const char *unit;

@@ -42,7 +42,7 @@ MeasurementWorker::MeasurementWorker(
     void *handle;
     const char *filename = dylib.c_str();
 
-    handle = dlopen(filename, RTLD_LAZY);
+    handle = dlopen(dylib.c_str(), RTLD_NOW | RTLD_LOCAL);
 
     if (!handle) {
       firestarter::log::error() << filename << ": " << dlerror();

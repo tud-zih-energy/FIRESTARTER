@@ -160,7 +160,7 @@ int main(int argc, const char **argv) {
     ("list-metrics", "List the available metrics.",
       cxxopts::value<bool>()->default_value("false"))
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
-      cxxopts::value<std::vector<std::string>>())
+      cxxopts::value<std::vector<std::string>>()->default_value(""))
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
       cxxopts::value<bool>()->default_value("false"))
     ("measurement-interval", "Interval of measurements in milliseconds.",
