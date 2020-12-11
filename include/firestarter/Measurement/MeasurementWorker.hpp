@@ -37,6 +37,9 @@ extern "C" {
 #include <pthread.h>
 }
 
+void insertCallback(void *cls, const char *metricName, int64_t timeSinceEpoch,
+                    double value);
+
 namespace firestarter::measurement {
 
 class MeasurementWorker {
@@ -83,6 +86,10 @@ public:
   // setup the selected metrics
   // return the count of initialized metrics
   unsigned initMetrics(std::vector<std::string> const &metricNames);
+
+  // callback function for metrics
+  void insertCallback(const char *metricName, int64_t timeSinceEpoch,
+                      double value);
 
   // start the measurement
   void startMeasurement();

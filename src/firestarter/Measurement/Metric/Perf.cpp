@@ -218,23 +218,36 @@ static const char *get_error(void) {
 }
 }
 
-metric_interface_t perf_ipc_metric = {.name = "perf-ipc",
-                                      .type = METRIC_ABSOLUTE,
-                                      .unit = "",
-                                      .callback_time = 0,
-                                      .callback = nullptr,
-                                      .init = init,
-                                      .fini = fini,
-                                      .get_reading = get_reading_ipc,
-                                      .get_error = get_error};
+metric_interface_t perf_ipc_metric = {
+    .name = "perf-ipc",
+    .type = {.absolute = 1,
+             .accumalative = 0,
+             .divide_by_thread_count = 0,
+             .insert_callback = 0,
+             .__reserved = 0},
+    .unit = "IPC",
+    .callback_time = 0,
+    .callback = nullptr,
+    .init = init,
+    .fini = fini,
+    .get_reading = get_reading_ipc,
+    .get_error = get_error,
+    .register_insert_callback = nullptr,
+};
 
-metric_interface_t perf_freq_metric = {.name = "perf-freq",
-                                       .type = METRIC_ACCUMALATIVE |
-                                               METRIC_DIVIDE_BY_THREAD_COUNT,
-                                       .unit = "GHz",
-                                       .callback_time = 0,
-                                       .callback = nullptr,
-                                       .init = init,
-                                       .fini = fini,
-                                       .get_reading = get_reading_freq,
-                                       .get_error = get_error};
+metric_interface_t perf_freq_metric = {
+    .name = "perf-freq",
+    .type = {.absolute = 0,
+             .accumalative = 1,
+             .divide_by_thread_count = 1,
+             .insert_callback = 0,
+             .__reserved = 0},
+    .unit = "GHz",
+    .callback_time = 0,
+    .callback = nullptr,
+    .init = init,
+    .fini = fini,
+    .get_reading = get_reading_freq,
+    .get_error = get_error,
+    .register_insert_callback = nullptr,
+};

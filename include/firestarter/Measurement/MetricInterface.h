@@ -23,43 +23,61 @@
 
 #include <stdint.h>
 
-typedef enum {
-  METRIC_ABSOLUTE = 1 << 0,
-  METRIC_ACCUMALATIVE = 1 << 1,
-  METRIC_DIVIDE_BY_THREAD_COUNT = 1 << 2,
-} metric_type_t;
-
+// clang-format off
 typedef struct {
+  // Either set absolute or accumalative to specify the type of values from the
+  // metric.
+  uint32_t absolute : 1,
+           accumalative : 1,
+           // Set to divide metric values by thread count.
+           divide_by_thread_count : 1,
+           // Set to insert time-value pairs via callback function passed by
+           // register_insert_callback.
+           insert_callback : 1,
+           __reserved : 28;
+} metric_type_t;
+// clang-format on
+
+// Define `metric_interface_t metric` inside your shared library to be able to
+// load it during runtime.
+typedef struct {
+  // the name of the metric
   const char *name;
 
-  // type with bitfield from metric_type_t
-  uint32_t type;
+  // metric type with bitfield from metric_type_t
+  metric_type_t type;
 
+  // the unit of the metric
   const char *unit;
 
-  // get the time in microseconds, the callback function has to be called.
-  // this is usefull if we have a counter and it will overrun periodically.
-  // if the callbackTime is zero, then no callback will happen
   uint64_t callback_time;
 
-  // this function will get called periodically
+  // This function will be called every `callback_time` usecs. Disable by
+  // setting `callback_time` to 0.
   void (*callback)(void);
 
   // init the metric.
   // returns EXIT_SUCCESS on success.
-  // after calling this function, the unit and callbackTime must be initialized
-  // and are ought not to be changed.
   int32_t (*init)(void);
 
   // deinit the metric.
+  // returns EXIT_SUCCESS on success.
   int32_t (*fini)(void);
 
-  // get a reading of the metric
-  // return EXIT_SUCCESS on if we got a new value.
-  // else return EXIT_FAILURE
+  // Get a reading of the metric
+  // Return EXIT_SUCCESS if we got a new value.
+  // Set this function pointer to NULL if METRIC_INSERT_CALLBACK is specified.
   int32_t (*get_reading)(double *value);
 
-  // get the error in case of EXIT_FAILURE
+  // Get error in case return code not being EXIT_SUCCESS
   const char *(*get_error)(void);
+
+  // If METRIC_INSERT_CALLBACK is set in the type, this function will be passed
+  // a callback and the first argument for the callback.
+  // Further arguments of callback are the metric name, an unix timestamp (time
+  // since epoch) and a metric value.
+  int32_t (*register_insert_callback)(void (*)(void *, const char *, int64_t,
+                                               double),
+                                      void *);
 
 } metric_interface_t;

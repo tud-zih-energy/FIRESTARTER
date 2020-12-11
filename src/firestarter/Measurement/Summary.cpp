@@ -21,6 +21,7 @@
 
 #include <firestarter/Measurement/Summary.hpp>
 
+#include <cassert>
 #include <cmath>
 
 using namespace firestarter::measurement;
@@ -29,12 +30,13 @@ using namespace firestarter::measurement;
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
 Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
                            std::vector<TimeValue>::iterator end,
-                           unsigned metricType) {
+                           metric_type_t metricType,
+                           unsigned long long numThreads) {
   std::vector<TimeValue> values = {};
 
   // TODO: i would really like to make this code a bit more readable, but i
   // could not find a way yet.
-  if (metricType & METRIC_ACCUMALATIVE) {
+  if (metricType.accumalative) {
     TimeValue prev;
 
     if (begin != end) {
@@ -47,14 +49,32 @@ Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
                 .count();
         auto value_diff = it->value - prev.value;
 
-        values.push_back(TimeValue(prev.time, value_diff / time_diff));
+        double value = value_diff / time_diff;
+
+        if (metricType.divide_by_thread_count) {
+          value /= numThreads;
+        }
+
+        values.push_back(TimeValue(prev.time, value));
         prev = *it;
       }
-
-      begin = values.begin();
-      end = values.end();
     }
+  } else if (metricType.absolute) {
+    for (auto it = begin; it != end; ++it) {
+      double value = it->value;
+
+      if (metricType.divide_by_thread_count) {
+        value /= numThreads;
+      }
+
+      values.push_back(TimeValue(it->time, value));
+    }
+  } else {
+    assert(false);
   }
+
+  begin = values.begin();
+  end = values.end();
 
   Summary summary{};
 

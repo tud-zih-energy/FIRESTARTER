@@ -28,6 +28,12 @@ extern "C" {
 #include <dlfcn.h>
 }
 
+void insertCallback(void *cls, const char *metricName, int64_t timeSinceEpoch,
+                    double value) {
+  static_cast<firestarter::measurement::MeasurementWorker *>(cls)
+      ->insertCallback(metricName, timeSinceEpoch, value);
+}
+
 using namespace firestarter::measurement;
 
 MeasurementWorker::MeasurementWorker(
@@ -174,6 +180,9 @@ MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
                      << metric->get_error();
       } else {
         this->values[metricName] = std::vector<TimeValue>();
+        if (metric->type.insert_callback) {
+          metric->register_insert_callback(::insertCallback, this);
+        }
         count++;
       }
     }
@@ -182,6 +191,27 @@ MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
   this->values_mutex.unlock();
 
   return count;
+}
+
+void MeasurementWorker::insertCallback(const char *metricName,
+                                       int64_t timeSinceEpoch, double value) {
+  this->values_mutex.lock();
+
+  using Duration = std::chrono::duration<int64_t, std::nano>;
+  auto time =
+      std::chrono::time_point<std::chrono::high_resolution_clock, Duration>(
+          Duration(timeSinceEpoch));
+  auto name_equal = [metricName](auto const &pair) {
+    return std::string(metricName).compare(pair.first) == 0;
+  };
+  auto pair =
+      std::find_if(this->values.begin(), this->values.end(), name_equal);
+
+  if (pair != this->values.end()) {
+    pair->second.push_back(TimeValue(time, value));
+  }
+
+  this->values_mutex.unlock();
 }
 
 void MeasurementWorker::startMeasurement() {
@@ -211,7 +241,8 @@ MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
       continue;
     }
 
-    Summary sum = Summary::calculate(begin, end, metric->type);
+    Summary sum =
+        Summary::calculate(begin, end, metric->type, this->numThreads);
 
     measurment[key] = sum;
   }
@@ -279,13 +310,12 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
 
         double value;
 
-        if (EXIT_SUCCESS == metric_interface->get_reading(&value)) {
-          if (metric_interface->type & METRIC_DIVIDE_BY_THREAD_COUNT) {
-            value /= (double)_this->numThreads;
+        if (!metric_interface->type.insert_callback) {
+          if (EXIT_SUCCESS == metric_interface->get_reading(&value)) {
+            auto tv =
+                TimeValue(std::chrono::high_resolution_clock::now(), value);
+            values.push_back(tv);
           }
-
-          auto tv = TimeValue(std::chrono::high_resolution_clock::now(), value);
-          values.push_back(tv);
         }
       }
 

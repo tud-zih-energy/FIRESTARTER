@@ -214,12 +214,19 @@ static const char *get_error(void) {
 static void callback(void) { get_reading(nullptr); }
 }
 
-metric_interface_t rapl_metric = {.name = "sysfs-powercap-rapl",
-                                  .type = METRIC_ACCUMALATIVE,
-                                  .unit = "J",
-                                  .callback_time = 30000000,
-                                  .callback = callback,
-                                  .init = init,
-                                  .fini = fini,
-                                  .get_reading = get_reading,
-                                  .get_error = get_error};
+metric_interface_t rapl_metric = {
+    .name = "sysfs-powercap-rapl",
+    .type = {.absolute = 0,
+             .accumalative = 1,
+             .divide_by_thread_count = 0,
+             .insert_callback = 0,
+             .__reserved = 0},
+    .unit = "J",
+    .callback_time = 30000000,
+    .callback = callback,
+    .init = init,
+    .fini = fini,
+    .get_reading = get_reading,
+    .get_error = get_error,
+    .register_insert_callback = nullptr,
+};

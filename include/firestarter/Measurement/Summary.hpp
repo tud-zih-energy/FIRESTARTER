@@ -42,7 +42,8 @@ struct Summary {
 
   static Summary calculate(std::vector<TimeValue>::iterator begin,
                            std::vector<TimeValue>::iterator end,
-                           unsigned metricType);
+                           metric_type_t metricType,
+                           unsigned long long numThreads);
 };
 
 } // namespace firestarter::measurement
