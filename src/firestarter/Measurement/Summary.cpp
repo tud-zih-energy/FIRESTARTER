@@ -80,24 +80,27 @@ Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
 
   summary.num_timepoints = std::distance(begin, end);
 
-  auto last = begin;
-  std::advance(last, summary.num_timepoints - 1);
-  summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-      last->time - begin->time);
+  if (summary.num_timepoints > 0) {
 
-  auto sum_over_nths = [&begin, end, summary](auto fn) {
-    double acc = 0.0;
-    for (auto it = begin; it != end; ++it) {
-      acc += fn(it->value);
-    }
-    return acc / summary.num_timepoints;
-  };
+    auto last = begin;
+    std::advance(last, summary.num_timepoints - 1);
+    summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        last->time - begin->time);
 
-  summary.average = sum_over_nths([](double v) { return v; });
-  summary.stddev = std::sqrt(sum_over_nths([&summary](double v) {
-    double centered = v - summary.average;
-    return centered * centered;
-  }));
+    auto sum_over_nths = [&begin, end, summary](auto fn) {
+      double acc = 0.0;
+      for (auto it = begin; it != end; ++it) {
+        acc += fn(it->value);
+      }
+      return acc / summary.num_timepoints;
+    };
+
+    summary.average = sum_over_nths([](double v) { return v; });
+    summary.stddev = std::sqrt(sum_over_nths([&summary](double v) {
+      double centered = v - summary.average;
+      return centered * centered;
+    }));
+  }
 
   return summary;
 }
