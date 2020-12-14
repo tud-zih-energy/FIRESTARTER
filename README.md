@@ -4,6 +4,8 @@
 
 FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
+GCC (>=9) or Clang (>=9) is supported.
+
 CMake option | Description
 :--- | :---
 FIRESTARTER_LINK_STATIC | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. Default ON
