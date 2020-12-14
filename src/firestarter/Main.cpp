@@ -115,7 +115,7 @@ int main(int argc, const char **argv) {
     ("a,avail", "List available functions")
     ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     ("f,usegpufloat", "Use single precision matrix multiplications instead of default",
       cxxopts::value<bool>()->default_value("false"))
     ("d,usegpudouble", "Use double precision matrix multiplications instead of default",
@@ -128,7 +128,7 @@ int main(int argc, const char **argv) {
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER terminates itself, default: no timeout",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
     ("l,load", "Set the percentage of high CPU load to LOAD (%) default: 100, valid values: 0 <= LOAD <= 100, threads will be idle in the remaining time, frequency of load changes is determined by -p."
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
      " This option does NOT influence the GPU workload!"
 #endif
      , cxxopts::value<unsigned>()->default_value("100"), "LOAD")
@@ -136,7 +136,7 @@ int main(int argc, const char **argv) {
       cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
     ("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
       cxxopts::value<unsigned>()->default_value("0"), "COUNT")
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
@@ -146,7 +146,7 @@ int main(int argc, const char **argv) {
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
       cxxopts::value<unsigned>()->default_value("0"))
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
     ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
       cxxopts::value<bool>()->default_value("false"))
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
@@ -157,8 +157,10 @@ int main(int argc, const char **argv) {
 #if defined(linux) || defined(__linux__)
     ("list-metrics", "List the available metrics.",
       cxxopts::value<bool>()->default_value("false"))
+#ifndef FIRESTARTER_LINK_STATIC
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
       cxxopts::value<std::vector<std::string>>()->default_value(""))
+#endif
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
       cxxopts::value<bool>()->default_value("false"))
     ("measurement-interval", "Interval of measurements in milliseconds.",
@@ -224,7 +226,7 @@ int main(int argc, const char **argv) {
       period = std::chrono::microseconds::zero();
     }
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
     bool dumpRegisters = options.count("dump-registers");
     if (dumpRegisters) {
       if (timeout != std::chrono::microseconds::zero() && loadPercent != 100) {
@@ -239,7 +241,8 @@ int main(int argc, const char **argv) {
     unsigned requestedNumThreads = options["threads"].as<unsigned>();
 
     std::string cpuBind = "";
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
     if (!options["bind"].as<std::string>().empty()) {
       if (options["threads"].as<unsigned>() != 0) {
         throw std::invalid_argument(
@@ -253,7 +256,7 @@ int main(int argc, const char **argv) {
     int returnCode;
     firestarter::Firestarter firestarter;
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     bool useGpuFloat = options["usegpufloat"].as<bool>();
     bool useGpuDouble = options["usegpudouble"].as<bool>();
 
@@ -329,7 +332,11 @@ int main(int argc, const char **argv) {
         std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
     auto measurementInterval = std::chrono::milliseconds(
         options["measurement-interval"].as<unsigned>());
+#ifndef FIRESTARTER_LINK_STATIC
     auto metricPath = options["metric-path"].as<std::vector<std::string>>();
+#else
+    auto metricPath = std::vector<std::string>();
+#endif
 
     firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
 
@@ -372,7 +379,7 @@ int main(int argc, const char **argv) {
       return returnCode;
     }
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     pthread_t gpu_thread;
     pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu,
                    (void *)firestarter.gpuStructPointer);
@@ -390,7 +397,7 @@ int main(int argc, const char **argv) {
 
     firestarter.signalWork();
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
     if (dumpRegisters) {
       auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
       if (EXIT_SUCCESS !=
@@ -407,7 +414,7 @@ int main(int argc, const char **argv) {
 
     // wait for watchdog to timeout or until user terminates
     firestarter.joinLoadWorkers();
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
     if (dumpRegisters) {
       firestarter.joinDumpRegisterWorker();
     }

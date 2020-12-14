@@ -21,7 +21,7 @@
 
 #pragma once
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
 #include <firestarter/Cuda/Cuda.hpp>
 #endif
 
@@ -54,7 +54,7 @@ public:
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     this->_gpuStructPointer = reinterpret_cast<cuda::gpustruct_t *>(
         malloc(sizeof(cuda::gpustruct_t)));
     this->_gpuStructPointer->loadingdone = 0;
@@ -65,7 +65,7 @@ public:
   ~Firestarter() {
     delete _environment;
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     free(this->gpuStructPointer);
 #endif
   };
@@ -77,7 +77,7 @@ public:
   }
 #endif
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
 #endif
 
@@ -94,7 +94,7 @@ public:
                      std::chrono::microseconds load,
                      std::chrono::seconds timeout);
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
@@ -107,7 +107,7 @@ private:
   environment::x86::X86Environment *_environment;
 #endif
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   cuda::gpustruct_t *_gpuStructPointer;
 #endif
 
@@ -118,7 +118,7 @@ private:
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
 #endif
@@ -128,7 +128,7 @@ private:
 
   std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   pthread_t dumpRegisterWorkerThread;
 #endif
 };

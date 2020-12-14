@@ -28,7 +28,8 @@
 
 using namespace firestarter::environment;
 
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
 
 extern "C" {
 #include <sched.h>
@@ -79,13 +80,18 @@ int Environment::cpuAllowed(unsigned id) {
 
 int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
                                      std::string cpuBind) {
+#if not((defined(linux) || defined(__linux__)) &&                              \
+        defined(FIRESTARTER_THREAD_AFFINITY))
+  (void)cpuBind;
+#endif
 
   if (requestedNumThreads > 0 &&
       requestedNumThreads > this->topology().numThreads()) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
   cpu_set_t cpuset;
 
   CPU_ZERO(&cpuset);
@@ -179,7 +185,8 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
     log::error() << "Found no usable CPUs!";
     return 127;
   }
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
   else {
     for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
       if (CPU_ISSET(i, &cpuset)) {
@@ -201,7 +208,8 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 void Environment::printThreadSummary() {
   log::info() << "\n  using " << this->requestedNumThreads() << " threads";
 
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
   bool printCoreIdInfo = false;
   size_t i = 0;
 
@@ -233,7 +241,8 @@ int Environment::setCpuAffinity(unsigned thread) {
     return EXIT_FAILURE;
   }
 
-#if (defined(linux) || defined(__linux__)) && defined(AFFINITY)
+#if (defined(linux) || defined(__linux__)) &&                                  \
+    defined(FIRESTARTER_THREAD_AFFINITY)
   this->cpuSet(this->cpuBind.at(thread));
 #endif
 

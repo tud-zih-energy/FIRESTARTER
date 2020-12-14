@@ -4,10 +4,14 @@
 
 FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
-optional CMake arguments:
-> -DCMAKE_CXX_FLAGS="-DAFFINITY" | Enable CPU affinity. Only available under Linux.
+CMake options:
+> FIRESTARTER_LINK_STATIC | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. Default ON
 
-> -DBUILD_CUDA=1 | Build with Cuda support. Only available under Linux.
+> FIRESTARTER_CUDA | Build FIRESTARTER with CUDA support. This will result in a shared linked binary. Default OFF
+
+> FIRESTARTER_BUILD_HWLOC | Build hwloc dependency. Default ON
+
+> FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware threads. Default ON
 
 # Reference
 

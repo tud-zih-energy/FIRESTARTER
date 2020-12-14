@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>

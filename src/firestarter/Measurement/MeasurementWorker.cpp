@@ -24,9 +24,11 @@
 #include <queue>
 #include <thread>
 
+#ifndef FIRESTARTER_LINK_STATIC
 extern "C" {
 #include <dlfcn.h>
 }
+#endif
 
 void insertCallback(void *cls, const char *metricName, int64_t timeSinceEpoch,
                     double value) {
@@ -41,6 +43,7 @@ MeasurementWorker::MeasurementWorker(
     std::vector<std::string> const &metricDylibs)
     : updateInterval(updateInterval), numThreads(numThreads) {
 
+#ifndef FIRESTARTER_LINK_STATIC
   // open dylibs and find metric symbol.
   // create an entry in _metricDylibs with handle from dlopen and
   // metric_interface_t structure. add this structe as a pointer to metrics.
@@ -73,6 +76,9 @@ MeasurementWorker::MeasurementWorker(
     this->_metricDylibs.push_back(handle);
     this->metrics.push_back(metric);
   }
+#else
+  (void)metricDylibs;
+#endif
 
   std::stringstream ss;
   unsigned maxLength = 0;
@@ -120,9 +126,11 @@ MeasurementWorker::~MeasurementWorker() {
     metric->fini();
   }
 
+#ifndef FIRESTARTER_LINK_STATIC
   for (auto handle : this->_metricDylibs) {
     dlclose(handle);
   }
+#endif
 }
 
 std::vector<std::string> MeasurementWorker::metricNames() {

@@ -50,22 +50,19 @@ stdenv.mkDerivation rec {
   version = "0.0";
   src = ./.;
 
-  nativeBuildInputs = [ cmake git ];
+  nativeBuildInputs = [ cmake git pkgconfig ];
 
   buildInputs = if withCuda then
-    [ glibc_multi cudatoolkit linuxPackages.nvidia_x11 ]
+    [ glibc_multi cudatoolkit linuxPackages.nvidia_x11 hwloc ]
     else
-    [ glibc.static ];
+    [ glibc.static hwloc ];
 
   cmakeFlags = [
-    "-DCMAKE_CXX_FLAGS=\"-DAFFINITY\""
-    "-DHWLOC_LIB_DIR=${hwloc.lib}"
-    "-DHWLOC_INCLUDE_DIR=${hwloc.dev}"
-    "-DNIX_BUILD=1"
+    "-DFIRESTARTER_BUILD_HWLOC=OFF"
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
   ] ++ optionals withCuda [
-    "-DBUILD_CUDA=1"
+    "-DFIRESTARTER_CUDA=ON"
   ];
 
   enableParalellBuilding = true;

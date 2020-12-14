@@ -46,17 +46,25 @@ endif()
 
 # enable debug features on linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_FEATURES")
+	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
+	if (FIRESTARTER_DEBUG_FEATURES)
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_DEBUG_FEATURES")
+	endif()
 endif()
+
+option(FIRESTARTER_LINK_STATIC "Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries." ON)
+option(FIRESTARTER_CUDA "Build FIRESTARTER with CUDA support. This will result in a shared linked binary." OFF)
+option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
+option(FIRESTARTER_THREAD_AFFINITY "Enable FIRESTARTER to set affinity to hardware threads." ON)
 
 if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()
 
-include("lib/asmjit/CMakeLists.txt")
+add_subdirectory(lib/asmjit)
+add_subdirectory(lib/nitro)
 
 include_directories(include)
-include_directories(lib/nitro/include)
 include_directories(lib/cxxopts/include)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

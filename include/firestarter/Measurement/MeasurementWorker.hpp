@@ -65,7 +65,9 @@ private:
 
   std::string availableMetricsString;
 
+#ifndef FIRESTARTER_LINK_STATIC
   std::vector<void *> _metricDylibs = {};
+#endif
 
 public:
   // creates the worker thread
