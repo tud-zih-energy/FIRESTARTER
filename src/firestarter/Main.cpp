@@ -22,17 +22,45 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#if defined(linux) || defined(__linux__)
-#include <firestarter/Measurement/MeasurementWorker.hpp>
-#endif
-
 #include <cxxopts.hpp>
 
 #include <string>
-#include <thread>
 
-int print_copyright() {
+struct Config {
+  // default parameters
+  std::chrono::seconds timeout;
+  unsigned loadPercent;
+  std::chrono::microseconds period;
+  unsigned requestedNumThreads;
+  std::string cpuBind = "";
+  bool printFunctionSummary;
+  unsigned functionId;
+  bool listInstructionGroups;
+  std::string instructionGroups;
+  unsigned lineCount;
+  // debug features
+  bool allowUnavailablePayload = false;
+  bool dumpRegisters = false;
+  std::chrono::seconds dumpRegistersTimeDelta = std::chrono::seconds(0);
+  std::string dumpRegistersOutpath = "";
+  // CUDA parameters
+  int gpus = 0;
+  unsigned gpuMatrixSize = 0;
+  bool gpuUseFloat = false;
+  bool gpuUseDouble = false;
+  // linux features
+  bool listMetrics = false;
+  bool measurement = false;
+  std::chrono::milliseconds startDelta = std::chrono::milliseconds(0);
+  std::chrono::milliseconds stopDelta = std::chrono::milliseconds(0);
+  std::chrono::milliseconds measurementInterval = std::chrono::milliseconds(0);
+  // linux and dynamic linked binary
+  std::vector<std::string> metricPaths;
 
+  Config(int argc, const char **argv);
+};
+
+void print_copyright() {
   firestarter::log::info()
       << "This program is free software: you can redistribute it and/or "
          "modify\n"
@@ -44,12 +72,9 @@ int print_copyright() {
       << "You should have received a copy of the GNU General Public License\n"
       << "along with this program.  If not, see "
          "<http://www.gnu.org/licenses/>.\n";
-
-  return EXIT_SUCCESS;
 }
 
-int print_warranty() {
-
+void print_warranty() {
   firestarter::log::info()
       << "This program is distributed in the hope that it will be useful,\n"
       << "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
@@ -59,12 +84,9 @@ int print_warranty() {
       << "You should have received a copy of the GNU General Public License\n"
       << "along with this program.  If not, see "
          "<http://www.gnu.org/licenses/>.\n";
-
-  return EXIT_SUCCESS;
 }
 
-int print_help(cxxopts::Options parser) {
-
+void print_help(cxxopts::Options const &parser) {
   // clang-format off
   firestarter::log::info()
     << parser.help()
@@ -86,20 +108,9 @@ int print_help(cxxopts::Options parser) {
 #endif
     ;
   // clang-format on
-
-  return EXIT_SUCCESS;
 }
 
-int main(int argc, const char **argv) {
-
-  // TODO: get year number on build
-  firestarter::log::info()
-      << "FIRESTARTER - A Processor Stress Test Utility, Version "
-      << _FIRESTARTER_VERSION_STRING << "\n"
-      << "Copyright (C) " << _FIRESTARTER_BUILD_YEAR
-      << " TU Dresden, Center for Information Services and High Performance "
-         "Computing"
-      << "\n";
+Config::Config(int argc, const char **argv) {
 
   cxxopts::Options parser(argv[0]);
 
@@ -116,10 +127,8 @@ int main(int argc, const char **argv) {
     ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
 #ifdef FIRESTARTER_BUILD_CUDA
-    ("f,usegpufloat", "Use single precision matrix multiplications instead of default",
-      cxxopts::value<bool>()->default_value("false"))
-    ("d,usegpudouble", "Use double precision matrix multiplications instead of default",
-      cxxopts::value<bool>()->default_value("false"))
+    ("f,usegpufloat", "Use single precision matrix multiplications instead of default")
+    ("d,usegpudouble", "Use double precision matrix multiplications instead of default")
     ("g,gpus", "Number of gpus to use (default: all)",
       cxxopts::value<int>()->default_value("-1"))
     ("m,matrixsize", "Size of the matrix to calculate, default is maximum",
@@ -140,29 +149,25 @@ int main(int argc, const char **argv) {
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-    ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.",
-      cxxopts::value<bool>()->default_value("false"))
+    ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.")
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
       cxxopts::value<unsigned>()->default_value("0"))
 #ifdef FIRESTARTER_DEBUG_FEATURES
-    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.",
-      cxxopts::value<bool>()->default_value("false"))
+    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.")
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
       cxxopts::value<std::string>()->default_value(""))
 #endif
 #if defined(linux) || defined(__linux__)
-    ("list-metrics", "List the available metrics.",
-      cxxopts::value<bool>()->default_value("false"))
+    ("list-metrics", "List the available metrics.")
 #ifndef FIRESTARTER_LINK_STATIC
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
       cxxopts::value<std::vector<std::string>>()->default_value(""))
 #endif
-    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.",
-      cxxopts::value<bool>()->default_value("false"))
+    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.)")
     ("measurement-interval", "Interval of measurements in milliseconds.",
       cxxopts::value<unsigned>()->default_value("100"))
     ("start-delta", "Cut of first N milliseconds of measurement.",
@@ -191,15 +196,17 @@ int main(int argc, const char **argv) {
     }
 
     if (options.count("version")) {
-      return EXIT_SUCCESS;
+      std::exit(EXIT_SUCCESS);
     }
 
     if (options.count("copyright")) {
-      return print_copyright();
+      print_copyright();
+      std::exit(EXIT_SUCCESS);
     }
 
     if (options.count("warranty")) {
-      return print_warranty();
+      print_warranty();
+      std::exit(EXIT_SUCCESS);
     }
 
     firestarter::log::info()
@@ -210,238 +217,118 @@ int main(int argc, const char **argv) {
         << " -c` for details.\n";
 
     if (options.count("help")) {
-      return print_help(parser);
+      print_help(parser);
+      std::exit(EXIT_SUCCESS);
     }
 
-    std::chrono::seconds timeout(options["timeout"].as<unsigned>());
-    unsigned loadPercent = options["load"].as<unsigned>();
-    std::chrono::microseconds period(options["period"].as<unsigned>());
+    timeout = std::chrono::seconds(options["timeout"].as<unsigned>());
+    loadPercent = options["load"].as<unsigned>();
+    period = std::chrono::microseconds(options["period"].as<unsigned>());
 
     if (loadPercent > 100) {
       throw std::invalid_argument("Option -l/--load may not be above 100.");
     }
 
-    std::chrono::microseconds load = (period * loadPercent) / 100;
-    if (loadPercent == 100 || load == std::chrono::microseconds::zero()) {
-      period = std::chrono::microseconds::zero();
-    }
-
 #ifdef FIRESTARTER_DEBUG_FEATURES
-    bool dumpRegisters = options.count("dump-registers");
+    dumpRegisters = options.count("dump-registers");
     if (dumpRegisters) {
+      dumpRegistersTimeDelta =
+          std::chrono::seconds(options["dump-registers"].as<unsigned>());
       if (timeout != std::chrono::microseconds::zero() && loadPercent != 100) {
         throw std::invalid_argument("Option --dump-registers may only be used "
                                     "without a timeout and full load.");
       }
     }
-#else
-    bool dumpRegisters = false;
+    allowUnavailablePayload = options.count("allow-unavailable-payload");
 #endif
 
-    unsigned requestedNumThreads = options["threads"].as<unsigned>();
+    requestedNumThreads = options["threads"].as<unsigned>();
 
-    std::string cpuBind = "";
 #if (defined(linux) || defined(__linux__)) &&                                  \
     defined(FIRESTARTER_THREAD_AFFINITY)
-    if (!options["bind"].as<std::string>().empty()) {
-      if (options["threads"].as<unsigned>() != 0) {
+    cpuBind = options["bind"].as<std::string>();
+    if (!cpuBind.empty()) {
+      if (requestedNumThreads != 0) {
         throw std::invalid_argument(
             "Options -b/--bind and -n/--threads cannot be used together.");
       }
-
-      cpuBind = options["bind"].as<std::string>();
     }
 #endif
 
-    int returnCode;
-    firestarter::Firestarter firestarter;
-
 #ifdef FIRESTARTER_BUILD_CUDA
-    bool useGpuFloat = options["usegpufloat"].as<bool>();
-    bool useGpuDouble = options["usegpudouble"].as<bool>();
+    gpuUseFloat = options.count("usegpufloat");
+    gpuUseDouble = options.count("usegpudouble");
 
-    if (useGpuFloat && useGpuDouble) {
+    if (gpuUseFloat && gpuUseDouble) {
       throw std::invalid_argument("Options -f/--usegpufloat and "
                                   "-d/--usegpudouble cannot be used together.");
     }
 
-    if (useGpuFloat) {
-      firestarter.gpuStructPointer->use_double = 0;
-    } else if (useGpuDouble) {
-      firestarter.gpuStructPointer->use_double = 1;
-    } else {
-      firestarter.gpuStructPointer->use_double = 2;
-    }
-
-    unsigned matrixSize = options["matrixsize"].as<unsigned>();
+    gpuMatrixSize = options["matrixsize"].as<unsigned>();
     if (matrixSize > 0 && matrixSize < 64) {
       throw std::invalid_argument(
           "Option -m/--matrixsize may not be below 64.");
     }
-    firestarter.gpuStructPointer->msize = matrixSize;
 
-    firestarter.gpuStructPointer->use_device = options["gpus"].as<int>();
+    gpus = options["gpus"].as<int>();
 #endif
 
-    if (EXIT_SUCCESS !=
-        (returnCode = firestarter.environment().evaluateCpuAffinity(
-             requestedNumThreads, cpuBind))) {
-      return returnCode;
-    }
+    printFunctionSummary = options.count("avail");
 
-    firestarter.environment().evaluateFunctions();
+    functionId = options["function"].as<unsigned>();
 
-    if (options.count("avail")) {
-      firestarter.environment().printFunctionSummary();
-      return EXIT_SUCCESS;
-    }
-
-    unsigned functionId = options["function"].as<unsigned>();
-    bool allowUnavailablePayload =
-        options["allow-unavailable-payload"].as<bool>();
-
-    if (EXIT_SUCCESS != (returnCode = firestarter.environment().selectFunction(
-                             functionId, allowUnavailablePayload))) {
-      return returnCode;
-    }
-
-    if (options["list-instruction-groups"].as<bool>()) {
-      firestarter.environment().printAvailableInstructionGroups();
-      return EXIT_SUCCESS;
-    }
-
-    std::string instructionGroups =
-        options["run-instruction-groups"].as<std::string>();
-    if (!instructionGroups.empty()) {
-      if (EXIT_SUCCESS !=
-          (returnCode = firestarter.environment().selectInstructionGroups(
-               instructionGroups))) {
-        return returnCode;
-      }
-    }
-
-    unsigned lineCount = options["set-line-count"].as<unsigned>();
-    if (lineCount != 0) {
-      firestarter.environment().setLineCount(lineCount);
-    }
+    listInstructionGroups = options.count("list-instruction-groups");
+    instructionGroups = options["run-instruction-groups"].as<std::string>();
+    lineCount = options["set-line-count"].as<unsigned>();
 
 #if defined(linux) || defined(__linux__)
-    auto startDelta =
+    startDelta =
         std::chrono::milliseconds(options["start-delta"].as<unsigned>());
-    auto stopDelta =
-        std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
-    auto measurementInterval = std::chrono::milliseconds(
+    stopDelta = std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
+    measurementInterval = std::chrono::milliseconds(
         options["measurement-interval"].as<unsigned>());
 #ifndef FIRESTARTER_LINK_STATIC
-    auto metricPath = options["metric-path"].as<std::vector<std::string>>();
-#else
-    auto metricPath = std::vector<std::string>();
+    metricPaths = options["metric-path"].as<std::vector<std::string>>();
 #endif
-
-    firestarter::measurement::MeasurementWorker *measurementWorker = nullptr;
-
-    if (options["measurement"].as<bool>() ||
-        options["list-metrics"].as<bool>()) {
-      measurementWorker = new firestarter::measurement::MeasurementWorker(
-          measurementInterval, firestarter.environment().requestedNumThreads(),
-          metricPath);
-
-      if (options["list-metrics"].as<bool>()) {
-        firestarter::log::info() << measurementWorker->availableMetrics();
-        delete measurementWorker;
-        return EXIT_SUCCESS;
-      }
-
-      // TODO: select the metrics
-      // init all metrics
-      auto count =
-          measurementWorker->initMetrics(measurementWorker->metricNames());
-
-      if (count == 0) {
-        firestarter::log::error() << "No metrics initialized";
-        delete measurementWorker;
-        return EXIT_FAILURE;
-      }
-    }
-#endif
-
-    firestarter.environment().printSelectedCodePathSummary();
-
-    firestarter::log::info() << firestarter.environment().topology();
-
-    firestarter.environment().printThreadSummary();
-
-    // setup thread with either high or low load configured at the start
-    // low loads has to know the length of the period
-    if (EXIT_SUCCESS !=
-        (returnCode = firestarter.initLoadWorkers(
-             (loadPercent == 0), period.count(), dumpRegisters))) {
-      return returnCode;
-    }
-
-#ifdef FIRESTARTER_BUILD_CUDA
-    pthread_t gpu_thread;
-    pthread_create(&gpu_thread, NULL, firestarter::cuda::init_gpu,
-                   (void *)firestarter.gpuStructPointer);
-    while (firestarter.gpuStructPointer->loadingdone != 1) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-#endif
-
-#if defined(linux) || defined(__linux__)
-    // if measurement is enabled, start it here
-    if (nullptr != measurementWorker) {
-      measurementWorker->startMeasurement();
-    }
-#endif
-
-    firestarter.signalWork();
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-    if (dumpRegisters) {
-      auto dumpTimeDelta = options["dump-registers"].as<unsigned>();
-      if (EXIT_SUCCESS !=
-          (returnCode = firestarter.initDumpRegisterWorker(
-               std::chrono::seconds(dumpTimeDelta),
-               options["dump-registers-outpath"].as<std::string>()))) {
-        return returnCode;
-      }
-    }
-#endif
-
-    // worker thread for load control
-    firestarter.watchdogWorker(period, load, timeout);
-
-    // wait for watchdog to timeout or until user terminates
-    firestarter.joinLoadWorkers();
-#ifdef FIRESTARTER_DEBUG_FEATURES
-    if (dumpRegisters) {
-      firestarter.joinDumpRegisterWorker();
-    }
-#endif
-
-    firestarter.printPerformanceReport();
-
-#if defined(linux) || defined(__linux__)
-    // if measurment is enabled, stop it here
-    if (nullptr != measurementWorker) {
-      // TODO: clear this up
-      firestarter::log::info()
-          << "metric,num_timepoints,duration_ms,average,stddev";
-      for (auto const &[name, sum] :
-           measurementWorker->getValues(startDelta, stopDelta)) {
-        firestarter::log::info()
-            << std::quoted(name) << "," << sum.num_timepoints << ","
-            << sum.duration.count() << "," << sum.average << "," << sum.stddev;
-      }
-
-      delete measurementWorker;
-    }
+    measurement = options.count("measurement");
+    listMetrics = options.count("list-metrics");
 #endif
 
   } catch (std::exception &e) {
     firestarter::log::error() << e.what() << "\n";
-    return print_help(parser);
+    print_help(parser);
+    std::exit(EXIT_FAILURE);
+  }
+}
+
+int main(int argc, const char **argv) {
+
+  firestarter::log::info()
+      << "FIRESTARTER - A Processor Stress Test Utility, Version "
+      << _FIRESTARTER_VERSION_STRING << "\n"
+      << "Copyright (C) " << _FIRESTARTER_BUILD_YEAR
+      << " TU Dresden, Center for Information Services and High Performance "
+         "Computing"
+      << "\n";
+
+  Config cfg{argc, argv};
+
+  try {
+    firestarter::Firestarter firestarter(
+        cfg.timeout, cfg.loadPercent, cfg.period, cfg.requestedNumThreads,
+        cfg.cpuBind, cfg.printFunctionSummary, cfg.functionId,
+        cfg.listInstructionGroups, cfg.instructionGroups, cfg.lineCount,
+        cfg.allowUnavailablePayload, cfg.dumpRegisters,
+        cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
+        cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
+        cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
+        cfg.metricPaths);
+
+    firestarter.mainThread();
+
+  } catch (std::runtime_error const &e) {
+    firestarter::log::error() << e.what();
+    return EXIT_FAILURE;
   }
 
   return EXIT_SUCCESS;
