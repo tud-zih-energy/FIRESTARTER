@@ -75,13 +75,13 @@ int print_help(cxxopts::Options parser) {
     << "  ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER\n"
     << "  ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with\n"
 		<< "                                50\% high load and 50\% idle time\n"
-#ifdef CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     << "                                on CPUs and full load on GPUs\n"
 #endif
     << "  ./FIRESTARTER -l 75 -p 20000000\n"
     << "                                starts FIRESTARTER with an interval length\n"
     << "                                of 2 sec, 1.5s high load and 0.5s idle\n"
-#ifdef CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
     << "                                on CPUs and full load on GPUs\n"
 #endif
     ;
