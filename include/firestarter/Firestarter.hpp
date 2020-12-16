@@ -50,20 +50,22 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(std::chrono::seconds timeout, unsigned loadPercent,
-              std::chrono::microseconds period, unsigned requestedNumThreads,
-              std::string cpuBind, bool printFunctionSummary,
-              unsigned functionId, bool listInstructionGroups,
-              std::string instructionGroups, unsigned lineCount,
-              bool allowUnavailablePayload, bool dumpRegisters,
-              std::chrono::seconds dumpRegistersTimeDelta,
-              std::string dumpRegistersOutpath, int gpus,
+  Firestarter(std::chrono::seconds const &timeout, unsigned loadPercent,
+              std::chrono::microseconds const &period,
+              unsigned requestedNumThreads, std::string const &cpuBind,
+              bool printFunctionSummary, unsigned functionId,
+              bool listInstructionGroups, std::string const &instructionGroups,
+              unsigned lineCount, bool allowUnavailablePayload,
+              bool dumpRegisters,
+              std::chrono::seconds const &dumpRegistersTimeDelta,
+              std::string const &dumpRegistersOutpath, int gpus,
               unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
               bool listMetrics, bool measurement,
-              std::chrono::milliseconds startDelta,
-              std::chrono::milliseconds stopDelta,
-              std::chrono::milliseconds measurementInterval,
-              std::vector<std::string> metricPaths);
+              std::chrono::milliseconds const &startDelta,
+              std::chrono::milliseconds const &stopDelta,
+              std::chrono::milliseconds const &measurementInterval,
+              std::vector<std::string> const &metricPaths,
+              std::vector<std::string> const &stdinMetrics);
 
   ~Firestarter();
 
@@ -74,17 +76,11 @@ private:
   unsigned _loadPercent;
   std::chrono::microseconds _load;
   std::chrono::microseconds _period;
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
   bool _dumpRegisters;
   std::chrono::seconds _dumpRegistersTimeDelta;
   std::string _dumpRegistersOutpath;
-#endif
-
-#if defined(linux) || defined(__linux__)
   std::chrono::milliseconds _startDelta;
   std::chrono::milliseconds _stopDelta;
-#endif
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)

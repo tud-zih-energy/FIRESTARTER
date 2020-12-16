@@ -45,6 +45,7 @@ namespace firestarter::measurement {
 class MeasurementWorker {
 private:
   pthread_t workerThread;
+  pthread_t stdinThread;
 
   std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric,
                                                &perf_freq_metric};
@@ -53,6 +54,8 @@ private:
   std::map<std::string, std::vector<TimeValue>> values = {};
 
   static int *dataAcquisitionWorker(void *measurementWorker);
+
+  static int *stdinDataAcquisitionWorker(void *measurementWorker);
 
   const metric_interface_t *findMetricByName(std::string metricName);
 
@@ -69,11 +72,14 @@ private:
   std::vector<void *> _metricDylibs = {};
 #endif
 
+  std::vector<std::string> _stdinMetrics = {};
+
 public:
   // creates the worker thread
   MeasurementWorker(std::chrono::milliseconds updateInterval,
                     unsigned long long numThreads,
-                    std::vector<std::string> const &metricDylibs);
+                    std::vector<std::string> const &metricDylibs,
+                    std::vector<std::string> const &stdinMetrics);
 
   // stops the worker threads
   ~MeasurementWorker();
@@ -81,6 +87,8 @@ public:
   std::string const &availableMetrics() const {
     return this->availableMetricsString;
   }
+
+  std::vector<std::string> const &stdinMetrics() { return _stdinMetrics; }
 
   // returns a list of metrics
   std::vector<std::string> metricNames();

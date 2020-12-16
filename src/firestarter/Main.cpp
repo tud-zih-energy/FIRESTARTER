@@ -37,7 +37,7 @@ struct Config {
   unsigned functionId;
   bool listInstructionGroups;
   std::string instructionGroups;
-  unsigned lineCount;
+  unsigned lineCount = 0;
   // debug features
   bool allowUnavailablePayload = false;
   bool dumpRegisters = false;
@@ -54,6 +54,7 @@ struct Config {
   std::chrono::milliseconds startDelta = std::chrono::milliseconds(0);
   std::chrono::milliseconds stopDelta = std::chrono::milliseconds(0);
   std::chrono::milliseconds measurementInterval = std::chrono::milliseconds(0);
+  std::vector<std::string> stdinMetrics;
   // linux and dynamic linked binary
   std::vector<std::string> metricPaths;
 
@@ -153,7 +154,7 @@ Config::Config(int argc, const char **argv) {
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
-      cxxopts::value<unsigned>()->default_value("0"))
+      cxxopts::value<unsigned>())
 #ifdef FIRESTARTER_DEBUG_FEATURES
     ("allow-unavailable-payload", "This option is only for debugging. Do not use it.")
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
@@ -167,6 +168,8 @@ Config::Config(int argc, const char **argv) {
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
       cxxopts::value<std::vector<std::string>>()->default_value(""))
 #endif
+    ("metric-from-stdin", "Add a metric NAME with values from stdin. Format of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\". TIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush lines!)",
+     cxxopts::value<std::vector<std::string>>(), "NAME")
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.)")
     ("measurement-interval", "Interval of measurements in milliseconds.",
       cxxopts::value<unsigned>()->default_value("100"))
@@ -279,7 +282,9 @@ Config::Config(int argc, const char **argv) {
 
     listInstructionGroups = options.count("list-instruction-groups");
     instructionGroups = options["run-instruction-groups"].as<std::string>();
-    lineCount = options["set-line-count"].as<unsigned>();
+    if (options.count("set-line-count")) {
+      lineCount = options["set-line-count"].as<unsigned>();
+    }
 
 #if defined(linux) || defined(__linux__)
     startDelta =
@@ -290,6 +295,10 @@ Config::Config(int argc, const char **argv) {
 #ifndef FIRESTARTER_LINK_STATIC
     metricPaths = options["metric-path"].as<std::vector<std::string>>();
 #endif
+    if (options.count("metric-from-stdin")) {
+      stdinMetrics =
+          options["metric-from-stdin"].as<std::vector<std::string>>();
+    }
     measurement = options.count("measurement");
     listMetrics = options.count("list-metrics");
 #endif
@@ -322,7 +331,7 @@ int main(int argc, const char **argv) {
         cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
         cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
         cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
-        cfg.metricPaths);
+        cfg.metricPaths, cfg.stdinMetrics);
 
     firestarter.mainThread();
 

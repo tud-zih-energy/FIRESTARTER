@@ -27,17 +27,19 @@
 using namespace firestarter;
 
 Firestarter::Firestarter(
-    std::chrono::seconds timeout, unsigned loadPercent,
-    std::chrono::microseconds period, unsigned requestedNumThreads,
-    std::string cpuBind, bool printFunctionSummary, unsigned functionId,
-    bool listInstructionGroups, std::string instructionGroups,
+    std::chrono::seconds const &timeout, unsigned loadPercent,
+    std::chrono::microseconds const &period, unsigned requestedNumThreads,
+    std::string const &cpuBind, bool printFunctionSummary, unsigned functionId,
+    bool listInstructionGroups, std::string const &instructionGroups,
     unsigned lineCount, bool allowUnavailablePayload, bool dumpRegisters,
-    std::chrono::seconds dumpRegistersTimeDelta,
-    std::string dumpRegistersOutpath, int gpus, unsigned gpuMatrixSize,
+    std::chrono::seconds const &dumpRegistersTimeDelta,
+    std::string const &dumpRegistersOutpath, int gpus, unsigned gpuMatrixSize,
     bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
-    std::chrono::milliseconds startDelta, std::chrono::milliseconds stopDelta,
-    std::chrono::milliseconds measurementInterval,
-    std::vector<std::string> metricPaths)
+    std::chrono::milliseconds const &startDelta,
+    std::chrono::milliseconds const &stopDelta,
+    std::chrono::milliseconds const &measurementInterval,
+    std::vector<std::string> const &metricPaths,
+    std::vector<std::string> const &stdinMetrics)
     : _timeout(timeout), _loadPercent(loadPercent), _period(period),
       _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
@@ -117,7 +119,7 @@ Firestarter::Firestarter(
   if (measurement || listMetrics) {
     _measurementWorker = new measurement::MeasurementWorker(
         measurementInterval, this->environment().requestedNumThreads(),
-        metricPaths);
+        metricPaths, stdinMetrics);
 
     if (listMetrics) {
       log::info() << _measurementWorker->availableMetrics();
