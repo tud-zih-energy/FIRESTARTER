@@ -36,7 +36,7 @@ extern "C" {
 static std::string errorString = "";
 
 struct reader_def {
-  const char *path;
+  char *path;
   long long int last_reading;
   long long int overflow;
   long long int max;
@@ -46,6 +46,7 @@ static std::vector<struct reader_def *> readers = {};
 
 static int32_t fini(void) {
   for (auto &def : readers) {
+    free(def->path);
     free(def);
   }
 
@@ -144,9 +145,9 @@ static int32_t init(void) {
     }
 
     std::getline(maxEnergyReadingStream, buffer);
-    max = std::sscanf(buffer.c_str(), "%llu", &max);
+    read = std::sscanf(buffer.c_str(), "%llu", &max);
 
-    if (max == 0) {
+    if (read == 0) {
       std::stringstream ss;
       ss << "Contents in file " << path / "max_energy_range_uj"
          << " do not conform to mask (unsigned long long)";
@@ -160,7 +161,7 @@ static int32_t init(void) {
     size_t size = (strlen(pathName) + 1) * sizeof(char);
     void *name = malloc(size);
     memcpy(name, pathName, size);
-    def->path = reinterpret_cast<const char *>(name);
+    def->path = (char *) name;
     def->max = max;
     def->last_reading = reading;
     def->overflow = 0;
