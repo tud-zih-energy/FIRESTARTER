@@ -75,7 +75,7 @@ MeasurementWorker::MeasurementWorker(
 
     if (this->findMetricByName(metric->name) != nullptr) {
       firestarter::log::error()
-          << "A metric named \"" << handle->name << "\" is already loaded.";
+          << "A metric named \"" << metric->name << "\" is already loaded.";
       dlclose(handle);
       continue;
     }
