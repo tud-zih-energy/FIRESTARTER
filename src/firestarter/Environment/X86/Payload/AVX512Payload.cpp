@@ -231,7 +231,7 @@ int AVX512Payload::compilePayload(
         L1_INCREMENT();
       } else if (item == "L1_BROADCAST") {
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmm2);
-        cb.vbroadcastsd(Zmm(add_dest), zmmword_ptr(l1_addr, 64));
+        cb.vbroadcastsd(Zmm(add_dest), ptr_64(l1_addr, 64));
         L1_INCREMENT();
       } else if (item == "L1_S") {
         cb.vmovapd(zmmword_ptr(l1_addr, 64), Zmm(add_dest));
