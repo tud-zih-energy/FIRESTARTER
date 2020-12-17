@@ -55,7 +55,12 @@ public:
   X86Environment() : Environment(new X86CPUTopology()) {}
 
   ~X86Environment() {
-    delete reinterpret_cast<X86CPUTopology *>(this->_topology);
+    for (auto const &config : platformConfigs) {
+      delete config;
+    }
+    for (auto const &config : fallbackPlatformConfigs) {
+      delete config;
+    }
   }
 
   X86CPUTopology const &topology() {
@@ -99,8 +104,8 @@ private:
       };
 
   std::list<platform::X86PlatformConfig *> fallbackPlatformConfigs;
+
+#undef REGISTER
 };
 
 } // namespace firestarter::environment::x86
-
-#undef REGISTER

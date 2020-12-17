@@ -1,6 +1,6 @@
 export CMAKE_CXX_FLAGS="-DAFFINITY"
 if [[ -v CUDA ]]; then
-	cmake .. -DBUILD_CUDA=1 ;
+	cmake .. -DFIRESTARTER_BUILD_CUDA=ON ;
 else
 	cmake .. ;
 fi

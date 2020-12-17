@@ -21,8 +21,12 @@
 
 #pragma once
 
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
 #include <firestarter/Cuda/Cuda.hpp>
+#endif
+
+#if defined(linux) || defined(__linux__)
+#include <firestarter/Measurement/MeasurementWorker.hpp>
 #endif
 
 #include <firestarter/DumpRegisterWorkerData.hpp>
@@ -46,37 +50,55 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter() {
+  Firestarter(std::chrono::seconds const &timeout, unsigned loadPercent,
+              std::chrono::microseconds const &period,
+              unsigned requestedNumThreads, std::string const &cpuBind,
+              bool printFunctionSummary, unsigned functionId,
+              bool listInstructionGroups, std::string const &instructionGroups,
+              unsigned lineCount, bool allowUnavailablePayload,
+              bool dumpRegisters,
+              std::chrono::seconds const &dumpRegistersTimeDelta,
+              std::string const &dumpRegistersOutpath, int gpus,
+              unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
+              bool listMetrics, bool measurement,
+              std::chrono::milliseconds const &startDelta,
+              std::chrono::milliseconds const &stopDelta,
+              std::chrono::milliseconds const &measurementInterval,
+              std::vector<std::string> const &metricPaths,
+              std::vector<std::string> const &stdinMetrics);
+
+  ~Firestarter();
+
+  void mainThread();
+
+private:
+  std::chrono::seconds _timeout;
+  unsigned _loadPercent;
+  std::chrono::microseconds _load;
+  std::chrono::microseconds _period;
+  bool _dumpRegisters;
+  std::chrono::seconds _dumpRegistersTimeDelta;
+  std::string _dumpRegistersOutpath;
+  std::chrono::milliseconds _startDelta;
+  std::chrono::milliseconds _stopDelta;
+
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
-    _environment = new environment::x86::X86Environment();
+  environment::x86::X86Environment *_environment = nullptr;
+
+  environment::x86::X86Environment &environment() const {
+    return *_environment;
+  }
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
 
-#ifdef BUILD_CUDA
-    this->_gpuStructPointer = reinterpret_cast<cuda::gpustruct_t *>(
-        malloc(sizeof(cuda::gpustruct_t)));
-    this->_gpuStructPointer->loadingdone = 0;
-    this->_gpuStructPointer->loadvar = &this->loadVar;
-#endif
-  };
-
-  ~Firestarter() {
-    delete _environment;
-
-#ifdef BUILD_CUDA
-    free(this->gpuStructPointer);
-#endif
-  };
-
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-  environment::x86::X86Environment *const &environment = _environment;
-#endif
-
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
+#endif
+
+#if defined(linux) || defined(__linux__)
+  measurement::MeasurementWorker *_measurementWorker = nullptr;
 #endif
 
   // LoadThreadWorker.cpp
@@ -92,20 +114,14 @@ public:
                      std::chrono::microseconds load,
                      std::chrono::seconds timeout);
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
   void joinDumpRegisterWorker();
 #endif
 
-private:
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-  environment::x86::X86Environment *_environment;
-#endif
-
-#ifdef BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   cuda::gpustruct_t *_gpuStructPointer;
 #endif
 
@@ -116,7 +132,7 @@ private:
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
 #endif
@@ -126,7 +142,7 @@ private:
 
   std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
   pthread_t dumpRegisterWorkerThread;
 #endif
 };

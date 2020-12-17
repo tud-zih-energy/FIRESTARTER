@@ -45,7 +45,7 @@ struct DumpRegisterStruct {
 
 } // namespace firestarter
 
-#ifdef DEBUG_FEATURES
+#ifdef FIRESTARTER_DEBUG_FEATURES
 
 // current mingw gcc version 8 has a bug, which causes this include to abort the
 // compilation

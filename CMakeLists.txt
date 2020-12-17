@@ -17,7 +17,16 @@ else()
 endif()
 add_compile_definitions(_FIRESTARTER_VERSION_STRING="${_FIRESTARTER_VERSION_STRING}")
 
-string(TIMESTAMP _FIRESTARTER_BUILD_YEAR "%Y")
+if(Git_FOUND)
+	execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ci HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		OUTPUT_VARIABLE _FIRESTARTER_BUILD_YEAR
+		)
+	string(SUBSTRING ${_FIRESTARTER_BUILD_YEAR} 0 4 _FIRESTARTER_BUILD_YEAR)
+else()
+	message(AUTHOR_WARNING "Cannot detect FIRESTARTER build year.")
+	set(_FIRESTARTER_BUILD_YEAR "unknown")
+endif()
 add_compile_definitions(_FIRESTARTER_BUILD_YEAR="${_FIRESTARTER_BUILD_YEAR}")
 
 # init git submodules
@@ -37,17 +46,25 @@ endif()
 
 # enable debug features on linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG_FEATURES")
+	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
+	if (FIRESTARTER_DEBUG_FEATURES)
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_DEBUG_FEATURES")
+	endif()
 endif()
+
+option(FIRESTARTER_LINK_STATIC "Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries." ON)
+option(FIRESTARTER_CUDA "Build FIRESTARTER with CUDA support. This will result in a shared linked binary." OFF)
+option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
+option(FIRESTARTER_THREAD_AFFINITY "Enable FIRESTARTER to set affinity to hardware threads." ON)
 
 if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()
 
-include("lib/asmjit/CMakeLists.txt")
+add_subdirectory(lib/asmjit)
+add_subdirectory(lib/nitro)
 
 include_directories(include)
-include_directories(lib/nitro/include)
 include_directories(lib/cxxopts/include)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)

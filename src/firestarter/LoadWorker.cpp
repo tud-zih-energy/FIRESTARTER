@@ -55,7 +55,7 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
                                  bool dumpRegisters) {
   int returnCode;
 
-  if (EXIT_SUCCESS != (returnCode = this->environment->setCpuAffinity(0))) {
+  if (EXIT_SUCCESS != (returnCode = this->environment().setCpuAffinity(0))) {
     return EXIT_FAILURE;
   }
 
@@ -67,23 +67,24 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
   pthread_t *threads = nullptr;
   if (nullptr ==
       (threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
-           this->environment->requestedNumThreads * sizeof(pthread_t), 64)))) {
+           this->environment().requestedNumThreads() * sizeof(pthread_t),
+           64)))) {
     log::error() << "Could not allocate pthread_t";
     return EXIT_FAILURE;
   }
 
-  for (unsigned long long i = 0; i < this->environment->requestedNumThreads;
+  for (unsigned long long i = 0; i < this->environment().requestedNumThreads();
        i++) {
-    auto td = new LoadWorkerData(i, this->environment, &this->loadVar, period,
+    auto td = new LoadWorkerData(i, this->environment(), &this->loadVar, period,
                                  dumpRegisters);
 
     auto dataCacheSizeIt =
-        td->config->platformConfig->dataCacheBufferSize.begin();
-    auto ramBufferSize = td->config->platformConfig->ramBufferSize;
+        td->config().platformConfig().dataCacheBufferSize().begin();
+    auto ramBufferSize = td->config().platformConfig().ramBufferSize();
 
     td->buffersizeMem = (*dataCacheSizeIt + *std::next(dataCacheSizeIt, 1) +
                          *std::next(dataCacheSizeIt, 2) + ramBufferSize) /
-                        td->config->thread / sizeof(unsigned long long);
+                        td->config().thread() / sizeof(unsigned long long);
 
     // create the thread
     if (EXIT_SUCCESS !=
@@ -152,7 +153,7 @@ void Firestarter::printPerformanceReport() {
   for (auto const &thread : this->loadThreads) {
     auto td = thread.second;
 
-    log::debug() << "Thread " << td->id << ": " << td->iterations
+    log::debug() << "Thread " << td->id() << ": " << td->iterations
                  << " iterations, tsc_delta: " << td->stop_tsc - td->start_tsc;
 
     if (startTimestamp > td->start_tsc) {
@@ -166,12 +167,12 @@ void Firestarter::printPerformanceReport() {
   }
 
   double runtime = (double)(stopTimestamp - startTimestamp) /
-                   (double)this->environment->topology().clockrate();
+                   (double)this->environment().topology().clockrate();
   double gFlops =
-      (double)this->loadThreads.front().second->config->payload->flops *
+      (double)this->loadThreads.front().second->config().payload().flops() *
       0.000000001 * (double)iterations / runtime;
   double bandwidth =
-      (double)this->loadThreads.front().second->config->payload->bytes *
+      (double)this->loadThreads.front().second->config().payload().bytes() *
       0.000000001 * (double)iterations / runtime;
 
   // format runtime, gflops and bandwidth %.2f
@@ -246,13 +247,13 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
     // allocate and initialize memory
     case THREAD_INIT:
       // set affinity
-      td->environment->setCpuAffinity(td->id);
+      td->environment().setCpuAffinity(td->id());
 
       // compile payload
-      td->config->payload->compilePayload(
-          td->config->payloadSettings, td->config->instructionCacheSize,
-          td->config->dataCacheBufferSize, td->config->ramBufferSize,
-          td->config->thread, td->config->lines, td->dumpRegisters);
+      td->config().payload().compilePayload(
+          td->config().payloadSettings(), td->config().instructionCacheSize(),
+          td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
+          td->config().thread(), td->config().lines(), td->dumpRegisters);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -271,12 +272,12 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
       }
 
       // call init function
-      td->config->payload->init(td->addrMem, td->buffersizeMem);
+      td->config().payload().init(td->addrMem, td->buffersizeMem);
       break;
     // perform stress test
     case THREAD_WORK:
       // record threads start timestamp
-      td->start_tsc = td->environment->topology().timestamp();
+      td->start_tsc = td->environment().topology().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -288,7 +289,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        td->iterations = td->config->payload->highLoadFunction(
+        td->iterations = td->config().payload().highLoadFunction(
             td->addrMem, td->addrHigh, td->iterations);
 
         // call low load function
@@ -300,7 +301,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
         SCOREP_USER_REGION_BY_NAME_END("HIGH");
         SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        td->config->payload->lowLoadFunction(td->addrHigh, td->period);
+        td->config().payload().lowLoadFunction(td->addrHigh, td->period);
 #ifdef ENABLE_VTRACING
         VT_USER_END("LOW_LOAD_FUNC");
 #endif
@@ -310,7 +311,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
 
         // terminate if master signals end of run and record stop timestamp
         if (*td->addrHigh == LOAD_STOP) {
-          td->stop_tsc = td->environment->topology().timestamp();
+          td->stop_tsc = td->environment().topology().timestamp();
 
           ALIGNED_FREE(td->addrMem - addrOffset);
           pthread_exit(NULL);

@@ -2,7 +2,7 @@
 
 include(ExternalProject)
 
-if (NOT DEFINED NIX_BUILD)
+if (FIRESTARTER_BUILD_HWLOC)
 	if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		ExternalProject_Add(
 			HwlocInstall PREFIX ${PROJECT_SOURCE_DIR}/lib/Hwloc
@@ -35,10 +35,10 @@ if (NOT DEFINED NIX_BUILD)
 		SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
 		SET(HWLOC_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
 	endif()
-endif()
 
-include_directories(${HWLOC_INCLUDE_DIR}/include)
-add_library(hwloc STATIC IMPORTED)
-set_target_properties(hwloc PROPERTIES
-	IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.a
+	include_directories(${HWLOC_INCLUDE_DIR}/include)
+	add_library(hwloc STATIC IMPORTED)
+	set_target_properties(hwloc PROPERTIES
+		IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.a
 	)
+endif()

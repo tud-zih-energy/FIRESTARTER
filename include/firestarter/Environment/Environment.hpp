@@ -25,6 +25,7 @@
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 
+#include <cassert>
 #include <vector>
 
 namespace firestarter::environment {
@@ -32,7 +33,12 @@ namespace firestarter::environment {
 class Environment {
 public:
   Environment(CPUTopology *topology) : _topology(topology) {}
-  ~Environment() {}
+  ~Environment() {
+    delete this->_topology;
+    if (_selectedConfig != nullptr) {
+      delete _selectedConfig;
+    }
+  }
 
   int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
   int setCpuAffinity(unsigned thread);
@@ -47,22 +53,40 @@ public:
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  platform::RuntimeConfig *const &selectedConfig = _selectedConfig;
+  platform::RuntimeConfig &selectedConfig() const {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+    assert(("No RuntimeConfig selected", _selectedConfig != nullptr));
+#pragma GCC diagnostic pop
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+    return *_selectedConfig;
+  }
 
-  const unsigned long long &requestedNumThreads = _requestedNumThreads;
+  unsigned long long requestedNumThreads() const {
+    return _requestedNumThreads;
+  }
 
-  CPUTopology const &topology() { return *_topology; }
+  CPUTopology const &topology() const {
+    assert(_topology != nullptr);
+    return *_topology;
+  }
 
 protected:
   platform::RuntimeConfig *_selectedConfig = nullptr;
   CPUTopology *_topology = nullptr;
 
+private:
   unsigned long long _requestedNumThreads;
 
-private:
   // TODO: replace these functions with the builtins one from hwloc
-  int cpu_allowed(unsigned id);
-  int cpu_set(unsigned id);
+  int cpuAllowed(unsigned id);
+  int cpuSet(unsigned id);
 
   std::vector<unsigned> cpuBind;
 };

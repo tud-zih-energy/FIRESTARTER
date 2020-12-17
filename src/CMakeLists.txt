@@ -1,5 +1,6 @@
 SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
+	firestarter/Firestarter.cpp
 	firestarter/LoadWorker.cpp
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
@@ -21,16 +22,40 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+
+		# measurement stuff
+		firestarter/Measurement/MeasurementWorker.cpp
+		firestarter/Measurement/Summary.cpp
+		firestarter/Measurement/Metric/RAPL.cpp
+		firestarter/Measurement/Metric/Perf.cpp
+		)
+endif()
+
 SET(FIRESTARTER_LINK_LIBRARIES
 	Threads::Threads
 	hwloc
 	AsmJit::AsmJit
+	Nitro::log
 	)
 
-if(DEFINED BUILD_CUDA)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FIRESTARTER_LINK_STATIC)
+	SET(FIRESTARTER_LINK_LIBRARIES
+		${FIRESTARTER_LINK_LIBRARIES}
+		-ldl
+		)
+endif()
+
+if (FIRESTARTER_THREAD_AFFINITY)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
+endif()
+
+if (FIRESTARTER_CUDA)
 	find_package(CUDA REQUIRED)
 
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBUILD_CUDA")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
 
 	add_executable(FIRESTARTER_CUDA
 		${FIRESTARTER_FILES}
@@ -47,7 +72,9 @@ else()
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	else()
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+		if (FIRESTARTER_LINK_STATIC)
+			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
+		endif()
 	endif()
 
 	add_executable(FIRESTARTER
@@ -59,18 +86,14 @@ else()
 		)
 endif()
 
-if(NOT DEFINED NIX_BUILD)
-	SET(FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES
-		HwlocInstall
-		)
-
-	if(DEFINED BUILD_CUDA)
+if (FIRESTARTER_BUILD_HWLOC)
+	if (FIRESTARTER_CUDA)
 		add_dependencies(FIRESTARTER_CUDA
-			${FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES}
+			HwlocInstall
 			)
 	else()
 		add_dependencies(FIRESTARTER
-			${FIRESTARTER_NOT_NIX_BUILD_DEPENDENCIES}
+			HwlocInstall
 			)
 	endif()
 endif()

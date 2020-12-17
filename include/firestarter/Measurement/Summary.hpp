@@ -21,24 +21,29 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include <firestarter/Measurement/TimeValue.hpp>
 
-namespace firestarter::environment::x86::platform {
-class NehalemEPConfig final : public X86PlatformConfig {
+#include <chrono>
+#include <vector>
 
-public:
-  NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
-                  unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
-                          {32768, 262144, 2097152}, 104857600, 1536, family,
-                          model, threads,
-                          new payload::SSE2Payload(supportedFeatures)) {}
+extern "C" {
+#include <firestarter/Measurement/MetricInterface.h>
+}
 
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
-  }
+namespace firestarter::measurement {
+
+struct Summary {
+
+  size_t num_timepoints;
+  std::chrono::milliseconds duration;
+
+  double average;
+  double stddev;
+
+  static Summary calculate(std::vector<TimeValue>::iterator begin,
+                           std::vector<TimeValue>::iterator end,
+                           metric_type_t metricType,
+                           unsigned long long numThreads);
 };
-} // namespace firestarter::environment::x86::platform
+
+} // namespace firestarter::measurement

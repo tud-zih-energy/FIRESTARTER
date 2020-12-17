@@ -21,24 +21,10 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+extern "C" {
+#include <firestarter/Measurement/MetricInterface.h>
+}
 
-namespace firestarter::environment::x86::platform {
-class NehalemEPConfig final : public X86PlatformConfig {
+extern metric_interface_t perf_ipc_metric;
 
-public:
-  NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
-                  unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
-                          {32768, 262144, 2097152}, 104857600, 1536, family,
-                          model, threads,
-                          new payload::SSE2Payload(supportedFeatures)) {}
-
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
-  }
-};
-} // namespace firestarter::environment::x86::platform
+extern metric_interface_t perf_freq_metric;

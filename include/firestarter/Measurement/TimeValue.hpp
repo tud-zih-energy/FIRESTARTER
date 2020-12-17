@@ -21,24 +21,20 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include <chrono>
 
-namespace firestarter::environment::x86::platform {
-class NehalemEPConfig final : public X86PlatformConfig {
+namespace firestarter::measurement {
 
-public:
-  NehalemEPConfig(asmjit::x86::Features const &supportedFeatures,
-                  unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0,
-                          {32768, 262144, 2097152}, 104857600, 1536, family,
-                          model, threads,
-                          new payload::SSE2Payload(supportedFeatures)) {}
+struct TimeValue {
 
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
-  }
+  TimeValue() = default;
+
+  constexpr TimeValue(std::chrono::high_resolution_clock::time_point t,
+                      double v)
+      : time(t), value(v){};
+
+  std::chrono::high_resolution_clock::time_point time;
+  double value;
 };
-} // namespace firestarter::environment::x86::platform
+
+} // namespace firestarter::measurement

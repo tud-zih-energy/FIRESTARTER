@@ -25,7 +25,7 @@
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
-class BulldozerConfig : public X86PlatformConfig {
+class BulldozerConfig final : public X86PlatformConfig {
 
 public:
   BulldozerConfig(asmjit::x86::Features const &supportedFeatures,
@@ -34,10 +34,9 @@ public:
                           {16384, 1048576, 786432}, 104857600, 1536, family,
                           model, threads,
                           new payload::FMA4Payload(supportedFeatures)) {}
-  ~BulldozerConfig() {}
 
   std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() override {
+  getDefaultPayloadSettings() const override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}});
   }

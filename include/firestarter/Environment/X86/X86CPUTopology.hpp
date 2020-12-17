@@ -30,7 +30,6 @@ namespace firestarter::environment::x86 {
 class X86CPUTopology final : public CPUTopology {
 public:
   X86CPUTopology();
-  ~X86CPUTopology() {}
 
   friend std::ostream &operator<<(std::ostream &stream,
                                   X86CPUTopology const &cpuTopology);

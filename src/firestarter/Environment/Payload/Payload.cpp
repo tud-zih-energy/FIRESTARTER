@@ -25,8 +25,9 @@
 
 using namespace firestarter::environment::payload;
 
-unsigned Payload::getSequenceStartCount(const std::vector<std::string> sequence,
-                                        const std::string start) {
+unsigned
+Payload::getSequenceStartCount(const std::vector<std::string> &sequence,
+                               const std::string start) {
   unsigned i = 0;
 
   for (const auto &item : sequence) {
@@ -39,7 +40,7 @@ unsigned Payload::getSequenceStartCount(const std::vector<std::string> sequence,
 }
 
 std::vector<std::string> Payload::generateSequence(
-    const std::vector<std::pair<std::string, unsigned>> proportions) {
+    std::vector<std::pair<std::string, unsigned>> const &proportions) {
   std::vector<std::string> sequence;
   auto proportionsIt = std::begin(proportions);
   auto insertIt = std::begin(sequence);
@@ -63,7 +64,7 @@ std::vector<std::string> Payload::generateSequence(
   return sequence;
 }
 
-unsigned Payload::getL2LoopCount(const std::vector<std::string> sequence,
+unsigned Payload::getL2LoopCount(const std::vector<std::string> &sequence,
                                  const unsigned numberOfLines,
                                  const unsigned size, const unsigned threads) {
   if (this->getL2SequenceCount(sequence) == 0) {
@@ -75,7 +76,7 @@ unsigned Payload::getL2LoopCount(const std::vector<std::string> sequence,
                                                 numberOfLines / threads)));
 }
 
-unsigned Payload::getL3LoopCount(const std::vector<std::string> sequence,
+unsigned Payload::getL3LoopCount(const std::vector<std::string> &sequence,
                                  const unsigned numberOfLines,
                                  const unsigned size, const unsigned threads) {
   if (this->getL3SequenceCount(sequence) == 0) {
@@ -87,7 +88,7 @@ unsigned Payload::getL3LoopCount(const std::vector<std::string> sequence,
                                                 numberOfLines / threads)));
 }
 
-unsigned Payload::getRAMLoopCount(const std::vector<std::string> sequence,
+unsigned Payload::getRAMLoopCount(const std::vector<std::string> &sequence,
                                   const unsigned numberOfLines,
                                   const unsigned size, const unsigned threads) {
   if (this->getRAMSequenceCount(sequence) == 0) {

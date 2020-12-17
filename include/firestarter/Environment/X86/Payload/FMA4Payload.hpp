@@ -25,7 +25,7 @@
 
 namespace firestarter::environment::x86::payload {
 
-class FMA4Payload : public X86Payload {
+class FMA4Payload final : public X86Payload {
 public:
   FMA4Payload(asmjit::x86::Features const &supportedFeatures)
       : X86Payload(
@@ -33,16 +33,16 @@ public:
             {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA4},
             "FMA4", 4, 16) {}
 
-  int compilePayload(std::vector<std::pair<std::string, unsigned>> proportion,
-                     unsigned instructionCacheSize,
-                     std::list<unsigned> dataCacheBufferSize,
-                     unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines, bool dumpRegisters) override;
-  std::list<std::string> getAvailableInstructions() override;
+  int compilePayload(
+      std::vector<std::pair<std::string, unsigned>> const &proportion,
+      unsigned instructionCacheSize,
+      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
+      unsigned thread, unsigned numberOfLines, bool dumpRegisters) override;
+  std::list<std::string> getAvailableInstructions() const override;
   void init(unsigned long long *memoryAddr,
             unsigned long long bufferSize) override;
 
-  firestarter::environment::payload::Payload *clone() override {
+  firestarter::environment::payload::Payload *clone() const override {
     return new FMA4Payload(this->supportedFeatures());
   };
 
