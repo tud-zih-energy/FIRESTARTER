@@ -45,8 +45,7 @@ public:
                                                           {"L2_L", 70},
                                                           {"L1_S", 0},
                                                           {"L1_L", 40},
-                                                          {"L1_BROADCAST", 120},
-                                                          {"REG", 160}});
+                                                          {"REG", 140}});
   }
 };
 } // namespace firestarter::environment::x86::platform
