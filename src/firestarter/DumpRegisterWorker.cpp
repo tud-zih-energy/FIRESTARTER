@@ -25,6 +25,7 @@
 #include <firestarter/Logging/Log.hpp>
 
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 using namespace firestarter;
@@ -98,7 +99,15 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
   unsigned long long *current = reinterpret_cast<unsigned long long *>(
       malloc(sizeof(unsigned long long) * offset));
 
-  auto dumpFile = std::ofstream(data->dumpFilePath / "hamming_distance.csv");
+  std::stringstream dumpFilePath;
+  dumpFilePath << data->dumpFilePath;
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  dumpFilePath << "\\";
+#else
+  dumpFilePath << "/";
+#endif
+  dumpFilePath << "hamming_distance.csv";
+  auto dumpFile = std::ofstream(dumpFilePath.str());
 
   // dump the header to the csv file
   dumpFile << "total_hamming_distance,";

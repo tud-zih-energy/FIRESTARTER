@@ -20,9 +20,7 @@
  *****************************************************************************/
 
 #include <cstring>
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include <string>
 
 extern "C" {
 #include <firestarter/Measurement/Metric/Perf.h>
@@ -71,7 +69,7 @@ static int32_t init(void) {
     return init_value;
   }
 
-  if (!fs::exists(PERF_EVENT_PARANOID)) {
+  if (access(PERF_EVENT_PARANOID, F_OK) == -1) {
     // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     // The official way of knowing if perf_event_open() support is enabled
     // is checking for the existence of the file

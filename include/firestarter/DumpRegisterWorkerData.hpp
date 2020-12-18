@@ -47,10 +47,6 @@ struct DumpRegisterStruct {
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
 
-// current mingw gcc version 8 has a bug, which causes this include to abort the
-// compilation
-#include <filesystem>
-
 namespace firestarter {
 
 class DumpRegisterWorkerData {
@@ -59,18 +55,25 @@ public:
                          std::chrono::seconds dumpTimeDelta,
                          std::string dumpFilePath)
       : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
-    // if dumpFilePath is empty, use current working directory
+
     if (dumpFilePath.empty()) {
-      this->dumpFilePath = std::filesystem::current_path();
+      char cwd[PATH_MAX];
+      if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        this->dumpFilePath = cwd;
+      } else {
+        log::error() << "getcwd() failed. Set --dump-registers-outpath to /tmp";
+        this->dumpFilePath = "/tmp";
+      }
     } else {
-      this->dumpFilePath = std::filesystem::path(dumpFilePath);
+      this->dumpFilePath = dumpFilePath;
     }
-  };
+  }
+
   ~DumpRegisterWorkerData() {}
 
   LoadWorkerData *const loadWorkerData;
   const std::chrono::seconds dumpTimeDelta;
-  std::filesystem::path dumpFilePath;
+  std::string dumpFilePath;
 };
 
 } // namespace firestarter

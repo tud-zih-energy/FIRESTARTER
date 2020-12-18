@@ -4,7 +4,7 @@
 
 FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
-GCC (>=9) or Clang (>=9) is supported.
+GCC (>=7) or Clang (>=9) is supported.
 
 CMake option | Description
 :--- | :---

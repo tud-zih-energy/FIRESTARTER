@@ -21,15 +21,15 @@
 
 #include <cstdio>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 extern "C" {
 #include <firestarter/Measurement/Metric/RAPL.h>
 #include <firestarter/Measurement/MetricInterface.h>
+
+#include <dirent.h>
 
 #define RAPL_PATH "/sys/class/powercap"
 
@@ -58,7 +58,8 @@ static int32_t fini(void) {
 static int32_t init(void) {
   errorString = "";
 
-  if (!fs::exists(RAPL_PATH)) {
+  DIR *raplDir = opendir(RAPL_PATH);
+  if (raplDir == NULL) {
     errorString = "Could not open " RAPL_PATH;
     return EXIT_FAILURE;
   }
@@ -68,23 +69,19 @@ static int32_t init(void) {
   // and finally package only.
 
   // contains an empty path if it is not found
-  fs::path psysPath = fs::path();
+  std::string psysPath = "";
 
   // a vector of all paths to package and dram
-  std::vector<fs::path> paths = {};
+  std::vector<std::string> paths = {};
 
-  auto iterator = fs::directory_iterator(RAPL_PATH);
+  struct dirent *dir;
+  while ((dir = readdir(raplDir)) != NULL) {
+    std::stringstream path;
+    std::stringstream namePath;
+    path << RAPL_PATH << "/" << dir->d_name;
+    namePath << path.str() << "/name";
 
-  for (auto const &p : iterator) {
-    auto path = p.path();
-    auto namePath = path / "name";
-
-    // namePath does not exists for identity symlink intel-rapl
-    if (!fs::exists(namePath)) {
-      continue;
-    }
-
-    std::ifstream nameStream(namePath);
+    std::ifstream nameStream(namePath.str());
     if (!nameStream.good()) {
       // an error opening the file occured
       continue;
@@ -95,15 +92,16 @@ static int32_t init(void) {
 
     if (name == "psys") {
       // found psys
-      psysPath = path;
+      psysPath = path.str();
     } else if (0 == name.rfind("package", 0) || name == "dram") {
       // find all package and dram
-      paths.push_back(path);
+      paths.push_back(path.str());
     }
   }
+  closedir(raplDir);
 
   // make psys the only value if available
-  if (fs::path() != psysPath) {
+  if (!psysPath.empty()) {
     paths.clear();
     paths.push_back(psysPath);
   }
@@ -116,13 +114,17 @@ static int32_t init(void) {
   }
 
   for (auto const &path : paths) {
-    std::ifstream energyReadingStream(path / "energy_uj");
+    std::stringstream energyUjPath;
+    energyUjPath << path << "/energy_uj";
+    std::ifstream energyReadingStream(energyUjPath.str());
     if (!energyReadingStream.good()) {
       errorString = "Could not read energy_uj";
       break;
     }
 
-    std::ifstream maxEnergyReadingStream(path / "max_energy_range_uj");
+    std::stringstream maxEnergyUjRangePath;
+    maxEnergyUjRangePath << path << "/max_energy_range_uj";
+    std::ifstream maxEnergyReadingStream(maxEnergyUjRangePath.str());
     if (!maxEnergyReadingStream.good()) {
       errorString = "Could not read max_energy_range_uj";
       break;
@@ -138,7 +140,7 @@ static int32_t init(void) {
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << path / "energy_uj"
+      ss << "Contents in file " << energyUjPath.str()
          << " do not conform to mask (unsigned long long)";
       errorString = ss.str();
       break;
@@ -149,7 +151,7 @@ static int32_t init(void) {
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << path / "max_energy_range_uj"
+      ss << "Contents in file " << maxEnergyUjRangePath.str()
          << " do not conform to mask (unsigned long long)";
       errorString = ss.str();
       break;
@@ -161,12 +163,12 @@ static int32_t init(void) {
     size_t size = (strlen(pathName) + 1) * sizeof(char);
     void *name = malloc(size);
     memcpy(name, pathName, size);
-    def->path = (char *) name;
+    def->path = (char *)name;
     def->max = max;
     def->last_reading = reading;
     def->overflow = 0;
 
-    readers.push_back(std::ref(def));
+    readers.push_back(def);
   }
 
   if (errorString.size() != 0) {
@@ -184,7 +186,9 @@ static int32_t get_reading(double *value) {
     long long int reading;
     std::string buffer;
 
-    std::ifstream energyReadingStream(fs::path(def->path) / "energy_uj");
+    std::stringstream energyUjPath;
+    energyUjPath << def->path << "/energy_uj";
+    std::ifstream energyReadingStream(energyUjPath.str());
     std::getline(energyReadingStream, buffer);
     std::sscanf(buffer.c_str(), "%llu", &reading);
 
