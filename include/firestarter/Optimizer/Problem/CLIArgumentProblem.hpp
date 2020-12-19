@@ -47,7 +47,9 @@ public:
       : _changePayloadFunction(changePayloadFunction),
         _measurementWorker(measurementWorker), _metrics(metrics),
         _timeout(timeout), _startDelta(startDelta), _stopDelta(stopDelta),
-        _instructionGroups(instructionGroups) {}
+        _instructionGroups(instructionGroups) {
+    assert(_metrics.size() != 0);
+  }
 
   ~CLIArgumentProblem() {}
 
@@ -82,18 +84,18 @@ public:
       override {
     std::vector<double> values = {};
 
-    for (auto const &[key, value] : summaries) {
-      auto name = key;
-      auto findName = [name](std::string const &metricName) {
-        return name.compare(metricName) == 0;
+    for (auto const metricName : _metrics) {
+      auto findName = [metricName](auto const &summary) {
+        return metricName.compare(summary.first) == 0;
       };
-      auto it = std::find_if(_metrics.begin(), _metrics.end(), findName);
 
-      if (it == _metrics.end()) {
+      auto it = std::find_if(summaries.begin(), summaries.end(), findName);
+
+      if (it == summaries.end()) {
         continue;
       }
 
-      values.push_back(value.average);
+      values.push_back(it->second.average);
     }
 
     return values;
