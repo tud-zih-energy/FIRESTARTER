@@ -21,7 +21,9 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
+#endif
 
 #include <functional>
 #include <thread>
