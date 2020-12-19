@@ -94,6 +94,15 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
       return EXIT_FAILURE;
     }
 
+    std::uint64_t id = reinterpret_cast<std::uint64_t>(threads[i]);
+    log::trace() << "Created thread #" << i << " with ID: " << id;
+
+    if (i == 0) {
+      // only show error for all worker threads except first.
+      firestarter::logging::FirstWorkerThreadFilter<
+          firestarter::logging::record>::setFirstThread(id);
+    }
+
     this->loadThreads.push_back(std::make_pair(&threads[i], std::ref(td)));
   }
 

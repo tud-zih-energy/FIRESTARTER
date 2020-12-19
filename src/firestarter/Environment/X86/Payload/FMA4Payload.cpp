@@ -48,8 +48,8 @@ int FMA4Payload::compilePayload(
     auto it = this->instructionFlops.find(item);
 
     if (it == this->instructionFlops.end()) {
-      log::error() << "Instruction group " << item << " undefined in " << name()
-                   << ".";
+      workerLog::error() << "Instruction group " << item << " undefined in "
+                         << name() << ".";
       return EXIT_FAILURE;
     }
 
@@ -180,17 +180,17 @@ int FMA4Payload::compilePayload(
   cb.mov(ram_addr, pointer_reg);
   cb.add(ram_addr, Imm(l3_size)); // address for RAM-buffer
   cb.mov(l2_count_reg, Imm(l2_loop_count));
-  log::trace() << "reset counter for L2-buffer with "
-               << " cache line accesses per loop ("
-               << ") KB";
+  workerLog::trace() << "reset counter for L2-buffer with "
+                     << " cache line accesses per loop ("
+                     << ") KB";
   cb.mov(l3_count_reg, Imm(l3_loop_count));
-  log::trace() << "reset counter for L3-buffer with "
-               << " cache line accesses per loop ("
-               << ") KB";
+  workerLog::trace() << "reset counter for L3-buffer with "
+                     << " cache line accesses per loop ("
+                     << ") KB";
   cb.mov(ram_count_reg, Imm(ram_loop_count));
-  log::trace() << "reset counter for RAM-buffer with "
-               << " cache line accesses per loop ("
-               << ") KB";
+  workerLog::trace() << "reset counter for RAM-buffer with "
+                     << " cache line accesses per loop ("
+                     << ") KB";
 
   cb.align(kAlignCode, 64);
 
@@ -313,8 +313,8 @@ int FMA4Payload::compilePayload(
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
       } else {
-        log::error() << "Instruction group " << item << " not found in "
-                     << this->name() << ".";
+        workerLog::error() << "Instruction group " << item << " not found in "
+                           << this->name() << ".";
         return EXIT_FAILURE;
       }
 
@@ -415,8 +415,8 @@ int FMA4Payload::compilePayload(
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {
-    log::error() << "Asmjit adding Assembler to JitRuntime failed in "
-                 << __FILE__ << " at " << __LINE__;
+    workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in "
+                       << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
   }
 
@@ -426,14 +426,14 @@ int FMA4Payload::compilePayload(
     auto instructionCachePercentage = 100 * loopSize / l1i_cache_size;
 
     if (loopSize > l1i_cache_size) {
-      log::warn() << "Work-loop is bigger than the L1i-Cache.";
+      workerLog::warn() << "Work-loop is bigger than the L1i-Cache.";
     }
 
-    log::trace() << "Using " << loopSize << " of " << l1i_cache_size
-                 << " Bytes (" << instructionCachePercentage
-                 << "%) from the L1i-Cache for the work-loop.";
-    log::trace() << "Sequence size: " << sequence.size();
-    log::trace() << "Repetition count: " << repetitions;
+    workerLog::trace() << "Using " << loopSize << " of " << l1i_cache_size
+                       << " Bytes (" << instructionCachePercentage
+                       << "%) from the L1i-Cache for the work-loop.";
+    workerLog::trace() << "Sequence size: " << sequence.size();
+    workerLog::trace() << "Repetition count: " << repetitions;
   }
 
   return EXIT_SUCCESS;

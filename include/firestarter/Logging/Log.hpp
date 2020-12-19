@@ -21,13 +21,17 @@
 
 #pragma once
 
+#include <firestarter/Logging/FirstWorkerThreadFilter.hpp>
+
 #include <nitro/log/log.hpp>
 #include <nitro/log/severity.hpp>
 
 #include <nitro/log/attribute/message.hpp>
+#include <nitro/log/attribute/pthread_id.hpp>
 #include <nitro/log/attribute/severity.hpp>
 #include <nitro/log/attribute/timestamp.hpp>
 
+#include <nitro/log/filter/and_filter.hpp>
 #include <nitro/log/filter/severity_filter.hpp>
 
 #include <iomanip>
@@ -57,9 +61,9 @@ public:
   }
 };
 
-using record = nitro::log::record<nitro::log::severity_attribute,
-                                  nitro::log::message_attribute,
-                                  nitro::log::timestamp_attribute>;
+using record = nitro::log::record<
+    nitro::log::severity_attribute, nitro::log::message_attribute,
+    nitro::log::timestamp_attribute, nitro::log::pthread_id_attribute>;
 
 template <typename Record> class formater {
 public:
@@ -92,9 +96,18 @@ public:
 template <typename Record>
 using filter = nitro::log::filter::severity_filter<Record>;
 
+template <typename Record>
+using workerFilter =
+    nitro::log::filter::and_filter<filter<Record>,
+                                   FirstWorkerThreadFilter<Record>>;
+
 } // namespace logging
 
 using log = nitro::log::logger<logging::record, logging::formater,
                                firestarter::logging::StdOut, logging::filter>;
+
+using workerLog =
+    nitro::log::logger<logging::record, logging::formater,
+                       firestarter::logging::StdOut, logging::workerFilter>;
 
 } // namespace firestarter
