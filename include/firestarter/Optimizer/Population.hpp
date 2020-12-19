@@ -39,6 +39,11 @@ public:
   Population(std::unique_ptr<Problem> &&problem,
              std::size_t populationSize = 0);
 
+  Population(Population &&pop)
+      : _problem(std::move(pop._problem)),
+        _individuals(std::move(pop._individuals)), gen(rd()),
+        random_distribution(std::move(pop.random_distribution)) {}
+
   ~Population() {}
 
   // add one individual to the population. fitness will be evaluated.
