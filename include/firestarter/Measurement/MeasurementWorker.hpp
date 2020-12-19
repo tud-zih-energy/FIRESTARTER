@@ -94,8 +94,9 @@ public:
   std::vector<std::string> metricNames();
 
   // setup the selected metrics
-  // return the count of initialized metrics
-  unsigned initMetrics(std::vector<std::string> const &metricNames);
+  // returns a vector with the names of inialized metrics
+  std::vector<std::string>
+  initMetrics(std::vector<std::string> const &metricNames);
 
   // callback function for metrics
   void insertCallback(const char *metricName, int64_t timeSinceEpoch,

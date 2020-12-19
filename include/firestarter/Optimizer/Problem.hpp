@@ -19,10 +19,12 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef FIRESTARTER_OPTIMIZER_PROBLEM_HPP
-#define FIRESTARTER_OPTIMIZER_PROBLEM_HPP
+#pragma once
+
+#include <firestarter/Measurement/Summary.hpp>
 
 #include <cstring>
+#include <map>
 #include <tuple>
 #include <vector>
 
@@ -30,21 +32,25 @@ namespace firestarter::optimizer {
 
 class Problem {
 public:
-  Problem();
-  ~Problem();
+  Problem() : _fevals(0) {}
+  virtual ~Problem() {}
 
   // return the fitness for an individual
+  virtual std::map<std::string, firestarter::measurement::Summary>
+  metrics(std::vector<unsigned> const &individual) = 0;
+
   virtual std::vector<double>
-  fitness(std::vector<unsigned> const &individual) = 0;
+  fitness(std::map<std::string, firestarter::measurement::Summary> const
+              &summaries) = 0;
 
   // get the bounds of the problem
-  virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() = 0;
+  virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() const = 0;
 
   // get the number of dimensions of the problem
   std::size_t getDims() const { return this->getBounds().size(); };
 
   // get the number of objectives.
-  virtual std::size_t getNobjs() = 0;
+  virtual std::size_t getNobjs() const = 0;
 
   // is the problem multiobjective
   bool isMO() const { return this->getNobjs() > 1; };
@@ -52,11 +58,9 @@ public:
   // get the number of fitness evaluations
   unsigned long long getFevals() const { return _fevals; };
 
-private:
+protected:
   // number of fitness evaluations
   unsigned long long _fevals;
 };
 
 } // namespace firestarter::optimizer
-
-#endif

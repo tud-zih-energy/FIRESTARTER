@@ -21,7 +21,9 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 
+#include <functional>
 #include <thread>
 
 using namespace firestarter;
@@ -39,12 +41,18 @@ Firestarter::Firestarter(
     std::chrono::milliseconds const &stopDelta,
     std::chrono::milliseconds const &measurementInterval,
     std::vector<std::string> const &metricPaths,
-    std::vector<std::string> const &stdinMetrics)
+    std::vector<std::string> const &stdinMetrics, bool optimize,
+    std::string const &optimizationAlgorithm,
+    std::vector<std::string> const &optimizationMetrics,
+    std::chrono::seconds const &evaluationDuration, unsigned individuals)
     : _timeout(timeout), _loadPercent(loadPercent), _period(period),
       _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
       _dumpRegistersOutpath(dumpRegistersOutpath), _startDelta(startDelta),
-      _stopDelta(stopDelta) {
+      _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
+      _optimizationAlgorithm(optimizationAlgorithm),
+      _optimizationMetrics(optimizationMetrics),
+      _evaluationDuration(evaluationDuration), _individuals(individuals) {
   int returnCode;
 
   _load = (_period * _loadPercent) / 100;
@@ -116,26 +124,43 @@ Firestarter::Firestarter(
   }
 
 #if defined(linux) || defined(__linux__)
-  if (measurement || listMetrics) {
-    _measurementWorker = new measurement::MeasurementWorker(
+  if (_measurement || listMetrics || _optimize) {
+    _measurementWorker = std::make_shared<measurement::MeasurementWorker>(
         measurementInterval, this->environment().requestedNumThreads(),
         metricPaths, stdinMetrics);
 
     if (listMetrics) {
       log::info() << _measurementWorker->availableMetrics();
-      delete _measurementWorker;
       std::exit(EXIT_SUCCESS);
     }
 
-    // TODO: select the metrics
     // init all metrics
-    auto count =
-        _measurementWorker->initMetrics(_measurementWorker->metricNames());
+    auto all = _measurementWorker->metricNames();
+    auto initialized = _measurementWorker->initMetrics(all);
 
-    if (count == 0) {
+    if (initialized.size() == 0) {
       log::error() << "No metrics initialized";
-      delete _measurementWorker;
       std::exit(EXIT_FAILURE);
+    }
+
+    // check if selected metrics are initialized
+    for (auto const &optimizationMetric : optimizationMetrics) {
+      auto nameEqual = [optimizationMetric](auto const &name) {
+        return name.compare(optimizationMetric) == 0;
+      };
+      // metric name is not found
+      if (std::find_if(all.begin(), all.end(), nameEqual) == all.end()) {
+        log::error() << "Metric \"" << optimizationMetric
+                     << "\" does not exist.";
+        std::exit(EXIT_FAILURE);
+      }
+      // metric has not initialized properly
+      if (std::find_if(initialized.begin(), initialized.end(), nameEqual) ==
+          initialized.end()) {
+        log::error() << "Metric \"" << optimizationMetric
+                     << "\" failed to initialize.";
+        std::exit(EXIT_FAILURE);
+      }
     }
   }
 #endif
@@ -143,17 +168,19 @@ Firestarter::Firestarter(
   this->environment().printSelectedCodePathSummary();
 
   log::info() << this->environment().topology();
+
+  // setup thread with either high or low load configured at the start
+  // low loads has to know the length of the period
+  if (EXIT_SUCCESS !=
+      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
+                                          _dumpRegisters))) {
+    std::exit(returnCode);
+  }
 }
 
 Firestarter::~Firestarter() {
 #ifdef FIRESTARTER_BUILD_CUDA
   free(this->gpuStructPointer);
-#endif
-
-#if defined(linux) || defined(__linux__)
-  if (_measurementWorker != nullptr) {
-    delete _measurementWorker;
-  }
 #endif
 
   delete _environment;
@@ -163,14 +190,6 @@ void Firestarter::mainThread() {
   int returnCode;
 
   this->environment().printThreadSummary();
-
-  // setup thread with either high or low load configured at the start
-  // low loads has to know the length of the period
-  if (EXIT_SUCCESS !=
-      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
-                                          _dumpRegisters))) {
-    std::exit(returnCode);
-  }
 
 #ifdef FIRESTARTER_BUILD_CUDA
   pthread_t gpu_thread;
@@ -183,7 +202,7 @@ void Firestarter::mainThread() {
 
 #if defined(linux) || defined(__linux__)
   // if measurement is enabled, start it here
-  if (nullptr != _measurementWorker) {
+  if (_measurement) {
     _measurementWorker->startMeasurement();
   }
 #endif
@@ -202,6 +221,65 @@ void Firestarter::mainThread() {
   // worker thread for load control
   this->watchdogWorker(_period, _load, _timeout);
 
+#if defined(linux) || defined(__linux__)
+  // check if optimization is selected
+  if (_optimize) {
+    std::vector<std::string> instructionGroups = {};
+    for (auto const &[key, value] :
+         this->environment().selectedConfig().payloadSettings()) {
+      instructionGroups.push_back(key);
+    }
+    auto applySettings = std::bind(
+        [this](std::vector<std::pair<std::string, unsigned>> const &setting) {
+          for (auto &thread : this->loadThreads) {
+            auto td = thread.second;
+
+            td->config().setPayloadSettings(setting);
+          }
+
+          for (auto const &thread : this->loadThreads) {
+            auto td = thread.second;
+
+            td->mutex.lock();
+          }
+
+          for (auto const &thread : this->loadThreads) {
+            auto td = thread.second;
+
+            td->comm = THREAD_SWITCH;
+            td->mutex.unlock();
+          }
+
+          this->loadVar = LOAD_SWITCH;
+
+          for (auto const &thread : this->loadThreads) {
+            auto td = thread.second;
+            bool ack;
+
+            do {
+              td->mutex.lock();
+              ack = td->ack;
+              td->mutex.unlock();
+            } while (!ack);
+
+            td->mutex.lock();
+            td->ack = false;
+            td->mutex.unlock();
+          }
+
+          this->signalWork();
+        },
+        std::placeholders::_1);
+
+    auto prob =
+        std::make_unique<firestarter::optimizer::problem::CLIArgumentProblem>(
+            std::move(applySettings), _measurementWorker, _optimizationMetrics,
+            _evaluationDuration, _startDelta, _stopDelta, instructionGroups);
+
+    firestarter::optimizer::Population pop(std::move(prob), _individuals);
+  }
+#endif
+
   // wait for watchdog to timeout or until user terminates
   this->joinLoadWorkers();
 #ifdef FIRESTARTER_DEBUG_FEATURES
@@ -214,7 +292,7 @@ void Firestarter::mainThread() {
 
 #if defined(linux) || defined(__linux__)
   // if measurment is enabled, stop it here
-  if (nullptr != _measurementWorker) {
+  if (_measurement) {
     // TODO: clear this up
     log::info() << "metric,num_timepoints,duration_ms,average,stddev";
     for (auto const &[name, sum] :

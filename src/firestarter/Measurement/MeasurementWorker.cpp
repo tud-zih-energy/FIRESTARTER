@@ -192,11 +192,11 @@ MeasurementWorker::findMetricByName(std::string metricName) {
 
 // this must be called by the main thread.
 // if not done so things like perf_event_attr.inherit might not work as expected
-unsigned
+std::vector<std::string>
 MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
   this->values_mutex.lock();
 
-  unsigned count = 0;
+  std::vector<std::string> initialized = {};
 
   // try to find each metric and initialize it
   for (auto const &metricName : metricNames) {
@@ -224,13 +224,13 @@ MeasurementWorker::initMetrics(std::vector<std::string> const &metricNames) {
           metric->register_insert_callback(::insertCallback, this);
         }
       }
-      count++;
+      initialized.push_back(metricName);
     }
   }
 
   this->values_mutex.unlock();
 
-  return count;
+  return initialized;
 }
 
 void MeasurementWorker::insertCallback(const char *metricName,

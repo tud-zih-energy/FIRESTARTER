@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <firestarter/Logging/Log.hpp>
 #include <firestarter/Optimizer/Population.hpp>
 
 #include <algorithm>
@@ -26,17 +27,23 @@
 
 using namespace firestarter::optimizer;
 
-Population::Population(Problem &&problem, std::size_t populationSize = 0)
-    : _problem(problem), gen(rd()), random_distribution(1) {
-  for (auto i = 0; i < populationSize; i++) {
+Population::Population(std::unique_ptr<Problem> &&problem,
+                       std::size_t populationSize)
+    : _problem(std::move(problem)), gen(rd()), random_distribution(1) {
+  firestarter::log::trace() << "Generating " << populationSize
+                            << " random individuals for initial population.";
+
+  for (decltype(populationSize) i = 0; i < populationSize; i++) {
+    firestarter::log::info() << "test?";
     this->append(this->getRandomIndividual());
   }
 }
 
 void Population::append(std::vector<unsigned> const &ind) {
-  assert(this->problem()->getDims() == ind.size());
+  assert(this->problem().getDims() == ind.size());
 
-  auto fitness = this->problem()->fitness(ind);
+  auto metrics = this->_problem->metrics(ind);
+  auto fitness = this->_problem->fitness(metrics);
 
   this->append(ind, fitness);
 }
@@ -51,17 +58,22 @@ void Population::append(std::vector<unsigned> const &ind,
   this->_individuals.push_back(std::make_tuple(id, ind, fit));
 }
 
-std::vector<unsigned> Population::getRandomIndividual() const {
-  auto const dims = this->problem()->getDims();
-  auto const bounds = this->problem()->getBounds();
+std::vector<unsigned> Population::getRandomIndividual() {
+  auto dims = this->problem().getDims();
+  auto const bounds = this->problem().getBounds();
+
+  firestarter::log::trace() << "Generating random individual of size: " << dims;
 
   std::vector<unsigned> out(dims);
 
-  for (auto i = 0; i < dims; i++) {
+  for (decltype(dims) i = 0; i < dims; i++) {
     auto const lb = std::get<0>(bounds[i]);
     auto const ub = std::get<1>(bounds[i]);
 
     out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->gen);
+
+    firestarter::log::trace()
+        << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
   }
 
   return out;
@@ -70,7 +82,7 @@ std::vector<unsigned> Population::getRandomIndividual() const {
 std::vector<unsigned> const &Population::bestIndividual() const {
   // return an empty vector if the problem is multi objective, as there is no
   // single best individual
-  if (this->problem()->isMO()) {
+  if (this->problem().isMO()) {
     return std::vector<unsigned>();
   }
 
@@ -82,7 +94,9 @@ std::vector<unsigned> const &Population::bestIndividual() const {
         return std::get<2>(a).front() < std::get<2>(b).front();
       });
 
-  return best.front();
+  assert(best != this->_individuals.end());
+
+  return std::get<1>(*best);
 }
 
 // TODO: save our population into json perhaps for plotting nice graphs after

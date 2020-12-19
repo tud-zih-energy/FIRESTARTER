@@ -25,6 +25,7 @@
 #include <firestarter/Optimizer/Problem.hpp>
 
 #include <cstring>
+#include <memory>
 #include <random>
 #include <tuple>
 #include <vector>
@@ -35,9 +36,10 @@ class Population {
 public:
   // Construct a population from a problem.
   // population size is given by parameter.
-  Population(Problem &&problem, std::size_t populationSize = 0);
+  Population(std::unique_ptr<Problem> &&problem,
+             std::size_t populationSize = 0);
 
-  ~Population();
+  ~Population() {}
 
   // add one individual to the population. fitness will be evaluated.
   void append(std::vector<unsigned> const &ind);
@@ -45,16 +47,40 @@ public:
   void append(std::vector<unsigned> const &ind, std::vector<double> const &fit);
 
   // get a random individual inside bounds of problem
-  std::vector<unsigned> getRandomIndividual() const;
+  std::vector<unsigned> getRandomIndividual();
 
-  // return the best individual in case of single-objective.
-  // returns nothing, if the problem is multi-objective
+  // returns the best individual in case of single-objective.
+  // returns the best individual based on a dominating metric in case of
+  // multi-objective.
   std::vector<unsigned> const &bestIndividual() const;
 
   // save the population
+  // this should save or population and our used problem and it's parameters in
+  // JSON data
+  //
+  // clang-format off
+  // { 'problem' : { 'name' : string, args... },
+  //   'metrics' : [ string ],
+  //   'fitness_idx' : [ index of used for fitness from metrics ],
+  //   'settings' : {
+  //     'load' : int,
+  //     'period' : int,
+  //     'bind' : string,
+  //     'threads' : int,
+  //     'version' : string,
+  //     'start_delta' : int,
+  //     'stop_delta' : int,
+  //     'line_count' : int,
+  //     'instruction_groups' : [ string ],
+  //   },
+  //   'individuals' : [
+  //     { 'id' : int, individual : [ int ], metric_values : [ double ] }
+  //   ]
+  // }
+  // clang-format on
   void save();
 
-  Problem &problem() { return _problem; }
+  Problem const &problem() const { return *_problem; }
 
   std::vector<std::tuple<unsigned long long, std::vector<unsigned>,
                          std::vector<double>>> const &
@@ -64,7 +90,7 @@ public:
 
 private:
   // our problem.
-  Problem _problem;
+  std::unique_ptr<Problem> _problem;
   // a vector containing a tuple of id, individual and its fitness
   std::vector<std::tuple<unsigned long long, std::vector<unsigned>,
                          std::vector<double>>>

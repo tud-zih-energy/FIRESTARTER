@@ -27,6 +27,7 @@
 
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/MeasurementWorker.hpp>
+#include <firestarter/Optimizer/Population.hpp>
 #endif
 
 #include <firestarter/DumpRegisterWorkerData.hpp>
@@ -39,6 +40,7 @@
 
 #include <chrono>
 #include <list>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -65,22 +67,32 @@ public:
               std::chrono::milliseconds const &stopDelta,
               std::chrono::milliseconds const &measurementInterval,
               std::vector<std::string> const &metricPaths,
-              std::vector<std::string> const &stdinMetrics);
+              std::vector<std::string> const &stdinMetrics, bool optimize,
+              std::string const &optimizationAlgorithm,
+              std::vector<std::string> const &optimizationMetrics,
+              std::chrono::seconds const &evaluationDuration,
+              unsigned individuals);
 
   ~Firestarter();
 
   void mainThread();
 
 private:
-  std::chrono::seconds _timeout;
-  unsigned _loadPercent;
+  const std::chrono::seconds _timeout;
+  const unsigned _loadPercent;
   std::chrono::microseconds _load;
   std::chrono::microseconds _period;
-  bool _dumpRegisters;
-  std::chrono::seconds _dumpRegistersTimeDelta;
-  std::string _dumpRegistersOutpath;
-  std::chrono::milliseconds _startDelta;
-  std::chrono::milliseconds _stopDelta;
+  const bool _dumpRegisters;
+  const std::chrono::seconds _dumpRegistersTimeDelta;
+  const std::string _dumpRegistersOutpath;
+  const std::chrono::milliseconds _startDelta;
+  const std::chrono::milliseconds _stopDelta;
+  const bool _measurement;
+  const bool _optimize;
+  const std::string _optimizationAlgorithm;
+  const std::vector<std::string> _optimizationMetrics;
+  const std::chrono::seconds _evaluationDuration;
+  const unsigned _individuals;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
@@ -98,7 +110,7 @@ private:
 #endif
 
 #if defined(linux) || defined(__linux__)
-  measurement::MeasurementWorker *_measurementWorker = nullptr;
+  std::shared_ptr<measurement::MeasurementWorker> _measurementWorker;
 #endif
 
   // LoadThreadWorker.cpp

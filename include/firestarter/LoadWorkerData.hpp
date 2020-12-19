@@ -25,6 +25,7 @@
 #define THREAD_WORK 2
 #define THREAD_INIT 3
 #define THREAD_STOP 4
+#define THREAD_SWITCH 5
 #define THREAD_INIT_FAILURE 0xffffffff
 
 /* DO NOT CHANGE! the asm load-loop tests if load-variable is == 0 */
@@ -32,6 +33,7 @@
 /* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
 #define LOAD_HIGH 1
 #define LOAD_STOP 2
+#define LOAD_SWITCH 3
 
 #include <firestarter/Environment/Environment.hpp>
 
@@ -53,9 +55,7 @@ public:
 
   int id() const { return _id; }
   environment::Environment &environment() const { return _environment; }
-  environment::platform::RuntimeConfig const &config() const {
-    return *_config;
-  }
+  environment::platform::RuntimeConfig &config() const { return *_config; }
 
   int comm = THREAD_WAIT;
   bool ack = false;

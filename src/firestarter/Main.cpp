@@ -58,6 +58,13 @@ struct Config {
   // linux and dynamic linked binary
   std::vector<std::string> metricPaths;
 
+  // optimization
+  bool optimize = false;
+  std::string optimizationAlgorithm;
+  std::vector<std::string> optimizationMetrics;
+  std::chrono::seconds evaluationDuration;
+	unsigned individuals;
+
   Config(int argc, const char **argv);
 };
 
@@ -147,7 +154,7 @@ Config::Config(int argc, const char **argv) {
     ("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
       cxxopts::value<unsigned>()->default_value("0"), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-    ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be comibned with -n | --threads.",
+    ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be combined with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
     ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.")
@@ -170,13 +177,19 @@ Config::Config(int argc, const char **argv) {
 #endif
     ("metric-from-stdin", "Add a metric NAME with values from stdin. Format of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\". TIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush lines!)",
      cxxopts::value<std::vector<std::string>>(), "NAME")
-    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.)")
+    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.) Cannot be combined with --optimize.")
     ("measurement-interval", "Interval of measurements in milliseconds.",
       cxxopts::value<unsigned>()->default_value("100"))
     ("start-delta", "Cut of first N milliseconds of measurement.",
       cxxopts::value<unsigned>()->default_value("5000"), "N")
     ("stop-delta", "Cut of last N milliseconds of measurement.",
       cxxopts::value<unsigned>()->default_value("2000"), "N")
+    ("optimize", "Run the optimization with one of these algorithms: ACD, NSGA2. Cannot be combined with --measurement.",
+      cxxopts::value<std::string>())
+    ("optimization-metric", "Use a metric for optimization. Metrics listed with cli argument --list-metrics or specified with --metric-from-stdin are valid.",
+      cxxopts::value<std::vector<std::string>>())
+    ("individuals", "Number of individuals for the population.",
+      cxxopts::value<unsigned>()->default_value("20"))
 #endif
     ;
   // clang-format on
@@ -301,6 +314,31 @@ Config::Config(int argc, const char **argv) {
     }
     measurement = options.count("measurement");
     listMetrics = options.count("list-metrics");
+
+    if ((optimize = options.count("optimize"))) {
+      if (measurement) {
+        throw std::invalid_argument(
+            "Options --measurement and --optimize cannot be used together.");
+      }
+
+      optimizationAlgorithm = options["optimize"].as<std::string>();
+      if (options.count("optimization-metric")) {
+        optimizationMetrics =
+            options["optimization-metric"].as<std::vector<std::string>>();
+      }
+      if (loadPercent != 100) {
+        throw std::invalid_argument("Options -p | --period and -l | --load are "
+                                    "not compatible with --optimize.");
+      }
+      if (timeout == std::chrono::seconds::zero()) {
+        throw std::invalid_argument(
+            "Option -t | --timeout must be specified for optimization.");
+      }
+      evaluationDuration = timeout;
+      // this will deactivate the watchdog worker
+      timeout = std::chrono::seconds::zero();
+			individuals = options["individuals"].as<unsigned>();
+    }
 #endif
 
   } catch (std::exception &e) {
@@ -331,7 +369,9 @@ int main(int argc, const char **argv) {
         cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
         cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
         cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
-        cfg.metricPaths, cfg.stdinMetrics);
+        cfg.metricPaths, cfg.stdinMetrics, cfg.optimize,
+        cfg.optimizationAlgorithm, cfg.optimizationMetrics,
+        cfg.evaluationDuration, cfg.individuals);
 
     firestarter.mainThread();
 

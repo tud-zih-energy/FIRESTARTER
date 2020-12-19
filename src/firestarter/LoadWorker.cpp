@@ -325,7 +325,21 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
           ALIGNED_FREE(td->addrMem - addrOffset);
           pthread_exit(NULL);
         }
+
+        if (*td->addrHigh == LOAD_SWITCH) {
+          break;
+        }
       }
+      break;
+    case THREAD_SWITCH:
+      // compile payload
+      td->config().payload().compilePayload(
+          td->config().payloadSettings(), td->config().instructionCacheSize(),
+          td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
+          td->config().thread(), td->config().lines(), td->dumpRegisters);
+
+      // call init function
+      td->config().payload().init(td->addrMem, td->buffersizeMem);
       break;
     case THREAD_WAIT:
       break;

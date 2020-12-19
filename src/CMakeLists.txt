@@ -31,6 +31,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Measurement/Summary.cpp
 		firestarter/Measurement/Metric/RAPL.cpp
 		firestarter/Measurement/Metric/Perf.cpp
+
+		# optimization stuff
+		firestarter/Optimizer/Population.cpp
 		)
 endif()
 
