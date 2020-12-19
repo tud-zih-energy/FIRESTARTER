@@ -231,6 +231,9 @@ void Firestarter::mainThread() {
     }
     auto applySettings = std::bind(
         [this](std::vector<std::pair<std::string, unsigned>> const &setting) {
+          using Clock = std::chrono::high_resolution_clock;
+          auto start = Clock::now();
+
           for (auto &thread : this->loadThreads) {
             auto td = thread.second;
 
@@ -267,7 +270,17 @@ void Firestarter::mainThread() {
             td->mutex.unlock();
           }
 
+          this->loadVar = LOAD_HIGH;
+
           this->signalWork();
+
+          auto end = Clock::now();
+
+          log::trace() << "Switching payload took "
+                       << std::chrono::duration_cast<std::chrono::milliseconds>(
+                              end - start)
+                              .count()
+                       << "ms";
         },
         std::placeholders::_1);
 

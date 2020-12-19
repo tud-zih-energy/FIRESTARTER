@@ -33,7 +33,7 @@
 /* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
 #define LOAD_HIGH 1
 #define LOAD_STOP 2
-#define LOAD_SWITCH 3
+#define LOAD_SWITCH 4
 
 #include <firestarter/Environment/Environment.hpp>
 

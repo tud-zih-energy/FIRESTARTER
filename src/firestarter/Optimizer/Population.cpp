@@ -34,7 +34,6 @@ Population::Population(std::unique_ptr<Problem> &&problem,
                             << " random individuals for initial population.";
 
   for (decltype(populationSize) i = 0; i < populationSize; i++) {
-    firestarter::log::info() << "test?";
     this->append(this->getRandomIndividual());
   }
 }
@@ -50,8 +49,15 @@ void Population::append(std::vector<unsigned> const &ind) {
 
 void Population::append(std::vector<unsigned> const &ind,
                         std::vector<double> const &fit) {
-  assert(ind.size() == fit.size());
-  assert(this->problem()->getDims() == ind.size());
+  std::stringstream ss;
+  ss << "  - Fitness: ";
+  for (auto const &v : fit) {
+    ss << v << " ";
+  }
+  firestarter::log::trace() << ss.str();
+
+  assert(this->problem().getNobjs() == fit.size());
+  assert(this->problem().getDims() == ind.size());
 
   auto id = this->getRandId();
 

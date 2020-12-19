@@ -63,7 +63,7 @@ struct Config {
   std::string optimizationAlgorithm;
   std::vector<std::string> optimizationMetrics;
   std::chrono::seconds evaluationDuration;
-	unsigned individuals;
+  unsigned individuals;
 
   Config(int argc, const char **argv);
 };
@@ -337,7 +337,7 @@ Config::Config(int argc, const char **argv) {
       evaluationDuration = timeout;
       // this will deactivate the watchdog worker
       timeout = std::chrono::seconds::zero();
-			individuals = options["individuals"].as<unsigned>();
+      individuals = options["individuals"].as<unsigned>();
     }
 #endif
 
