@@ -25,6 +25,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -95,7 +96,9 @@ public:
         continue;
       }
 
-      values.push_back(it->second.average);
+      // round to two decimal places after the comma
+      auto value = std::round(it->second.average * 100.0) / 100.0;
+      values.push_back(value);
     }
 
     return values;
