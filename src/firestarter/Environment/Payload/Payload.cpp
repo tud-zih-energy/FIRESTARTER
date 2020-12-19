@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <algorithm>
 #include <cmath>
 
 #include <firestarter/Environment/Payload/Payload.hpp>
@@ -41,23 +42,29 @@ Payload::getSequenceStartCount(const std::vector<std::string> &sequence,
 
 std::vector<std::string> Payload::generateSequence(
     std::vector<std::pair<std::string, unsigned>> const &proportions) {
-  std::vector<std::string> sequence;
-  auto proportionsIt = std::begin(proportions);
-  auto insertIt = std::begin(sequence);
+  std::vector<std::pair<std::string, unsigned>> prop = proportions;
 
-  sequence.insert(insertIt, proportionsIt->second, proportionsIt->first);
+  prop.erase(std::remove_if(prop.begin(), prop.end(),
+                            [](auto const &pair) { return pair.second == 0; }),
+             prop.end());
 
-  for (++proportionsIt; proportionsIt != std::end(proportions);
-       proportionsIt++) {
-    if (proportionsIt->second == 0) {
-      continue;
-    }
-    for (unsigned i = 0; i < proportionsIt->second; i++) {
-      insertIt = std::begin(sequence);
-      std::advance(insertIt,
-                   1 + floor(i * (sequence.size() + proportionsIt->second - i) /
-                             (float)proportionsIt->second));
-      sequence.insert(insertIt, proportionsIt->first);
+  std::vector<std::string> sequence = {};
+
+  if (prop.size() == 0) {
+    return sequence;
+  }
+
+  auto it = prop.begin();
+  auto insertIt = sequence.begin();
+
+  sequence.insert(insertIt, it->second, it->first);
+
+  for (++it; it != prop.end(); ++it) {
+    for (unsigned i = 0; i < it->second; i++) {
+      insertIt = sequence.begin();
+      std::advance(insertIt, 1 + floor(i * (sequence.size() + it->second - i) /
+                                       (float)it->second));
+      sequence.insert(insertIt, it->first);
     }
   }
 

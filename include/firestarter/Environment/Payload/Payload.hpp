@@ -57,6 +57,9 @@ protected:
   unsigned
   getNumberOfSequenceRepetitions(const std::vector<std::string> &sequence,
                                  const unsigned numberOfLines) {
+    if (sequence.size() == 0) {
+      return 0;
+    }
     return numberOfLines / sequence.size();
   };
 
