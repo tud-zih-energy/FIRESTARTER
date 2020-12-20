@@ -21,30 +21,24 @@
 
 #pragma once
 
-#include <firestarter/Measurement/TimeValue.hpp>
+#include <firestarter/Measurement/Summary.hpp>
 
-#include <chrono>
-#include <nlohmann/json.hpp>
-#include <vector>
+namespace nlohmann {
+template <> struct adl_serializer<firestarter::measurement::Summary> {
+  static firestarter::measurement::Summary from_json(const json &j) {
+    return {j["num_timepoints"].get<size_t>(),
+            std::chrono::milliseconds(
+                j["duration"].get<std::chrono::milliseconds::rep>()),
+            j["average"].get<double>(), j["stddev"].get<double>()};
+  }
 
-extern "C" {
-#include <firestarter/Measurement/MetricInterface.h>
-}
+  static void to_json(json &j, firestarter::measurement::Summary s) {
+    j = json::object();
 
-namespace firestarter::measurement {
-
-struct Summary {
-
-  size_t num_timepoints;
-  std::chrono::milliseconds duration;
-
-  double average;
-  double stddev;
-
-  static Summary calculate(std::vector<TimeValue>::iterator begin,
-                           std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType,
-                           unsigned long long numThreads);
+    j["num_timepoints"] = s.num_timepoints;
+    j["duration"] = s.duration.count();
+    j["average"] = s.average;
+    j["stddev"] = s.stddev;
+  }
 };
-
-} // namespace firestarter::measurement
+} // namespace nlohmann

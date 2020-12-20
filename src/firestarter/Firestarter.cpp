@@ -46,7 +46,8 @@ Firestarter::Firestarter(
     std::vector<std::string> const &stdinMetrics, bool optimize,
     std::string const &optimizationAlgorithm,
     std::vector<std::string> const &optimizationMetrics,
-    std::chrono::seconds const &evaluationDuration, unsigned individuals)
+    std::chrono::seconds const &evaluationDuration, unsigned individuals,
+    std::string const &optimizeOutfile)
     : _timeout(timeout), _loadPercent(loadPercent), _period(period),
       _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
@@ -54,7 +55,8 @@ Firestarter::Firestarter(
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
       _optimizationAlgorithm(optimizationAlgorithm),
       _optimizationMetrics(optimizationMetrics),
-      _evaluationDuration(evaluationDuration), _individuals(individuals) {
+      _evaluationDuration(evaluationDuration), _individuals(individuals),
+      _optimizeOutfile(optimizeOutfile) {
   int returnCode;
 
   _load = (_period * _loadPercent) / 100;
@@ -287,11 +289,13 @@ void Firestarter::mainThread() {
         std::placeholders::_1);
 
     auto prob =
-        std::make_unique<firestarter::optimizer::problem::CLIArgumentProblem>(
+        std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
             std::move(applySettings), _measurementWorker, _optimizationMetrics,
             _evaluationDuration, _startDelta, _stopDelta, instructionGroups);
 
     firestarter::optimizer::Population pop(std::move(prob), _individuals);
+
+    firestarter::optimizer::History::save(_optimizeOutfile);
   }
 #endif
 
@@ -303,7 +307,9 @@ void Firestarter::mainThread() {
   }
 #endif
 
-  this->printPerformanceReport();
+  if (!_optimize) {
+    this->printPerformanceReport();
+  }
 
 #if defined(linux) || defined(__linux__)
   // if measurment is enabled, stop it here

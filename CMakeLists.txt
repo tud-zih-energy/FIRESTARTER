@@ -67,6 +67,10 @@ add_subdirectory(lib/nitro)
 include_directories(include)
 include_directories(lib/cxxopts/include)
 
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(JSON_Install OFF CACHE INTERNAL "")
+add_subdirectory(lib/json)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 

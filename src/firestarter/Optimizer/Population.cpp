@@ -28,9 +28,9 @@
 
 using namespace firestarter::optimizer;
 
-Population::Population(std::unique_ptr<Problem> &&problem,
+Population::Population(std::shared_ptr<Problem> &&problem,
                        std::size_t populationSize)
-    : _problem(std::move(problem)), gen(rd()), random_distribution(1) {
+    : _problem(std::move(problem)), gen(rd()) {
   firestarter::log::trace() << "Generating " << populationSize
                             << " random individuals for initial population.";
 
@@ -42,7 +42,7 @@ Population::Population(std::unique_ptr<Problem> &&problem,
   }
 
   for (decltype(dims) i = 0; i < dims; i++) {
-    std::vector<unsigned> vec(dims, 0);
+    Individual vec(dims, 0);
     vec[i] = 1;
     this->append(vec);
   }
@@ -52,17 +52,31 @@ Population::Population(std::unique_ptr<Problem> &&problem,
   }
 }
 
-void Population::append(std::vector<unsigned> const &ind) {
+std::size_t Population::size() { return _x.size(); }
+
+void Population::append(Individual const &ind) {
   assert(this->problem().getDims() == ind.size());
 
-  auto metrics = this->_problem->metrics(ind);
+  std::map<std::string, firestarter::measurement::Summary> metrics;
+
+  // check if we already evaluated this individual
+  auto optional_metric = History::find(ind);
+  if (optional_metric.has_value()) {
+    metrics = optional_metric.value();
+  } else {
+    metrics = this->_problem->metrics(ind);
+  }
+
   auto fitness = this->_problem->fitness(metrics);
 
   this->append(ind, fitness);
+
+  if (!optional_metric.has_value()) {
+    History::append(ind, metrics);
+  }
 }
 
-void Population::append(std::vector<unsigned> const &ind,
-                        std::vector<double> const &fit) {
+void Population::append(Individual const &ind, std::vector<double> const &fit) {
   std::stringstream ss;
   ss << "  - Fitness: ";
   for (auto const &v : fit) {
@@ -73,18 +87,26 @@ void Population::append(std::vector<unsigned> const &ind,
   assert(this->problem().getNobjs() == fit.size());
   assert(this->problem().getDims() == ind.size());
 
-  auto id = this->getRandId();
-
-  this->_individuals.push_back(std::make_tuple(id, ind, fit));
+  this->_x.push_back(ind);
+  this->_f.push_back(fit);
 }
 
-std::vector<unsigned> Population::getRandomIndividual() {
+void Population::insert(std::size_t idx, Individual const &ind,
+                        std::vector<double> const &fit) {
+  // assert that population is big enough
+  assert(_x.size() <= idx);
+
+  _x[idx] = ind;
+  _f[idx] = fit;
+}
+
+Individual Population::getRandomIndividual() {
   auto dims = this->problem().getDims();
   auto const bounds = this->problem().getBounds();
 
   firestarter::log::trace() << "Generating random individual of size: " << dims;
 
-  std::vector<unsigned> out(dims);
+  Individual out(dims);
 
   for (decltype(dims) i = 0; i < dims; i++) {
     auto const lb = std::get<0>(bounds[i]);
@@ -99,30 +121,20 @@ std::vector<unsigned> Population::getRandomIndividual() {
   return out;
 }
 
-std::vector<unsigned> const &Population::bestIndividual() const {
+std::optional<Individual> Population::bestIndividual() const {
   // return an empty vector if the problem is multi objective, as there is no
   // single best individual
   if (this->problem().isMO()) {
-    return std::vector<unsigned>();
+    return {};
   }
 
   // assert that we have individuals
-  assert(this->_individuals.size() > 0);
+  assert(this->_x.size() > 0);
 
-  auto best = std::max_element(
-      this->_individuals.begin(), this->_individuals.end(), [](auto a, auto b) {
-        return std::get<2>(a).front() < std::get<2>(b).front();
-      });
+  auto best = std::max_element(this->_x.begin(), this->_x.end(),
+                               [](auto a, auto b) { return a < b; });
 
-  assert(best != this->_individuals.end());
+  assert(best != this->_x.end());
 
-  return std::get<1>(*best);
-}
-
-// TODO: save our population into json perhaps for plotting nice graphs after
-// the optimization
-void Population::save() {
-  assert(false);
-
-  return;
+  return *best;
 }

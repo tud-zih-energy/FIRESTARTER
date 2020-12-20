@@ -42,6 +42,7 @@ SET(FIRESTARTER_LINK_LIBRARIES
 	hwloc
 	AsmJit::AsmJit
 	Nitro::log
+	nlohmann_json::nlohmann_json
 	)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FIRESTARTER_LINK_STATIC)

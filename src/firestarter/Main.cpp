@@ -64,6 +64,7 @@ struct Config {
   std::vector<std::string> optimizationMetrics;
   std::chrono::seconds evaluationDuration;
   unsigned individuals;
+  std::string optimizeOutfile = "";
 
   Config(int argc, const char **argv);
 };
@@ -185,6 +186,8 @@ Config::Config(int argc, const char **argv) {
     ("stop-delta", "Cut of last N milliseconds of measurement.",
       cxxopts::value<unsigned>()->default_value("2000"), "N")
     ("optimize", "Run the optimization with one of these algorithms: ACD, NSGA2. Cannot be combined with --measurement.",
+      cxxopts::value<std::string>())
+    ("optimize-outfile", "Dump the output of the optimization into this file. (Default: $PWD/$HOSTNAME_$DATE.json)",
       cxxopts::value<std::string>())
     ("optimization-metric", "Use a metric for optimization. Metrics listed with cli argument --list-metrics or specified with --metric-from-stdin are valid.",
       cxxopts::value<std::vector<std::string>>())
@@ -338,6 +341,9 @@ Config::Config(int argc, const char **argv) {
       // this will deactivate the watchdog worker
       timeout = std::chrono::seconds::zero();
       individuals = options["individuals"].as<unsigned>();
+      if (options.count("optimize-outfile")) {
+        optimizeOutfile = options["optimize-outfile"].as<std::string>();
+      }
     }
 #endif
 
@@ -371,7 +377,7 @@ int main(int argc, const char **argv) {
         cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
         cfg.metricPaths, cfg.stdinMetrics, cfg.optimize,
         cfg.optimizationAlgorithm, cfg.optimizationMetrics,
-        cfg.evaluationDuration, cfg.individuals);
+        cfg.evaluationDuration, cfg.individuals, cfg.optimizeOutfile);
 
     firestarter.mainThread();
 

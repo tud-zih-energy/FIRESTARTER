@@ -21,30 +21,9 @@
 
 #pragma once
 
-#include <firestarter/Measurement/TimeValue.hpp>
-
-#include <chrono>
-#include <nlohmann/json.hpp>
 #include <vector>
 
-extern "C" {
-#include <firestarter/Measurement/MetricInterface.h>
+namespace firestarter::optimizer {
+
+using Individual = std::vector<unsigned>;
 }
-
-namespace firestarter::measurement {
-
-struct Summary {
-
-  size_t num_timepoints;
-  std::chrono::milliseconds duration;
-
-  double average;
-  double stddev;
-
-  static Summary calculate(std::vector<TimeValue>::iterator begin,
-                           std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType,
-                           unsigned long long numThreads);
-};
-
-} // namespace firestarter::measurement

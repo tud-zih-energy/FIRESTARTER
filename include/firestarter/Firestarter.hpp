@@ -71,7 +71,7 @@ public:
               std::string const &optimizationAlgorithm,
               std::vector<std::string> const &optimizationMetrics,
               std::chrono::seconds const &evaluationDuration,
-              unsigned individuals);
+              unsigned individuals, std::string const &optimizeOutfile);
 
   ~Firestarter();
 
@@ -93,6 +93,7 @@ private:
   const std::vector<std::string> _optimizationMetrics;
   const std::chrono::seconds _evaluationDuration;
   const unsigned _individuals;
+  const std::string _optimizeOutfile;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)

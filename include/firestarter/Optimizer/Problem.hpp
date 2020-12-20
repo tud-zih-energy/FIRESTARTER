@@ -22,6 +22,7 @@
 #pragma once
 
 #include <firestarter/Measurement/Summary.hpp>
+#include <firestarter/Optimizer/Individual.hpp>
 
 #include <cstring>
 #include <map>
@@ -37,7 +38,7 @@ public:
 
   // return the fitness for an individual
   virtual std::map<std::string, firestarter::measurement::Summary>
-  metrics(std::vector<unsigned> const &individual) = 0;
+  metrics(Individual const &individual) = 0;
 
   virtual std::vector<double>
   fitness(std::map<std::string, firestarter::measurement::Summary> const

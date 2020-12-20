@@ -7,3 +7,6 @@
 [submodule "lib/asmjit"]
 	path = lib/asmjit
 	url = https://github.com/asmjit/asmjit.git
+[submodule "lib/json"]
+	path = lib/json
+	url = https://github.com/nlohmann/json.git
