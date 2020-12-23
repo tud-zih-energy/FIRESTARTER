@@ -22,6 +22,7 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 #if defined(linux) || defined(__linux__)
+#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #endif
 
@@ -295,7 +296,14 @@ void Firestarter::mainThread() {
 
     firestarter::optimizer::Population pop(std::move(prob), _individuals);
 
+    // TODO: add selection
+    firestarter::optimizer::algorithm::NSGA2 nsga2(20, 0.6, 0.4);
+
+    nsga2.evolve(pop);
+
     firestarter::optimizer::History::save(_optimizeOutfile);
+
+    std::exit(EXIT_SUCCESS);
   }
 #endif
 

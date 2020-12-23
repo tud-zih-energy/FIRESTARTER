@@ -34,6 +34,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
 		# optimization stuff
 		firestarter/Optimizer/Population.cpp
+		firestarter/Optimizer/Util/MultiObjective.cpp
+		firestarter/Optimizer/Algorithm/NSGA2.cpp
 		)
 endif()
 

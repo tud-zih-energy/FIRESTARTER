@@ -22,6 +22,9 @@ Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
 
 Additional information: https://tu-dresden.de/zih/forschung/projekte/firestarter
 
+# License
+
+This program contains a slightly modified version of the implementation of the NSGA2 algorithm from [pagmo](https://github.com/esa/pagmo2) licensed under LGPL or GPL v3.
 
 # Contact
 

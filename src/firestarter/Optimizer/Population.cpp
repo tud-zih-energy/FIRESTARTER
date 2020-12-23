@@ -64,7 +64,18 @@ void Population::append(Individual const &ind) {
   if (optional_metric.has_value()) {
     metrics = optional_metric.value();
   } else {
+    // TODO: remove this dirty workaround
+    // perf-ipc still tends to report wrong values
+    // auto invalid = false;
+    // do {
+    //	    invalid = false;
     metrics = this->_problem->metrics(ind);
+    // for (auto const&[key, value]: metrics) {
+    //	    if (value.average > 1000) {
+    //		    invalid = true;
+    //	    }
+    // }
+    // } while (invalid);
   }
 
   auto fitness = this->_problem->fitness(metrics);
@@ -94,7 +105,7 @@ void Population::append(Individual const &ind, std::vector<double> const &fit) {
 void Population::insert(std::size_t idx, Individual const &ind,
                         std::vector<double> const &fit) {
   // assert that population is big enough
-  assert(_x.size() <= idx);
+  assert(_x.size() > idx);
 
   _x[idx] = ind;
   _f[idx] = fit;

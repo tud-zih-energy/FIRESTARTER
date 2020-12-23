@@ -22,6 +22,7 @@
 #pragma once
 
 #include <firestarter/Json/Summary.hpp>
+#include <firestarter/Logging/Log.hpp>
 #include <firestarter/Measurement/Summary.hpp>
 #include <firestarter/Optimizer/Individual.hpp>
 
