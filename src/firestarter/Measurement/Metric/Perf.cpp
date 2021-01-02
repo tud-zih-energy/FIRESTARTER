@@ -34,17 +34,23 @@ extern "C" {
 #define PERF_EVENT_PARANOID "/proc/sys/kernel/perf_event_paranoid"
 
 struct read_format {
-  uint64_t value;
+  uint64_t nr;
+  struct {
+    uint64_t value;
+    uint64_t id;
+  } values[2];
 };
 
 static std::string errorString = "";
 
 static int cpu_cycles_fd = -1;
 static int instructions_fd = -1;
+static uint64_t cpu_cycles_id;
+static uint64_t instructions_id;
 static bool init_done = false;
 static int32_t init_value;
 
-static struct read_format last[2];
+static struct read_format last;
 
 static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
                             int cpu, int group_fd, unsigned long flags) {
@@ -87,10 +93,29 @@ static int32_t init(void) {
   cpu_cycles_attr.type = PERF_TYPE_HARDWARE;
   cpu_cycles_attr.size = sizeof(struct perf_event_attr);
   cpu_cycles_attr.config = PERF_COUNT_HW_CPU_CYCLES;
+  cpu_cycles_attr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+  //     inherit
+  // The inherit bit specifies that this counter should count
+  // events of child tasks as well as the task specified.  This
+  // applies only to new children, not to any existing children
+  // at the time the counter is created (nor to any new
+  // children of existing children).
+  //
+  // Inherit does not work for some combinations of read_format
+  // values, such as PERF_FORMAT_GROUP.
+  //
+  // ---
+  //
+  // As for kernel versions >= 4.13 this is not true.
+  // This commit
+  // https://github.com/torvalds/linux/commit/ba5213ae6b88fb170c4771fef6553f759c7d8cdd
+  // changed the check
+  // - if (attr->inherit && (attr->read_format & PERF_FORMAT_GROUP))
+  // + if (attr->inherit && (attr->sample_type & PERF_SAMPLE_READ))
   cpu_cycles_attr.inherit = 1;
   cpu_cycles_attr.exclude_kernel = 1;
   cpu_cycles_attr.exclude_hv = 1;
-  cpu_cycles_attr.inherit_stat = 1;
 
   if ((cpu_cycles_fd = perf_event_open(
            &cpu_cycles_attr,
@@ -110,15 +135,17 @@ static int32_t init(void) {
     return EXIT_FAILURE;
   }
 
+  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_ID, &cpu_cycles_id);
+
   struct perf_event_attr instructions_attr;
   std::memset(&instructions_attr, 0, sizeof(struct perf_event_attr));
   instructions_attr.type = PERF_TYPE_HARDWARE;
   instructions_attr.size = sizeof(struct perf_event_attr);
   instructions_attr.config = PERF_COUNT_HW_INSTRUCTIONS;
+  instructions_attr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
   instructions_attr.inherit = 1;
   instructions_attr.exclude_kernel = 1;
   instructions_attr.exclude_hv = 1;
-  instructions_attr.inherit_stat = 1;
 
   if ((instructions_fd = perf_event_open(
            &instructions_attr,
@@ -130,7 +157,7 @@ static int32_t init(void) {
            // created first, with group_fd = -1.  The rest of the group members
            // are created with subsequent perf_event_open() calls with group_fd
            // being set to the file descriptor of the group leader.
-           -1, 0)) < 0) {
+           cpu_cycles_fd, 0)) < 0) {
     fini();
     errorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
     init_value = EXIT_FAILURE;
@@ -138,22 +165,14 @@ static int32_t init(void) {
     return EXIT_FAILURE;
   }
 
-  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_RESET, 0);
-  ioctl(instructions_fd, PERF_EVENT_IOC_RESET, 0);
-  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_ENABLE, 0);
-  ioctl(instructions_fd, PERF_EVENT_IOC_ENABLE, 0);
+  ioctl(instructions_fd, PERF_EVENT_IOC_ID, &instructions_id);
 
-  if (0 == read(cpu_cycles_fd, &last[0], sizeof(*last))) {
-    fini();
-    errorString = "PERF_COUNT_HW_CPU_CYCLES read failed in init";
-    init_value = EXIT_FAILURE;
-    init_done = true;
-    return EXIT_FAILURE;
-  }
+  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 
-  if (0 == read(instructions_fd, &last[1], sizeof(*last))) {
+  if (0 == read(cpu_cycles_fd, &last, sizeof(last))) {
     fini();
-    errorString = "PERF_COUNT_HW_INSTRUCTIONS read failed in init";
+    errorString = "group read failed in init";
     init_value = EXIT_FAILURE;
     init_done = true;
     return EXIT_FAILURE;
@@ -164,6 +183,16 @@ static int32_t init(void) {
   return EXIT_SUCCESS;
 }
 
+static uint64_t value_from_id(struct read_format *values, uint64_t id) {
+  for (decltype(values->nr) i = 0; i < values->nr; ++i) {
+    if (id == values->values[i].id) {
+      return values->values[i].value;
+    }
+  }
+
+  return 0;
+}
+
 static int32_t get_reading(double *ipc_value, double *freq_value) {
 
   if (cpu_cycles_fd < 0 || instructions_fd < 0) {
@@ -171,32 +200,28 @@ static int32_t get_reading(double *ipc_value, double *freq_value) {
     return EXIT_FAILURE;
   }
 
-  struct read_format read_values[2];
+  struct read_format read_values;
 
-  if (0 == read(cpu_cycles_fd, &read_values[0], sizeof(*read_values))) {
+  if (0 == read(cpu_cycles_fd, &read_values, sizeof(read_values))) {
     fini();
-    errorString = "PERF_COUNT_HW_CPU_CYCLES read failed in init";
-    return EXIT_FAILURE;
-  }
-
-  if (0 == read(instructions_fd, &read_values[1], sizeof(*read_values))) {
-    fini();
-    errorString = "PERF_COUNT_HW_INSTRUCTIONS read failed in init";
+    errorString = "group read failed";
     return EXIT_FAILURE;
   }
 
   if (ipc_value != nullptr) {
     uint64_t diff[2];
-    diff[0] = read_values[0].value - last[0].value;
-    diff[1] = read_values[1].value - last[1].value;
+    diff[0] = value_from_id(&read_values, instructions_id) -
+              value_from_id(&last, instructions_id);
+    diff[1] = value_from_id(&read_values, cpu_cycles_id) -
+              value_from_id(&last, cpu_cycles_id);
 
-    std::memcpy(last, read_values, sizeof(last));
+    std::memcpy(&last, &read_values, sizeof(last));
 
-    *ipc_value = (double)diff[1] / (double)diff[0];
+    *ipc_value = (double)diff[0] / (double)diff[1];
   }
 
   if (freq_value != nullptr) {
-    *freq_value = (double)read_values[0].value / 1e9;
+    *freq_value = (double)value_from_id(&read_values, cpu_cycles_id) / 1e9;
   }
 
   return EXIT_SUCCESS;
