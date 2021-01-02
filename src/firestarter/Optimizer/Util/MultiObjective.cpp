@@ -440,4 +440,48 @@ select_best_N_mo(const std::vector<std::vector<double>> &input_f,
   return retval;
 }
 
+/// Ideal point
+/**
+ * Computes the ideal point of an input population, (intended here as an
+ * <tt>std::vector<std::vector<double>></tt> containing the  objective vectors).
+ *
+ * Complexity is \f$ O(MN)\f$ where \f$M\f$ is the number of objectives and
+ * \f$N\f$ is the number of individuals.
+ *
+ * @param points Input objectives vectors. Example
+ * {{-1,3,597},{1,2,3645},{2,9,789},{0,0,231},{6,-2,4576}};
+ *
+ * @returns A std::vector<double> containing the ideal point. Example:
+ * {6,9,4576}
+ *
+ * @throws std::invalid_argument if the input objective vectors are not all of
+ * the same size
+ */
+std::vector<double> ideal(const std::vector<std::vector<double>> &points) {
+  // Corner case
+  if (points.size() == 0u) {
+    return {};
+  }
+
+  // Sanity checks
+  auto M = points[0].size();
+  for (const auto &f : points) {
+    if (f.size() != M) {
+      throw std::invalid_argument("Input vector of objectives must contain "
+                                  "fitness vector of equal dimension " +
+                                  std::to_string(M));
+    }
+  }
+  // Actual algorithm
+  std::vector<double> retval(M);
+  for (decltype(M) i = 0u; i < M; ++i) {
+    retval[i] = (*std::min_element(
+        points.begin(), points.end(),
+        [i](const std::vector<double> &f1, const std::vector<double> &f2) {
+          return util::greater_than_f(f1[i], f2[i]);
+        }))[i];
+  }
+  return retval;
+}
+
 } // namespace firestarter::optimizer::util

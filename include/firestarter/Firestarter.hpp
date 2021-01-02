@@ -27,6 +27,7 @@
 
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/MeasurementWorker.hpp>
+#include <firestarter/Optimizer/Algorithm.hpp>
 #include <firestarter/Optimizer/Population.hpp>
 #endif
 
@@ -68,10 +69,12 @@ public:
               std::chrono::milliseconds const &measurementInterval,
               std::vector<std::string> const &metricPaths,
               std::vector<std::string> const &stdinMetrics, bool optimize,
+              std::chrono::seconds const &preheat,
               std::string const &optimizationAlgorithm,
               std::vector<std::string> const &optimizationMetrics,
               std::chrono::seconds const &evaluationDuration,
-              unsigned individuals, std::string const &optimizeOutfile);
+              unsigned individuals, std::string const &optimizeOutfile,
+              unsigned generations, double nsga2_cr, double nsga2_m);
 
   ~Firestarter();
 
@@ -89,11 +92,15 @@ private:
   const std::chrono::milliseconds _stopDelta;
   const bool _measurement;
   const bool _optimize;
+  const std::chrono::seconds _preheat;
   const std::string _optimizationAlgorithm;
   const std::vector<std::string> _optimizationMetrics;
   const std::chrono::seconds _evaluationDuration;
   const unsigned _individuals;
   const std::string _optimizeOutfile;
+  const unsigned _generations;
+  const double _nsga2_cr;
+  const double _nsga2_m;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
@@ -112,6 +119,8 @@ private:
 
 #if defined(linux) || defined(__linux__)
   std::shared_ptr<measurement::MeasurementWorker> _measurementWorker;
+  std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
+  firestarter::optimizer::Population _population;
 #endif
 
   // LoadThreadWorker.cpp

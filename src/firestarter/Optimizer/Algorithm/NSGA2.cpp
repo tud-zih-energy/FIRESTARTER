@@ -44,16 +44,9 @@ NSGA2::NSGA2(unsigned gen, double cr, double m)
   }
 }
 
-firestarter::optimizer::Population
-NSGA2::evolve(firestarter::optimizer::Population &pop) {
+void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
+                            std::size_t populationSize) {
   const auto &prob = pop.problem();
-  const auto bounds = prob.getBounds();
-  const auto dims = prob.getDims();
-  auto NP = pop.size();
-  auto fevals0 = prob.getFevals();
-
-  std::random_device rd;
-  std::mt19937 rng(rd());
 
   if (!prob.isMO()) {
     throw std::invalid_argument(
@@ -61,13 +54,27 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
         std::to_string(prob.getNobjs()));
   }
 
-  if (NP < 5u || (NP % 4 != 0u)) {
+  if (populationSize < 5u || (populationSize % 4 != 0u)) {
     throw std::invalid_argument("for NSGA-II at least 5 individuals in the "
                                 "population are needed and the "
                                 "population size must be a multiple of 4. "
                                 "Detected input population size is: " +
-                                std::to_string(NP));
+                                std::to_string(populationSize));
   }
+}
+
+firestarter::optimizer::Population
+NSGA2::evolve(firestarter::optimizer::Population &pop) {
+  const auto &prob = pop.problem();
+  const auto bounds = prob.getBounds();
+  auto NP = pop.size();
+  auto fevals0 = prob.getFevals();
+
+  this->checkPopulation(
+      const_cast<firestarter::optimizer::Population const &>(pop), NP);
+
+  std::random_device rd;
+  std::mt19937 rng(rd());
 
   std::vector<Individual::size_type> best_idx(NP), shuffle1(NP), shuffle2(NP);
   Individual::size_type parent1_idx, parent2_idx;
@@ -76,7 +83,30 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
   std::iota(shuffle1.begin(), shuffle1.end(), Individual::size_type(0));
   std::iota(shuffle2.begin(), shuffle2.end(), Individual::size_type(0));
 
-  for (decltype(_gen) gen = 1u; gen <= _gen; gen++) {
+  {
+    std::stringstream ss;
+
+    ss << std::endl << std::setw(7) << "Gen:" << std::setw(15) << "Fevals:";
+    for (decltype(prob.getNobjs()) i = 0; i < prob.getNobjs(); ++i) {
+      ss << std::setw(15) << "ideal" << std::to_string(i + 1u) << ":";
+    }
+    firestarter::log::info() << ss.str();
+  }
+
+  for (decltype(_gen) gen = 1u; gen <= _gen; ++gen) {
+    {
+      // Print the logs
+      std::vector<double> idealPoint = util::ideal(pop.f());
+      std::stringstream ss;
+
+      ss << std::setw(7) << gen << std::setw(15) << prob.getFevals() - fevals0;
+      for (decltype(idealPoint.size()) i = 0; i < idealPoint.size(); ++i) {
+        ss << std::setw(15) << idealPoint[i];
+      }
+
+      firestarter::log::info() << ss.str();
+    }
+
     // At each generation we make a copy of the population into popnew
     firestarter::optimizer::Population popnew(pop);
 

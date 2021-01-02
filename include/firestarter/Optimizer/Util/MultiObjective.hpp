@@ -63,4 +63,7 @@ void polynomial_mutation(
 std::vector<std::size_t>
 select_best_N_mo(const std::vector<std::vector<double>> &input_f,
                  std::size_t N);
+
+std::vector<double> ideal(const std::vector<std::vector<double>> &points);
+
 } // namespace firestarter::optimizer::util

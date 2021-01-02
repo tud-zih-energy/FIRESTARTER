@@ -28,31 +28,34 @@
 
 using namespace firestarter::optimizer;
 
-Population::Population(std::shared_ptr<Problem> &&problem,
-                       std::size_t populationSize)
-    : _problem(std::move(problem)), gen(rd()) {
+void Population::generateInitialPopulation(std::size_t populationSize) {
   firestarter::log::trace() << "Generating " << populationSize
                             << " random individuals for initial population.";
 
   auto dims = this->problem().getDims();
+  auto remaining = populationSize;
 
-  if (populationSize < dims) {
-    throw std::invalid_argument(
-        "Population size has to be at least the size of problem dimension");
+  if (!(populationSize < dims)) {
+    for (decltype(dims) i = 0; i < dims; i++) {
+      Individual vec(dims, 0);
+      vec[i] = 1;
+      this->append(vec);
+    }
+
+    remaining -= dims;
+  } else {
+    firestarter::log::trace()
+        << "Population size (" << std::to_string(populationSize)
+        << ") is less than size of problem dimension (" << std::to_string(dims)
+        << ")";
   }
 
-  for (decltype(dims) i = 0; i < dims; i++) {
-    Individual vec(dims, 0);
-    vec[i] = 1;
-    this->append(vec);
-  }
-
-  for (decltype(populationSize) i = 0; i < populationSize - dims; i++) {
+  for (decltype(remaining) i = 0; i < remaining; i++) {
     this->append(this->getRandomIndividual());
   }
 }
 
-std::size_t Population::size() { return _x.size(); }
+std::size_t Population::size() const { return _x.size(); }
 
 void Population::append(Individual const &ind) {
   assert(this->problem().getDims() == ind.size());

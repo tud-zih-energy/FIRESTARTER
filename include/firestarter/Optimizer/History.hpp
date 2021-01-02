@@ -110,7 +110,7 @@ public:
       outpath += "/" + hostname + "_" + getTime() + ".json";
     }
 
-    firestarter::log::info() << "Dumping output json in " << outpath;
+    firestarter::log::info() << "\nDumping output json in " << outpath;
 
     std::ofstream fp(outpath);
 

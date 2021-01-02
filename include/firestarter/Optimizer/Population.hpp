@@ -38,16 +38,28 @@ namespace firestarter::optimizer {
 class Population {
 public:
   // Construct a population from a problem.
-  // population size is given by parameter.
-  Population(std::shared_ptr<Problem> &&problem,
-             std::size_t populationSize = 0);
+  Population() = default;
+
+  Population(std::shared_ptr<Problem> &&problem)
+      : _problem(std::move(problem)), gen(rd()) {}
 
   Population(Population &pop)
       : _problem(pop._problem), _x(pop._x), _f(pop._f), gen(rd()) {}
 
+  Population &operator=(Population const &pop) {
+    _problem = std::move(pop._problem);
+    _x = pop._x;
+    _f = pop._f;
+    gen = pop.gen;
+
+    return *this;
+  }
+
   ~Population() {}
 
-  std::size_t size();
+  void generateInitialPopulation(std::size_t populationSize = 0);
+
+  std::size_t size() const;
 
   // add one individual to the population. fitness will be evaluated.
   void append(Individual const &ind);

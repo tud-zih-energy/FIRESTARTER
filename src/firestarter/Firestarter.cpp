@@ -45,19 +45,22 @@ Firestarter::Firestarter(
     std::chrono::milliseconds const &measurementInterval,
     std::vector<std::string> const &metricPaths,
     std::vector<std::string> const &stdinMetrics, bool optimize,
+    std::chrono::seconds const &preheat,
     std::string const &optimizationAlgorithm,
     std::vector<std::string> const &optimizationMetrics,
     std::chrono::seconds const &evaluationDuration, unsigned individuals,
-    std::string const &optimizeOutfile)
+    std::string const &optimizeOutfile, unsigned generations, double nsga2_cr,
+    double nsga2_m)
     : _timeout(timeout), _loadPercent(loadPercent), _period(period),
       _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
       _dumpRegistersOutpath(dumpRegistersOutpath), _startDelta(startDelta),
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
-      _optimizationAlgorithm(optimizationAlgorithm),
+      _preheat(preheat), _optimizationAlgorithm(optimizationAlgorithm),
       _optimizationMetrics(optimizationMetrics),
       _evaluationDuration(evaluationDuration), _individuals(individuals),
-      _optimizeOutfile(optimizeOutfile) {
+      _optimizeOutfile(optimizeOutfile), _generations(generations),
+      _nsga2_cr(nsga2_cr), _nsga2_m(nsga2_m) {
   int returnCode;
 
   _load = (_period * _loadPercent) / 100;
@@ -168,66 +171,7 @@ Firestarter::Firestarter(
       }
     }
   }
-#endif
 
-  this->environment().printSelectedCodePathSummary();
-
-  log::info() << this->environment().topology();
-
-  // setup thread with either high or low load configured at the start
-  // low loads has to know the length of the period
-  if (EXIT_SUCCESS !=
-      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
-                                          _dumpRegisters))) {
-    std::exit(returnCode);
-  }
-}
-
-Firestarter::~Firestarter() {
-#ifdef FIRESTARTER_BUILD_CUDA
-  free(this->gpuStructPointer);
-#endif
-
-  delete _environment;
-}
-
-void Firestarter::mainThread() {
-  int returnCode;
-
-  this->environment().printThreadSummary();
-
-#ifdef FIRESTARTER_BUILD_CUDA
-  pthread_t gpu_thread;
-  pthread_create(&gpu_thread, NULL, cuda::init_gpu,
-                 (void *)this->gpuStructPointer);
-  while (this->gpuStructPointer->loadingdone != 1) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
-#endif
-
-#if defined(linux) || defined(__linux__)
-  // if measurement is enabled, start it here
-  if (_measurement) {
-    _measurementWorker->startMeasurement();
-  }
-#endif
-
-  this->signalWork();
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  if (_dumpRegisters) {
-    if (EXIT_SUCCESS != (returnCode = this->initDumpRegisterWorker(
-                             _dumpRegistersTimeDelta, _dumpRegistersOutpath))) {
-      std::exit(returnCode);
-    }
-  }
-#endif
-
-  // worker thread for load control
-  this->watchdogWorker(_period, _load, _timeout);
-
-#if defined(linux) || defined(__linux__)
-  // check if optimization is selected
   if (_optimize) {
     std::vector<std::string> instructionGroups = {};
     for (auto const &[key, value] :
@@ -294,16 +238,96 @@ void Firestarter::mainThread() {
             std::move(applySettings), _measurementWorker, _optimizationMetrics,
             _evaluationDuration, _startDelta, _stopDelta, instructionGroups);
 
-    firestarter::optimizer::Population pop(std::move(prob), _individuals);
+    _population = firestarter::optimizer::Population(std::move(prob));
 
-    // TODO: add selection
-    firestarter::optimizer::algorithm::NSGA2 nsga2(20, 0.6, 0.4);
+    if (_optimizationAlgorithm == "NSGA2") {
+      _algorithm = std::make_unique<firestarter::optimizer::algorithm::NSGA2>(
+          _generations, _nsga2_cr, _nsga2_m);
+    } else {
+      throw std::invalid_argument("Algorithm " + _optimizationAlgorithm +
+                                  " unknown.");
+    }
 
-    nsga2.evolve(pop);
+    _algorithm->checkPopulation(
+        static_cast<firestarter::optimizer::Population const &>(_population),
+        _individuals);
+  }
+#endif
+
+  this->environment().printSelectedCodePathSummary();
+
+  log::info() << this->environment().topology();
+
+  // setup thread with either high or low load configured at the start
+  // low loads has to know the length of the period
+  if (EXIT_SUCCESS !=
+      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
+                                          _dumpRegisters))) {
+    std::exit(returnCode);
+  }
+}
+
+Firestarter::~Firestarter() {
+#ifdef FIRESTARTER_BUILD_CUDA
+  free(this->gpuStructPointer);
+#endif
+
+  delete _environment;
+}
+
+void Firestarter::mainThread() {
+  int returnCode;
+
+  this->environment().printThreadSummary();
+
+#ifdef FIRESTARTER_BUILD_CUDA
+  pthread_t gpu_thread;
+  pthread_create(&gpu_thread, NULL, cuda::init_gpu,
+                 (void *)this->gpuStructPointer);
+  while (this->gpuStructPointer->loadingdone != 1) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+#endif
+
+#if defined(linux) || defined(__linux__)
+  // if measurement is enabled, start it here
+  if (_measurement) {
+    _measurementWorker->startMeasurement();
+  }
+#endif
+
+  this->signalWork();
+
+#ifdef FIRESTARTER_DEBUG_FEATURES
+  if (_dumpRegisters) {
+    if (EXIT_SUCCESS != (returnCode = this->initDumpRegisterWorker(
+                             _dumpRegistersTimeDelta, _dumpRegistersOutpath))) {
+      std::exit(returnCode);
+    }
+  }
+#endif
+
+  // worker thread for load control
+  this->watchdogWorker(_period, _load, _timeout);
+
+#if defined(linux) || defined(__linux__)
+  // check if optimization is selected
+  if (_optimize) {
+    // heat the cpu before attempting to optimize
+    std::this_thread::sleep_for(_preheat);
+
+    // For NSGA2 we start with a initial population
+    if (_optimizationAlgorithm == "NSGA2") {
+      _population.generateInitialPopulation(_individuals);
+    }
+
+    _algorithm->evolve(_population);
 
     firestarter::optimizer::History::save(_optimizeOutfile);
 
-    std::exit(EXIT_SUCCESS);
+    // stop all the load threads
+    this->loadVar = LOAD_STOP;
+    __asm__ __volatile__("mfence;");
   }
 #endif
 

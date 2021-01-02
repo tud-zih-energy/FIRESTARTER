@@ -60,11 +60,15 @@ struct Config {
 
   // optimization
   bool optimize = false;
+  std::chrono::seconds preheat;
   std::string optimizationAlgorithm;
   std::vector<std::string> optimizationMetrics;
   std::chrono::seconds evaluationDuration;
   unsigned individuals;
   std::string optimizeOutfile = "";
+  unsigned generations;
+  double nsga2_cr;
+  double nsga2_m;
 
   Config(int argc, const char **argv);
 };
@@ -177,7 +181,7 @@ Config::Config(int argc, const char **argv) {
       cxxopts::value<std::vector<std::string>>()->default_value(""))
 #endif
     ("metric-from-stdin", "Add a metric NAME with values from stdin. Format of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\". TIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush lines!)",
-     cxxopts::value<std::vector<std::string>>(), "NAME")
+      cxxopts::value<std::vector<std::string>>(), "NAME")
     ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.) Cannot be combined with --optimize.")
     ("measurement-interval", "Interval of measurements in milliseconds.",
       cxxopts::value<unsigned>()->default_value("100"))
@@ -185,14 +189,22 @@ Config::Config(int argc, const char **argv) {
       cxxopts::value<unsigned>()->default_value("5000"), "N")
     ("stop-delta", "Cut of last N milliseconds of measurement.",
       cxxopts::value<unsigned>()->default_value("2000"), "N")
-    ("optimize", "Run the optimization with one of these algorithms: ACD, NSGA2. Cannot be combined with --measurement.",
+    ("preheat", "Preheat for N seconds.",
+      cxxopts::value<unsigned>()->default_value("240"), "N")
+    ("optimize", "Run the optimization with one of these algorithms: NSGA2. Cannot be combined with --measurement.",
       cxxopts::value<std::string>())
     ("optimize-outfile", "Dump the output of the optimization into this file. (Default: $PWD/$HOSTNAME_$DATE.json)",
       cxxopts::value<std::string>())
     ("optimization-metric", "Use a metric for optimization. Metrics listed with cli argument --list-metrics or specified with --metric-from-stdin are valid.",
       cxxopts::value<std::vector<std::string>>())
-    ("individuals", "Number of individuals for the population.",
+    ("individuals", "Number of individuals for the population. For NSGA2 specify at least 5 and a multiple of 4.",
       cxxopts::value<unsigned>()->default_value("20"))
+    ("generations", "Number of generations.",
+      cxxopts::value<unsigned>()->default_value("20"))
+    ("nsga2-cr", "Crossover probability. (Must be in range [0,1[)",
+      cxxopts::value<double>()->default_value("0.6"))
+    ("nsga2-m", "Mutation probability. (Must be in range [0,1])",
+      cxxopts::value<double>()->default_value("0.4"))
 #endif
     ;
   // clang-format on
@@ -323,7 +335,7 @@ Config::Config(int argc, const char **argv) {
         throw std::invalid_argument(
             "Options --measurement and --optimize cannot be used together.");
       }
-
+      preheat = std::chrono::seconds(options["preheat"].as<unsigned>());
       optimizationAlgorithm = options["optimize"].as<std::string>();
       if (options.count("optimization-metric")) {
         optimizationMetrics =
@@ -343,6 +355,13 @@ Config::Config(int argc, const char **argv) {
       individuals = options["individuals"].as<unsigned>();
       if (options.count("optimize-outfile")) {
         optimizeOutfile = options["optimize-outfile"].as<std::string>();
+      }
+      generations = options["generations"].as<unsigned>();
+      nsga2_cr = options["nsga2-cr"].as<double>();
+      nsga2_m = options["nsga2-m"].as<double>();
+
+      if (optimizationAlgorithm != "NSGA2") {
+        throw std::invalid_argument("Option --optimize must be any of: NSGA2");
       }
     }
 #endif
@@ -375,13 +394,14 @@ int main(int argc, const char **argv) {
         cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
         cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
         cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
-        cfg.metricPaths, cfg.stdinMetrics, cfg.optimize,
+        cfg.metricPaths, cfg.stdinMetrics, cfg.optimize, cfg.preheat,
         cfg.optimizationAlgorithm, cfg.optimizationMetrics,
-        cfg.evaluationDuration, cfg.individuals, cfg.optimizeOutfile);
+        cfg.evaluationDuration, cfg.individuals, cfg.optimizeOutfile,
+        cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
     firestarter.mainThread();
 
-  } catch (std::runtime_error const &e) {
+  } catch (std::exception const &e) {
     firestarter::log::error() << e.what();
     return EXIT_FAILURE;
   }

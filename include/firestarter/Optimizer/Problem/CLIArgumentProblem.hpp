@@ -106,15 +106,8 @@ public:
 
   // get the bounds of the problem
   std::vector<std::tuple<unsigned, unsigned>> getBounds() const override {
-
-    std::vector<std::tuple<unsigned, unsigned>> vec;
-    for (auto const &key : _instructionGroups) {
-      if (key.rfind("L1_", 0) == 0 || key.rfind("REG", 0) == 0) {
-        vec.push_back(std::make_tuple<unsigned, unsigned>(0, 200));
-      } else {
-        vec.push_back(std::make_tuple<unsigned, unsigned>(0, 100));
-      }
-    }
+    std::vector<std::tuple<unsigned, unsigned>> vec(
+        _instructionGroups.size(), std::make_tuple<unsigned, unsigned>(0, 100));
 
     return vec;
   }
