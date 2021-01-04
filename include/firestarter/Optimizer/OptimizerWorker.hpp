@@ -39,9 +39,11 @@ public:
       std::string const &optimizationAlgorithm, unsigned individuals,
       std::chrono::seconds const &preheat);
 
-  ~OptimizerWorker();
+  ~OptimizerWorker() {}
 
   void join();
+
+  void kill();
 
 private:
   static void *optimizerThread(void *optimizerWorker);

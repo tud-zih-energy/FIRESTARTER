@@ -383,7 +383,7 @@ void Firestarter::sigtermHandler(int signum) {
 #if defined(linux) || defined(__linux__)
   // if we have optimization running stop it
   if (Firestarter::_optimizer) {
-    Firestarter::_optimizer.reset();
+    Firestarter::_optimizer->kill();
   }
 #endif
 }

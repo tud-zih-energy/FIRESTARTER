@@ -39,11 +39,9 @@ OptimizerWorker::OptimizerWorker(
       this);
 }
 
-OptimizerWorker::~OptimizerWorker() {
+void OptimizerWorker::kill() {
   // we ignore ESRCH errno if thread already exited
   pthread_cancel(this->workerThread);
-
-  pthread_join(this->workerThread, NULL);
 }
 
 void OptimizerWorker::join() {
