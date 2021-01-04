@@ -26,6 +26,7 @@
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #endif
 
+#include <csignal>
 #include <functional>
 #include <thread>
 
@@ -326,8 +327,7 @@ void Firestarter::mainThread() {
     firestarter::optimizer::History::save(_optimizeOutfile);
 
     // stop all the load threads
-    this->loadVar = LOAD_STOP;
-    __asm__ __volatile__("mfence;");
+    std::raise(SIGTERM);
   }
 #endif
 
