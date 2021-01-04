@@ -266,6 +266,14 @@ Firestarter::Firestarter(
                                           _dumpRegisters))) {
     std::exit(returnCode);
   }
+
+  // add some signal handler for aborting FIRESTARTER
+#ifndef _WIN32
+  std::signal(SIGALRM, Firestarter::sigalrmHandler);
+#endif
+
+  std::signal(SIGTERM, Firestarter::sigtermHandler);
+  std::signal(SIGINT, Firestarter::sigtermHandler);
 }
 
 Firestarter::~Firestarter() {
@@ -314,15 +322,12 @@ void Firestarter::mainThread() {
 #if defined(linux) || defined(__linux__)
   // check if optimization is selected
   if (_optimize) {
-    // heat the cpu before attempting to optimize
-    std::this_thread::sleep_for(_preheat);
+    Firestarter::_optimizer = std::make_unique<optimizer::OptimizerWorker>(
+        std::move(_algorithm), _population, _optimizationAlgorithm,
+        _individuals, _preheat);
 
-    // For NSGA2 we start with a initial population
-    if (_optimizationAlgorithm == "NSGA2") {
-      _population.generateInitialPopulation(_individuals);
-    }
-
-    _algorithm->evolve(_population);
+    // wait here until optimizer thread terminates
+    Firestarter::_optimizer->join();
 
     firestarter::optimizer::History::save(_optimizeOutfile);
 
@@ -354,6 +359,31 @@ void Firestarter::mainThread() {
                   << sum.duration.count() << "," << sum.average << ","
                   << sum.stddev;
     }
+  }
+#endif
+}
+
+void Firestarter::setLoad(unsigned long long value) {
+  // signal load change to workers
+  Firestarter::loadVar = value;
+  __asm__ __volatile__("mfence;");
+}
+
+void Firestarter::sigalrmHandler(int signum) { (void)signum; }
+
+void Firestarter::sigtermHandler(int signum) {
+  (void)signum;
+
+  // required for cases load = {0,100}, which do no enter the loop
+  Firestarter::setLoad(LOAD_STOP);
+  // exit loop
+  // used in case of 0 < load < 100
+  Firestarter::_watchdog_terminate = true;
+
+#if defined(linux) || defined(__linux__)
+  // if we have optimization running stop it
+  if (Firestarter::_optimizer) {
+    Firestarter::_optimizer.reset();
   }
 #endif
 }

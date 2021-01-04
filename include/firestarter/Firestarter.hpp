@@ -28,6 +28,7 @@
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/MeasurementWorker.hpp>
 #include <firestarter/Optimizer/Algorithm.hpp>
+#include <firestarter/Optimizer/OptimizerWorker.hpp>
 #include <firestarter/Optimizer/Population.hpp>
 #endif
 
@@ -118,6 +119,7 @@ private:
 #endif
 
 #if defined(linux) || defined(__linux__)
+  inline static std::unique_ptr<optimizer::OptimizerWorker> _optimizer;
   std::shared_ptr<measurement::MeasurementWorker> _measurementWorker;
   std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
   firestarter::optimizer::Population _population;
@@ -159,8 +161,16 @@ private:
   static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
 #endif
 
+  static void setLoad(unsigned long long value);
+
+  static void sigalrmHandler(int signum);
+  static void sigtermHandler(int signum);
+
+  // variable to control the termination of the watchdog
+  inline static bool _watchdog_terminate = false;
+
   // variable to control the load of the threads
-  volatile unsigned long long loadVar = LOAD_LOW;
+  inline static volatile unsigned long long loadVar = LOAD_LOW;
 
   std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
 

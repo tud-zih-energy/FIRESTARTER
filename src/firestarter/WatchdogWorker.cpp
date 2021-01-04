@@ -32,12 +32,12 @@
 
 #define DO_SLEEP(sleepret, target, remaining)                                  \
   do {                                                                         \
-    if (watchdog_terminate) {                                                  \
+    if (this->_watchdog_terminate) {                                           \
       log::info() << "\nCaught shutdown signal, ending now ...";               \
       return EXIT_SUCCESS;                                                     \
     }                                                                          \
     sleepret = nanosleep(&target, &remaining);                                 \
-    while (sleepret == -1 && errno == EINTR && !watchdog_terminate) {          \
+    while (sleepret == -1 && errno == EINTR && !this->_watchdog_terminate) {   \
       sleepret = nanosleep(&remaining, &remaining);                            \
     }                                                                          \
     if (sleepret == -1) {                                                      \
@@ -57,7 +57,7 @@
         log::error() << "Calling nanosleep: " << errno;                        \
         break;                                                                 \
       }                                                                        \
-      set_load(LOAD_STOP);                                                     \
+      this->setLoad(LOAD_STOP);                                                \
       if (errno == EINTR) {                                                    \
         return EXIT_SUCCESS;                                                   \
       } else {                                                                 \
@@ -68,32 +68,6 @@
 
 using namespace firestarter;
 
-namespace {
-static volatile pthread_t watchdog_thread;
-static volatile bool watchdog_terminate = false;
-static volatile unsigned long long *loadvar;
-} // namespace
-
-void set_load(unsigned long long value) {
-  // signal load change to workers
-  *loadvar = value;
-  __asm__ __volatile__("mfence;");
-}
-
-void sigalrm_handler(int signum) { (void)signum; }
-
-static void sigterm_handler(int signum) {
-  (void)signum;
-
-  // required for cases load = {0,100}, which do no enter the loop
-  set_load(LOAD_STOP);
-  // exit loop
-  // used in case of 0 < load < 100
-  watchdog_terminate = true;
-
-  pthread_kill(watchdog_thread, 0);
-}
-
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
                                 std::chrono::microseconds load,
                                 std::chrono::seconds timeout) {
@@ -102,17 +76,6 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
   using nsec = std::chrono::nanoseconds;
   using usec = std::chrono::microseconds;
   using sec = std::chrono::seconds;
-
-  loadvar = &this->loadVar;
-
-  watchdog_thread = pthread_self();
-
-#ifndef _WIN32
-  std::signal(SIGALRM, sigalrm_handler);
-#endif
-
-  std::signal(SIGTERM, sigterm_handler);
-  std::signal(SIGINT, sigterm_handler);
 
   // values for wrapper to pthreads nanosleep
   int sleepret;
@@ -148,7 +111,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec idle_reduction = advance - load_reduction;
 
       // signal high load level
-      set_load(LOAD_HIGH);
+      this->setLoad(LOAD_HIGH);
 
       // calculate values for nanosleep
       nsec load_nsec = load - load_reduction;
@@ -172,14 +135,14 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 #endif
 
       // terminate if an interrupt by the user was fired
-      if (watchdog_terminate) {
-        set_load(LOAD_STOP);
+      if (this->_watchdog_terminate) {
+        this->setLoad(LOAD_STOP);
 
         return EXIT_SUCCESS;
       }
 
       // signal low load
-      set_load(LOAD_LOW);
+      this->setLoad(LOAD_LOW);
 
       // calculate values for nanosleep
       nsec idle_nsec = idle - idle_reduction;
@@ -206,8 +169,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       time += period;
 
       // exit when termination signal is received or timeout is reached
-      if (watchdog_terminate || (timeout > sec::zero() && (time > timeout))) {
-        set_load(LOAD_STOP);
+      if (this->_watchdog_terminate ||
+          (timeout > sec::zero() && (time > timeout))) {
+        this->setLoad(LOAD_STOP);
 
         return EXIT_SUCCESS;
       }
@@ -222,7 +186,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
     DO_SLEEP(sleepret, target, remaining);
 
-    set_load(LOAD_STOP);
+    this->setLoad(LOAD_STOP);
 
     return EXIT_SUCCESS;
   }
