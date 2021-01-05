@@ -85,7 +85,7 @@ public:
       override {
     std::vector<double> values = {};
 
-    for (auto const metricName : _metrics) {
+    for (auto const &metricName : _metrics) {
       auto findName = [metricName](auto const &summary) {
         return metricName.compare(summary.first) == 0;
       };

@@ -71,6 +71,14 @@ Firestarter::Firestarter(
     _period = std::chrono::microseconds::zero();
   }
 
+#if defined(linux) || defined(__linux__)
+#else
+  (void)listMetrics;
+  (void)measurementInterval;
+  (void)metricPaths;
+  (void)stdinMetrics;
+#endif
+
 #ifdef FIRESTARTER_BUILD_CUDA
   this->_gpuStructPointer =
       reinterpret_cast<cuda::gpustruct_t *>(malloc(sizeof(cuda::gpustruct_t)));
@@ -287,8 +295,6 @@ Firestarter::~Firestarter() {
 }
 
 void Firestarter::mainThread() {
-  int returnCode;
-
   this->environment().printThreadSummary();
 
 #ifdef FIRESTARTER_BUILD_CUDA
@@ -311,6 +317,7 @@ void Firestarter::mainThread() {
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   if (_dumpRegisters) {
+    int returnCode;
     if (EXIT_SUCCESS != (returnCode = this->initDumpRegisterWorker(
                              _dumpRegistersTimeDelta, _dumpRegistersOutpath))) {
       std::exit(returnCode);
