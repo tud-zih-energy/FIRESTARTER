@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <vector>
 
@@ -42,14 +43,20 @@ struct reader_def {
   long long int max;
 };
 
-static std::vector<struct reader_def *> readers = {};
+struct reader_def_free {
+  void operator()(struct reader_def *def) {
+    if (def != nullptr) {
+      if (((void *)def->path) != nullptr) {
+        free((void *)def->path);
+      }
+      free((void *)def);
+    }
+  }
+};
+
+static std::vector<std::shared_ptr<struct reader_def>> readers = {};
 
 static int32_t fini(void) {
-  for (auto &def : readers) {
-    free(def->path);
-    free(def);
-  }
-
   readers.clear();
 
   return EXIT_SUCCESS;
@@ -157,8 +164,10 @@ static int32_t init(void) {
       break;
     }
 
-    struct reader_def *def = reinterpret_cast<struct reader_def *>(
-        malloc(sizeof(struct reader_def)));
+    std::shared_ptr<struct reader_def> def(
+        reinterpret_cast<struct reader_def *>(
+            malloc(sizeof(struct reader_def))),
+        reader_def_free());
     auto pathName = path.c_str();
     size_t size = (strlen(pathName) + 1) * sizeof(char);
     void *name = malloc(size);
