@@ -30,7 +30,7 @@ namespace firestarter::environment::platform {
 class RuntimeConfig {
 private:
   PlatformConfig const &_platformConfig;
-  payload::Payload *_payload;
+  std::unique_ptr<payload::Payload> _payload;
   unsigned _thread;
   std::vector<std::pair<std::string, unsigned>> _payloadSettings;
   unsigned _instructionCacheSize;
@@ -60,11 +60,7 @@ public:
         _dataCacheBufferSize(c.dataCacheBufferSize()),
         _ramBufferSize(c.ramBufferSize()), _lines(c.lines()) {}
 
-  ~RuntimeConfig() {
-    if (_payload != nullptr) {
-      delete _payload;
-    }
-  }
+  ~RuntimeConfig() { _payload.reset(); }
 
   PlatformConfig const &platformConfig() const { return _platformConfig; }
   payload::Payload &payload() const {
