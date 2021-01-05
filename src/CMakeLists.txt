@@ -68,6 +68,7 @@ if (FIRESTARTER_CUDA)
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
 		)
+	target_compile_features(FIRESTARTER_CUDA PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER_CUDA
 		${FIRESTARTER_LINK_LIBRARIES}
@@ -87,6 +88,7 @@ else()
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
 		)
+	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER
 		${FIRESTARTER_LINK_LIBRARIES}

@@ -33,9 +33,6 @@ add_compile_definitions(_FIRESTARTER_BUILD_YEAR="${_FIRESTARTER_BUILD_YEAR}")
 include(cmake/GitSubmoduleUpdate.cmake)
 git_submodule_update()
 
-# enable c++17
-SET(CMAKE_CXX_STANDARD 17)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
