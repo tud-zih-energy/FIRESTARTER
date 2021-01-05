@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <tuple>
 
 namespace firestarter::optimizer::util {
 
