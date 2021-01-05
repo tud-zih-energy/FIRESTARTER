@@ -387,10 +387,10 @@ int main(int argc, const char **argv) {
 
   try {
     firestarter::Firestarter firestarter(
-        cfg.timeout, cfg.loadPercent, cfg.period, cfg.requestedNumThreads,
-        cfg.cpuBind, cfg.printFunctionSummary, cfg.functionId,
-        cfg.listInstructionGroups, cfg.instructionGroups, cfg.lineCount,
-        cfg.allowUnavailablePayload, cfg.dumpRegisters,
+        argc, argv, cfg.timeout, cfg.loadPercent, cfg.period,
+        cfg.requestedNumThreads, cfg.cpuBind, cfg.printFunctionSummary,
+        cfg.functionId, cfg.listInstructionGroups, cfg.instructionGroups,
+        cfg.lineCount, cfg.allowUnavailablePayload, cfg.dumpRegisters,
         cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
         cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
         cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,

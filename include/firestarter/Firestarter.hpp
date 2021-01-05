@@ -54,7 +54,8 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(std::chrono::seconds const &timeout, unsigned loadPercent,
+  Firestarter(const int argc, const char **argv,
+              std::chrono::seconds const &timeout, unsigned loadPercent,
               std::chrono::microseconds const &period,
               unsigned requestedNumThreads, std::string const &cpuBind,
               bool printFunctionSummary, unsigned functionId,
@@ -82,6 +83,8 @@ public:
   void mainThread();
 
 private:
+  const int _argc;
+  const char **_argv;
   const std::chrono::seconds _timeout;
   const unsigned _loadPercent;
   std::chrono::microseconds _load;

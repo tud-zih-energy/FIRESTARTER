@@ -66,7 +66,8 @@ public:
     return _f[dist];
   }
 
-  inline static void save(std::string const &path) {
+  inline static void save(std::string const &path, std::string const &startTime,
+                          const int argc, const char **argv) {
     using json = nlohmann::json;
 
     json j = json::object();
@@ -92,6 +93,15 @@ public:
 
     j["hostname"] = hostname;
 
+    j["startTime"] = startTime;
+    j["endTime"] = getTime();
+
+    // save the arguments
+    j["args"] = json::array();
+    for (int i = 0; i < argc; ++i) {
+      j["args"].push_back(argv[i]);
+    }
+
     // dump the output
     std::string s = j.dump();
 
@@ -107,7 +117,7 @@ public:
         firestarter::log::warn() << "Could not find $PWD.";
         outpath = "/tmp";
       }
-      outpath += "/" + hostname + "_" + getTime() + ".json";
+      outpath += "/" + hostname + "_" + startTime + ".json";
     }
 
     firestarter::log::info() << "\nDumping output json in " << outpath;
@@ -124,7 +134,6 @@ public:
     fp.close();
   }
 
-private:
   inline static std::string getTime() {
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
@@ -133,6 +142,7 @@ private:
     return ss.str();
   }
 
+private:
   inline static std::vector<Individual> _x = {};
   inline static std::vector<
       std::map<std::string, firestarter::measurement::Summary>>

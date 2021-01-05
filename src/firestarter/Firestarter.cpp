@@ -23,6 +23,7 @@
 #include <firestarter/Logging/Log.hpp>
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
+#include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #endif
 
@@ -33,11 +34,12 @@
 using namespace firestarter;
 
 Firestarter::Firestarter(
-    std::chrono::seconds const &timeout, unsigned loadPercent,
-    std::chrono::microseconds const &period, unsigned requestedNumThreads,
-    std::string const &cpuBind, bool printFunctionSummary, unsigned functionId,
-    bool listInstructionGroups, std::string const &instructionGroups,
-    unsigned lineCount, bool allowUnavailablePayload, bool dumpRegisters,
+    const int argc, const char **argv, std::chrono::seconds const &timeout,
+    unsigned loadPercent, std::chrono::microseconds const &period,
+    unsigned requestedNumThreads, std::string const &cpuBind,
+    bool printFunctionSummary, unsigned functionId, bool listInstructionGroups,
+    std::string const &instructionGroups, unsigned lineCount,
+    bool allowUnavailablePayload, bool dumpRegisters,
     std::chrono::seconds const &dumpRegistersTimeDelta,
     std::string const &dumpRegistersOutpath, int gpus, unsigned gpuMatrixSize,
     bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
@@ -52,8 +54,8 @@ Firestarter::Firestarter(
     std::chrono::seconds const &evaluationDuration, unsigned individuals,
     std::string const &optimizeOutfile, unsigned generations, double nsga2_cr,
     double nsga2_m)
-    : _timeout(timeout), _loadPercent(loadPercent), _period(period),
-      _dumpRegisters(dumpRegisters),
+    : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
+      _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
       _dumpRegistersOutpath(dumpRegistersOutpath), _startDelta(startDelta),
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
@@ -322,6 +324,8 @@ void Firestarter::mainThread() {
 #if defined(linux) || defined(__linux__)
   // check if optimization is selected
   if (_optimize) {
+    auto startTime = optimizer::History::getTime();
+
     Firestarter::_optimizer = std::make_unique<optimizer::OptimizerWorker>(
         std::move(_algorithm), _population, _optimizationAlgorithm,
         _individuals, _preheat);
@@ -329,7 +333,8 @@ void Firestarter::mainThread() {
     // wait here until optimizer thread terminates
     Firestarter::_optimizer->join();
 
-    firestarter::optimizer::History::save(_optimizeOutfile);
+    firestarter::optimizer::History::save(_optimizeOutfile, startTime, _argc,
+                                          _argv);
 
     // stop all the load threads
     std::raise(SIGTERM);
