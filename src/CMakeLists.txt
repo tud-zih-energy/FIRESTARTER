@@ -61,6 +61,7 @@ endif()
 
 if (FIRESTARTER_CUDA)
 	find_package(CUDA REQUIRED)
+	include_directories(${CUDA_INCLUDE_DIRS})
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
 
@@ -72,9 +73,9 @@ if (FIRESTARTER_CUDA)
 
 	target_link_libraries(FIRESTARTER_CUDA
 		${FIRESTARTER_LINK_LIBRARIES}
-		cuda
-		cudart
-		cublas
+		${CUDA_LIBRARIES}
+		cuda 
+		${CUDA_CUBLAS_LIBRARIES}
 		)
 else()
 	# static linking is not supported on Darwin, see Apple Technical QA1118

@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-
+        CUDA: ['0', '6.5', '8.0', '11.0']
         include:
           - os: ubuntu-16.04
             compiler: g++-7
@@ -24,34 +24,87 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      CUDA_ROOT: '/usr/local/cuda'
+
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: '0'
+    - name: Install CUDA runtime
+      if: matrix.CUDA != '0'
+      run: |
+        case ${{ matrix.CUDA }} in
+          6.5)
+            wget http://developer.download.nvidia.com/compute/cuda/6_5/rel/installers/cuda_6.5.14_linux_64.run
+            sudo sh cuda_6.5.14_linux_64.run -extract=${CUDA_ROOT}
+            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-6.5.14-18749181.run --tar mxvf -C ${CUDA_ROOT}
+            ;;
+          8.0)
+            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
+            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
+            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
+            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
+            sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
+            ;;
+          11.0)
+            wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
+            sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            ;;
+        esac
     - name: Create build directory
       run: |
         mkdir build
     - name: Run CMake configure
+      if: matrix.CUDA == '0'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
         cd build
         cmake ..
+    - name: Run CMake configure
+      if: matrix.CUDA != '0'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        export CPATH=${CUDA_ROOT}/include:${CPATH}
+        export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LIBRARY_PATH}
+        export CUDA_LIB_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs
+        export PATH=${CUDA_ROOT}:${PATH}
+        export CUDA_HOME=${CUDA_ROOT}
+        export CUDA_PATH=${CUDA_ROOT}
+        export CUDA_TOOLKIT_ROOT_DIR=${CUDA_ROOT}
+
+        cd build
+        cmake -DFIRESTARTER_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Build
       run: |
         cd build
         make -j2
     - name: Strip binary
+      if: matrix.CUDA == '0'
       run: |
         cd build
         strip src/FIRESTARTER
+    - name: Strip binary
+      if: matrix.CUDA != '0'
+      run: |
+        cd build
+        strip src/FIRESTARTER_CUDA
     - name: Test FIRESTARTER
+      if: matrix.CUDA == '0'
       run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v2
-      if: matrix.compiler == 'clang++-10'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0'
       with:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
+    - uses: actions/upload-artifact@v2
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0'
+      with:
+        name: FIRESTARTER-linux
+        path: build/src/FIRESTARTER_CUDA
   build-windows:
     strategy:
       fail-fast: false

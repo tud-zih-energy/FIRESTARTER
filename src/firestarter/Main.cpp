@@ -296,7 +296,7 @@ Config::Config(int argc, const char **argv) {
     }
 
     gpuMatrixSize = options["matrixsize"].as<unsigned>();
-    if (matrixSize > 0 && matrixSize < 64) {
+    if (gpuMatrixSize > 0 && gpuMatrixSize < 64) {
       throw std::invalid_argument(
           "Option -m/--matrixsize may not be below 64.");
     }

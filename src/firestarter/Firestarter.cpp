@@ -85,15 +85,15 @@ Firestarter::Firestarter(
   this->_gpuStructPointer->loadingdone = 0;
   this->_gpuStructPointer->loadvar = &this->loadVar;
 
-  if (useGpuFloat) {
+  if (gpuUseFloat) {
     this->gpuStructPointer->use_double = 0;
-  } else if (useGpuDouble) {
+  } else if (gpuUseDouble) {
     this->gpuStructPointer->use_double = 1;
   } else {
     this->gpuStructPointer->use_double = 2;
   }
 
-  this->gpuStructPointer->msize = matrixSize;
+  this->gpuStructPointer->msize = gpuMatrixSize;
 
   this->gpuStructPointer->use_device = gpus;
 #else
