@@ -38,7 +38,8 @@ It currently supports the multiobjective algorithm NSGA2, selected by `--optimiz
 The optimization relies on the execution of FIRESTARTER with a combination of instruction groups, specified by `--run-instruction-groups`.
 Available instruction groups can be listed with `--list-instruction-groups`.
 During each test run of the duration specified by `-t | --timeout` metrics will collect information about the fitness.
-The used metrics for optimization can be specified by `--optimization-metrics`
+The used metrics for optimization can be specified by `--optimization-metrics`.
+An output file with the results will be written to `{HOSTNAME}_${STARTTIME}.json` if the option `--optimize-outfile` is not given.
 
 # Reference
 
