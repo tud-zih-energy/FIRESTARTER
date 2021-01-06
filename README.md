@@ -13,6 +13,33 @@ FIRESTARTER_CUDA | Build FIRESTARTER with CUDA support. This will result in a sh
 FIRESTARTER_BUILD_HWLOC | Build hwloc dependency. Default ON
 FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware threads. Default ON
 
+## Metrics
+
+FIRESTARTER support to collect metrics during runtime.
+Available metrics can be shown with `--list-metrics`.
+Default metrics are perf-ipc, perf-freq and powercap-sysfs-rapl.
+
+### Custom metrics
+
+If one would like to use custom metrics, e.g. an external power measurement, `--metric-from-stdin=NAME` allows metric values to be passed via stdin in the following format:
+`{NAME} {TIME SINCE EPOCH IN NS} {ABSOLUT METRIC VALUE (double)}\n`.
+Make sure to use flush after each line.
+
+## Measurement
+
+FIRESTARTER has the option to output the colleted metric values by specifying `--measurement`.
+Options `--start-delta` and `--stop-delta` specify a time in milliseconds in which metric values should be ignored.
+After a run the output will be given in csv format to stdout.
+
+## Optimization
+
+FIRESTARTER has the option to optimize itself.
+It currently supports the multiobjective algorithm NSGA2, selected by `--optimize=NSGA2`.
+The optimization relies on the execution of FIRESTARTER with a combination of instruction groups, specified by `--run-instruction-groups`.
+Available instruction groups can be listed with `--list-instruction-groups`.
+During each test run of the duration specified by `-t | --timeout` metrics will collect information about the fitness.
+The used metrics for optimization can be specified by `--optimization-metrics`
+
 # Reference
 
 A detailed description can be found in the following paper. Please cite this if you use FIRESTARTER for scientific work.
