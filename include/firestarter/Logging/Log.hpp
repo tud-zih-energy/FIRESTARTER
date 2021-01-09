@@ -27,8 +27,8 @@
 #include <nitro/log/severity.hpp>
 
 #include <nitro/log/attribute/message.hpp>
-#include <nitro/log/attribute/pthread_id.hpp>
 #include <nitro/log/attribute/severity.hpp>
+#include <nitro/log/attribute/std_thread_id.hpp>
 #include <nitro/log/attribute/timestamp.hpp>
 
 #include <nitro/log/filter/and_filter.hpp>
@@ -63,7 +63,7 @@ public:
 
 using record = nitro::log::record<
     nitro::log::severity_attribute, nitro::log::message_attribute,
-    nitro::log::timestamp_attribute, nitro::log::pthread_id_attribute>;
+    nitro::log::timestamp_attribute, nitro::log::std_thread_id_attribute>;
 
 template <typename Record> class formater {
 public:

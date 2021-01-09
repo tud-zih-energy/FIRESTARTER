@@ -63,20 +63,10 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
   // work.
   this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
-  // allocate buffer for threads
-  pthread_t *threads = nullptr;
-  if (nullptr ==
-      (threads = static_cast<pthread_t *>(ALIGNED_MALLOC(
-           this->environment().requestedNumThreads() * sizeof(pthread_t),
-           64)))) {
-    log::error() << "Could not allocate pthread_t";
-    return EXIT_FAILURE;
-  }
-
   for (unsigned long long i = 0; i < this->environment().requestedNumThreads();
        i++) {
-    auto td = new LoadWorkerData(i, this->environment(), &this->loadVar, period,
-                                 dumpRegisters);
+    auto td = std::make_shared<LoadWorkerData>(
+        i, this->environment(), &this->loadVar, period, dumpRegisters);
 
     auto dataCacheSizeIt =
         td->config().platformConfig().dataCacheBufferSize().begin();
@@ -87,23 +77,17 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
                         td->config().thread() / sizeof(unsigned long long);
 
     // create the thread
-    if (EXIT_SUCCESS !=
-        (returnCode = pthread_create(&threads[i], NULL, loadThreadWorker,
-                                     std::ref(td)))) {
-      log::error() << "pthread_create failed with returnCode " << returnCode;
-      return EXIT_FAILURE;
-    }
+    std::thread t(Firestarter::loadThreadWorker, td);
 
-    std::uint64_t id = reinterpret_cast<std::uint64_t>(threads[i]);
-    log::trace() << "Created thread #" << i << " with ID: " << id;
+    log::trace() << "Created thread #" << i << " with ID: " << t.get_id();
 
     if (i == 0) {
       // only show error for all worker threads except first.
       firestarter::logging::FirstWorkerThreadFilter<
-          firestarter::logging::record>::setFirstThread(id);
+          firestarter::logging::record>::setFirstThread(t.get_id());
     }
 
-    this->loadThreads.push_back(std::make_pair(&threads[i], std::ref(td)));
+    this->loadThreads.push_back(std::make_pair(std::move(t), td));
   }
 
   this->signalLoadWorkers(THREAD_INIT);
@@ -145,8 +129,8 @@ void Firestarter::signalLoadWorkers(int comm) {
 
 void Firestarter::joinLoadWorkers() {
   // wait for threads after watchdog has requested termination
-  for (auto const &thread : this->loadThreads) {
-    pthread_join(*thread.first, NULL);
+  for (auto &thread : this->loadThreads) {
+    thread.first.join();
   }
 }
 
@@ -217,11 +201,9 @@ void Firestarter::printPerformanceReport() {
       << "  executed on an unsupported architecture!";
 }
 
-void *Firestarter::loadThreadWorker(void *loadWorkerData) {
+void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
 
   int old = THREAD_WAIT;
-
-  auto td = reinterpret_cast<LoadWorkerData *>(loadWorkerData);
 
   // use REGISTER_MAX_NUM cache lines for the dumped registers
   // and another cache line for the control variable.
@@ -232,7 +214,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
           ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
           : 0;
 
-#ifndef __APPLE__
+#if defined(linux) || defined(__linux__)
   pthread_setname_np(pthread_self(), "LoadWorker");
 #endif
 
@@ -323,7 +305,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
           td->stop_tsc = td->environment().topology().timestamp();
 
           ALIGNED_FREE(td->addrMem - addrOffset);
-          pthread_exit(NULL);
+          return;
         }
 
         if (*td->addrHigh == LOAD_SWITCH) {
@@ -346,7 +328,7 @@ void *Firestarter::loadThreadWorker(void *loadWorkerData) {
     case THREAD_STOP:
     default:
       ALIGNED_FREE(td->addrMem - addrOffset);
-      pthread_exit(0);
+      return;
     }
   }
 }

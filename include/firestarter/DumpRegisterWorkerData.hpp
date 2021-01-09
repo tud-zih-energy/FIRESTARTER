@@ -51,7 +51,7 @@ namespace firestarter {
 
 class DumpRegisterWorkerData {
 public:
-  DumpRegisterWorkerData(LoadWorkerData *loadWorkerData,
+  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData,
                          std::chrono::seconds dumpTimeDelta,
                          std::string dumpFilePath)
       : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
@@ -71,7 +71,7 @@ public:
 
   ~DumpRegisterWorkerData() {}
 
-  LoadWorkerData *const loadWorkerData;
+  std::shared_ptr<LoadWorkerData> loadWorkerData;
   const std::chrono::seconds dumpTimeDelta;
   std::string dumpFilePath;
 };

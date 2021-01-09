@@ -58,24 +58,23 @@ static std::string registerNameBySize(unsigned registerSize) {
 int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                                         std::string dumpFilePath) {
 
-  auto data = new DumpRegisterWorkerData(this->loadThreads.begin()->second,
-                                         dumpTimeDelta, dumpFilePath);
+  auto data = std::make_unique<DumpRegisterWorkerData>(
+      this->loadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
 
-  pthread_create(&this->dumpRegisterWorkerThread, NULL, dumpRegisterWorker,
-                 std::ref(data));
+  this->dumpRegisterWorkerThread =
+      std::thread(Firestarter::dumpRegisterWorker, std::move(data));
 
   return EXIT_SUCCESS;
 }
 
 void Firestarter::joinDumpRegisterWorker() {
-  pthread_join(this->dumpRegisterWorkerThread, NULL);
+  this->dumpRegisterWorkerThread.join();
 }
 
-void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
+void Firestarter::dumpRegisterWorker(
+    std::unique_ptr<DumpRegisterWorkerData> data) {
 
   pthread_setname_np(pthread_self(), "DumpRegWorker");
-
-  auto data = reinterpret_cast<DumpRegisterWorkerData *>(dumpRegisterData);
 
   int registerCount = data->loadWorkerData->config().payload().registerCount();
   int registerSize = data->loadWorkerData->config().payload().registerSize();
@@ -187,8 +186,6 @@ void *Firestarter::dumpRegisterWorker(void *dumpRegisterData) {
 
   free(last);
   free(current);
-
-  return NULL;
 }
 
 #endif

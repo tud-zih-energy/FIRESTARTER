@@ -154,14 +154,14 @@ private:
 
   // LoadThreadWorker.cpp
   void signalLoadWorkers(int comm);
-  static void *loadThreadWorker(void *loadWorkerData);
+  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> td);
 
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  static void *dumpRegisterWorker(void *dumpRegisterWorkerData);
+  static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> data);
 #endif
 
   static void setLoad(unsigned long long value);
@@ -175,10 +175,11 @@ private:
   // variable to control the load of the threads
   inline static volatile unsigned long long loadVar = LOAD_LOW;
 
-  std::list<std::pair<pthread_t *, LoadWorkerData *>> loadThreads;
+  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>>
+      loadThreads;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
-  pthread_t dumpRegisterWorkerThread;
+  std::thread dumpRegisterWorkerThread;
 #endif
 };
 
