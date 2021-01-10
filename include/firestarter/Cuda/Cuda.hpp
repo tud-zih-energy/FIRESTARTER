@@ -21,20 +21,32 @@
 
 #pragma once
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <vector>
+
 namespace firestarter::cuda {
 
-typedef struct {
-  int msize;      // Matrixsize to calculate on the GPU. Different msizes create
-                  // different workloads...
-  int use_double; // If we want to use doubleprecision or not
-  int use_device; // number of devices to use
-  int verbose;    // verbosity
-  int loadingdone; // variable to use if the initialization of GPUs are done
-  int init_count;  // Counts devices that already initialized and probably
-                   // started the workload
-  volatile unsigned long long *loadvar; // provides termination information
-} gpustruct_t;
+class Cuda {
+private:
+  std::thread _initThread;
+  std::condition_variable _waitForInitCv;
+  std::mutex _waitForInitCvMutex;
 
-void *init_gpu(void *gpu);
+  static void initGpus(std::condition_variable &cv,
+                       volatile unsigned long long *loadVar, bool useFloat,
+                       bool useDouble, unsigned matrixSize, int gpus);
+
+public:
+  Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
+       unsigned matrixSize, int gpus);
+
+  ~Cuda() {
+    if (_initThread.joinable()) {
+      _initThread.join();
+    }
+  }
+};
 
 } // namespace firestarter::cuda

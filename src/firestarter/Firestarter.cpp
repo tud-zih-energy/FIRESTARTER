@@ -57,7 +57,9 @@ Firestarter::Firestarter(
     : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
       _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
-      _dumpRegistersOutpath(dumpRegistersOutpath), _startDelta(startDelta),
+      _dumpRegistersOutpath(dumpRegistersOutpath), _gpus(gpus),
+      _gpuMatrixSize(gpuMatrixSize), _gpuUseFloat(gpuUseFloat),
+      _gpuUseDouble(gpuUseDouble), _startDelta(startDelta),
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
       _preheat(preheat), _optimizationAlgorithm(optimizationAlgorithm),
       _optimizationMetrics(optimizationMetrics),
@@ -77,30 +79,6 @@ Firestarter::Firestarter(
   (void)measurementInterval;
   (void)metricPaths;
   (void)stdinMetrics;
-#endif
-
-#ifdef FIRESTARTER_BUILD_CUDA
-  this->_gpuStructPointer =
-      reinterpret_cast<cuda::gpustruct_t *>(malloc(sizeof(cuda::gpustruct_t)));
-  this->_gpuStructPointer->loadingdone = 0;
-  this->_gpuStructPointer->loadvar = &this->loadVar;
-
-  if (gpuUseFloat) {
-    this->gpuStructPointer->use_double = 0;
-  } else if (gpuUseDouble) {
-    this->gpuStructPointer->use_double = 1;
-  } else {
-    this->gpuStructPointer->use_double = 2;
-  }
-
-  this->gpuStructPointer->msize = gpuMatrixSize;
-
-  this->gpuStructPointer->use_device = gpus;
-#else
-  (void)gpus;
-  (void)gpuMatrixSize;
-  (void)gpuUseFloat;
-  (void)gpuUseDouble;
 #endif
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
@@ -288,7 +266,7 @@ Firestarter::Firestarter(
 
 Firestarter::~Firestarter() {
 #ifdef FIRESTARTER_BUILD_CUDA
-  free(this->gpuStructPointer);
+  _cuda.reset();
 #endif
 
   delete _environment;
@@ -298,12 +276,8 @@ void Firestarter::mainThread() {
   this->environment().printThreadSummary();
 
 #ifdef FIRESTARTER_BUILD_CUDA
-  pthread_t gpu_thread;
-  pthread_create(&gpu_thread, NULL, cuda::init_gpu,
-                 (void *)this->gpuStructPointer);
-  while (this->gpuStructPointer->loadingdone != 1) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  }
+  _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
+                                       _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
 
 #if defined(linux) || defined(__linux__)

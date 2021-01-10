@@ -92,6 +92,10 @@ private:
   const bool _dumpRegisters;
   const std::chrono::seconds _dumpRegistersTimeDelta;
   const std::string _dumpRegistersOutpath;
+  const int _gpus;
+  const unsigned _gpuMatrixSize;
+  const bool _gpuUseFloat;
+  const bool _gpuUseDouble;
   const std::chrono::milliseconds _startDelta;
   const std::chrono::milliseconds _stopDelta;
   const bool _measurement;
@@ -118,7 +122,7 @@ private:
 #endif
 
 #ifdef FIRESTARTER_BUILD_CUDA
-  cuda::gpustruct_t *const &gpuStructPointer = _gpuStructPointer;
+  std::unique_ptr<cuda::Cuda> _cuda;
 #endif
 
 #if defined(linux) || defined(__linux__)
@@ -146,10 +150,6 @@ private:
   int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
                              std::string dumpFilePath);
   void joinDumpRegisterWorker();
-#endif
-
-#ifdef FIRESTARTER_BUILD_CUDA
-  cuda::gpustruct_t *_gpuStructPointer;
 #endif
 
   // LoadThreadWorker.cpp

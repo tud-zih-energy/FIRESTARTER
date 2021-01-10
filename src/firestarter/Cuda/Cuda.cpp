@@ -34,29 +34,22 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
+#include <atomic>
+
 #define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
   cuda_safe_call(cuerr, dev_index, __FILE__, __LINE__)
 #define SEED 123
 
-using namespace firestarter;
-
-static volatile cuda::gpustruct_t *gpuvar;
-static void *A = NULL;
-static void *B = NULL;
-static int filled = 0;
-static int max_msize = 0;
-
-static pthread_cond_t wait_for_init_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t wait_for_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+using namespace firestarter::cuda;
 
 // CUDA error checking
 static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
                                   const char *file, const int line) {
   if (cuerr != cudaSuccess && cuerr != 1) {
-    log::error() << "CUDA error at " << file << ":" << line
-                 << ": error code = " << cuerr << " ("
-                 << cudaGetErrorString(cuerr)
-                 << "), device index: " << dev_index;
+    firestarter::log::error()
+        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
+        << " (" << cudaGetErrorString(cuerr)
+        << "), device index: " << dev_index;
     exit(cuerr);
   }
 
@@ -93,10 +86,10 @@ static const char *_cudaGetErrorEnum(cublasStatus_t error) {
 static inline void cuda_safe_call(cublasStatus_t cuerr, int dev_index,
                                   const char *file, const int line) {
   if (cuerr != CUBLAS_STATUS_SUCCESS) {
-    log::error() << "CUBLAS error at " << file << ":" << line
-                 << ": error code = " << cuerr << " ("
-                 << _cudaGetErrorEnum(cuerr)
-                 << "), device index: " << dev_index;
+    firestarter::log::error()
+        << "CUBLAS error at " << file << ":" << line
+        << ": error code = " << cuerr << " (" << _cudaGetErrorEnum(cuerr)
+        << "), device index: " << dev_index;
     exit(cuerr);
   }
 
@@ -110,9 +103,9 @@ static inline void cuda_safe_call(CUresult cuerr, int dev_index,
 
     CUDA_SAFE_CALL(cuGetErrorName(cuerr, &errorString), dev_index);
 
-    log::error() << "CUDA error at " << file << ":" << line
-                 << ": error code = " << cuerr << " (" << errorString
-                 << "), device index: " << dev_index;
+    firestarter::log::error()
+        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
+        << " (" << errorString << "), device index: " << dev_index;
     exit(cuerr);
   }
 
@@ -138,7 +131,8 @@ static int round_up(int num_to_round, int multiple) {
     DATATYPE *array =                                                          \
         static_cast<DATATYPE *>(malloc(sizeof(DATATYPE) * SIZE * SIZE));       \
     if (!array) {                                                              \
-      log::error() << "Could not allocate memory for GPU computation";         \
+      firestarter::log::error()                                                \
+          << "Could not allocate memory for GPU computation";                  \
       exit(ENOMEM);                                                            \
     }                                                                          \
     srand48(SEED);                                                             \
@@ -159,11 +153,10 @@ static void *fillup(int useD, int size) {
 #if (CUDART_VERSION >= 8000)
 // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
 // workload
-static int get_precision(struct cudaDeviceProp properties) {
-  if (gpuvar->use_double == 2 &&
-      properties.singleToDoublePrecisionPerfRatio > 3) {
+static int get_precision(int useDouble, struct cudaDeviceProp properties) {
+  if (useDouble == 2 && properties.singleToDoublePrecisionPerfRatio > 3) {
     return 0;
-  } else if (gpuvar->use_double) {
+  } else if (useDouble) {
     return 1;
   } else {
     return 0;
@@ -171,8 +164,10 @@ static int get_precision(struct cudaDeviceProp properties) {
 }
 #else
 // as precision ratio is not supported return default/user input value
-static int get_precision(struct cudaDeviceProp properties) {
-  if (gpuvar->use_double) {
+static int get_precision(int useDouble, struct cudaDeviceProp properties) {
+  (void)properties;
+
+  if (useDouble) {
     return 1;
   } else {
     return 0;
@@ -180,15 +175,43 @@ static int get_precision(struct cudaDeviceProp properties) {
 }
 #endif
 
-static void *create_load(void *index) {
-  int device_index =
-      *((int *)index); // GPU index. Used to pin this pthread to the GPU.
+static int get_msize(int device_index, int useDouble) {
+  CUcontext context;
+  CUdevice device;
+  size_t memory_avail, memory_total;
+  struct cudaDeviceProp properties;
+
+  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
+  CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
+                 device_index);
+
+  useDouble = get_precision(useDouble, properties);
+
+  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+
+  return round_up(
+      (int)(0.8 * sqrt(((memory_avail) /
+                        ((useDouble ? sizeof(double) : sizeof(float)) * 3)))),
+      1024); // a multiple of 1024 works always well
+}
+
+// GPU index. Used to pin this thread to the GPU.
+static void create_load(std::condition_variable &waitForInitCv,
+                        std::mutex &waitForInitCvMutex, int device_index,
+                        std::atomic<int> &initCount,
+                        volatile unsigned long long *loadVar, int useDouble,
+                        int matrixSize) {
   int iterations, i;
-  int pthread_use_double; // local per-thread variable, if there's a GPU in the
-                          // system without Double Precision support.
+  int max_msize = get_msize(device_index, useDouble);
+  void *A = nullptr;
+  void *B = nullptr;
+
   int size_use = 0;
-  if (gpuvar->msize > 0) {
-    size_use = gpuvar->msize;
+  if (matrixSize > 0) {
+    size_use = matrixSize;
   }
 
   CUcontext context;
@@ -205,23 +228,12 @@ static void *create_load(void *index) {
   CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
                  device_index);
 
-  pthread_use_double = get_precision(properties);
+  // if there's a GPU in the system without Double Precision support, we have to
+  // correct this.
+  useDouble = get_precision(useDouble, properties);
 
-  pthread_mutex_lock(&wait_for_init_mutex);
-  if (pthread_use_double) {
-    if (!filled || filled == 2) {
-      A = fillup(pthread_use_double, max_msize);
-      B = fillup(pthread_use_double, max_msize);
-      filled = 1;
-    }
-  } else {
-    if (!filled || filled == 1) {
-      A = fillup(pthread_use_double, max_msize);
-      B = fillup(pthread_use_double, max_msize);
-      filled = 2;
-    }
-  }
-  pthread_mutex_unlock(&wait_for_init_mutex);
+  A = fillup(useDouble, max_msize);
+  B = fillup(useDouble, max_msize);
 
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
@@ -234,34 +246,31 @@ static void *create_load(void *index) {
 
   // we check for double precision support on the GPU and print errormsg, when
   // the user wants to compute DP on a SP-only-Card.
-  if (pthread_use_double && properties.major <= 1 && properties.minor <= 2) {
+  if (useDouble && properties.major <= 1 && properties.minor <= 2) {
     std::stringstream ss;
     ss << "GPU " << device_index << ": " << properties.name << " ";
 
-    log::error()
+    firestarter::log::error()
         << ss.str() << "Doesn't support double precision.\n"
         << ss.str() << "Compute Capability: " << properties.major << "."
         << properties.minor << ". Requiered for double precision: >=1.3\n"
         << ss.str()
         << "Stressing with single precision instead. Maybe use -f parameter.";
 
-    pthread_use_double = 0;
+    useDouble = 0;
   }
 
   // check if the user has not set a matrix OR has set a too big matrixsite and
   // if this is true: set a good matrixsize
   if (!size_use ||
-      ((size_use * size_use *
-            (pthread_use_double ? sizeof(double) : sizeof(float)) * 3 >
+      ((size_use * size_use * (useDouble ? sizeof(double) : sizeof(float)) * 3 >
         memory_avail))) {
     size_use = round_up(
-        (int)(0.8 *
-              sqrt(((memory_avail) /
-                    ((pthread_use_double ? sizeof(double) : sizeof(float)) *
-                     3)))),
+        (int)(0.8 * sqrt(((memory_avail) /
+                          ((useDouble ? sizeof(double) : sizeof(float)) * 3)))),
         1024); // a multiple of 1024 works always well
   }
-  if (pthread_use_double) {
+  if (useDouble) {
     use_bytes = (size_t)((double)memory_avail);
     memory_size = sizeof(double) * size_use * size_use;
   } else {
@@ -288,29 +297,23 @@ static void *create_load(void *index) {
   }
 
   // save gpuvar->init_count and sys.out
-  pthread_mutex_lock(&wait_for_init_mutex);
+  {
+    std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
 #define TO_MB(x) (unsigned long)(x / 1024 / 1024)
-
-  log::info() << "   GPU " << device_index << "\n"
-              << "    name:           " << properties.name << "\n"
-              << "    memory:         " << TO_MB(memory_avail) << "/"
-              << TO_MB(memory_total) << " MB available (using "
-              << TO_MB(use_bytes) << " MB)\n"
-              << "    matrix size:    " << size_use << "\n"
-              << "    used precision: "
-              << (pthread_use_double ? "double" : "single");
-
+    firestarter::log::info()
+        << "   GPU " << device_index << "\n"
+        << "    name:           " << properties.name << "\n"
+        << "    memory:         " << TO_MB(memory_avail) << "/"
+        << TO_MB(memory_total) << " MB available (using " << TO_MB(use_bytes)
+        << " MB)\n"
+        << "    matrix size:    " << size_use << "\n"
+        << "    used precision: " << (useDouble ? "double" : "single");
 #undef TO_MB
 
-  gpuvar->init_count++;
-
-  // check whether all GPU threads initialized their workload, if so allow other
-  // threads to continue
-  if (gpuvar->init_count == gpuvar->use_device) {
-    pthread_cond_signal(&wait_for_init_cond);
+    initCount++;
   }
-  pthread_mutex_unlock(&wait_for_init_mutex);
+  waitForInitCv.notify_all();
 
   const float alpha = 1.0f;
   const float beta = 0.0f;
@@ -318,9 +321,9 @@ static void *create_load(void *index) {
   const double beta_double = 0.0;
 
   // actual stress begins here
-  while (*gpuvar->loadvar != LOAD_STOP) {
+  while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      if (pthread_use_double) {
+      if (useDouble) {
         CUDA_SAFE_CALL(
             cublasDgemm(
                 cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use, size_use, size_use,
@@ -347,104 +350,97 @@ static void *create_load(void *index) {
   CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
   CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
-  return NULL;
+  free(A);
+  free(B);
 }
 
-static int get_msize(int device_index) {
-  CUcontext context;
-  CUdevice device;
-  int use_double;
-  size_t memory_avail, memory_total;
-  struct cudaDeviceProp properties;
+Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
+           unsigned matrixSize, int gpus) {
+  std::thread t(Cuda::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
+                useDouble, matrixSize, gpus);
+  _initThread = std::move(t);
 
-  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
-  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
-  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
-  CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
-                 device_index);
-
-  use_double = get_precision(properties);
-
-  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
-
-  return round_up(
-      (int)(0.8 * sqrt(((memory_avail) /
-                        ((use_double ? sizeof(double) : sizeof(float)) * 3)))),
-      1024); // a multiple of 1024 works always well
+  std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
+  // wait for gpus to initialize
+  _waitForInitCv.wait(lk);
 }
 
-void *cuda::init_gpu(void *gpu) {
-  gpuvar = (cuda::gpustruct_t *)gpu;
+void Cuda::initGpus(std::condition_variable &cv,
+                    volatile unsigned long long *loadVar, bool useFloat,
+                    bool useDouble, unsigned matrixSize, int gpus) {
+  std::condition_variable waitForInitCv;
+  std::mutex waitForInitCvMutex;
 
-  if (gpuvar->use_device) {
+  if (gpus) {
     CUDA_SAFE_CALL(cuInit(0), -1);
     int devCount;
     CUDA_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
 
     if (devCount) {
-      int *dev = static_cast<int *>(malloc(sizeof(int) * devCount));
-      // creating as many threads as GPUs in the
-      // system.
-      pthread_t gputhreads[devCount];
+      std::vector<std::thread> gpuThreads;
+      std::atomic<int> initCount = 0;
+      int use_double;
 
-      log::info() << "\n  graphics processor characteristics:";
+      if (useFloat) {
+        use_double = 0;
+      } else if (useDouble) {
+        use_double = 1;
+      } else {
+        use_double = 2;
+      }
+
+      firestarter::log::info() << "\n  graphics processor characteristics:";
 
       // use all GPUs if the user gave no information about use_device
-      if (gpuvar->use_device < 0) {
-        gpuvar->use_device = devCount;
+      if (gpus < 0) {
+        gpus = devCount;
       }
 
-      if (gpuvar->use_device > devCount) {
-        log::warn() << "You requested more CUDA devices than available. "
-                       "Maybe you set CUDA_VISIBLE_DEVICES?";
-        log::warn() << "FIRESTARTER will use " << devCount
-                    << " of the requested " << gpuvar->use_device
-                    << " CUDA device(s)";
-        gpuvar->use_device = devCount;
+      if (gpus > devCount) {
+        firestarter::log::warn()
+            << "You requested more CUDA devices than available. "
+               "Maybe you set CUDA_VISIBLE_DEVICES?";
+        firestarter::log::warn()
+            << "FIRESTARTER will use " << devCount << " of the requested "
+            << gpus << " CUDA device(s)";
+        gpus = devCount;
       }
 
-      for (int i = 0; i < gpuvar->use_device; ++i) {
-        int tmp = get_msize(i);
+      {
+        std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
-        if (tmp > max_msize) {
-          max_msize = tmp;
+        for (int i = 0; i < gpus; ++i) {
+          std::thread t(create_load, std::ref(waitForInitCv),
+                        std::ref(waitForInitCvMutex), i, std::ref(initCount),
+                        loadVar, use_double, (int)matrixSize);
+
+          gpuThreads.push_back(std::move(t));
         }
       }
 
-      gpuvar->init_count = 0;
-      pthread_mutex_lock(&wait_for_init_mutex);
-
-      for (int i = 0; i < gpuvar->use_device; ++i) {
-        // creating separate ints, so no race-condition happens when
-        // pthread_create submits the address
-        dev[i] = i;
-        pthread_create(&gputhreads[i], NULL, create_load, (void *)&(dev[i]));
+      {
+        std::unique_lock<std::mutex> lk(waitForInitCvMutex);
+        // wait for all threads to initialize
+        waitForInitCv.wait(lk, [&] { return initCount == gpus; });
       }
 
-      pthread_cond_wait(&wait_for_init_cond, &wait_for_init_mutex);
-      gpuvar->loadingdone = 1;
-      pthread_mutex_unlock(&wait_for_init_mutex);
+      // notify that init is done
+      cv.notify_all();
 
       /* join computation threads */
-      for (int i = 0; i < gpuvar->use_device; ++i) {
-        pthread_join(gputhreads[i], NULL);
+      for (auto &t : gpuThreads) {
+        t.join();
       }
-
-      free(dev);
     } else {
-      log::info() << "    - No CUDA devices. Just stressing CPU(s). Maybe use "
-                     "FIRESTARTER instead of FIRESTARTER_CUDA?";
-      gpuvar->loadingdone = 1;
+      firestarter::log::info()
+          << "    - No CUDA devices. Just stressing CPU(s). Maybe use "
+             "FIRESTARTER instead of FIRESTARTER_CUDA?";
+      cv.notify_all();
     }
   } else {
-    log::info() << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
-                   "FIRESTARTER instead of FIRESTARTER_CUDA?";
-    gpuvar->loadingdone = 1;
+    firestarter::log::info()
+        << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
+           "FIRESTARTER instead of FIRESTARTER_CUDA?";
+    cv.notify_all();
   }
-
-  free(A);
-  free(B);
-
-  return NULL;
 }
