@@ -34,7 +34,9 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
+#include <algorithm>
 #include <atomic>
+#include <type_traits>
 
 #define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
   cuda_safe_call(cuerr, dev_index, __FILE__, __LINE__)
@@ -125,29 +127,18 @@ static int round_up(int num_to_round, int multiple) {
   return num_to_round + multiple - remainder;
 }
 
-#define FILL_SUPPORT(DATATYPE, SIZE)                                           \
-  do {                                                                         \
-    int i;                                                                     \
-    DATATYPE *array =                                                          \
-        static_cast<DATATYPE *>(malloc(sizeof(DATATYPE) * SIZE * SIZE));       \
-    if (!array) {                                                              \
-      firestarter::log::error()                                                \
-          << "Could not allocate memory for GPU computation";                  \
-      exit(ENOMEM);                                                            \
-    }                                                                          \
-    srand48(SEED);                                                             \
-    for (i = 0; i < SIZE * SIZE; i++) {                                        \
-      array[i] = (DATATYPE)(lrand48() % 1000000) / 100000.0;                   \
-    }                                                                          \
-    return array;                                                              \
-  } while (0)
-
-static void *fillup(int useD, int size) {
-  if (useD) {
-    FILL_SUPPORT(double, size);
-  } else {
-    FILL_SUPPORT(float, size);
+template <typename T> static T *allocateAndFillup(int size) {
+  auto array = static_cast<T *>(malloc(sizeof(T) * size * size));
+  if (!array) {
+    firestarter::log::error()
+        << "Could not allocate memory for GPU computation";
+    exit(ENOMEM);
   }
+  srand48(SEED);
+  for (int i = 0; i < size * size; ++i) {
+    array[i] = (T)(lrand48() % 1000000) / 100000.0;
+  }
+  return array;
 }
 
 #if (CUDART_VERSION >= 8000)
@@ -175,7 +166,7 @@ static int get_precision(int useDouble, struct cudaDeviceProp properties) {
 }
 #endif
 
-static int get_msize(int device_index, int useDouble) {
+static int get_precision(int device_index, int useDouble) {
   CUcontext context;
   CUdevice device;
   size_t memory_avail, memory_total;
@@ -190,6 +181,37 @@ static int get_msize(int device_index, int useDouble) {
 
   useDouble = get_precision(useDouble, properties);
 
+  // we check for double precision support on the GPU and print errormsg, when
+  // the user wants to compute DP on a SP-only-Card.
+  if (useDouble && properties.major <= 1 && properties.minor <= 2) {
+    std::stringstream ss;
+    ss << "GPU " << device_index << ": " << properties.name << " ";
+
+    firestarter::log::error()
+        << ss.str() << "Doesn't support double precision.\n"
+        << ss.str() << "Compute Capability: " << properties.major << "."
+        << properties.minor << ". Requiered for double precision: >=1.3\n"
+        << ss.str()
+        << "Stressing with single precision instead. Maybe use -f parameter.";
+
+    useDouble = 0;
+  }
+
+  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+
+  return useDouble;
+}
+
+static int get_msize(int device_index, int useDouble) {
+  CUcontext context;
+  CUdevice device;
+  size_t memory_avail, memory_total;
+
+  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
+
   CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 
   return round_up(
@@ -198,16 +220,36 @@ static int get_msize(int device_index, int useDouble) {
       1024); // a multiple of 1024 works always well
 }
 
+static cublasStatus_t gemm(cublasHandle_t handle, cublasOperation_t transa,
+                           cublasOperation_t transb, int &m, int &n, int &k,
+                           const float *alpha, const float *A, int &lda,
+                           const float *B, int &ldb, const float *beta,
+                           float *C, int &ldc) {
+  return cublasSgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
+                     beta, C, ldc);
+}
+
+static cublasStatus_t gemm(cublasHandle_t handle, cublasOperation_t transa,
+                           cublasOperation_t transb, int &m, int &n, int &k,
+                           const double *alpha, const double *A, int &lda,
+                           const double *B, int &ldb, const double *beta,
+                           double *C, int &ldc) {
+  return cublasDgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
+                     beta, C, ldc);
+}
+
 // GPU index. Used to pin this thread to the GPU.
+template <typename T>
 static void create_load(std::condition_variable &waitForInitCv,
                         std::mutex &waitForInitCvMutex, int device_index,
                         std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int useDouble,
-                        int matrixSize) {
+                        volatile unsigned long long *loadVar, int matrixSize,
+                        T *A, T *B) {
+  static_assert(
+      std::is_same<T, float>::value || std::is_same<T, double>::value,
+      "create_load<T>: Template argument T must be either float or double");
+
   int iterations, i;
-  int max_msize = get_msize(device_index, useDouble);
-  void *A = nullptr;
-  void *B = nullptr;
 
   int size_use = 0;
   if (matrixSize > 0) {
@@ -228,13 +270,6 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
                  device_index);
 
-  // if there's a GPU in the system without Double Precision support, we have to
-  // correct this.
-  useDouble = get_precision(useDouble, properties);
-
-  A = fillup(useDouble, max_msize);
-  B = fillup(useDouble, max_msize);
-
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
   CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
@@ -244,39 +279,14 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUdeviceptr b_data_ptr;
   CUdeviceptr c_data_ptr;
 
-  // we check for double precision support on the GPU and print errormsg, when
-  // the user wants to compute DP on a SP-only-Card.
-  if (useDouble && properties.major <= 1 && properties.minor <= 2) {
-    std::stringstream ss;
-    ss << "GPU " << device_index << ": " << properties.name << " ";
-
-    firestarter::log::error()
-        << ss.str() << "Doesn't support double precision.\n"
-        << ss.str() << "Compute Capability: " << properties.major << "."
-        << properties.minor << ". Requiered for double precision: >=1.3\n"
-        << ss.str()
-        << "Stressing with single precision instead. Maybe use -f parameter.";
-
-    useDouble = 0;
-  }
-
   // check if the user has not set a matrix OR has set a too big matrixsite and
   // if this is true: set a good matrixsize
-  if (!size_use ||
-      ((size_use * size_use * (useDouble ? sizeof(double) : sizeof(float)) * 3 >
-        memory_avail))) {
-    size_use = round_up(
-        (int)(0.8 * sqrt(((memory_avail) /
-                          ((useDouble ? sizeof(double) : sizeof(float)) * 3)))),
-        1024); // a multiple of 1024 works always well
+  if (!size_use || ((size_use * size_use * sizeof(T) * 3 > memory_avail))) {
+    size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
+                        1024); // a multiple of 1024 works always well
   }
-  if (useDouble) {
-    use_bytes = (size_t)((double)memory_avail);
-    memory_size = sizeof(double) * size_use * size_use;
-  } else {
-    use_bytes = (size_t)((float)memory_avail);
-    memory_size = sizeof(float) * size_use * size_use;
-  }
+  use_bytes = (size_t)((T)memory_avail);
+  memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
 
   // allocating memory on the GPU
@@ -308,38 +318,25 @@ static void create_load(std::condition_variable &waitForInitCv,
         << TO_MB(memory_total) << " MB available (using " << TO_MB(use_bytes)
         << " MB)\n"
         << "    matrix size:    " << size_use << "\n"
-        << "    used precision: " << (useDouble ? "double" : "single");
+        << "    used precision: "
+        << ((sizeof(T) == sizeof(double)) ? "double" : "single");
 #undef TO_MB
 
     initCount++;
   }
   waitForInitCv.notify_all();
 
-  const float alpha = 1.0f;
-  const float beta = 0.0f;
-  const double alpha_double = 1.0;
-  const double beta_double = 0.0;
+  const T alpha = 1.0;
+  const T beta = 0.0;
 
   // actual stress begins here
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      if (useDouble) {
-        CUDA_SAFE_CALL(
-            cublasDgemm(
-                cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use, size_use, size_use,
-                &alpha_double, (const double *)a_data_ptr, size_use,
-                (const double *)b_data_ptr, size_use, &beta_double,
-                (double *)c_data_ptr + i * size_use * size_use, size_use),
-            device_index);
-      } else {
-        CUDA_SAFE_CALL(
-            cublasSgemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use, size_use,
-                        size_use, &alpha, (const float *)a_data_ptr, size_use,
-                        (const float *)b_data_ptr, size_use, &beta,
-                        (float *)c_data_ptr + i * size_use * size_use,
-                        size_use),
-            device_index);
-      }
+      CUDA_SAFE_CALL(gemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use, size_use,
+                          size_use, &alpha, (const T *)a_data_ptr, size_use,
+                          (const T *)b_data_ptr, size_use, &beta,
+                          (T *)c_data_ptr + i * size_use * size_use, size_use),
+                     device_index);
       CUDA_SAFE_CALL(cudaDeviceSynchronize(), device_index);
     }
   }
@@ -349,9 +346,6 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
   CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
   CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
-
-  free(A);
-  free(B);
 }
 
 Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
@@ -406,15 +400,50 @@ void Cuda::initGpus(std::condition_variable &cv,
         gpus = devCount;
       }
 
+      // we allocate two arrays A and B our inputs each for single and double
+      // precision
+      int maxSingleMatrixSize = 0;
+      int maxDoubleMatrixSize = 0;
+
+      std::vector<int> precisionVector;
+
+      for (int i = 0; i < gpus; ++i) {
+        int precision = get_precision(i, use_double);
+        precisionVector.push_back(precision);
+        int mSize = get_msize(i, precision);
+
+        if (precision) {
+          maxDoubleMatrixSize = std::max(maxDoubleMatrixSize, mSize);
+        } else {
+          maxSingleMatrixSize = std::max(maxSingleMatrixSize, mSize);
+        }
+      }
+
+      auto ASingle = allocateAndFillup<float>(maxSingleMatrixSize);
+      auto BSingle = allocateAndFillup<float>(maxSingleMatrixSize);
+
+      auto ADouble = allocateAndFillup<double>(maxDoubleMatrixSize);
+      auto BDouble = allocateAndFillup<double>(maxDoubleMatrixSize);
+
       {
         std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
         for (int i = 0; i < gpus; ++i) {
-          std::thread t(create_load, std::ref(waitForInitCv),
-                        std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                        loadVar, use_double, (int)matrixSize);
+          // if there's a GPU in the system without Double Precision support, we
+          // have to correct this.
+          int precision = precisionVector[i];
 
-          gpuThreads.push_back(std::move(t));
+          if (precision) {
+            std::thread t(create_load<double>, std::ref(waitForInitCv),
+                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
+                          loadVar, (int)matrixSize, ADouble, BDouble);
+            gpuThreads.push_back(std::move(t));
+          } else {
+            std::thread t(create_load<float>, std::ref(waitForInitCv),
+                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
+                          loadVar, (int)matrixSize, ASingle, BSingle);
+            gpuThreads.push_back(std::move(t));
+          }
         }
       }
 
@@ -430,6 +459,19 @@ void Cuda::initGpus(std::condition_variable &cv,
       /* join computation threads */
       for (auto &t : gpuThreads) {
         t.join();
+      }
+
+      if (ASingle != nullptr) {
+        free(ASingle);
+      }
+      if (BSingle != nullptr) {
+        free(BSingle);
+      }
+      if (ADouble != nullptr) {
+        free(ADouble);
+      }
+      if (BDouble != nullptr) {
+        free(BDouble);
       }
     } else {
       firestarter::log::info()
