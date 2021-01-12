@@ -43,6 +43,10 @@
 #elif defined(__MINGW64__)
 #define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
 #define ALIGNED_FREE _mm_free
+#elif defined(_MSC_VER)
+#define ALIGNED_MALLOC(size, align)                                            \
+  _aligned_malloc(PAD_SIZE(size, align), align)
+#define ALIGNED_FREE _aligned_free
 #else
 #define ALIGNED_MALLOC(size, align)                                            \
   std::aligned_alloc(align, PAD_SIZE(size, align))

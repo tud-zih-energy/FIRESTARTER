@@ -31,6 +31,10 @@
 #include <functional>
 #include <thread>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 using namespace firestarter;
 
 Firestarter::Firestarter(
@@ -352,7 +356,11 @@ void Firestarter::mainThread() {
 void Firestarter::setLoad(unsigned long long value) {
   // signal load change to workers
   Firestarter::loadVar = value;
+#ifndef _MSC_VER
   __asm__ __volatile__("mfence;");
+#else
+  _mm_mfence();
+#endif
 }
 
 void Firestarter::sigalrmHandler(int signum) { (void)signum; }

@@ -46,9 +46,11 @@
 #include <string>
 #include <utility>
 
+#if defined(linux) || defined(__linux__)
 extern "C" {
 #include <pthread.h>
 }
+#endif
 
 namespace firestarter {
 

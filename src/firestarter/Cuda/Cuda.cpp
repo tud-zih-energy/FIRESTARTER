@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <type_traits>
 
 #define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
@@ -134,9 +135,9 @@ template <typename T> static T *allocateAndFillup(int size) {
         << "Could not allocate memory for GPU computation";
     exit(ENOMEM);
   }
-  srand48(SEED);
+  std::srand(SEED);
   for (int i = 0; i < size * size; ++i) {
-    array[i] = (T)(lrand48() % 1000000) / 100000.0;
+    array[i] = (T)(std::rand() % 1000000) / 100000.0;
   }
   return array;
 }
@@ -412,10 +413,12 @@ void Cuda::initGpus(std::condition_variable &cv,
         precisionVector.push_back(precision);
         int mSize = get_msize(i, precision);
 
+        // DO NOT remove the parentheses aroud std::max
+        // https://stackoverflow.com/a/2789509
         if (precision) {
-          maxDoubleMatrixSize = std::max(maxDoubleMatrixSize, mSize);
+          maxDoubleMatrixSize = (std::max)(maxDoubleMatrixSize, mSize);
         } else {
-          maxSingleMatrixSize = std::max(maxSingleMatrixSize, mSize);
+          maxSingleMatrixSize = (std::max)(maxSingleMatrixSize, mSize);
         }
       }
 

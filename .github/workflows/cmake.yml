@@ -110,6 +110,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019]
+        cfg:
+          - { CUDA: '0', MSVC: true }
+          - { CUDA: '0', MSVC: false }
+          - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
 
@@ -117,35 +121,77 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: '0'
-    - name: Install Mingw and CMake
+    - name: Install CMake
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install mingw cmake
+        args: install cmake
+    - name: Install Mingw
+      uses: crazy-max/ghaction-chocolatey@v1
+      if: matrix.cfg.MSVC == false
+      with:
+        args: install mingw
+    - name: Install CUDA Toolkit
+      if: matrix.cfg.CUDA == '11.0'
+      shell: pwsh
+      run: |
+        Set-ExecutionPolicy unrestricted
+        & '.github\\install-cuda.ps1' -Version '11.0'
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: matrix.cfg.MSVC == true
     - name: Create build directory
       shell: pwsh
       run: |
         mkdir build
     - name: Run CMake configure
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       shell: pwsh
       run: |
         cd build
         cmake -G "MinGW Makefiles" ..
+    - name: Run CMake configure
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
+      shell: pwsh
+      run: |
+        cd build
+        cmake -G "NMake Makefiles" ..
+    - name: Run CMake configure
+      if: matrix.cfg.CUDA != '0'
+      shell: pwsh
+      run: |
+        cd build
+        cmake -G "NMake Makefiles" -DFIRESTARTER_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
         cd build
-        make -j2
+        cmake --build . -j2
+    - name: Copy Hwloc DLL
+      shell: pwsh
+      if: matrix.cfg.MSVC == true
+      run: |
+        cd build
+        cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
     - name: Strip binary
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       run: |
         cd build
         strip src\FIRESTARTER.exe
     - name: Test FIRESTARTER
+      if: matrix.cfg.CUDA == '0'
       shell: pwsh
       run: .\build\src\FIRESTARTER.exe -t 1
     - uses: actions/upload-artifact@v2
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       with:
         name: FIRESTARTER-windows
         path: build\src\FIRESTARTER.exe
+    - uses: actions/upload-artifact@v2
+      if: matrix.cfg.CUDA != '0'
+      with:
+        name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
+        path: |
+          build\src\FIRESTARTER_CUDA.exe
+          build\src\libhwloc-15.dll
   build-macos:
     strategy:
       fail-fast: false

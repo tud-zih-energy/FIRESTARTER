@@ -275,7 +275,7 @@ CPUTopology::CPUTopology(std::string architecture)
   // use wmic
   std::array<char, 128> buffer;
   auto cmd = "wmic cpu get name";
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
   if (!pipe) {
     log::warn() << "Could not determine processor-name";
   }

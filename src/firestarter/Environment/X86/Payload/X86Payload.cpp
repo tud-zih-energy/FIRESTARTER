@@ -22,6 +22,11 @@
 #include <chrono>
 #include <thread>
 
+#ifdef _MSC_VER
+#include <array>
+#include <intrin.h>
+#endif
+
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 using namespace firestarter::environment::x86::payload;
@@ -29,20 +34,38 @@ using namespace firestarter::environment::x86::payload;
 void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
                                  unsigned long long period) {
   int nap;
+#ifdef _MSC_VER
+  std::array<int, 4> cpuid;
+#endif
 
   nap = period / 100;
+#ifndef _MSC_VER
   __asm__ __volatile__("mfence;"
                        "cpuid;" ::
                            : "eax", "ebx", "ecx", "edx");
+#else
+  _mm_mfence();
+  __cpuid(cpuid.data(), 0);
+#endif
   // while signal low load
   while (*addrHigh == LOAD_LOW) {
+#ifndef _MSC_VER
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");
+#else
+    _mm_mfence();
+    __cpuid(cpuid.data(), 0);
+#endif
     std::this_thread::sleep_for(std::chrono::microseconds(nap));
+#ifndef _MSC_VER
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
                              : "eax", "ebx", "ecx", "edx");
+#else
+    _mm_mfence();
+    __cpuid(cpuid.data(), 0);
+#endif
   }
 }
 

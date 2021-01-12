@@ -24,6 +24,13 @@
 
 #include <ctime>
 
+#ifdef _MSC_VER
+#include <array>
+#include <intrin.h>
+
+#pragma intrinsic(__rdtsc)
+#endif
+
 using namespace firestarter::environment::x86;
 
 X86CPUTopology::X86CPUTopology()
@@ -205,18 +212,28 @@ unsigned long long X86CPUTopology::clockrate() const {
 }
 
 unsigned long long X86CPUTopology::timestamp() const {
+#ifndef _MSC_VER
   unsigned long long reg_a, reg_d;
+#else
+  unsigned long long i;
+#endif
 
   if (!this->hasRdtsc()) {
     return 0;
   }
 
+#ifndef _MSC_VER
   __asm__ __volatile__("rdtsc;" : "=a"(reg_a), "=d"(reg_d));
   return (reg_d << 32) | (reg_a & 0xffffffffULL);
+#else
+  i = __rdtsc();
+  return i;
+#endif
 }
 
 void X86CPUTopology::cpuid(unsigned long long *a, unsigned long long *b,
                            unsigned long long *c, unsigned long long *d) const {
+#ifndef _MSC_VER
   unsigned long long reg_a, reg_b, reg_c, reg_d;
 
   __asm__ __volatile__("cpuid;"
@@ -226,4 +243,14 @@ void X86CPUTopology::cpuid(unsigned long long *a, unsigned long long *b,
   *b = reg_b;
   *c = reg_c;
   *d = reg_d;
+#else
+  std::array<int, 4> cpuid;
+
+  __cpuidex(cpuid.data(), *a, *c);
+
+  *a = cpuid[0];
+  *b = cpuid[1];
+  *c = cpuid[2];
+  *d = cpuid[3];
+#endif
 }

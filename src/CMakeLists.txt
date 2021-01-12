@@ -71,12 +71,21 @@ if (FIRESTARTER_CUDA)
 		)
 	target_compile_features(FIRESTARTER_CUDA PRIVATE cxx_std_17)
 
-	target_link_libraries(FIRESTARTER_CUDA
-		${FIRESTARTER_LINK_LIBRARIES}
-		${CUDA_LIBRARIES}
-		cuda 
-		${CUDA_CUBLAS_LIBRARIES}
-		)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(FIRESTARTER_CUDA
+			${FIRESTARTER_LINK_LIBRARIES}
+			${CUDA_LIBRARIES}
+			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib 
+			${CUDA_CUBLAS_LIBRARIES}
+			)
+	else()
+		target_link_libraries(FIRESTARTER_CUDA
+			${FIRESTARTER_LINK_LIBRARIES}
+			${CUDA_LIBRARIES}
+			cuda
+			${CUDA_CUBLAS_LIBRARIES}
+			)
+	endif()
 else()
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")

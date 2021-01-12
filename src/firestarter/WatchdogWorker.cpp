@@ -28,44 +28,6 @@
 #include <SCOREP_User.h>
 #endif
 
-#define NSEC_PER_SEC 1000000000
-
-#define DO_SLEEP(sleepret, target, remaining)                                  \
-  do {                                                                         \
-    if (this->_watchdog_terminate) {                                           \
-      log::info() << "\nCaught shutdown signal, ending now ...";               \
-      return EXIT_SUCCESS;                                                     \
-    }                                                                          \
-    sleepret = nanosleep(&target, &remaining);                                 \
-    while (sleepret == -1 && errno == EINTR && !this->_watchdog_terminate) {   \
-      sleepret = nanosleep(&remaining, &remaining);                            \
-    }                                                                          \
-    if (sleepret == -1) {                                                      \
-      switch (errno) {                                                         \
-      case EFAULT:                                                             \
-        log::error()                                                           \
-            << "Found a bug in FIRESTARTER, error on copying for nanosleep";   \
-        break;                                                                 \
-      case EINVAL:                                                             \
-        log::error()                                                           \
-            << "Found a bug in FIRESTARTER, invalid setting for nanosleep";    \
-        break;                                                                 \
-      case EINTR:                                                              \
-        log::info() << "\nCaught shutdown signal, ending now ...";             \
-        break;                                                                 \
-      default:                                                                 \
-        log::error() << "Calling nanosleep: " << errno;                        \
-        break;                                                                 \
-      }                                                                        \
-      this->setLoad(LOAD_STOP);                                                \
-      if (errno == EINTR) {                                                    \
-        return EXIT_SUCCESS;                                                   \
-      } else {                                                                 \
-        return EXIT_FAILURE;                                                   \
-      }                                                                        \
-    }                                                                          \
-  } while (0)
-
 using namespace firestarter;
 
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
@@ -76,10 +38,6 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
   using nsec = std::chrono::nanoseconds;
   using usec = std::chrono::microseconds;
   using sec = std::chrono::seconds;
-
-  // values for wrapper to pthreads nanosleep
-  int sleepret;
-  struct timespec target, remaining;
 
   // calculate idle time to be the rest of the period
   auto idle = period - load;
@@ -115,8 +73,6 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
       // calculate values for nanosleep
       nsec load_nsec = load - load_reduction;
-      target.tv_nsec = load_nsec.count() % NSEC_PER_SEC;
-      target.tv_sec = load_nsec.count() / NSEC_PER_SEC;
 
       // wait for time to be ellapsed with high load
 #ifdef ENABLE_VTRACING
@@ -126,7 +82,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH",
                                        SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-      DO_SLEEP(sleepret, target, remaining);
+      std::this_thread::sleep_for(load_nsec);
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_HIGH");
 #endif
@@ -146,8 +102,6 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
       // calculate values for nanosleep
       nsec idle_nsec = idle - idle_reduction;
-      target.tv_nsec = idle_nsec.count() % NSEC_PER_SEC;
-      target.tv_sec = idle_nsec.count() / NSEC_PER_SEC;
 
       // wait for time to be ellapsed with low load
 #ifdef ENABLE_VTRACING
@@ -157,7 +111,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW",
                                        SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-      DO_SLEEP(sleepret, target, remaining);
+      std::this_thread::sleep_for(idle_nsec);
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_LOW");
 #endif
@@ -181,10 +135,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
   // if timeout is set, sleep for this time and stop execution.
   // else return and wait for sigterm handler to request threads to stop.
   if (timeout > sec::zero()) {
-    target.tv_nsec = 0;
-    target.tv_sec = timeout.count();
-
-    DO_SLEEP(sleepret, target, remaining);
+    std::this_thread::sleep_for(timeout);
 
     this->setLoad(LOAD_STOP);
 
