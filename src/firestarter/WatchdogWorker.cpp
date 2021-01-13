@@ -82,20 +82,22 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH",
                                        SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-      std::this_thread::sleep_for(load_nsec);
+      {
+        std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
+        // abort waiting if we get the interrupt signal
+        this->_watchdogTerminateAlert.wait_for(
+            lk, load_nsec, [this]() { return this->_watchdog_terminate; });
+        // terminate on interrupt
+        if (this->_watchdog_terminate) {
+          return EXIT_SUCCESS;
+        }
+      }
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_HIGH");
 #endif
 #ifdef ENABLE_SCOREP
       SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
 #endif
-
-      // terminate if an interrupt by the user was fired
-      if (this->_watchdog_terminate) {
-        this->setLoad(LOAD_STOP);
-
-        return EXIT_SUCCESS;
-      }
 
       // signal low load
       this->setLoad(LOAD_LOW);
@@ -111,7 +113,16 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW",
                                        SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-      std::this_thread::sleep_for(idle_nsec);
+      {
+        std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
+        // abort waiting if we get the interrupt signal
+        this->_watchdogTerminateAlert.wait_for(
+            lk, idle_nsec, [this]() { return this->_watchdog_terminate; });
+        // terminate on interrupt
+        if (this->_watchdog_terminate) {
+          return EXIT_SUCCESS;
+        }
+      }
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_LOW");
 #endif
@@ -123,11 +134,14 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       time += period;
 
       // exit when termination signal is received or timeout is reached
-      if (this->_watchdog_terminate ||
-          (timeout > sec::zero() && (time > timeout))) {
-        this->setLoad(LOAD_STOP);
+      {
+        std::lock_guard<std::mutex> lk(this->_watchdogTerminateMutex);
+        if (this->_watchdog_terminate ||
+            (timeout > sec::zero() && (time > timeout))) {
+          this->setLoad(LOAD_STOP);
 
-        return EXIT_SUCCESS;
+          return EXIT_SUCCESS;
+        }
       }
     }
   }
@@ -135,7 +149,12 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
   // if timeout is set, sleep for this time and stop execution.
   // else return and wait for sigterm handler to request threads to stop.
   if (timeout > sec::zero()) {
-    std::this_thread::sleep_for(timeout);
+    {
+      std::unique_lock<std::mutex> lk(Firestarter::_watchdogTerminateMutex);
+      // abort waiting if we get the interrupt signal
+      Firestarter::_watchdogTerminateAlert.wait_for(
+          lk, timeout, []() { return Firestarter::_watchdog_terminate; });
+    }
 
     this->setLoad(LOAD_STOP);
 

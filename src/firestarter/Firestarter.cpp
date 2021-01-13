@@ -368,11 +368,15 @@ void Firestarter::sigalrmHandler(int signum) { (void)signum; }
 void Firestarter::sigtermHandler(int signum) {
   (void)signum;
 
-  // required for cases load = {0,100}, which do no enter the loop
   Firestarter::setLoad(LOAD_STOP);
   // exit loop
   // used in case of 0 < load < 100
-  Firestarter::_watchdog_terminate = true;
+  // or interrupt sleep for timeout
+  {
+    std::lock_guard<std::mutex> lk(Firestarter::_watchdogTerminateMutex);
+    Firestarter::_watchdog_terminate = true;
+  }
+  Firestarter::_watchdogTerminateAlert.notify_all();
 
 #if defined(linux) || defined(__linux__)
   // if we have optimization running stop it

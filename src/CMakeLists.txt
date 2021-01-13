@@ -41,7 +41,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 SET(FIRESTARTER_LINK_LIBRARIES
-	Threads::Threads
 	hwloc
 	AsmJit::AsmJit
 	Nitro::log
@@ -73,6 +72,7 @@ if (FIRESTARTER_CUDA)
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_CUDA
+			Threads::Threads
 			${FIRESTARTER_LINK_LIBRARIES}
 			${CUDA_LIBRARIES}
 			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib 
@@ -80,6 +80,7 @@ if (FIRESTARTER_CUDA)
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA
+			Threads::Threads
 			${FIRESTARTER_LINK_LIBRARIES}
 			${CUDA_LIBRARIES}
 			cuda
@@ -87,18 +88,33 @@ if (FIRESTARTER_CUDA)
 			)
 	endif()
 else()
-	# static linking is not supported on Darwin, see Apple Technical QA1118
-	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	else()
-		if (FIRESTARTER_LINK_STATIC)
-			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
-		endif()
-	endif()
-
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
 		)
 	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
+
+	# static linking is not supported on Darwin, see Apple Technical QA1118
+	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		target_link_libraries(FIRESTARTER
+			Threads::Threads
+			)
+	else()
+		if (FIRESTARTER_LINK_STATIC)
+			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
+			# we are using pthreads
+			# static linking with pthreads and std::condition_variabale is evil and will cause segfaults
+			# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909#c1
+			if(CMAKE_THREAD_LIBS_INIT MATCHES "^.*pthread.*$")
+				target_link_libraries(FIRESTARTER
+					"-Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+					)
+			endif()
+		else()
+			target_link_libraries(FIRESTARTER
+				Threads::Threads
+				)
+		endif()
+	endif()
 
 	target_link_libraries(FIRESTARTER
 		${FIRESTARTER_LINK_LIBRARIES}

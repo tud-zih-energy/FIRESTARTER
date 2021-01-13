@@ -41,8 +41,10 @@
 #endif
 
 #include <chrono>
+#include <condition_variable>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -171,8 +173,10 @@ private:
   static void sigalrmHandler(int signum);
   static void sigtermHandler(int signum);
 
-  // variable to control the termination of the watchdog
+  // variables to control the termination of the watchdog
   inline static bool _watchdog_terminate = false;
+  inline static std::condition_variable _watchdogTerminateAlert;
+  inline static std::mutex _watchdogTerminateMutex;
 
   // variable to control the load of the threads
   inline static volatile unsigned long long loadVar = LOAD_LOW;
