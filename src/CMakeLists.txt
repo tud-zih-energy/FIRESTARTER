@@ -77,6 +77,7 @@ if (FIRESTARTER_CUDA)
 			${CUDA_LIBRARIES}
 			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib 
 			${CUDA_CUBLAS_LIBRARIES}
+			${CUDA_curand_LIBRARY}
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA
@@ -85,6 +86,7 @@ if (FIRESTARTER_CUDA)
 			${CUDA_LIBRARIES}
 			cuda
 			${CUDA_CUBLAS_LIBRARIES}
+			${CUDA_curand_LIBRARY}
 			)
 	endif()
 else()

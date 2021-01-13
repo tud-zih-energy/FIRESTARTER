@@ -32,11 +32,11 @@
 
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <curand_kernel.h>
 #include <cuda_runtime_api.h>
 
 #include <algorithm>
 #include <atomic>
-#include <cstdlib>
 #include <type_traits>
 
 #define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
@@ -115,6 +115,52 @@ static inline void cuda_safe_call(CUresult cuerr, int dev_index,
   return;
 }
 
+static const char *_curandGetErrorEnum(curandStatus_t cuerr) {
+switch (cuerr) {
+        case CURAND_STATUS_SUCCESS:
+            return "CURAND_STATUS_SUCCESS";
+	case CURAND_STATUS_VERSION_MISMATCH:
+            return "CURAND_STATUS_VERSION_MISMATCH";
+        case CURAND_STATUS_NOT_INITIALIZED:
+            return "CURAND_STATUS_NOT_INITIALIZED";
+        case CURAND_STATUS_ALLOCATION_FAILED:
+            return "CURAND_STATUS_ALLOCATION_FAILED";
+        case CURAND_STATUS_TYPE_ERROR:
+            return "CURAND_STATUS_TYPE_ERROR";
+        case CURAND_STATUS_OUT_OF_RANGE:
+            return "CURAND_STATUS_OUT_OF_RANGE";
+        case CURAND_STATUS_LENGTH_NOT_MULTIPLE:
+            return "CURAND_STATUS_LENGTH_NOT_MULTIPLE";
+        case CURAND_STATUS_DOUBLE_PRECISION_REQUIRED:
+            return "CURAND_STATUS_DOUBLE_PRECISION_REQUIRED";
+        case CURAND_STATUS_LAUNCH_FAILURE:
+            return "CURAND_STATUS_LAUNCH_FAILURE";
+        case CURAND_STATUS_PREEXISTING_FAILURE:
+            return "CURAND_STATUS_PREEXISTING_FAILURE";
+        case CURAND_STATUS_INITIALIZATION_FAILED:
+            return "CURAND_STATUS_INITIALIZATION_FAILED";
+        case CURAND_STATUS_ARCH_MISMATCH:
+            return "CURAND_STATUS_ARCH_MISMATCH";
+        case CURAND_STATUS_INTERNAL_ERROR:
+            return "CURAND_STATUS_INTERNAL_ERROR";
+    }
+
+    return "<unknown>";
+}
+
+static inline void cuda_safe_call(curandStatus_t cuerr, int dev_index,
+                                  const char *file, const int line) {
+	if (cuerr != CURAND_STATUS_SUCCESS) {
+    firestarter::log::error()
+        << "cuRAND error at " << file << ":" << line
+        << ": error code = " << cuerr << " (" << _curandGetErrorEnum(cuerr)
+        << "), device index: " << dev_index;
+    exit(cuerr);
+	}
+
+	return;
+}
+
 static int round_up(int num_to_round, int multiple) {
   if (multiple == 0) {
     return num_to_round;
@@ -126,20 +172,6 @@ static int round_up(int num_to_round, int multiple) {
   }
 
   return num_to_round + multiple - remainder;
-}
-
-template <typename T> static T *allocateAndFillup(int size) {
-  auto array = static_cast<T *>(malloc(sizeof(T) * size * size));
-  if (!array) {
-    firestarter::log::error()
-        << "Could not allocate memory for GPU computation";
-    exit(ENOMEM);
-  }
-  std::srand(SEED);
-  for (int i = 0; i < size * size; ++i) {
-    array[i] = (T)(std::rand() % 1000000) / 100000.0;
-  }
-  return array;
 }
 
 #if (CUDART_VERSION >= 8000)
@@ -239,13 +271,22 @@ static cublasStatus_t gemm(cublasHandle_t handle, cublasOperation_t transa,
                      beta, C, ldc);
 }
 
+static curandStatus_t generateUniform(curandGenerator_t generator,
+                                      float *outputPtr, size_t num) {
+  return curandGenerateUniform(generator, outputPtr, num);
+}
+
+static curandStatus_t generateUniform(curandGenerator_t generator,
+                                      double *outputPtr, size_t num) {
+  return curandGenerateUniformDouble(generator, outputPtr, num);
+}
+
 // GPU index. Used to pin this thread to the GPU.
 template <typename T>
 static void create_load(std::condition_variable &waitForInitCv,
                         std::mutex &waitForInitCvMutex, int device_index,
                         std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize,
-                        T *A, T *B) {
+                        volatile unsigned long long *loadVar, int matrixSize) {
   static_assert(
       std::is_same<T, float>::value || std::is_same<T, double>::value,
       "create_load<T>: Template argument T must be either float or double");
@@ -296,14 +337,20 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
                  device_index);
 
-  // moving matrices A and B to the GPU
-  CUDA_SAFE_CALL(cuMemcpyHtoD(a_data_ptr, A, memory_size), device_index);
-  CUDA_SAFE_CALL(cuMemcpyHtoD(b_data_ptr, B, memory_size), device_index);
+  // initialize matrix A and B on the GPU with random values
+  curandGenerator_t random_gen;
+  CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT), device_index);
+  CUDA_SAFE_CALL(curandSetPseudoRandomGeneratorSeed(random_gen, SEED), device_index);
+  CUDA_SAFE_CALL(
+      generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use), device_index);
+  CUDA_SAFE_CALL(
+      generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use), device_index);
+  CUDA_SAFE_CALL(curandDestroyGenerator(random_gen), device_index);
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
     CUDA_SAFE_CALL(
-        cuMemcpyHtoD(c_data_ptr + i * size_use * size_use, A, memory_size),
+	cuMemcpyDtoD(c_data_ptr + i * size_use * size_use, a_data_ptr, memory_size),
         device_index);
   }
 
@@ -401,32 +448,12 @@ void Cuda::initGpus(std::condition_variable &cv,
         gpus = devCount;
       }
 
-      // we allocate two arrays A and B our inputs each for single and double
-      // precision
-      int maxSingleMatrixSize = 0;
-      int maxDoubleMatrixSize = 0;
-
       std::vector<int> precisionVector;
 
       for (int i = 0; i < gpus; ++i) {
         int precision = get_precision(i, use_double);
         precisionVector.push_back(precision);
-        int mSize = get_msize(i, precision);
-
-        // DO NOT remove the parentheses aroud std::max
-        // https://stackoverflow.com/a/2789509
-        if (precision) {
-          maxDoubleMatrixSize = (std::max)(maxDoubleMatrixSize, mSize);
-        } else {
-          maxSingleMatrixSize = (std::max)(maxSingleMatrixSize, mSize);
-        }
       }
-
-      auto ASingle = allocateAndFillup<float>(maxSingleMatrixSize);
-      auto BSingle = allocateAndFillup<float>(maxSingleMatrixSize);
-
-      auto ADouble = allocateAndFillup<double>(maxDoubleMatrixSize);
-      auto BDouble = allocateAndFillup<double>(maxDoubleMatrixSize);
 
       {
         std::lock_guard<std::mutex> lk(waitForInitCvMutex);
@@ -439,12 +466,12 @@ void Cuda::initGpus(std::condition_variable &cv,
           if (precision) {
             std::thread t(create_load<double>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, ADouble, BDouble);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           } else {
             std::thread t(create_load<float>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, ASingle, BSingle);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           }
         }
@@ -462,19 +489,6 @@ void Cuda::initGpus(std::condition_variable &cv,
       /* join computation threads */
       for (auto &t : gpuThreads) {
         t.join();
-      }
-
-      if (ASingle != nullptr) {
-        free(ASingle);
-      }
-      if (BSingle != nullptr) {
-        free(BSingle);
-      }
-      if (ADouble != nullptr) {
-        free(ADouble);
-      }
-      if (BDouble != nullptr) {
-        free(BDouble);
       }
     } else {
       firestarter::log::info()

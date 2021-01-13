@@ -7,7 +7,7 @@ $packageArgs = @{
   checksum     = '80ae0fdbe04759123f3cab81f2aadabd'
   checksumType = 'md5'
 
-  silentArgs   = '/s nvcc_11.0 cublas_11.0 cublas_dev_11.0 cudart_11.0'
+  silentArgs   = '/s nvcc_11.0 cublas_11.0 cublas_dev_11.0 cudart_11.0 curand_11.0 curand_dev_11.0'
 }
 
 Install-ChocolateyPackage @packageArgs
