@@ -77,7 +77,7 @@ jobs:
         export CUDA_TOOLKIT_ROOT_DIR=${CUDA_ROOT}
 
         cd build
-        cmake -DFIRESTARTER_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Build
       run: |
         cd build
@@ -159,7 +159,7 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake -G "NMake Makefiles" -DFIRESTARTER_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
+        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDA_TOOLKIT_ROOT_DIR="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |

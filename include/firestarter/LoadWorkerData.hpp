@@ -21,20 +21,7 @@
 
 #pragma once
 
-#define THREAD_WAIT 1
-#define THREAD_WORK 2
-#define THREAD_INIT 3
-#define THREAD_STOP 4
-#define THREAD_SWITCH 5
-#define THREAD_INIT_FAILURE 0xffffffff
-
-/* DO NOT CHANGE! the asm load-loop tests if load-variable is == 0 */
-#define LOAD_LOW 0
-/* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
-#define LOAD_HIGH 1
-#define LOAD_STOP 2
-#define LOAD_SWITCH 4
-
+#include <firestarter/Constants.hpp>
 #include <firestarter/Environment/Environment.hpp>
 
 #include <mutex>

@@ -8,8 +8,8 @@ GCC (>=7) or Clang (>=9) is supported.
 
 CMake option | Description
 :--- | :---
-FIRESTARTER_LINK_STATIC | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. Default ON
-FIRESTARTER_CUDA | Build FIRESTARTER with CUDA support. This will result in a shared linked binary. Default OFF
+FIRESTARTER_BUILD_TYPE | Can be any of FIRESTARTER, FIRESTARTER_CUDA or FIRESTARTER_CUDA_ONLY. Default FIRESTARTER
+FIRESTARTER_LINK_STATIC | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA enabled. Default ON
 FIRESTARTER_BUILD_HWLOC | Build hwloc dependency. Default ON
 FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware threads. Default ON
 

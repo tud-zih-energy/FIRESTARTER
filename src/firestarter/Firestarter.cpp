@@ -21,10 +21,12 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
+#endif
 #endif
 
 #include <csignal>
@@ -77,6 +79,7 @@ Firestarter::Firestarter(
     _period = std::chrono::microseconds::zero();
   }
 
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #else
   (void)listMetrics;
@@ -258,6 +261,7 @@ Firestarter::Firestarter(
                                           _dumpRegisters))) {
     std::exit(returnCode);
   }
+#endif
 
   // add some signal handler for aborting FIRESTARTER
 #ifndef _WIN32
@@ -273,17 +277,22 @@ Firestarter::~Firestarter() {
   _cuda.reset();
 #endif
 
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
   delete _environment;
+#endif
 }
 
 void Firestarter::mainThread() {
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
   this->environment().printThreadSummary();
+#endif
 
 #ifdef FIRESTARTER_BUILD_CUDA
   _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
                                        _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
 
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
   // if measurement is enabled, start it here
   if (_measurement) {
@@ -351,15 +360,21 @@ void Firestarter::mainThread() {
     }
   }
 #endif
+#endif
 }
 
 void Firestarter::setLoad(unsigned long long value) {
   // signal load change to workers
   Firestarter::loadVar = value;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
 #ifndef _MSC_VER
   __asm__ __volatile__("mfence;");
 #else
   _mm_mfence();
+#endif
+#else
+#error "FIRESTARTER is not implemented for this ISA"
 #endif
 }
 
@@ -378,10 +393,12 @@ void Firestarter::sigtermHandler(int signum) {
   }
   Firestarter::_watchdogTerminateAlert.notify_all();
 
+#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
   // if we have optimization running stop it
   if (Firestarter::_optimizer) {
     Firestarter::_optimizer->kill();
   }
+#endif
 #endif
 }

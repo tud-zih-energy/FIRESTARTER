@@ -41,24 +41,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 SET(FIRESTARTER_LINK_LIBRARIES
-	hwloc
-	AsmJit::AsmJit
-	Nitro::log
-	nlohmann_json::nlohmann_json
 	)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FIRESTARTER_LINK_STATIC)
-	SET(FIRESTARTER_LINK_LIBRARIES
-		${FIRESTARTER_LINK_LIBRARIES}
-		-ldl
-		)
-endif()
 
 if (FIRESTARTER_THREAD_AFFINITY)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
 endif()
 
-if (FIRESTARTER_CUDA)
+if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	find_package(CUDA REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
 
@@ -70,26 +59,65 @@ if (FIRESTARTER_CUDA)
 		)
 	target_compile_features(FIRESTARTER_CUDA PRIVATE cxx_std_17)
 
+	if(FIRESTARTER_BUILD_HWLOC)
+		add_dependencies(FIRESTARTER_CUDA
+			HwlocInstall
+			)
+	endif()
+
+	target_link_libraries(FIRESTARTER_CUDA
+		hwloc
+		AsmJit::AsmJit
+		Nitro::log
+		nlohmann_json::nlohmann_json
+		Threads::Threads
+		${CUDA_LIBRARIES}
+		${CUDA_CUBLAS_LIBRARIES}
+		${CUDA_curand_LIBRARY}
+		)
+
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_CUDA
-			Threads::Threads
-			${FIRESTARTER_LINK_LIBRARIES}
-			${CUDA_LIBRARIES}
 			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib 
-			${CUDA_CUBLAS_LIBRARIES}
-			${CUDA_curand_LIBRARY}
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA
-			Threads::Threads
-			${FIRESTARTER_LINK_LIBRARIES}
-			${CUDA_LIBRARIES}
 			cuda
-			${CUDA_CUBLAS_LIBRARIES}
-			${CUDA_curand_LIBRARY}
+			-ldl
 			)
 	endif()
-else()
+elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
+	find_package(CUDA REQUIRED)
+	include_directories(${CUDA_INCLUDE_DIRS})
+
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA -DFIRESTARTER_BUILD_CUDA_ONLY")
+
+	add_executable(FIRESTARTER_CUDA_ONLY
+		firestarter/Main.cpp
+		firestarter/Firestarter.cpp
+		firestarter/Cuda/Cuda.cpp
+		)
+	target_compile_features(FIRESTARTER_CUDA_ONLY PRIVATE cxx_std_17)
+
+	target_link_libraries(FIRESTARTER_CUDA_ONLY
+		Nitro::log
+		Threads::Threads
+		${CUDA_LIBRARIES}
+		${CUDA_CUBLAS_LIBRARIES}
+		${CUDA_curand_LIBRARY}
+		)
+
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(FIRESTARTER_CUDA_ONLY
+			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib
+			)
+	else()
+		target_link_libraries(FIRESTARTER_CUDA_ONLY
+			cuda
+			-ldl
+			)
+	endif()
+elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
 		)
@@ -112,25 +140,28 @@ else()
 					)
 			endif()
 		else()
+			if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+				target_link_libraries(FIRESTARTER
+					-ldl
+					)
+			endif()
+
 			target_link_libraries(FIRESTARTER
 				Threads::Threads
 				)
 		endif()
 	endif()
 
-	target_link_libraries(FIRESTARTER
-		${FIRESTARTER_LINK_LIBRARIES}
-		)
-endif()
-
-if (FIRESTARTER_BUILD_HWLOC)
-	if (FIRESTARTER_CUDA)
-		add_dependencies(FIRESTARTER_CUDA
-			HwlocInstall
-			)
-	else()
+	if(FIRESTARTER_BUILD_HWLOC)
 		add_dependencies(FIRESTARTER
 			HwlocInstall
 			)
 	endif()
+
+	target_link_libraries(FIRESTARTER
+		hwloc
+		AsmJit::AsmJit
+		Nitro::log
+		nlohmann_json::nlohmann_json
+		)
 endif()

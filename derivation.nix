@@ -62,7 +62,7 @@ stdenv.mkDerivation rec {
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
   ] ++ optionals withCuda [
-    "-DFIRESTARTER_CUDA=ON"
+   "-DFIRESTARTER_BUILD_TYPE=FIRESTARTER_CUDA"
   ];
 
   enableParalellBuilding = true;

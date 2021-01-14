@@ -32,8 +32,8 @@
 
 #include <cublas_v2.h>
 #include <cuda.h>
-#include <curand_kernel.h>
 #include <cuda_runtime_api.h>
+#include <curand_kernel.h>
 
 #include <algorithm>
 #include <atomic>
@@ -116,49 +116,49 @@ static inline void cuda_safe_call(CUresult cuerr, int dev_index,
 }
 
 static const char *_curandGetErrorEnum(curandStatus_t cuerr) {
-switch (cuerr) {
-        case CURAND_STATUS_SUCCESS:
-            return "CURAND_STATUS_SUCCESS";
-	case CURAND_STATUS_VERSION_MISMATCH:
-            return "CURAND_STATUS_VERSION_MISMATCH";
-        case CURAND_STATUS_NOT_INITIALIZED:
-            return "CURAND_STATUS_NOT_INITIALIZED";
-        case CURAND_STATUS_ALLOCATION_FAILED:
-            return "CURAND_STATUS_ALLOCATION_FAILED";
-        case CURAND_STATUS_TYPE_ERROR:
-            return "CURAND_STATUS_TYPE_ERROR";
-        case CURAND_STATUS_OUT_OF_RANGE:
-            return "CURAND_STATUS_OUT_OF_RANGE";
-        case CURAND_STATUS_LENGTH_NOT_MULTIPLE:
-            return "CURAND_STATUS_LENGTH_NOT_MULTIPLE";
-        case CURAND_STATUS_DOUBLE_PRECISION_REQUIRED:
-            return "CURAND_STATUS_DOUBLE_PRECISION_REQUIRED";
-        case CURAND_STATUS_LAUNCH_FAILURE:
-            return "CURAND_STATUS_LAUNCH_FAILURE";
-        case CURAND_STATUS_PREEXISTING_FAILURE:
-            return "CURAND_STATUS_PREEXISTING_FAILURE";
-        case CURAND_STATUS_INITIALIZATION_FAILED:
-            return "CURAND_STATUS_INITIALIZATION_FAILED";
-        case CURAND_STATUS_ARCH_MISMATCH:
-            return "CURAND_STATUS_ARCH_MISMATCH";
-        case CURAND_STATUS_INTERNAL_ERROR:
-            return "CURAND_STATUS_INTERNAL_ERROR";
-    }
+  switch (cuerr) {
+  case CURAND_STATUS_SUCCESS:
+    return "CURAND_STATUS_SUCCESS";
+  case CURAND_STATUS_VERSION_MISMATCH:
+    return "CURAND_STATUS_VERSION_MISMATCH";
+  case CURAND_STATUS_NOT_INITIALIZED:
+    return "CURAND_STATUS_NOT_INITIALIZED";
+  case CURAND_STATUS_ALLOCATION_FAILED:
+    return "CURAND_STATUS_ALLOCATION_FAILED";
+  case CURAND_STATUS_TYPE_ERROR:
+    return "CURAND_STATUS_TYPE_ERROR";
+  case CURAND_STATUS_OUT_OF_RANGE:
+    return "CURAND_STATUS_OUT_OF_RANGE";
+  case CURAND_STATUS_LENGTH_NOT_MULTIPLE:
+    return "CURAND_STATUS_LENGTH_NOT_MULTIPLE";
+  case CURAND_STATUS_DOUBLE_PRECISION_REQUIRED:
+    return "CURAND_STATUS_DOUBLE_PRECISION_REQUIRED";
+  case CURAND_STATUS_LAUNCH_FAILURE:
+    return "CURAND_STATUS_LAUNCH_FAILURE";
+  case CURAND_STATUS_PREEXISTING_FAILURE:
+    return "CURAND_STATUS_PREEXISTING_FAILURE";
+  case CURAND_STATUS_INITIALIZATION_FAILED:
+    return "CURAND_STATUS_INITIALIZATION_FAILED";
+  case CURAND_STATUS_ARCH_MISMATCH:
+    return "CURAND_STATUS_ARCH_MISMATCH";
+  case CURAND_STATUS_INTERNAL_ERROR:
+    return "CURAND_STATUS_INTERNAL_ERROR";
+  }
 
-    return "<unknown>";
+  return "<unknown>";
 }
 
 static inline void cuda_safe_call(curandStatus_t cuerr, int dev_index,
                                   const char *file, const int line) {
-	if (cuerr != CURAND_STATUS_SUCCESS) {
+  if (cuerr != CURAND_STATUS_SUCCESS) {
     firestarter::log::error()
         << "cuRAND error at " << file << ":" << line
         << ": error code = " << cuerr << " (" << _curandGetErrorEnum(cuerr)
         << "), device index: " << dev_index;
     exit(cuerr);
-	}
+  }
 
-	return;
+  return;
 }
 
 static int round_up(int num_to_round, int multiple) {
@@ -339,19 +339,23 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
-  CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT), device_index);
-  CUDA_SAFE_CALL(curandSetPseudoRandomGeneratorSeed(random_gen, SEED), device_index);
+  CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
+                 device_index);
+  CUDA_SAFE_CALL(curandSetPseudoRandomGeneratorSeed(random_gen, SEED),
+                 device_index);
   CUDA_SAFE_CALL(
-      generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use), device_index);
+      generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use),
+      device_index);
   CUDA_SAFE_CALL(
-      generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use), device_index);
+      generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use),
+      device_index);
   CUDA_SAFE_CALL(curandDestroyGenerator(random_gen), device_index);
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
-    CUDA_SAFE_CALL(
-	cuMemcpyDtoD(c_data_ptr + i * size_use * size_use, a_data_ptr, memory_size),
-        device_index);
+    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * size_use * size_use,
+                                a_data_ptr, memory_size),
+                   device_index);
   }
 
   // save gpuvar->init_count and sys.out
@@ -431,7 +435,11 @@ void Cuda::initGpus(std::condition_variable &cv,
         use_double = 2;
       }
 
-      firestarter::log::info() << "\n  graphics processor characteristics:";
+      firestarter::log::info()
+#ifdef _WIN32
+          << "\n  The Task Manager might show a low GPU utilization."
+#endif
+          << "\n  graphics processor characteristics:";
 
       // use all GPUs if the user gave no information about use_device
       if (gpus < 0) {
@@ -448,20 +456,13 @@ void Cuda::initGpus(std::condition_variable &cv,
         gpus = devCount;
       }
 
-      std::vector<int> precisionVector;
-
-      for (int i = 0; i < gpus; ++i) {
-        int precision = get_precision(i, use_double);
-        precisionVector.push_back(precision);
-      }
-
       {
         std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
         for (int i = 0; i < gpus; ++i) {
           // if there's a GPU in the system without Double Precision support, we
           // have to correct this.
-          int precision = precisionVector[i];
+          int precision = get_precision(i, use_double);
 
           if (precision) {
             std::thread t(create_load<double>, std::ref(waitForInitCv),
