@@ -259,7 +259,11 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
               64)) +
           addrOffset;
 
-      // TODO: handle error
+      // exit application on error
+      if (td->addrMem - addrOffset == nullptr) {
+        workerLog::error() << "Could not allocate memory for CPU load thread";
+        exit(ENOMEM);
+      }
 
       if (td->dumpRegisters) {
         reinterpret_cast<DumpRegisterStruct *>(td->addrMem - addrOffset)

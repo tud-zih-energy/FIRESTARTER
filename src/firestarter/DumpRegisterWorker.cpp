@@ -90,13 +90,17 @@ void Firestarter::dumpRegisterWorker(
   volatile unsigned long long *dumpMemAddr =
       dumpRegisterStruct->padding - registerCount * registerSize;
 
-  // TODO: handle error
   // TODO: maybe use aligned_malloc to make memcpy more efficient and don't
   // interrupt the workload as much?
   unsigned long long *last = reinterpret_cast<unsigned long long *>(
       malloc(sizeof(unsigned long long) * offset));
   unsigned long long *current = reinterpret_cast<unsigned long long *>(
       malloc(sizeof(unsigned long long) * offset));
+
+  if (last == nullptr || current == nullptr) {
+    log::error() << "Malloc failed in Firestarter::dumpRegisterWorker";
+    exit(ENOMEM);
+  }
 
   std::stringstream dumpFilePath;
   dumpFilePath << data->dumpFilePath;
