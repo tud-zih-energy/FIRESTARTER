@@ -22,6 +22,12 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+#if defined(linux) || defined(__linux__)
+extern "C" {
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+}
+#endif
+
 #ifdef ENABLE_VTRACING
 #include <vt_user.h>
 #endif
@@ -151,13 +157,13 @@ void Firestarter::printPerformanceReport() {
     auto td = thread.second;
 
     log::debug() << "Thread " << td->id() << ": " << td->iterations
-                 << " iterations, tsc_delta: " << td->stop_tsc - td->start_tsc;
+                 << " iterations, tsc_delta: " << td->stopTsc - td->startTsc;
 
-    if (startTimestamp > td->start_tsc) {
-      startTimestamp = td->start_tsc;
+    if (startTimestamp > td->startTsc) {
+      startTimestamp = td->startTsc;
     }
-    if (stopTimestamp < td->stop_tsc) {
-      stopTimestamp = td->stop_tsc;
+    if (stopTimestamp < td->stopTsc) {
+      stopTimestamp = td->stopTsc;
     }
 
     iterations += td->iterations;
@@ -171,6 +177,22 @@ void Firestarter::printPerformanceReport() {
   double bandwidth =
       (double)this->loadThreads.front().second->config().payload().bytes() *
       0.000000001 * (double)iterations / runtime;
+
+  // insert values for ipc-estimate metric
+  // if we are on linux
+#if defined(linux) || defined(__linux__)
+  if (_measurement) {
+    for (auto const &thread : this->loadThreads) {
+      auto td = thread.second;
+      ipc_estimate_metric_insert((double)td->iterations *
+                                 (double)this->loadThreads.front()
+                                     .second->config()
+                                     .payload()
+                                     .instructions() /
+                                 (double)(stopTimestamp - startTimestamp));
+    }
+  }
+#endif
 
   // format runtime, gflops and bandwidth %.2f
   const char *fmt = "%.2f";
@@ -276,7 +298,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
     // perform stress test
     case THREAD_WORK:
       // record threads start timestamp
-      td->start_tsc = td->environment().topology().timestamp();
+      td->startTsc = td->environment().topology().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -310,13 +332,15 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
 
         // terminate if master signals end of run and record stop timestamp
         if (*td->addrHigh == LOAD_STOP) {
-          td->stop_tsc = td->environment().topology().timestamp();
+          td->stopTsc = td->environment().topology().timestamp();
 
           ALIGNED_FREE(td->addrMem - addrOffset);
           return;
         }
 
         if (*td->addrHigh == LOAD_SWITCH) {
+          td->stopTsc = td->environment().topology().timestamp();
+
           break;
         }
       }
@@ -330,6 +354,12 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
 
       // call init function
       td->config().payload().init(td->addrMem, td->buffersizeMem);
+
+      // save old iteration count
+      td->lastIterations = td->iterations;
+      td->lastStartTsc = td->startTsc;
+      td->lastStopTsc = td->stopTsc;
+      td->iterations = 0;
       break;
     case THREAD_WAIT:
       break;

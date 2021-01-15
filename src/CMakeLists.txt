@@ -29,6 +29,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		# measurement stuff
 		firestarter/Measurement/MeasurementWorker.cpp
 		firestarter/Measurement/Summary.cpp
+		firestarter/Measurement/Metric/IPCEstimate.cpp
 		firestarter/Measurement/Metric/RAPL.cpp
 		firestarter/Measurement/Metric/Perf.cpp
 

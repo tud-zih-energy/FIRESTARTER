@@ -24,6 +24,7 @@
 #include <firestarter/Constants.hpp>
 #include <firestarter/Environment/Environment.hpp>
 
+#include <atomic>
 #include <mutex>
 
 namespace firestarter {
@@ -51,9 +52,13 @@ public:
   volatile unsigned long long *addrHigh;
   unsigned long long buffersizeMem;
   unsigned long long iterations = 0;
+  // save the last iteration count when switching payloads
+  std::atomic<unsigned long long> lastIterations;
   unsigned long long flops;
-  unsigned long long start_tsc;
-  unsigned long long stop_tsc;
+  unsigned long long startTsc;
+  unsigned long long stopTsc;
+  std::atomic<unsigned long long> lastStartTsc;
+  std::atomic<unsigned long long> lastStopTsc;
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
   unsigned long long period;

@@ -26,6 +26,9 @@
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
+extern "C" {
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+}
 #endif
 #endif
 
@@ -218,6 +221,31 @@ Firestarter::Firestarter(
           this->loadVar = LOAD_HIGH;
 
           this->signalWork();
+
+          unsigned long long startTimestamp = 0xffffffffffffffff;
+          unsigned long long stopTimestamp = 0;
+
+          for (auto const &thread : this->loadThreads) {
+            auto td = thread.second;
+
+            if (startTimestamp > td->lastStartTsc) {
+              startTimestamp = td->lastStartTsc;
+            }
+            if (stopTimestamp < td->lastStopTsc) {
+              stopTimestamp = td->lastStopTsc;
+            }
+          }
+
+          for (auto const &thread : this->loadThreads) {
+            auto td = thread.second;
+            ipc_estimate_metric_insert(
+                (double)td->lastIterations *
+                (double)this->loadThreads.front()
+                    .second->config()
+                    .payload()
+                    .instructions() /
+                (double)(stopTimestamp - startTimestamp));
+          }
 
           auto end = Clock::now();
 

@@ -64,6 +64,7 @@ int ZENFMAPayload::compilePayload(
 
   this->_flops = repetitions * flops;
   this->_bytes = repetitions * bytes;
+  this->_instructions = repetitions * sequence.size() * 4 + 6;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
@@ -317,6 +318,8 @@ int ZENFMAPayload::compilePayload(
     cb.mov(ram_addr, pointer_reg);
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   cb.inc(temp_reg); // increment iteration counter
   if (this->getL2SequenceCount(sequence) > 0) {
@@ -329,6 +332,8 @@ int ZENFMAPayload::compilePayload(
     cb.mov(l2_addr, pointer_reg);
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   cb.movq(iter_reg, temp_reg); // store iteration counter
   if (this->getL3SequenceCount(sequence) > 0) {
@@ -341,6 +346,8 @@ int ZENFMAPayload::compilePayload(
     cb.mov(l3_addr, pointer_reg);
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   cb.mov(l1_addr, pointer_reg);
 

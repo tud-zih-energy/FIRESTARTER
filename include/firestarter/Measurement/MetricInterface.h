@@ -34,7 +34,9 @@ typedef struct {
            // Set to insert time-value pairs via callback function passed by
            // register_insert_callback.
            insert_callback : 1,
-           __reserved : 28;
+					 // ignore the start and stop delta set by the user
+					 ignore_start_stop_delta : 1,
+           __reserved : 27;
 } metric_type_t;
 // clang-format on
 

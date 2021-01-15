@@ -17,7 +17,7 @@ FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware thr
 
 FIRESTARTER support to collect metrics during runtime.
 Available metrics can be shown with `--list-metrics`.
-Default metrics are perf-ipc, perf-freq and powercap-sysfs-rapl.
+Default metrics are perf-ipc, perf-freq, ipc-estimate and powercap-sysfs-rapl.
 
 ### Custom metrics
 

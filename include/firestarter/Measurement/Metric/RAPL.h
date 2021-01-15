@@ -21,8 +21,6 @@
 
 #pragma once
 
-extern "C" {
 #include <firestarter/Measurement/MetricInterface.h>
-}
 
 extern metric_interface_t rapl_metric;

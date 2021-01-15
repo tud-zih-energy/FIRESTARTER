@@ -37,6 +37,8 @@ private:
 protected:
   unsigned _flops;
   unsigned _bytes;
+  // number of instructions in load loop
+  unsigned _instructions;
   // size of used simd registers in bytes
   unsigned _registerSize;
   // number of used simd registers
@@ -82,6 +84,7 @@ public:
   const std::string &name() const { return _name; }
   unsigned flops() const { return _flops; }
   unsigned bytes() const { return _bytes; }
+  unsigned instructions() const { return _instructions; }
   unsigned registerSize() const { return _registerSize; }
   unsigned registerCount() const { return _registerCount; }
 

@@ -30,6 +30,7 @@
 #include <mutex>
 
 extern "C" {
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
 #include <firestarter/Measurement/Metric/Perf.h>
 #include <firestarter/Measurement/Metric/RAPL.h>
 #include <firestarter/Measurement/MetricInterface.h>
@@ -47,8 +48,8 @@ private:
   pthread_t workerThread;
   pthread_t stdinThread;
 
-  std::vector<metric_interface_t *> metrics = {&rapl_metric, &perf_ipc_metric,
-                                               &perf_freq_metric};
+  std::vector<metric_interface_t *> metrics = {
+      &rapl_metric, &perf_ipc_metric, &perf_freq_metric, &ipc_estimate_metric};
 
   std::mutex values_mutex;
   std::map<std::string, std::vector<TimeValue>> values = {};

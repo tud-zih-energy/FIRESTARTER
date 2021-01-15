@@ -261,31 +261,42 @@ void MeasurementWorker::startMeasurement() {
 std::map<std::string, Summary>
 MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
                              std::chrono::milliseconds stopDelta) {
-  auto startTime = this->startTime + startDelta;
-  auto endTime = std::chrono::high_resolution_clock::now() - stopDelta;
-
-  auto findAll = [startTime, endTime](auto const &tv) {
-    return startTime <= tv.time && tv.time <= endTime;
-  };
-
   std::map<std::string, Summary> measurment = {};
 
   this->values_mutex.lock();
 
   for (auto &[key, values] : this->values) {
-    auto begin = std::find_if(values.begin(), values.end(), findAll);
-    auto end = values.end();
-
+    auto startTime = this->startTime;
+    auto endTime = std::chrono::high_resolution_clock::now();
     auto metric = this->findMetricByName(key);
+
     metric_type_t type;
     std::memset(&type, 0, sizeof(type));
     if (metric == nullptr) {
       type.absolute = 1;
+
+      startTime += startDelta;
+      endTime -= stopDelta;
     } else {
       std::memcpy(&type, &metric->type, sizeof(type));
+
+      if (metric->type.ignore_start_stop_delta == 0) {
+        startTime += startDelta;
+        endTime -= stopDelta;
+      }
     }
 
-    Summary sum = Summary::calculate(begin, end, type, this->numThreads);
+    decltype(values) croppedValues(values.size());
+
+    auto findAll = [startTime, endTime](auto const &tv) {
+      return startTime <= tv.time && tv.time <= endTime;
+    };
+    auto it = std::copy_if(values.begin(), values.end(), croppedValues.begin(),
+                           findAll);
+    croppedValues.resize(std::distance(croppedValues.begin(), it));
+
+    Summary sum = Summary::calculate(croppedValues.begin(), croppedValues.end(),
+                                     type, this->numThreads);
 
     measurment[key] = sum;
   }

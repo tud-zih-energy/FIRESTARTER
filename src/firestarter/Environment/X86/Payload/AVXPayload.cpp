@@ -64,6 +64,7 @@ int AVXPayload::compilePayload(
 
   this->_flops = repetitions * flops;
   this->_bytes = repetitions * bytes;
+  this->_instructions = repetitions * sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
@@ -259,10 +260,12 @@ int AVXPayload::compilePayload(
             Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
         L1_INCREMENT();
+        this->_instructions++;
       } else if (item == "L1_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.vmovapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         L1_INCREMENT();
+        this->_instructions++;
       } else if (item == "L2_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l2_addr, 64));
         L2_INCREMENT();
@@ -272,10 +275,12 @@ int AVXPayload::compilePayload(
             Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
         L2_INCREMENT();
+        this->_instructions++;
       } else if (item == "L2_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l2_addr, 64));
         cb.vmovapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
         L2_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         L3_INCREMENT();
@@ -285,14 +290,17 @@ int AVXPayload::compilePayload(
             Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_P") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.prefetcht0(ptr(l3_addr));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(ram_addr, 64));
         RAM_INCREMENT();
@@ -302,14 +310,17 @@ int AVXPayload::compilePayload(
             Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_P") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
+        this->_instructions++;
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
                            << this->name() << ".";
@@ -317,6 +328,7 @@ int AVXPayload::compilePayload(
       }
 
       if (shift_regs > 1) {
+        this->_instructions++;
         if (left) {
           cb.psrlw(Mm(shift_start + (shift_dst - shift_start + 3) % shift_regs),
                    Mm(shift_dst));
@@ -360,6 +372,8 @@ int AVXPayload::compilePayload(
     cb.mov(ram_addr, pointer_reg);
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   if (this->getL2SequenceCount(sequence) > 0) {
     // reset L2-Cache counter
@@ -371,6 +385,8 @@ int AVXPayload::compilePayload(
     cb.mov(l2_addr, pointer_reg);
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   if (this->getL3SequenceCount(sequence) > 0) {
     // reset L3-Cache counter
@@ -382,6 +398,8 @@ int AVXPayload::compilePayload(
     cb.mov(l3_addr, pointer_reg);
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   cb.inc(iter_reg); // increment iteration counter
   cb.mov(l1_addr, pointer_reg);

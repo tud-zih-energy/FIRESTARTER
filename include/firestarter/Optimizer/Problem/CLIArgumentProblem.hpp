@@ -71,10 +71,17 @@ public:
     _changePayloadFunction(payload);
 
     // start the measurement
+    // NOTE: starting the measurement must happen after switching to not mess up
+    // ipc-estimate metric
     _measurementWorker->startMeasurement();
 
     // wait for the measurement to finish
     std::this_thread::sleep_for(_timeout);
+
+    // FIXME: this is an ugly workaround for the ipc-estimate metric
+    // changeing the payload triggers a write of the iteration counter of the
+    // last payload, which we use to estimate the ipc.
+    _changePayloadFunction(payload);
 
     // return the results
     return _measurementWorker->getValues(_startDelta, _stopDelta);

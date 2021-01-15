@@ -64,6 +64,7 @@ int SSE2Payload::compilePayload(
 
   this->_flops = repetitions * flops;
   this->_bytes = repetitions * bytes;
+  this->_instructions = repetitions * sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
@@ -255,10 +256,12 @@ int SSE2Payload::compilePayload(
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.movapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
         L1_INCREMENT();
+        this->_instructions++;
       } else if (item == "L1_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
         cb.movapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         L1_INCREMENT();
+        this->_instructions++;
       } else if (item == "L2_L") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
         L2_INCREMENT();
@@ -268,10 +271,12 @@ int SSE2Payload::compilePayload(
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.movapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
         L2_INCREMENT();
+        this->_instructions++;
       } else if (item == "L2_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
         cb.movapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
         L2_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_L") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
         L3_INCREMENT();
@@ -281,14 +286,17 @@ int SSE2Payload::compilePayload(
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
         cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "L3_P") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
         cb.prefetcht0(ptr(l3_addr));
         L3_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_L") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(ram_addr, 64));
         RAM_INCREMENT();
@@ -298,14 +306,17 @@ int SSE2Payload::compilePayload(
             Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_LS") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
         cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
+        this->_instructions++;
       } else if (item == "RAM_P") {
         cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
+        this->_instructions++;
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
                            << this->name() << ".";
@@ -313,6 +324,7 @@ int SSE2Payload::compilePayload(
       }
 
       if (mov_regs > 0) {
+        this->_instructions++;
         cb.movq(
             Mm(mov_start + (movq_dst - mov_start + mov_regs - 1) % mov_regs),
             Mm(movq_dst));
@@ -351,6 +363,8 @@ int SSE2Payload::compilePayload(
     cb.mov(ram_addr, pointer_reg);
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   if (this->getL2SequenceCount(sequence) > 0) {
     // reset L2-Cache counter
@@ -362,6 +376,8 @@ int SSE2Payload::compilePayload(
     cb.mov(l2_addr, pointer_reg);
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   if (this->getL3SequenceCount(sequence) > 0) {
     // reset L3-Cache counter
@@ -373,6 +389,8 @@ int SSE2Payload::compilePayload(
     cb.mov(l3_addr, pointer_reg);
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
+    // adds always two instruction
+    this->_instructions += 2;
   }
   cb.inc(iter_reg); // increment iteration counter
   cb.mov(l1_addr, pointer_reg);

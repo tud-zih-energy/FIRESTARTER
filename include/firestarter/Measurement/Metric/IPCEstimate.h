@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2021 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,6 @@
 
 #include <firestarter/Measurement/MetricInterface.h>
 
-extern metric_interface_t perf_ipc_metric;
+extern metric_interface_t ipc_estimate_metric;
 
-extern metric_interface_t perf_freq_metric;
+extern void ipc_estimate_metric_insert(double value);

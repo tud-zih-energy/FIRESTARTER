@@ -234,6 +234,7 @@ metric_interface_t rapl_metric = {
              .accumalative = 1,
              .divide_by_thread_count = 0,
              .insert_callback = 0,
+             .ignore_start_stop_delta = 0,
              .__reserved = 0},
     .unit = "J",
     .callback_time = 30000000,
