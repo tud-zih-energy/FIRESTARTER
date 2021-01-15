@@ -52,7 +52,9 @@ Additional information: https://tu-dresden.de/zih/forschung/projekte/firestarter
 
 # License
 
-This program contains a slightly modified version of the implementation of the NSGA2 algorithm from [pagmo](https://github.com/esa/pagmo2) licensed under LGPL or GPL v3.
+This program contains a slightly modified version of the implementation of the NSGA2 algorithm from [esa/pagmo2](https://github.com/esa/pagmo2) licensed under LGPL or GPL v3.
+
+This program incorporates following libraries [asmjit/asmjit](https://github.com/asmjit/asmjit) licensed under zlib, [open-mpi/hwloc](https://github.com/open-mpi/hwloc) licensed under BSD 3-clause, [jarro2783/cxxopts](https://github.com/jarro2783/cxxopts) licensed under MIT, [nlohmann/json](https://github.com/nlohmann/json) licensed under MIT and [tud-zih-energy/nitro](https://github.com/tud-zih-energy/nitro) licensed under BSD 3-clause.
 
 # Contact
 
