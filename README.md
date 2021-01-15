@@ -1,32 +1,45 @@
-[![Build Status](https://travis-ci.org/tud-zih-energy/FIRESTARTER.svg?branch=master)](https://travis-ci.org/tud-zih-energy/FIRESTARTER)
-[![Build status](https://ci.appveyor.com/api/projects/status/oon43fcq6ulee503/branch/master?svg=true)](https://ci.appveyor.com/project/bmario/firestarter/branch/master)
-
+![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/workflows/Build/badge.svg)
 
 # FIRESTARTER - A Processor Stress Test Utility
 
-The python script code-generator.py generates source code of FIRESTARTER. It
-generates load functions for the architectures defined in the config.cfg file.
+FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
-Usage:
-Call ./code-generator.py from to generate the source code of FIRESTARTER.
-This will generate the required files to build FIRESTARTER in the directory
-from which it is called.
+GCC (>=7) or Clang (>=9) is supported.
 
-optional arguments:
-> -h | --help            print usage information
+CMake option | Description
+:--- | :---
+FIRESTARTER_BUILD_TYPE | Can be any of FIRESTARTER, FIRESTARTER_CUDA or FIRESTARTER_CUDA_ONLY. Default FIRESTARTER
+FIRESTARTER_LINK_STATIC | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA enabled. Default ON
+FIRESTARTER_BUILD_HWLOC | Build hwloc dependency. Default ON
+FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware threads. Default ON
 
-> -v | --verbose         enable debug output
+## Metrics
 
-> -c | --enable-cuda     enable CUDA support
+FIRESTARTER support to collect metrics during runtime.
+Available metrics can be shown with `--list-metrics`.
+Default metrics are perf-ipc, perf-freq and powercap-sysfs-rapl.
 
-> -m | --enable-mac      enable Mac O/S support
+### Custom metrics
 
-> -w | --enable-win      enable windows support
+If one would like to use custom metrics, e.g. an external power measurement, `--metric-from-stdin=NAME` allows metric values to be passed via stdin in the following format:
+`{NAME} {TIME SINCE EPOCH IN NS} {ABSOLUT METRIC VALUE (double)}\n`.
+Make sure to use flush after each line.
 
-If one of the --enable-* arguments is used it overrides all the feature
-selections in the config file, i.e., if one feature is added on the command
-line, features that are enabled by default have to be added to the command as
-well.
+## Measurement
+
+FIRESTARTER has the option to output the colleted metric values by specifying `--measurement`.
+Options `--start-delta` and `--stop-delta` specify a time in milliseconds in which metric values should be ignored.
+After a run the output will be given in csv format to stdout.
+
+## Optimization
+
+FIRESTARTER has the option to optimize itself.
+It currently supports the multiobjective algorithm NSGA2, selected by `--optimize=NSGA2`.
+The optimization relies on the execution of FIRESTARTER with a combination of instruction groups, specified by `--run-instruction-groups`.
+Available instruction groups can be listed with `--list-instruction-groups`.
+During each test run of the duration specified by `-t | --timeout` metrics will collect information about the fitness.
+The used metrics for optimization can be specified by `--optimization-metrics`.
+An output file with the results will be written to `{HOSTNAME}_${STARTTIME}.json` if the option `--optimize-outfile` is not given.
 
 # Reference
 
@@ -37,6 +50,9 @@ Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
 
 Additional information: https://tu-dresden.de/zih/forschung/projekte/firestarter
 
+# License
+
+This program contains a slightly modified version of the implementation of the NSGA2 algorithm from [pagmo](https://github.com/esa/pagmo2) licensed under LGPL or GPL v3.
 
 # Contact
 
