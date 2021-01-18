@@ -155,17 +155,26 @@ int X86Environment::selectInstructionGroups(std::string groups) {
       if (std::find(availableInstructionGroups.begin(),
                     availableInstructionGroups.end(),
                     m[1].str()) == availableInstructionGroups.end()) {
-        log::error() << "Invalid instruction-group: " << m[1].str();
+        log::error()
+            << "Invalid instruction-group: " << m[1].str()
+            << "\n       --run-instruction-groups format: multiple INST:VAL "
+               "pairs comma-seperated";
         return EXIT_FAILURE;
       }
       int num = std::stoul(m[2].str());
       if (num == 0) {
-        log::error() << "instruction-group VAL may not contain number 0";
+        log::error()
+            << "instruction-group VAL may not contain number 0"
+            << "\n       --run-instruction-groups format: multiple INST:VAL "
+               "pairs comma-seperated";
         return EXIT_FAILURE;
       }
       payloadSettings.push_back(std::make_pair(m[1].str(), num));
     } else {
-      log::error() << "Invalid symbols in instruction-group: " << token;
+      log::error()
+          << "Invalid symbols in instruction-group: " << token
+          << "\n       --run-instruction-groups format: multiple INST:VAL "
+             "pairs comma-seperated";
       return EXIT_FAILURE;
     }
   }

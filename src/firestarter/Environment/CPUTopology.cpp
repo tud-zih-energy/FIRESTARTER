@@ -309,7 +309,7 @@ std::stringstream CPUTopology::getFileAsStream(std::string const &filePath) {
   std::stringstream ss;
 
   if (!file.is_open()) {
-    log::error() << "Could not open " << filePath;
+    log::trace() << "Could not open " << filePath;
   } else {
     ss << file.rdbuf();
     file.close();

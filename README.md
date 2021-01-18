@@ -28,18 +28,45 @@ Make sure to use flush after each line.
 ## Measurement
 
 FIRESTARTER has the option to output the colleted metric values by specifying `--measurement`.
-Options `--start-delta` and `--stop-delta` specify a time in milliseconds in which metric values should be ignored.
+Options `--start-delta (default 5000ms)` and `--stop-delta (default 2000ms)` specify a time in milliseconds in which metric values should be ignored.
 After a run the output will be given in csv format to stdout.
+
+### Example
+
+Measure all available metrics for 15 minutes disregarding the first 5 minutes and last two seconds (default to `--stop-delta`).
+```
+FIRESTARTER --measurement --start-delta=300000 -t 900
+```
 
 ## Optimization
 
 FIRESTARTER has the option to optimize itself.
 It currently supports the multiobjective algorithm NSGA2, selected by `--optimize=NSGA2`.
-The optimization relies on the execution of FIRESTARTER with a combination of instruction groups, specified by `--run-instruction-groups`.
-Available instruction groups can be listed with `--list-instruction-groups`.
+The optimization relies on the execution of FIRESTARTER with a combination of instruction groups.
+Available instruction groups can be listed with `--list-instruction-groups` or the default with `-a | --avail`.
+Per default FIRESTARTER takes the instruction groups of the pre-optimized setting shown with `-a | --avail`.
+The user may specify their own instruction groups with `--run-instruction-groups`.
+The selected instruction groups will be used to preheat the CPU (default 240s, specify different value by setting `--preheat`).
 During each test run of the duration specified by `-t | --timeout` metrics will collect information about the fitness.
-The used metrics for optimization can be specified by `--optimization-metrics`.
+Metrics used for optimization can be specified by `--optimization-metrics`.
+The number of individuals (`--individuals`), as is the number of generations (`--generation`) is set 20 per default.
 An output file with the results will be written to `{HOSTNAME}_${STARTTIME}.json` if the option `--optimize-outfile` is not given.
+
+The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithms allowing FIRESTARTER to optimize with two metrics.
+This is relavant as highest power consumption can be achieved by both optimizing for a high IPC (instruction per cycle) and high power consumption.
+Parameters of the algorithm can be tweaked with `--nsga2-cr` and `--nsga2-m`.
+
+### Examples
+
+Optimize FIRESTARTER with NSGA2 and `sysfs-powercap-rapl` and `perf-ipc` metric. The duration for the evaluation of a setting is 20s long. The default instruction-groups for the current platform will be used. (Show them with `-a | --avail`)
+```
+FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc
+```
+
+If `perf-ipc` is not available use `ipc-estimate`
+```
+FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
+```
 
 # Reference
 
