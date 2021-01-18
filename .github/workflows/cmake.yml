@@ -227,7 +227,12 @@ jobs:
         cd build
         ./src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v2
+      if: matrix.os == 'macos-10.15'
+      with:
+        name: FIRESTARTER-osx_10.15
+        path: build/src/FIRESTARTER
+    - uses: actions/upload-artifact@v2
       if: matrix.os == 'macos-11.0'
       with:
-        name: FIRESTARTER-osx
+        name: FIRESTARTER-osx_11.0
         path: build/src/FIRESTARTER
