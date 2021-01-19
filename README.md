@@ -15,21 +15,21 @@ FIRESTARTER_THREAD_AFFINITY | Enable FIRESTARTER to set affinity to hardware thr
 
 ## Metrics
 
-FIRESTARTER support to collect metrics during runtime.
+The Linux version of FIRESTARTER supports to collect metrics during runtime.
 Available metrics can be shown with `--list-metrics`.
-Default metrics are perf-ipc, perf-freq, ipc-estimate and powercap-sysfs-rapl.
+Default metrics are `perf-ipc`, `perf-freq`, `ipc-estimate` and `sysfs-powercap-rapl`.
 
 ### Custom metrics
 
 If one would like to use custom metrics, e.g. an external power measurement, `--metric-from-stdin=NAME` allows metric values to be passed via stdin in the following format:
 `{NAME} {TIME SINCE EPOCH IN NS} {ABSOLUT METRIC VALUE (double)}\n`.
-Make sure to use flush after each line.
+See [here](examples/test_metric.py) for a basic example.
 
 ## Measurement
 
-FIRESTARTER has the option to output the colleted metric values by specifying `--measurement`.
+The Linux version of FIRESTARTER has the option to output the collected metric values by specifying `--measurement`.
 Options `--start-delta (default 5000ms)` and `--stop-delta (default 2000ms)` specify a time in milliseconds in which metric values should be ignored.
-After a run the output will be given in csv format to stdout.
+After a run, the output will be given in CSV format to stdout.
 
 ### Example
 
@@ -40,25 +40,39 @@ FIRESTARTER --measurement --start-delta=300000 -t 900
 
 ## Optimization
 
-FIRESTARTER has the option to optimize itself.
+The Linux version of FIRESTARTER has the option to optimize itself using evolutionary algorithms.
 It currently supports the multiobjective algorithm NSGA2, selected by `--optimize=NSGA2`.
-The optimization relies on the execution of FIRESTARTER with a combination of instruction groups.
-Available instruction groups can be listed with `--list-instruction-groups` or the default with `-a | --avail`.
-Per default FIRESTARTER takes the instruction groups of the pre-optimized setting shown with `-a | --avail`.
-The user may specify their own instruction groups with `--run-instruction-groups`.
-The selected instruction groups will be used to preheat the CPU (default 240s, specify different value by setting `--preheat`).
-During each test run of the duration specified by `-t | --timeout` metrics will collect information about the fitness.
-Metrics used for optimization can be specified by `--optimization-metrics`.
-The number of individuals (`--individuals`), as is the number of generations (`--generation`) is set 20 per default.
-An output file with the results will be written to `{HOSTNAME}_${STARTTIME}.json` if the option `--optimize-outfile` is not given.
 
-The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithms allowing FIRESTARTER to optimize with two metrics.
-This is relavant as highest power consumption can be achieved by both optimizing for a high IPC (instruction per cycle) and high power consumption.
+The evolutionary algorithm evaluates individuals one after another.
+Each evaluation of a given individual is `-t | --timeout` seconds long.
+Selecting a long enough time for letting the power consumption stabilize, but not too long as this will leed to a much longer optimization timespan.
+During this time metrics are collected and the selected metrics (`--optimization-metrics`) are used for assigning a fitness. (Specify multiple times of a multiobjective algorithm.)
+Using a high precision power metric is essential for good optimization results.
+If you use the `sysfs-powercap-rapl` metric make sure the RAPL values of your CPU microarchitecture have a close correlation to the actual power consumption, e.g. Intel® processors<sup>[1](#intel-trademark)</sup> since Haswell, see [An Energy Efficiency Feature Survey of the Intel Haswell Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
+
+Individuals are made of different instruction groups and their ratios to one another.
+Without specifying the `--run-instruction-groups` option, preselected instruction groups will be used for optimization.
+Setting this option allows the user to select different instruction group, e.g. for optimizing FIRESTARTER on a not yet optimized microarchitecture.
+The format of this is the same as shown by `-a | --avail` (Show all supported microarchitectures and their optimized individual.)
+All available instruction groups can be listed with `--list-instruction-groups`.
+
+The number of individuals per generation (`--individuals`), as is the number of generations (`--generation`) is set 20 per default.
+
+Before the optimization runs a user-defined period of preheating of the CPU is carried out.
+Option `--preheat` is specified to a default of 240 seconds.
+
+After the optimization finishes the acquired data will be written to `{HOSTNAME}_${STARTTIME}.json` if not specified otherwise with the option `--optimize-outfile`.
+An [IPython Notebook](examples/Evaluation_Notebook/Evaluation_Notebook.ipynb) is provided for basic visualization.
+
+### NSGA2
+
+The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithm allowing FIRESTARTER to optimize with two (or more) metrics.
+This is relevant as the highest power consumption can be achieved by both optimizing for a high IPC (instruction per cycle) and high power consumption.
 Parameters of the algorithm can be tweaked with `--nsga2-cr` and `--nsga2-m`.
 
 ### Examples
 
-Optimize FIRESTARTER with NSGA2 and `sysfs-powercap-rapl` and `perf-ipc` metric. The duration for the evaluation of a setting is 20s long. The default instruction-groups for the current platform will be used. (Show them with `-a | --avail`)
+Optimize FIRESTARTER with NSGA2 and `sysfs-powercap-rapl` and `perf-ipc` metric. The duration for the evaluation of a setting is 20s long. The default instruction groups for the current platform will be used. (Show them with `-a | --avail`)
 ```
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc
 ```
@@ -66,6 +80,118 @@ FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,per
 If `perf-ipc` is not available use `ipc-estimate`
 ```
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
+```
+
+## Help output for Linux (non CUDA version)
+```
+Usage:
+  FIRESTARTER [OPTION...]
+
+  -h, --help                    Display usage information
+  -v, --version                 Display version information
+  -c, --copyright               Display copyright information
+  -w, --warranty                Display warranty information
+  -q, --quiet                   Set log level to Warning
+  -r, --report                  Display additional information (overridden by
+                                -q)
+      --debug                   Print debug output
+  -a, --avail                   List available functions
+  -i, --function ID             Specify integer ID of the load-function to be
+                                used (as listed by --avail) (default: 0)
+  -t, --timeout TIMEOUT         Set the timeout (seconds) after which
+                                FIRESTARTER terminates itself, default: no timeout
+                                (default: 0)
+  -l, --load LOAD               Set the percentage of high CPU load to LOAD
+                                (%) default: 100, valid values: 0 <= LOAD <=
+                                100, threads will be idle in the remaining time,
+                                frequency of load changes is determined by
+                                -p. (default: 100)
+  -p, --period PERIOD           Set the interval length for CPUs to PERIOD
+                                (usec), default: 100000, each interval contains
+                                a high load and an idle phase, the percentage
+                                of high load is defined by -l (default:
+                                100000)
+  -n, --threads COUNT           Specify the number of threads. Cannot be
+                                combined with -b | --bind, which impicitly
+                                specifies the number of threads (default: 0)
+  -b, --bind CPULIST            Select certain CPUs. CPULIST format: "x,y,z",
+                                "x-y", "x-y/step", and any combination of the
+                                above. Cannot be combined with -n |
+                                --threads. (default: "")
+      --list-instruction-groups
+                                List the available instruction groups for the
+                                payload of the current platform.
+      --run-instruction-groups GROUPS
+                                Run the payload with the specified
+                                instruction groups. GROUPS format: multiple INST:VAL
+                                pairs comma-seperated (default: "")
+      --set-line-count arg      Set the number of lines for a payload.
+      --allow-unavailable-payload
+                                This option is only for debugging. Do not use
+                                it.
+      --dump-registers [=DELAY(=10)]
+                                Dump the working registers on the first
+                                thread. Depending on the payload these are mm, xmm,
+                                ymm or zmm. Only use it without a timeout and
+                                100 percent load. DELAY between dumps in
+                                secs.
+      --dump-registers-outpath arg
+                                Path for the dump of the output files. If
+                                path is not given, current working directory will
+                                be used. (default: "")
+      --list-metrics            List the available metrics.
+      --metric-from-stdin NAME  Add a metric NAME with values from stdin.
+                                Format of input: "NAME TIME_SINCE_EPOCH VALUE\n".
+                                TIME_SINCE_EPOCH is a int64 in nanoseconds.
+                                VALUE is a double. (Do not forget to flush
+                                lines!)
+      --measurement             Start a measurement for the time specified by
+                                -t | --timeout. (The timeout must be greater
+                                than the start and stop deltas.) Cannot be
+                                combined with --optimize.
+      --measurement-interval arg
+                                Interval of measurements in milliseconds.
+                                (default: 100)
+      --start-delta N           Cut of first N milliseconds of measurement.
+                                (default: 5000)
+      --stop-delta N            Cut of last N milliseconds of measurement.
+                                (default: 2000)
+      --preheat N               Preheat for N seconds. (default: 240)
+      --optimize arg            Run the optimization with one of these
+                                algorithms: NSGA2. Cannot be combined with
+                                --measurement.
+      --optimize-outfile arg    Dump the output of the optimization into this
+                                file. (Default: $PWD/$HOSTNAME_$DATE.json)
+      --optimization-metric arg
+                                Use a metric for optimization. Metrics listed
+                                with cli argument --list-metrics or specified
+                                with --metric-from-stdin are valid.
+      --individuals arg         Number of individuals for the population. For
+                                NSGA2 specify at least 5 and a multiple of 4.
+                                (default: 20)
+      --generations arg         Number of generations. (default: 20)
+      --nsga2-cr arg            Crossover probability. (Must be in range
+                                [0,1[) (default: 0.6)
+      --nsga2-m arg             Mutation probability. (Must be in range
+                                [0,1]) (default: 0.4)
+
+Examples:
+
+  ./FIRESTARTER                 starts FIRESTARTER without timeout
+  ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER
+  ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with
+                                50% high load and 50% idle time
+  ./FIRESTARTER -l 75 -p 20000000
+                                starts FIRESTARTER with an interval length
+                                of 2 sec, 1.5s high load and 0.5s idle
+  ./FIRESTARTER --measurement --start-delta=300000 -t 900
+                                starts FIRESTARTER measuring all available
+                                metrics for 15 minutes disregarding the first
+                                5 minutes and last two seconds (default to `--stop-delta`)
+  ./FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc
+                                starts FIRESTARTER optimizing with the sysfs-powercap-rapl
+                                and perf-ipc metric. The duration is 20s long. The default
+                                instruction groups for the current platform will be used.
 ```
 
 # Reference
@@ -86,3 +212,7 @@ This program incorporates following libraries [asmjit/asmjit](https://github.com
 # Contact
 
 Daniel Hackenberg < daniel dot hackenberg at tu-dresden.de >
+
+---
+
+<a name="intel-trademark">1</a>: Intel is a trademark of Intel Corporation or its subsidiaries.
