@@ -27,6 +27,19 @@
 #include <string>
 
 struct Config {
+  inline static const std::vector<std::pair<std::string, std::string>>
+      optionsMap = {{"information", "Information Options:\n"},
+                    {"general", "General Options:\n"},
+                    {"specialized-workloads", "Specialized workloads:\n"},
+#ifdef FIRESTARTER_DEBUG_FEATURES
+                    {"debug", "Debugging:\n"},
+#endif
+#if defined(linux) || defined(__linux__)
+                    {"measurement", "Debugging:\n"},
+                    {"optimization", "Optimization:\n"}
+#endif
+  };
+
   // default parameters
   std::chrono::seconds timeout;
   unsigned loadPercent;
@@ -99,17 +112,30 @@ void print_warranty() {
          "<http://www.gnu.org/licenses/>.\n";
 }
 
-void print_help(cxxopts::Options const &parser) {
+void print_help(cxxopts::Options const &parser, std::string const &section) {
+  std::vector<std::pair<std::string, std::string>> options(
+      Config::optionsMap.size());
+
+  if (section.size() == 0) {
+    std::copy(Config::optionsMap.begin(), Config::optionsMap.end(),
+              options.begin());
+  } else {
+    auto findSection = [&](std::pair<std::string, std::string> const &pair) {
+      return pair.first == section;
+    };
+    auto it = std::copy_if(Config::optionsMap.begin(), Config::optionsMap.end(),
+                           options.begin(), findSection);
+    options.resize(std::distance(options.begin(), it));
+  }
+
   // clang-format off
   firestarter::log::info()
-    << parser.help()
-		<< "\n"
+    << parser.help(options)
     << "Examples:\n"
-    << "\n"
     << "  ./FIRESTARTER                 starts FIRESTARTER without timeout\n"
     << "  ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER\n"
     << "  ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with\n"
-		<< "                                50\% high load and 50\% idle time\n"
+    << "                                50\% high load and 50\% idle time\n"
 #ifdef FIRESTARTER_BUILD_CUDA
     << "                                on CPUs and full load on GPUs\n"
 #endif
@@ -138,15 +164,18 @@ Config::Config(int argc, const char **argv) {
   cxxopts::Options parser(argv[0]);
 
   // clang-format off
-  parser.add_options()
-    ("h,help", "Display usage information")
+  parser.add_options("information")
+    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads | debug | measurement | optimization",
+      cxxopts::value<std::string>()->implicit_value(""), "SECTION")
     ("v,version", "Display version information")
     ("c,copyright", "Display copyright information")
     ("w,warranty", "Display warranty information")
     ("q,quiet", "Set log level to Warning")
     ("r,report", "Display additional information (overridden by -q)")
     ("debug", "Print debug output")
-    ("a,avail", "List available functions")
+    ("a,avail", "List available functions");
+
+  parser.add_options("general")
     ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
 #ifdef FIRESTARTER_BUILD_CUDA
@@ -172,19 +201,26 @@ Config::Config(int argc, const char **argv) {
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be combined with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
+    ;
+
+  parser.add_options("specialized-workloads")
     ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.")
     ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
-      cxxopts::value<unsigned>())
+      cxxopts::value<unsigned>());
+
 #ifdef FIRESTARTER_DEBUG_FEATURES
+  parser.add_options("debug")
     ("allow-unavailable-payload", "This option is only for debugging. Do not use it.")
     ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
-      cxxopts::value<std::string>()->default_value(""))
+      cxxopts::value<std::string>()->default_value(""));
 #endif
+
 #if defined(linux) || defined(__linux__)
+  parser.add_options("measurement")
     ("list-metrics", "List the available metrics.")
 #ifndef FIRESTARTER_LINK_STATIC
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
@@ -200,7 +236,9 @@ Config::Config(int argc, const char **argv) {
     ("stop-delta", "Cut of last N milliseconds of measurement.",
       cxxopts::value<unsigned>()->default_value("2000"), "N")
     ("preheat", "Preheat for N seconds.",
-      cxxopts::value<unsigned>()->default_value("240"), "N")
+      cxxopts::value<unsigned>()->default_value("240"), "N");
+
+  parser.add_options("optimization")
     ("optimize", "Run the optimization with one of these algorithms: NSGA2. Cannot be combined with --measurement.",
       cxxopts::value<std::string>())
     ("optimize-outfile", "Dump the output of the optimization into this file. (Default: $PWD/$HOSTNAME_$DATE.json)",
@@ -214,9 +252,8 @@ Config::Config(int argc, const char **argv) {
     ("nsga2-cr", "Crossover probability. (Must be in range [0,1[)",
       cxxopts::value<double>()->default_value("0.6"))
     ("nsga2-m", "Mutation probability. (Must be in range [0,1])",
-      cxxopts::value<double>()->default_value("0.4"))
+      cxxopts::value<double>()->default_value("0.4"));
 #endif
-    ;
   // clang-format on
 
   try {
@@ -258,7 +295,20 @@ Config::Config(int argc, const char **argv) {
         << " -c` for details.\n";
 
     if (options.count("help")) {
-      print_help(parser);
+      auto section = options["help"].as<std::string>();
+
+      // section not found
+      auto findSection = [&](std::pair<std::string, std::string> const &pair) {
+        return pair.first == section;
+      };
+      if (std::find_if(optionsMap.begin(), optionsMap.end(), findSection) ==
+              optionsMap.end() &&
+          section.size() != 0) {
+        throw std::invalid_argument("Section \"" + section +
+                                    "\" not found in help.");
+      }
+
+      print_help(parser, section);
       std::exit(EXIT_SUCCESS);
     }
 
@@ -378,7 +428,7 @@ Config::Config(int argc, const char **argv) {
 
   } catch (std::exception &e) {
     firestarter::log::error() << e.what() << "\n";
-    print_help(parser);
+    print_help(parser, "");
     std::exit(EXIT_FAILURE);
   }
 }

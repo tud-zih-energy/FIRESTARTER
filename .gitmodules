@@ -1,12 +1,12 @@
 [submodule "lib/nitro"]
 	path = lib/nitro
 	url = https://github.com/tud-zih-energy/nitro.git
-[submodule "lib/cxxopts"]
-	path = lib/cxxopts
-	url = https://github.com/jarro2783/cxxopts.git
 [submodule "lib/asmjit"]
 	path = lib/asmjit
 	url = https://github.com/asmjit/asmjit.git
 [submodule "lib/json"]
 	path = lib/json
 	url = https://github.com/nlohmann/json.git
+[submodule "lib/cxxopts"]
+	path = lib/cxxopts
+	url = https://github.com/tud-zih-energy/FIRESTARTER.git
