@@ -2151,11 +2151,6 @@ Options::help_one_group(const std::string& g) const
 
   String result;
 
-  if (!g.empty())
-  {
-    result += toLocalString(" " + g + " options:\n");
-  }
-
   for (const auto& o : group->second.options)
   {
     if (m_positional_set.find(o.l) != m_positional_set.end() &&
