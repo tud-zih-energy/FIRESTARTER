@@ -343,6 +343,7 @@ jobs:
         grep -v '\$\$' < CHANGELOG > ../CHANGELOG
         cp README.md ../README.md
         cp LICENSE ../LICENSE
+        cp 3rd-party-licenses ../ -r
     - name: Create tar.gz
       run: |
         rm -rf .git*

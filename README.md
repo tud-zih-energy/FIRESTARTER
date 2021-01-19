@@ -1,4 +1,4 @@
-![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/workflows/Build/badge.svg)
+![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/workflows/Build/badge.svg?branch=master)
 
 # FIRESTARTER - A Processor Stress Test Utility
 
