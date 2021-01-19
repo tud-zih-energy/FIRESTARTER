@@ -2147,8 +2147,6 @@ Options::help_one_group(const std::string& g) const
 
   OptionHelp format;
 
-  size_t longest = 0;
-
   String result;
 
   for (const auto& o : group->second.options)
@@ -2160,11 +2158,10 @@ Options::help_one_group(const std::string& g) const
     }
 
     auto s = format_option(o);
-    longest = (std::max)(longest, stringLength(s));
     format.push_back(std::make_pair(s, String()));
   }
 
-  longest = (std::min)(longest, static_cast<size_t>(OPTION_LONGEST));
+  size_t longest = static_cast<size_t>(OPTION_LONGEST);
 
   //widest allowed description
   auto allowed = size_t{76} - longest - OPTION_DESC_GAP;
