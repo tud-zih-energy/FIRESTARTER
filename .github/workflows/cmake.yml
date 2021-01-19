@@ -347,7 +347,7 @@ jobs:
       run: |
         rm -rf .git*
         cd ..
-        tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE FIRESTARTER*
+        tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll FIRESTARTER*
     - uses: actions/upload-artifact@v2
       with:
         name: FIRESTARTER.tar.gz
