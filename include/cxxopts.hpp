@@ -1481,6 +1481,9 @@ namespace cxxopts
     std::string
     help(const std::vector<std::string>& groups = {}) const;
 
+		std::string
+    help(const std::vector<std::pair<std::string, std::string>>& groups_map) const;
+
     std::vector<std::string>
     groups() const;
 
@@ -2263,6 +2266,28 @@ Options::help(const std::vector<std::string>& help_groups) const
   }
 
   return toUTF8String(result);
+}
+
+inline
+std::string
+Options::help(const std::vector<std::pair<std::string, std::string>>& groups_map) const
+{
+  String result = m_help_string + "\nUsage:\n  " +
+    toLocalString(m_program) + " " + toLocalString(m_custom_help);
+
+  if (!m_positional.empty() && !m_positional_help.empty()) {
+    result += " " + toLocalString(m_positional_help);
+  }
+
+  result += "\n\n";
+
+	for (auto const &pair : groups_map) {
+		result += pair.second;
+		generate_group_help(result, {pair.first});
+		result += "\n";
+	}
+
+	return toUTF8String(result);
 }
 
 inline
