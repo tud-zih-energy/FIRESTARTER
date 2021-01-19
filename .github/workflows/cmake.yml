@@ -236,3 +236,119 @@ jobs:
       with:
         name: FIRESTARTER-osx_11.0
         path: build/src/FIRESTARTER
+  create-download:
+    name: Create download for Website
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-macos, build-windows]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - name: Checkout submodules
+      run: |
+        git submodule update --init --recursive
+    - name: Create Build directory
+      run: |
+        mkdir build
+    # Linux
+    - name: Retrieve FIRESTARTER-linux 
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-linux
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER-linux
+    # Linux CUDA 6.5
+    - name: Retrieve FIRESTARTER_CUDA_6.5-linux 
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_6.5-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_6.5-linux
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER_CUDA_6.5-linux
+    # Linux CUDA 8.0
+    - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_8.0-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_8.0-linux
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER_CUDA_8.0-linux
+    # Linux CUDA 11.0
+    - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_11.0-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_11.0-linux
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER_CUDA_11.0-linux
+    # OSX 11.0
+    - name: Retrieve FIRESTARTER-osx_11.0
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER-osx_11.0
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-osx_11.0
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER-osx_11.0
+    # OSX 10.15
+    - name: Retrieve FIRESTARTER-osx_10.15
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER-osx_10.15
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-osx_10.15
+        rm -rf FIRESTARTER
+        chmod +x ../FIRESTARTER-osx_10.15
+    # Windows
+    - name: Retrieve FIRESTARTER-windows
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER-windows
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER.exe ../FIRESTARTER-windows.exe
+        rm -rf FIRESTARTER
+    # Windows CUDA 11.0
+    - name: Retrieve FIRESTARTER_CUDA_11.0-windows
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_11.0-windows
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA.exe ../FIRESTARTER_CUDA_11.0-windows.exe
+        mv FIRESTARTER/libhwloc-15.dll ../libhwloc-15.dll
+        rm -rf FIRESTARTER
+    # Create tar.gz
+    - name: Copy CHANGELOG, README and LICENSE
+      run: |
+        grep -v '\$\$' < CHANGELOG > ../CHANGELOG
+        cp README.md ../README.md
+        cp LICENSE ../LICENSE
+    - name: Create tar.gz
+      run: |
+        rm -rf .git*
+        cd ..
+        tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE FIRESTARTER*
+    - uses: actions/upload-artifact@v2
+      with:
+        name: FIRESTARTER.tar.gz
+        path: /home/runner/work/FIRESTARTER/FIRESTARTER.tar.gz
