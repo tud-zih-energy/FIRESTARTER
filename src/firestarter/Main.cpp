@@ -119,6 +119,16 @@ void print_help(cxxopts::Options const &parser) {
 #ifdef FIRESTARTER_BUILD_CUDA
     << "                                on CPUs and full load on GPUs\n"
 #endif
+#if defined(linux) || defined(__linux__) 
+    << "  ./FIRESTARTER --measurement --start-delta=300000 -t 900\n"
+    << "                                starts FIRESTARTER measuring all available\n"
+    << "                                metrics for 15 minutes disregarding the first\n"
+    << "                                5 minutes and last two seconds (default to `--stop-delta`)\n"
+    << "  ./FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc\n"
+    << "                                starts FIRESTARTER optimizing with the sysfs-powercap-rapl\n"
+    << "                                and perf-ipc metric. The duration is 20s long. The default\n"
+    << "                                instruction groups for the current platform will be used.\n"
+#endif
     ;
   // clang-format on
 }
