@@ -85,9 +85,12 @@ FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc
 ## Help output for Linux (non CUDA version)
 ```
 Usage:
-  FIRESTARTER [OPTION...]
+  ./result/bin/FIRESTARTER [OPTION...]
 
-  -h, --help                    Display usage information
+Information Options:
+  -h, --help [=SECTION(=)]      Display usage information. SECTION can be any
+                                of: information | general |
+                                specialized-workloads | debug | measurement | optimization
   -v, --version                 Display version information
   -c, --copyright               Display copyright information
   -w, --warranty                Display warranty information
@@ -96,6 +99,8 @@ Usage:
                                 -q)
       --debug                   Print debug output
   -a, --avail                   List available functions
+
+General Options:
   -i, --function ID             Specify integer ID of the load-function to be
                                 used (as listed by --avail) (default: 0)
   -t, --timeout TIMEOUT         Set the timeout (seconds) after which
@@ -118,6 +123,8 @@ Usage:
                                 "x-y", "x-y/step", and any combination of the
                                 above. Cannot be combined with -n |
                                 --threads. (default: "")
+
+Specialized workloads:
       --list-instruction-groups
                                 List the available instruction groups for the
                                 payload of the current platform.
@@ -126,6 +133,8 @@ Usage:
                                 instruction groups. GROUPS format: multiple INST:VAL
                                 pairs comma-seperated (default: "")
       --set-line-count arg      Set the number of lines for a payload.
+
+Debugging:
       --allow-unavailable-payload
                                 This option is only for debugging. Do not use
                                 it.
@@ -139,6 +148,8 @@ Usage:
                                 Path for the dump of the output files. If
                                 path is not given, current working directory will
                                 be used. (default: "")
+
+Debugging:
       --list-metrics            List the available metrics.
       --metric-from-stdin NAME  Add a metric NAME with values from stdin.
                                 Format of input: "NAME TIME_SINCE_EPOCH VALUE\n".
@@ -157,6 +168,8 @@ Usage:
       --stop-delta N            Cut of last N milliseconds of measurement.
                                 (default: 2000)
       --preheat N               Preheat for N seconds. (default: 240)
+
+Optimization:
       --optimize arg            Run the optimization with one of these
                                 algorithms: NSGA2. Cannot be combined with
                                 --measurement.
@@ -176,7 +189,6 @@ Usage:
                                 [0,1]) (default: 0.4)
 
 Examples:
-
   ./FIRESTARTER                 starts FIRESTARTER without timeout
   ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER
   ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with
