@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.13)
 project(FIRESTARTER)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+include(cmake/GitSubmoduleUpdate.cmake)
 
 # set FIRESTARTER version
 find_package(Git)
 if(Git_FOUND)
+	_is_git(${CMAKE_CURRENT_SOURCE_DIR} IN_GIT)
+endif()
+
+if (IN_GIT)
 	execute_process(COMMAND ${GIT_EXECUTABLE} describe --always --tags --dirty
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE _FIRESTARTER_VERSION_STRING
@@ -17,7 +21,7 @@ else()
 endif()
 add_compile_definitions(_FIRESTARTER_VERSION_STRING="${_FIRESTARTER_VERSION_STRING}")
 
-if(Git_FOUND)
+if(IN_GIT)
 	execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ci HEAD
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE _FIRESTARTER_BUILD_YEAR
