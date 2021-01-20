@@ -31,6 +31,7 @@ Version 2.0
  - added AMD Rome (Zen 2) support
  - added Mac OS support
  - CUDA support on Windows
+ - FIRESTARTER_CUDA initialization takes less time
  - Automatic optimization via default (perf-ipc, ipc-estimate, sysfs-powercap-rapl) or user-defined metrics (--metric-from-stdin)
  - Automatic measurement of metrics
  - tweaked payloads to hinder vector registers converging to denormal values
