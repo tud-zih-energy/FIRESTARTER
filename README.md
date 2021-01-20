@@ -46,17 +46,17 @@ It currently supports the multiobjective algorithm NSGA2, selected by `--optimiz
 The evolutionary algorithm evaluates individuals one after another.
 Each evaluation of a given individual is `-t | --timeout` seconds long.
 Selecting a long enough time for letting the power consumption stabilize, but not too long as this will leed to a much longer optimization timespan.
-During this time metrics are collected and the selected metrics (`--optimization-metrics`) are used for assigning a fitness. (Specify multiple times of a multiobjective algorithm.)
+During this time metrics are collected and the selected metrics (`--optimization-metrics`) are used for assigning a fitness. (specify at least two metrics for a multiobjective algorithm)
 Using a high precision power metric is essential for good optimization results.
 If you use the `sysfs-powercap-rapl` metric make sure the RAPL values of your CPU microarchitecture have a close correlation to the actual power consumption, e.g. Intel® processors<sup>[1](#intel-trademark)</sup> since Haswell, see [An Energy Efficiency Feature Survey of the Intel Haswell Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
 
 Individuals are made of different instruction groups and their ratios to one another.
 Without specifying the `--run-instruction-groups` option, preselected instruction groups will be used for optimization.
 Setting this option allows the user to select different instruction group, e.g. for optimizing FIRESTARTER on a not yet optimized microarchitecture.
-The format of this is the same as shown by `-a | --avail` (Show all supported microarchitectures and their optimized individual.)
+The format of this is the same as shown by `-a | --avail`.
 All available instruction groups can be listed with `--list-instruction-groups`.
 
-The number of individuals per generation (`--individuals`), as is the number of generations (`--generation`) is set 20 per default.
+The number of individuals per generation (`--individuals`) and the number of generations (`--generation`) are both set 20 per default.
 
 Before the optimization runs a user-defined period of preheating of the CPU is carried out.
 Option `--preheat` is specified to a default of 240 seconds.

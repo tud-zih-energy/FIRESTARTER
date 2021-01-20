@@ -229,12 +229,12 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: matrix.os == 'macos-10.15'
       with:
-        name: FIRESTARTER-osx_10.15
+        name: FIRESTARTER-macOS_10.15
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v2
       if: matrix.os == 'macos-11.0'
       with:
-        name: FIRESTARTER-osx_11.0
+        name: FIRESTARTER-macOS_11.0
         path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
@@ -271,7 +271,7 @@ jobs:
       run: |
         mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_6.5-linux
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_6.5-linux
+        chmod +x ../FIRESTARTER_CUDA_6.5
     # Linux CUDA 8.0
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
       uses: actions/download-artifact@v2
@@ -282,7 +282,7 @@ jobs:
       run: |
         mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_8.0-linux
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_8.0-linux
+        chmod +x ../FIRESTARTER_CUDA_8.0
     # Linux CUDA 11.0
     - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
       uses: actions/download-artifact@v2
@@ -293,29 +293,29 @@ jobs:
       run: |
         mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_11.0-linux
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_11.0-linux
+        chmod +x ../FIRESTARTER_CUDA_11.0
     # OSX 11.0
-    - name: Retrieve FIRESTARTER-osx_11.0
+    - name: Retrieve FIRESTARTER-macOS_11.0
       uses: actions/download-artifact@v2
       with:
-        name: FIRESTARTER-osx_11.0
+        name: FIRESTARTER-macOS_11.0
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-osx_11.0
+        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-macOS_11.0
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER-osx_11.0
+        chmod +x ../FIRESTARTER-macOS_11.0
     # OSX 10.15
-    - name: Retrieve FIRESTARTER-osx_10.15
+    - name: Retrieve FIRESTARTER-macOS_10.15
       uses: actions/download-artifact@v2
       with:
-        name: FIRESTARTER-osx_10.15
+        name: FIRESTARTER-macOS_10.15
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-osx_10.15
+        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-macOS_10.15
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER-osx_10.15
+        chmod +x ../FIRESTARTER-macOS_10.15
     # Windows
     - name: Retrieve FIRESTARTER-windows
       uses: actions/download-artifact@v2
@@ -344,11 +344,14 @@ jobs:
         cp README.md ../README.md
         cp LICENSE ../LICENSE
         cp 3rd-party-licenses ../ -r
+        cp examples ../ -r
     - name: Create tar.gz
       run: |
         rm -rf .git*
         cd ..
-        tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll FIRESTARTER*
+        mv FIRESTARTER sources
+        mv FIRESTARTER-linux FIRESTARTER
+        tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
     - uses: actions/upload-artifact@v2
       with:
         name: FIRESTARTER.tar.gz
