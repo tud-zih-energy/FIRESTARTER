@@ -47,8 +47,8 @@ The evolutionary algorithm evaluates individuals one after another.
 Each evaluation of a given individual is `-t | --timeout` seconds long.
 Selecting a long enough time for letting the power consumption stabilize, but not too long as this will leed to a much longer optimization timespan.
 During this time metrics are collected and the selected metrics (`--optimization-metrics`) are used for assigning a fitness. (specify at least two metrics for a multiobjective algorithm)
-Using a high precision power metric is essential for good optimization results.
-If you use the `sysfs-powercap-rapl` metric make sure the RAPL values of your CPU microarchitecture have a close correlation to the actual power consumption, e.g. Intel® processors<sup>[1](#intel-trademark)</sup> since Haswell, see [An Energy Efficiency Feature Survey of the Intel Haswell Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
+The optimization result depends on the accuracy of the power measurment.
+The `sysfs-powercap-rapl` metric correlates strongly with the actual system power consumption on Intel® processors<sup>[1](#intel-trademark)</sup> since Haswell, see [An Energy Efficiency Feature Survey of the Intel Haswell Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
 
 Individuals are made of different instruction groups and their ratios to one another.
 Without specifying the `--run-instruction-groups` option, preselected instruction groups will be used for optimization.
