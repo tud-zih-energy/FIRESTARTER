@@ -245,8 +245,10 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: '0'
+        path: 'sources'
     - name: Checkout submodules
       run: |
+        cd sources
         git submodule update --init --recursive
     - name: Create Build directory
       run: |
@@ -259,9 +261,9 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-linux
+        mv FIRESTARTER/FIRESTARTER FIRESTARTER-linux
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER-linux
+        chmod +x FIRESTARTER-linux
     # Linux CUDA 6.5
     - name: Retrieve FIRESTARTER_CUDA_6.5-linux 
       uses: actions/download-artifact@v2
@@ -270,9 +272,9 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_6.5-linux
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_6.5
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_6.5
+        chmod +x FIRESTARTER_CUDA_6.5
     # Linux CUDA 8.0
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
       uses: actions/download-artifact@v2
@@ -281,9 +283,9 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_8.0-linux
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_8.0
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_8.0
+        chmod +x FIRESTARTER_CUDA_8.0
     # Linux CUDA 11.0
     - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
       uses: actions/download-artifact@v2
@@ -292,9 +294,9 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA ../FIRESTARTER_CUDA_11.0-linux
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_11.0
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER_CUDA_11.0
+        chmod +x FIRESTARTER_CUDA_11.0
     # OSX 11.0
     #- name: Retrieve FIRESTARTER-macOS_11.0
     #  uses: actions/download-artifact@v2
@@ -314,9 +316,9 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER ../FIRESTARTER-macOS_10.15
+        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_10.15
         rm -rf FIRESTARTER
-        chmod +x ../FIRESTARTER-macOS_10.15
+        chmod +x FIRESTARTER-macOS_10.15
     # Windows
     - name: Retrieve FIRESTARTER-windows
       uses: actions/download-artifact@v2
@@ -325,7 +327,7 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER.exe ../FIRESTARTER-windows.exe
+        mv FIRESTARTER/FIRESTARTER.exe FIRESTARTER-windows.exe
         rm -rf FIRESTARTER
     # Windows CUDA 11.0
     - name: Retrieve FIRESTARTER_CUDA_11.0-windows
@@ -335,25 +337,23 @@ jobs:
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA.exe ../FIRESTARTER_CUDA_11.0-windows.exe
-        mv FIRESTARTER/libhwloc-15.dll ../libhwloc-15.dll
+        mv FIRESTARTER/FIRESTARTER_CUDA.exe FIRESTARTER_CUDA_11.0-windows.exe
+        mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
         rm -rf FIRESTARTER
     # Create tar.gz
     - name: Copy CHANGELOG, README and LICENSE
       run: |
-        grep -v '\$\$' < CHANGELOG > ../CHANGELOG
-        cp README.md ../README.md
-        cp LICENSE ../LICENSE
-        cp 3rd-party-licenses ../ -r
-        cp examples ../ -r
+        grep -v '\$\$' < sources/CHANGELOG > CHANGELOG
+        cp sources/README.md README.md
+        cp sources/LICENSE LICENSE
+        cp sources/3rd-party-licenses . -r
+        cp sources/examples . -r
     - name: Create tar.gz
       run: |
-        rm -rf .git*
-        cd ..
-        mv FIRESTARTER sources
         mv FIRESTARTER-linux FIRESTARTER
+        rm -rf sources/.git*
         tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
     - uses: actions/upload-artifact@v2
       with:
         name: FIRESTARTER.tar.gz
-        path: /home/runner/work/FIRESTARTER/FIRESTARTER.tar.gz
+        path: FIRESTARTER.tar.gz
