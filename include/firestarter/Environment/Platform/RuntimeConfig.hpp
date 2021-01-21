@@ -83,6 +83,14 @@ public:
   const std::vector<std::pair<std::string, unsigned>> &payloadSettings() const {
     return _payloadSettings;
   }
+  std::vector<std::string> payloadItems() const {
+    std::vector<std::string> items;
+    for (auto const &pair : _payloadSettings) {
+      items.push_back(pair.first);
+    }
+    return items;
+  }
+
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
   const std::list<unsigned> &dataCacheBufferSize() const {
     return _dataCacheBufferSize;

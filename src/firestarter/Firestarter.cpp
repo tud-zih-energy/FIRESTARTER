@@ -172,11 +172,6 @@ Firestarter::Firestarter(
   }
 
   if (_optimize) {
-    std::vector<std::string> instructionGroups = {};
-    for (auto const &[key, value] :
-         this->environment().selectedConfig().payloadSettings()) {
-      instructionGroups.push_back(key);
-    }
     auto applySettings = std::bind(
         [this](std::vector<std::pair<std::string, unsigned>> const &setting) {
           using Clock = std::chrono::high_resolution_clock;
@@ -260,7 +255,8 @@ Firestarter::Firestarter(
     auto prob =
         std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
             std::move(applySettings), _measurementWorker, _optimizationMetrics,
-            _evaluationDuration, _startDelta, _stopDelta, instructionGroups);
+            _evaluationDuration, _startDelta, _stopDelta,
+            this->environment().selectedConfig().payloadItems());
 
     _population = firestarter::optimizer::Population(std::move(prob));
 
@@ -355,8 +351,14 @@ void Firestarter::mainThread() {
     // wait here until optimizer thread terminates
     Firestarter::_optimizer->join();
 
-    firestarter::optimizer::History::save(_optimizeOutfile, startTime, _argc,
-                                          _argv);
+    auto payloadItems = this->environment().selectedConfig().payloadItems();
+
+    // print the best 20 according to each metric
+    firestarter::optimizer::History::printBest(_optimizationMetrics,
+                                               payloadItems);
+
+    firestarter::optimizer::History::save(_optimizeOutfile, startTime,
+                                          payloadItems, _argc, _argv);
 
     // stop all the load threads
     std::raise(SIGTERM);

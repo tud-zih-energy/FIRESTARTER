@@ -26,6 +26,7 @@
 #include <firestarter/Measurement/Summary.hpp>
 #include <firestarter/Optimizer/Individual.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <ctime>
@@ -44,6 +45,34 @@ extern "C" {
 namespace firestarter::optimizer {
 
 struct History {
+private:
+  // https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of/17074810#17074810
+  template <typename T, typename Compare>
+  inline static std::vector<std::size_t>
+  sortPermutation(const std::vector<T> &vec, Compare &compare) {
+    std::vector<std::size_t> p(vec.size());
+    std::iota(p.begin(), p.end(), 0);
+    std::sort(p.begin(), p.end(), [&](std::size_t i, std::size_t j) {
+      return compare(vec[i], vec[j]);
+    });
+    return p;
+  }
+
+  inline static void padding(std::stringstream &ss, std::size_t width,
+                             std::size_t taken, char c) {
+    for (std::size_t i = 0; i < (std::max)(width, taken) - taken; ++i) {
+      ss << c;
+    }
+  }
+
+  inline static int MAX_ELEMENT_PRINT_COUNT = 20;
+  inline static std::size_t MIN_COLUMN_WIDTH = 10;
+
+  inline static std::vector<Individual> _x = {};
+  inline static std::vector<
+      std::map<std::string, firestarter::measurement::Summary>>
+      _f = {};
+
 public:
   inline static void append(
       std::vector<unsigned> const &ind,
@@ -66,7 +95,130 @@ public:
     return _f[dist];
   }
 
+  inline static void
+  printBest(std::vector<std::string> const &optimizationMetrics,
+            std::vector<std::string> const &payloadItems) {
+    // TODO: print paretto front
+
+    // print the best 20 individuals for each metric in a format
+    // where the user can give it to --run-instruction-groups directly
+    std::map<std::string, std::size_t> columnWidth;
+
+    for (auto const &metric : optimizationMetrics) {
+      columnWidth[metric] = (std::max)(metric.size(), MIN_COLUMN_WIDTH);
+      firestarter::log::trace() << metric << ": " << columnWidth[metric];
+    }
+
+    for (auto const &metric : optimizationMetrics) {
+      using SummaryMap =
+          std::map<std::string, firestarter::measurement::Summary>;
+      auto compareIndividual = [&metric](SummaryMap const &mapA,
+                                         SummaryMap const &mapB) {
+        auto summaryA = mapA.find(metric);
+        auto summaryB = mapB.find(metric);
+        assert(summaryA != mapA.end());
+        assert(summaryB != mapB.end());
+        return summaryA->second.average > summaryB->second.average;
+      };
+
+      auto perm = sortPermutation(_f, compareIndividual);
+
+      auto formatIndividual =
+          [&payloadItems](std::vector<unsigned> const &individual) {
+            std::string result = "";
+            assert(payloadItems.size() == individual.size());
+
+            for (std::size_t i = 0; i < individual.size(); ++i) {
+              // skip zero values
+              if (individual[i] == 0) {
+                continue;
+              }
+
+              if (result.size() != 0) {
+                result += ",";
+              }
+              result += payloadItems[i] + ":" + std::to_string(individual[i]);
+            }
+
+            return result;
+          };
+
+      auto begin = perm.begin();
+      auto end = perm.end();
+
+      // stop printing at a max of MAX_ELEMENT_PRINT_COUNT
+      if (std::distance(begin, end) > MAX_ELEMENT_PRINT_COUNT) {
+        end = perm.begin();
+        std::advance(end, MAX_ELEMENT_PRINT_COUNT);
+      }
+
+      // print each of the best elements
+      std::size_t max = 0;
+      for (auto it = begin; it != end; ++it) {
+        max = (std::max)(max, formatIndividual(_x[*it]).size());
+      }
+
+      std::stringstream firstLine;
+      std::stringstream secondLine;
+      std::string ind = "INDIVIDUAL";
+
+      firstLine << "  " << ind;
+      padding(firstLine, max, ind.size(), ' ');
+
+      secondLine << "  ";
+      padding(secondLine, (std::max)(max, ind.size()), 0, '-');
+
+      for (auto const &metric : optimizationMetrics) {
+        auto width = columnWidth[metric];
+
+        firstLine << " | ";
+        secondLine << "---";
+
+        firstLine << metric;
+        padding(firstLine, width, metric.size(), ' ');
+        padding(secondLine, width, 0, '-');
+      }
+
+      std::stringstream ss;
+
+      ss << "\n Best individuals sorted by metric " << metric
+         << " descending:\n"
+         << firstLine.str() << "\n"
+         << secondLine.str() << "\n";
+
+      // print INDIVIDUAL | metric 1 | metric 2 | ... | metric N
+      for (auto it = begin; it != end; ++it) {
+        auto const fitness = _f[*it];
+        auto const ind = formatIndividual(_x[*it]);
+
+        ss << "  " << ind;
+        padding(ss, max, ind.size(), ' ');
+
+        for (auto const &metric : optimizationMetrics) {
+          auto width = columnWidth[metric];
+          auto fitnessOfMetric = fitness.find(metric);
+          assert(fitnessOfMetric != fitness.end());
+          auto value = std::to_string(fitnessOfMetric->second.average);
+
+          ss << " | " << value;
+          padding(ss, width, value.size(), ' ');
+        }
+        ss << "\n";
+      }
+
+      ss << "\n";
+
+      firestarter::log::info() << ss.str();
+    }
+
+    firestarter::log::info()
+        << "To run FIRESTARTER with the best individual of a given metric "
+           "use the command line argument "
+           "`--run-instruction-groups=INDIVIDUAL`";
+  }
+
   inline static void save(std::string const &path, std::string const &startTime,
+                          std::vector<std::string> const &payloadItems,
                           const int argc, const char **argv) {
     using json = nlohmann::json;
 
@@ -95,6 +247,12 @@ public:
 
     j["startTime"] = startTime;
     j["endTime"] = getTime();
+
+    // save the payload items
+    j["payloadItems"] = json::array();
+    for (auto const &item : payloadItems) {
+      j["payloadItems"].push_back(item);
+    }
 
     // save the arguments
     j["args"] = json::array();
@@ -141,11 +299,5 @@ public:
     ss << std::put_time(&tm, "%F_%T%z");
     return ss.str();
   }
-
-private:
-  inline static std::vector<Individual> _x = {};
-  inline static std::vector<
-      std::map<std::string, firestarter::measurement::Summary>>
-      _f = {};
 };
 } // namespace firestarter::optimizer
