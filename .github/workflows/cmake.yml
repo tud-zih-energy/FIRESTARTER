@@ -13,14 +13,28 @@ jobs:
         include:
           - os: ubuntu-16.04
             compiler: g++-7
+            CUDA: '0'
           - os: ubuntu-16.04
             compiler: g++-8
+            CUDA: '0'
           - os: ubuntu-16.04
             compiler: g++-9
+            CUDA: '0'
           - os: ubuntu-16.04
             compiler: clang++-8
+            CUDA: '0'
           - os: ubuntu-16.04
             compiler: clang++-9
+            CUDA: '0'
+          - os: ubuntu-16.04
+            compiler: g++-7
+            CUDA: '6.5'
+          - os: ubuntu-16.04
+            compiler: g++-7
+            CUDA: '8.0'
+          - os: ubuntu-16.04
+            compiler: g++-7
+            CUDA: '11.0'
 
     runs-on: ${{ matrix.os }}
 
@@ -101,7 +115,7 @@ jobs:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v2
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0'
+      if: matrix.os == 'ubuntu-16.04' && matrix.CUDA != '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
