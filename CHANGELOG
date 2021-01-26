@@ -20,21 +20,21 @@
 ###############################################################################
 $$ TODO
 $$ TODO Version 2.x
-$$ TODO - add Mac OS version
-$$ TODO - add AMD Zen support
-$$ TODO
-$$ TODO Version 2.0
 $$ TODO - add results verification
 $$ TODO - improve Haswell/Broadwell, KNL, and Skylake support
+$$ TODO - support for IBM POWER9 systems
+$$ TODO - support for AArch64 (64 Bit ARM)
+$$ TODO - support Infiniband interconnects
+$$ TODO
 
 Version 2.0
  - added AMD Rome (Zen 2) support
- - added Mac OS support
+ - added macOS support
  - CUDA support on Windows
- - FIRESTARTER_CUDA initialization takes less time
- - Automatic optimization via default (perf-ipc, ipc-estimate, sysfs-powercap-rapl) or user-defined metrics (--metric-from-stdin)
- - Automatic measurement of metrics
- - tweaked payloads to hinder vector registers converging to denormal values
+ - FIRESTARTER_CUDA initialization speed improved
+ - automatic tuning option to better accommodate variations in core count, frequency, and memory bandwidth between different SKUs of one generation
+ - automatic recording of metrics
+ - tweaked payloads to prevent vector registers from converging to denormal values 
 
 Version 1.7.4
  - added AMD Zen and Zen+ support (ZEN_FMA)
@@ -73,7 +73,7 @@ Version 1.4
 
 Version 1.3
  - added support for Broadwell-H (FMA)
-$CUDA  - added support for Nvidia GPUs (FIRESTARTER_CUDA)
+ - added support for Nvidia GPUs (FIRESTARTER_CUDA)
 
 Version 1.2
  - added support for Haswell-E/EP (FMA)

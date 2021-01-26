@@ -35,7 +35,7 @@ struct Config {
                     {"debug", "Debugging:\n"},
 #endif
 #if defined(linux) || defined(__linux__)
-                    {"measurement", "Debugging:\n"},
+                    {"measurement", "Measurement:\n"},
                     {"optimization", "Optimization:\n"}
 #endif
   };
