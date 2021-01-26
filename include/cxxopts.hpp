@@ -1621,18 +1621,6 @@ namespace cxxopts
     {
       auto desc = o.desc;
 
-      if (o.has_default && (!o.is_boolean || o.default_value != "false"))
-      {
-        if(!o.default_value.empty())
-        {
-          desc += toLocalString(" (default: " + o.default_value + ")");
-        }
-        else
-        {
-          desc += toLocalString(" (default: \"\")");
-        }
-      }
-
       String result;
 
       auto current = std::begin(desc);
@@ -1650,8 +1638,11 @@ namespace cxxopts
 
         if (*current == '\n')
         {
+          stringAppend(result, startLine, current + 1);
+          stringAppend(result, start, ' ');
           startLine = current + 1;
           lastSpace = startLine;
+          size = 0;
         }
         else if (size > width)
         {
@@ -2167,7 +2158,7 @@ Options::help_one_group(const std::string& g) const
   size_t longest = static_cast<size_t>(OPTION_LONGEST);
 
   //widest allowed description
-  auto allowed = size_t{76} - longest - OPTION_DESC_GAP;
+  auto allowed = size_t{89} - longest - OPTION_DESC_GAP;
 
   auto fiter = format.begin();
   for (const auto& o : group->second.options)
