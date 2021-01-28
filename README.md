@@ -1,3 +1,5 @@
+![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/workflows/Build/badge.svg?branch=master)
+
 # FIRESTARTER - A Processor Stress Test Utility
 
 FIRESTARTER maximizes the energy consumption of 64-Bit x86 processors by generating heavy load on the execution units as well as transferring data between the cores and multiple levels of the memory hierarchy.

@@ -358,7 +358,7 @@ jobs:
     - name: Copy CHANGELOG, README and LICENSE
       run: |
         grep -v '\$\$' < sources/CHANGELOG > CHANGELOG
-        cp sources/README.md README.md
+        cat sources/README.md | tail -n +2 > README.md
         cp sources/LICENSE LICENSE
         cp sources/3rd-party-licenses . -r
         cp sources/examples . -r
