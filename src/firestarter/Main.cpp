@@ -141,9 +141,11 @@ void print_help(cxxopts::Options const &parser, std::string const &section) {
 #endif
     << "  ./FIRESTARTER -l 75 -p 20000000\n"
     << "                                starts FIRESTARTER with an interval length\n"
-    << "                                of 2 sec, 1.5s high load and 0.5s idle\n"
+    << "                                of 2 sec, 1.5s high load"
 #ifdef FIRESTARTER_BUILD_CUDA
     << "                                on CPUs and full load on GPUs\n"
+#else
+    << "\n"
 #endif
 #if defined(linux) || defined(__linux__) 
     << "  ./FIRESTARTER --measurement --start-delta=300000 -t 900\n"
@@ -165,7 +167,7 @@ Config::Config(int argc, const char **argv) {
 
   // clang-format off
   parser.add_options("information")
-    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads | debug | measurement | optimization",
+    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads | debug\n| measurement | optimization",
       cxxopts::value<std::string>()->implicit_value(""), "SECTION")
     ("v,version", "Display version information")
     ("c,copyright", "Display copyright information")
@@ -176,47 +178,47 @@ Config::Config(int argc, const char **argv) {
     ("a,avail", "List available functions");
 
   parser.add_options("general")
-    ("i,function", "Specify integer ID of the load-function to be used (as listed by --avail)",
+    ("i,function", "Specify integer ID of the load-function to be\nused (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
 #ifdef FIRESTARTER_BUILD_CUDA
-    ("f,usegpufloat", "Use single precision matrix multiplications instead of default")
-    ("d,usegpudouble", "Use double precision matrix multiplications instead of default")
-    ("g,gpus", "Number of gpus to use (default: all)",
+    ("f,usegpufloat", "Use single precision matrix multiplications\ninstead of default")
+    ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default")
+    ("g,gpus", "Number of gpus to use, default: -1 (all)",
       cxxopts::value<int>()->default_value("-1"))
-    ("m,matrixsize", "Size of the matrix to calculate, default is maximum",
+    ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
       cxxopts::value<unsigned>()->default_value("0"))
 #endif
-    ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER terminates itself, default: no timeout",
+    ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER\nterminates itself, default: 0 (no timeout)",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
-    ("l,load", "Set the percentage of high CPU load to LOAD (%) default: 100, valid values: 0 <= LOAD <= 100, threads will be idle in the remaining time, frequency of load changes is determined by -p."
+    ("l,load", "Set the percentage of high CPU load to LOAD\n(%) default: 100, valid values: 0 <= LOAD <=\n100, threads will be idle in the remaining time,\nfrequency of load changes is determined by -p."
 #ifdef FIRESTARTER_BUILD_CUDA
-     " This option does NOT influence the GPU workload!"
+     " This option does NOT influence the GPU\nworkload!"
 #endif
      , cxxopts::value<unsigned>()->default_value("100"), "LOAD")
-    ("p,period", "Set the interval length for CPUs to PERIOD (usec), default: 100000, each interval contains a high load and an idle phase, the percentage of high load is defined by -l",
+    ("p,period", "Set the interval length for CPUs to PERIOD\n(usec), default: 100000, each interval contains\na high load and an idle phase, the percentage\nof high load is defined by -l.",
       cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
-    ("n,threads", "Specify the number of threads. Cannot be combined with -b | --bind, which impicitly specifies the number of threads",
+    ("n,threads", "Specify the number of threads. Cannot be\ncombined with -b | --bind, which impicitly\nspecifies the number of threads.",
       cxxopts::value<unsigned>()->default_value("0"), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-    ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\", \"x-y\", \"x-y/step\", and any combination of the above. Cannot be combined with -n | --threads.",
+    ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove. Cannot be combined with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
     ;
 
   parser.add_options("specialized-workloads")
-    ("list-instruction-groups", "List the available instruction groups for the payload of the current platform.")
-    ("run-instruction-groups", "Run the payload with the specified instruction groups. GROUPS format: multiple INST:VAL pairs comma-seperated",
+    ("list-instruction-groups", "List the available instruction groups for the\npayload of the current platform.")
+    ("run-instruction-groups", "Run the payload with the specified\ninstruction groups. GROUPS format: multiple INST:VAL\npairs comma-seperated.",
       cxxopts::value<std::string>()->default_value(""), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
       cxxopts::value<unsigned>());
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   parser.add_options("debug")
-    ("allow-unavailable-payload", "This option is only for debugging. Do not use it.")
-    ("dump-registers", "Dump the working registers on the first thread. Depending on the payload these are mm, xmm, ymm or zmm. Only use it without a timeout and 100 percent load. DELAY between dumps in secs.",
+    ("allow-unavailable-payload", "")
+    ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
-    ("dump-registers-outpath", "Path for the dump of the output files. If path is not given, current working directory will be used.",
-      cxxopts::value<std::string>()->default_value(""));
+    ("dump-registers-outpath", "Path for the dump of the output files. If\nPATH is not given, current working directory will\nbe used.",
+      cxxopts::value<std::string>()->default_value(""), "PATH");
 #endif
 
 #if defined(linux) || defined(__linux__)
@@ -226,32 +228,32 @@ Config::Config(int argc, const char **argv) {
     ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
       cxxopts::value<std::vector<std::string>>()->default_value(""))
 #endif
-    ("metric-from-stdin", "Add a metric NAME with values from stdin. Format of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\". TIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush lines!)",
+    ("metric-from-stdin", "Add a metric NAME with values from stdin.\nFormat of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\".\nTIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush\nlines!)",
       cxxopts::value<std::vector<std::string>>(), "NAME")
-    ("measurement", "Start a measurement for the time specified by -t | --timeout. (The timeout must be greater than the start and stop deltas.) Cannot be combined with --optimize.")
-    ("measurement-interval", "Interval of measurements in milliseconds.",
+    ("measurement", "Start a measurement for the time specified by\n-t | --timeout. (The timeout must be greater\nthan the start and stop deltas.) Cannot be\ncombined with --optimize.")
+    ("measurement-interval", "Interval of measurements in milliseconds, default: 100",
       cxxopts::value<unsigned>()->default_value("100"))
-    ("start-delta", "Cut of first N milliseconds of measurement.",
+    ("start-delta", "Cut of first N milliseconds of measurement, default: 5000",
       cxxopts::value<unsigned>()->default_value("5000"), "N")
-    ("stop-delta", "Cut of last N milliseconds of measurement.",
+    ("stop-delta", "Cut of last N milliseconds of measurement, default: 2000",
       cxxopts::value<unsigned>()->default_value("2000"), "N")
-    ("preheat", "Preheat for N seconds.",
+    ("preheat", "Preheat for N seconds, default: 240",
       cxxopts::value<unsigned>()->default_value("240"), "N");
 
   parser.add_options("optimization")
-    ("optimize", "Run the optimization with one of these algorithms: NSGA2. Cannot be combined with --measurement.",
+    ("optimize", "Run the optimization with one of these algorithms: NSGA2.\nCannot be combined with --measurement.",
       cxxopts::value<std::string>())
-    ("optimize-outfile", "Dump the output of the optimization into this file. (Default: $PWD/$HOSTNAME_$DATE.json)",
+    ("optimize-outfile", "Dump the output of the optimization into this\nfile, default: $PWD/$HOSTNAME_$DATE.json",
       cxxopts::value<std::string>())
-    ("optimization-metric", "Use a metric for optimization. Metrics listed with cli argument --list-metrics or specified with --metric-from-stdin are valid.",
+    ("optimization-metric", "Use a metric for optimization. Metrics listed\nwith cli argument --list-metrics or specified\nwith --metric-from-stdin are valid.",
       cxxopts::value<std::vector<std::string>>())
-    ("individuals", "Number of individuals for the population. For NSGA2 specify at least 5 and a multiple of 4.",
+    ("individuals", "Number of individuals for the population. For\nNSGA2 specify at least 5 and a multiple of 4,\ndefault: 20",
       cxxopts::value<unsigned>()->default_value("20"))
-    ("generations", "Number of generations.",
+    ("generations", "Number of generations, default: 20",
       cxxopts::value<unsigned>()->default_value("20"))
-    ("nsga2-cr", "Crossover probability. (Must be in range [0,1[)",
+    ("nsga2-cr", "Crossover probability. Must be in range [0,1[\ndefault: 0.6",
       cxxopts::value<double>()->default_value("0.6"))
-    ("nsga2-m", "Mutation probability. (Must be in range [0,1])",
+    ("nsga2-m", "Mutation probability. Must be in range [0,1]\ndefault: 0.4",
       cxxopts::value<double>()->default_value("0.4"));
 #endif
   // clang-format on
