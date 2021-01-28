@@ -196,7 +196,7 @@ An [IPython Notebook](https://github.com/tud-zih-energy/FIRESTARTER/blob/master/
 ### The NSGA2 Algorithm
 
 The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithm allowing FIRESTARTER to optimize with two (or more) metrics.
-This is relevant since the IPC (instruction per cycle) metric supports the optimization for a high power consumption. 
+This is relevant because adding the IPC (instruction per cycle) metric supports the optimization algorithm to converge towards higher power consumption.
 Parameters of the algorithm can be tweaked using `--nsga2-cr` and `--nsga2-m`.
 
 ### Optimization Examples
