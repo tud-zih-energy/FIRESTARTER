@@ -2,9 +2,13 @@
 
 # FIRESTARTER - A Processor Stress Test Utility
 
-FIRESTARTER maximizes the energy consumption of 64-Bit x86 processors by generating heavy load on the execution units as well as transferring data between the cores and multiple levels of the memory hierarchy.
+FIRESTARTER maximizes the energy consumption of 64-Bit x86 processors by
+generating heavy load on the execution units as well as transferring data
+between the cores and multiple levels of the memory hierarchy.
 
-WARNING: This software REALLY comes WITHOUT ANY WARRANTY! Some systems cannot handle the high load and crash due to overheating. It cannot be ruled out that the stress test damages the hardware! USE AT YOUR OWN RISK!
+WARNING: This software REALLY comes WITHOUT ANY WARRANTY! Some systems cannot
+handle the high load and crash due to overheating. It cannot be ruled out that
+the stress test damages the hardware! USE AT YOUR OWN RISK!
 
 ## Supported CPU Microarchitectures
 - Intel Nehalem, Westmere, Sandy Bridge, Ivy Bridge, Haswell, Skylake, Knights Landing
@@ -137,75 +141,97 @@ FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
 GCC (>=7) or Clang (>=9) is supported.
 
-CMake option | Description
-:--- | :---
-`FIRESTARTER_BUILD_TYPE` | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, or `FIRESTARTER_CUDA_ONLY`. Default `FIRESTARTER`
-`FIRESTARTER_LINK_STATIC` | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA enabled. Default `ON`
-`FIRESTARTER_BUILD_HWLOC` | Build hwloc dependency. Default `ON`
+CMake option                  | Description
+:---------------------------- | :----------------------------
+`FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, or `FIRESTARTER_CUDA_ONLY`. Default `FIRESTARTER`
+`FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA enabled. Default `ON`
+`FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default `ON`
 `FIRESTARTER_THREAD_AFFINITY` | Enable FIRESTARTER to set affinity to hardware threads. Default `ON`
 
 ## Metrics
 
 The Linux version of FIRESTARTER supports to collect metrics during runtime.
-Available metrics can be shown with `--list-metrics`.
-Default metrics are `perf-ipc`, `perf-freq`, `ipc-estimate` and `sysfs-powercap-rapl`.
+Available metrics can be shown with `--list-metrics`.  Default metrics are
+`perf-ipc`, `perf-freq`, `ipc-estimate` and `sysfs-powercap-rapl`.
 
 ### Custom Metrics
 
-If one would like to use custom metrics, e.g. an external power measurement, `--metric-from-stdin=NAME` allows metric values to be passed via stdin in the following format:
-`{NAME} {TIME SINCE EPOCH IN NS} {ABSOLUT METRIC VALUE (double)}\n`.
-See [here](https://github.com/tud-zih-energy/FIRESTARTER/blob/master/examples/test_metric.py) for a basic example.
+If one would like to use custom metrics, e.g. an external power measurement,
+`--metric-from-stdin=NAME` allows metric values to be passed via stdin in the
+following format: `{NAME} {TIME SINCE EPOCH IN NS} {ABSOLUT METRIC VALUE
+(double)}\n`.  See
+[here](https://github.com/tud-zih-energy/FIRESTARTER/blob/master/examples/test_metric.py)
+for a basic example.
 
 ## Metric Recording
 
-The Linux version of FIRESTARTER has the option to output the collected metric values by specifying `--measurement`.
-Options `--start-delta (default 5000ms)` and `--stop-delta (default 2000ms)` specify a time in milliseconds in which metric values should be ignored.
-After a run, the output will be printed in CSV format to stdout.
+The Linux version of FIRESTARTER has the option to output the collected metric
+values by specifying `--measurement`.  Options `--start-delta (default 5000ms)`
+and `--stop-delta (default 2000ms)` specify a time in milliseconds in which
+metric values should be ignored.  After a run, the output will be printed in CSV
+format to stdout.
 
 ### Measurement Example
 
-Measure all available metrics for 15 minutes disregarding the first 5 minutes and last two seconds (default to `--stop-delta`).
+Measure all available metrics for 15 minutes disregarding the first 5 minutes
+and last two seconds (default to `--stop-delta`).
 ```
 FIRESTARTER --measurement --start-delta=300000 -t 900
 ```
 
 ## Optimization
 
-The Linux version of FIRESTARTER has the option to optimize itself using evolutionary algorithms.
-It currently supports the multiobjective algorithm NSGA2, selected by `--optimize=NSGA2`.
+The Linux version of FIRESTARTER has the option to optimize itself using
+evolutionary algorithms.  It currently supports the multiobjective algorithm
+NSGA2, selected by `--optimize=NSGA2`.
 
-The evolutionary algorithm evaluates individuals one after another.
-Each evaluation of a given individual is `-t | --timeout` seconds long.
-Selecting a long enough time for letting the power consumption stabilize, but not too long as this will leed to a much longer optimization timespan.
-During this time metrics are collected and the selected metrics (`--optimization-metrics`) are used for assigning a fitness (specify at least two metrics for a multiobjective algorithm).
-The optimization result depends on the accuracy of the power measurment.
-The `sysfs-powercap-rapl` metric correlates strongly with the actual system power consumption on Intel processors since Haswell, see [An Energy Efficiency Feature Survey of the Intel Haswell Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
+The evolutionary algorithm evaluates individuals one after another.  Each
+evaluation of a given individual is `-t | --timeout` seconds long.  Selecting a
+long enough time for letting the power consumption stabilize, but not too long
+as this will leed to a much longer optimization timespan.  During this time
+metrics are collected and the selected metrics (`--optimization-metrics`) are
+used for assigning a fitness (specify at least two metrics for a multiobjective
+algorithm).  The optimization result depends on the accuracy of the power
+measurment.  The `sysfs-powercap-rapl` metric correlates strongly with the
+actual system power consumption on Intel processors since Haswell, see [An
+Energy Efficiency Feature Survey of the Intel Haswell
+Processor](http://dx.doi.org/10.1109/IPDPSW.2015.70).
 
-Individuals are made of different instruction groups and their ratios to one another.
-Without specifying the `--run-instruction-groups` option, preselected instruction groups will be used for optimization.
-Setting this option allows the user to select different instruction group, e.g. for optimizing FIRESTARTER on a not yet optimized microarchitecture.
-The format of this is the same as shown by `-a | --avail`.
-All available instruction groups can be listed with `--list-instruction-groups`.
+Individuals are made of different instruction groups and their ratios to one
+another.  Without specifying the `--run-instruction-groups` option, preselected
+instruction groups will be used for optimization.  Setting this option allows
+the user to select different instruction group, e.g. for optimizing FIRESTARTER
+on a not yet optimized microarchitecture.  The format of this is the same as
+shown by `-a | --avail`.  All available instruction groups can be listed with
+`--list-instruction-groups`.
 
-The number of individuals per generation (`--individuals`) and the number of generations (`--generation`) are both set 20 per default.
+The number of individuals per generation (`--individuals`) and the number of
+generations (`--generation`) are both set 20 per default.
 
-Before the optimization runs, a user-defined period of preheating of the CPU is carried out.
-Option `--preheat` defaults to 240 seconds.
+Before the optimization runs, a user-defined period of preheating of the CPU is
+carried out.  Option `--preheat` defaults to 240 seconds.
 
-After the optimization finishes the acquired data will be written to `{HOSTNAME}_${STARTTIME}.json` if not specified otherwise with the option `--optimize-outfile`.
-An [IPython Notebook](https://github.com/tud-zih-energy/FIRESTARTER/blob/master/examples/Evaluation_Notebook/Evaluation_Notebook.ipynb) is provided for basic visualization.
+After the optimization finishes the acquired data will be written to
+`{HOSTNAME}_${STARTTIME}.json` if not specified otherwise with the option
+`--optimize-outfile`.  An [IPython
+Notebook](https://github.com/tud-zih-energy/FIRESTARTER/blob/master/examples/Evaluation_Notebook/Evaluation_Notebook.ipynb)
+is provided for basic visualization.
 
 ### The NSGA2 Algorithm
 
-The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithm allowing FIRESTARTER to optimize with two (or more) metrics.
-This is relevant because adding the IPC (instruction per cycle) metric supports the optimization algorithm to converge towards higher power consumption.
-Parameters of the algorithm can be tweaked using `--nsga2-cr` and `--nsga2-m`.
+The NSGA2 algorithm, as described in [A fast and elitist multiobjective genetic
+algorithm: NSGA-II](https://dl.acm.org/doi/10.1109/4235.996017), is a
+multiobjective algorithm allowing FIRESTARTER to optimize with two (or more)
+metrics.  This is relevant because adding the IPC (instruction per cycle) metric
+supports the optimization algorithm to converge towards higher power
+consumption.  Parameters of the algorithm can be tweaked using `--nsga2-cr` and
+`--nsga2-m`.
 
 ### Optimization Examples
 
 Optimize FIRESTARTER with NSGA2 and `sysfs-powercap-rapl` and `perf-ipc` metric.
-The duration for the evaluation of a setting is 20s.
-`-a | --avail` lists the default instruction groups for the current platform.
+The duration for the evaluation of a setting is 20s.  `-a | --avail` lists the
+default instruction groups for the current platform.
 ```
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc
 ```
@@ -217,11 +243,15 @@ FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc
 
 ## Reference
 
-A detailed description can be found in the following paper. Please cite this if you use FIRESTARTER for scientific work.
+A detailed description can be found in the following paper. Please cite this if
+you use FIRESTARTER for scientific work.
 
-Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne [Introducing FIRESTARTER: A processor stress test utility](http://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
+Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
+[Introducing FIRESTARTER: A processor stress test
+utility](http://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
 
-Additional information: [https://tu-dresden.de/zih/forschung/projekte/firestarter](https://tu-dresden.de/zih/forschung/projekte/firestarter).
+Additional information:
+[https://tu-dresden.de/zih/forschung/projekte/firestarter](https://tu-dresden.de/zih/forschung/projekte/firestarter).
 
 ## Contact
 
@@ -249,6 +279,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ### Licenses of Used Software Packages
 
-This program contains a slightly modified version of the implementation of the NSGA2 algorithm from [esa/pagmo2](https://github.com/esa/pagmo2) licensed under LGPL or GPL v3.
+This program contains a slightly modified version of the implementation of the
+NSGA2 algorithm from [esa/pagmo2](https://github.com/esa/pagmo2) licensed under
+LGPL or GPL v3.
 
-This program incorporates following libraries [asmjit/asmjit](https://github.com/asmjit/asmjit) licensed under zlib, [open-mpi/hwloc](https://github.com/open-mpi/hwloc) licensed under BSD 3-clause, [jarro2783/cxxopts](https://github.com/jarro2783/cxxopts) licensed under MIT, [nlohmann/json](https://github.com/nlohmann/json) licensed under MIT and [tud-zih-energy/nitro](https://github.com/tud-zih-energy/nitro) licensed under BSD 3-clause.
+This program incorporates following libraries
+[asmjit/asmjit](https://github.com/asmjit/asmjit) licensed under zlib,
+[open-mpi/hwloc](https://github.com/open-mpi/hwloc) licensed under BSD 3-clause,
+[jarro2783/cxxopts](https://github.com/jarro2783/cxxopts) licensed under MIT,
+[nlohmann/json](https://github.com/nlohmann/json) licensed under MIT and
+[tud-zih-energy/nitro](https://github.com/tud-zih-energy/nitro) licensed under
+BSD 3-clause.
