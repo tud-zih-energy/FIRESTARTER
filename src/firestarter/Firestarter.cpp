@@ -24,6 +24,7 @@
 #ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
+#include <firestarter/Optimizer/Algorithm/SAMO_IS.hpp>
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 extern "C" {
@@ -62,8 +63,8 @@ Firestarter::Firestarter(
     std::string const &optimizationAlgorithm,
     std::vector<std::string> const &optimizationMetrics,
     std::chrono::seconds const &evaluationDuration, unsigned individuals,
-    std::string const &optimizeOutfile, unsigned generations, double nsga2_cr,
-    double nsga2_m)
+    std::string const &optimizeOutfile, unsigned generations,
+    unsigned maxEvaluations, double nsga2_cr, double nsga2_m)
     : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
       _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
@@ -76,7 +77,7 @@ Firestarter::Firestarter(
       _optimizationMetrics(optimizationMetrics),
       _evaluationDuration(evaluationDuration), _individuals(individuals),
       _optimizeOutfile(optimizeOutfile), _generations(generations),
-      _nsga2_cr(nsga2_cr), _nsga2_m(nsga2_m) {
+      _maxEvaluations(maxEvaluations), _nsga2_cr(nsga2_cr), _nsga2_m(nsga2_m) {
   int returnCode;
 
   _load = (_period * _loadPercent) / 100;
@@ -285,6 +286,9 @@ Firestarter::Firestarter(
     if (_optimizationAlgorithm == "NSGA2") {
       _algorithm = std::make_unique<firestarter::optimizer::algorithm::NSGA2>(
           _generations, _nsga2_cr, _nsga2_m);
+    } else if (_optimizationAlgorithm == "SAMO-IS") {
+      _algorithm = std::make_unique<firestarter::optimizer::algorithm::SAMO_IS>(
+          _maxEvaluations, _nsga2_cr, _nsga2_m);
     } else {
       throw std::invalid_argument("Algorithm " + _optimizationAlgorithm +
                                   " unknown.");

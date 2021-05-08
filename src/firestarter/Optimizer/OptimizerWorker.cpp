@@ -62,7 +62,8 @@ void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
   std::this_thread::sleep_for(_this->_preheat);
 
   // For NSGA2 we start with a initial population
-  if (_this->_optimizationAlgorithm == "NSGA2") {
+  if (_this->_optimizationAlgorithm == "NSGA2" ||
+      _this->_optimizationAlgorithm == "SAMO-IS") {
     _this->_population.generateInitialPopulation(_this->_individuals);
   }
 

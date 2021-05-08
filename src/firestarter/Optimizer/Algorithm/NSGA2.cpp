@@ -86,7 +86,8 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
   {
     std::stringstream ss;
 
-    ss << std::endl << std::setw(7) << "Gen:" << std::setw(15) << "Fevals:";
+    ss << std::endl
+       << std::setw(7) << "NSGA-II Gen:" << std::setw(15) << "Fevals:";
     for (decltype(prob.getNobjs()) i = 0; i < prob.getNobjs(); ++i) {
       ss << std::setw(15) << "ideal" << std::to_string(i + 1u) << ":";
     }
@@ -99,7 +100,8 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
       std::vector<double> idealPoint = util::ideal(pop.f());
       std::stringstream ss;
 
-      ss << std::setw(7) << gen << std::setw(15) << prob.getFevals() - fevals0;
+      ss << std::setw(7 + 8) << gen << std::setw(15)
+         << prob.getFevals() - fevals0;
       for (decltype(idealPoint.size()) i = 0; i < idealPoint.size(); ++i) {
         ss << std::setw(15) << idealPoint[i];
       }

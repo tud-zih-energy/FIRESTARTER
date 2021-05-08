@@ -81,6 +81,7 @@ struct Config {
   unsigned individuals;
   std::string optimizeOutfile = "";
   unsigned generations;
+  unsigned maxEvaluations;
   double nsga2_cr;
   double nsga2_m;
 
@@ -249,7 +250,7 @@ Config::Config(int argc, const char **argv) {
       cxxopts::value<unsigned>()->default_value("240"), "N");
 
   parser.add_options("optimization")
-    ("optimize", "Run the optimization with one of these algorithms: NSGA2.\nCannot be combined with --measurement.",
+    ("optimize", "Run the optimization with one of these algorithms: NSGA2, SAMO-IS.\nCannot be combined with --measurement.",
       cxxopts::value<std::string>())
     ("optimize-outfile", "Dump the output of the optimization into this\nfile, default: $PWD/$HOSTNAME_$DATE.json",
       cxxopts::value<std::string>())
@@ -259,6 +260,8 @@ Config::Config(int argc, const char **argv) {
       cxxopts::value<unsigned>()->default_value("20"))
     ("generations", "Number of generations, default: 20",
       cxxopts::value<unsigned>()->default_value("20"))
+    ("max-evaluations", "Number of maximum evaluations. Used by SAMO-IS, default: 800",
+      cxxopts::value<unsigned>()->default_value("800"))
     ("nsga2-cr", "Crossover probability. Must be in range [0,1[\ndefault: 0.6",
       cxxopts::value<double>()->default_value("0.6"))
     ("nsga2-m", "Mutation probability. Must be in range [0,1]\ndefault: 0.4",
@@ -442,11 +445,14 @@ Config::Config(int argc, const char **argv) {
         optimizeOutfile = options["optimize-outfile"].as<std::string>();
       }
       generations = options["generations"].as<unsigned>();
+      maxEvaluations = options["max-evaluations"].as<unsigned>();
       nsga2_cr = options["nsga2-cr"].as<double>();
       nsga2_m = options["nsga2-m"].as<double>();
 
-      if (optimizationAlgorithm != "NSGA2") {
-        throw std::invalid_argument("Option --optimize must be any of: NSGA2");
+      if (optimizationAlgorithm != "NSGA2" &&
+          optimizationAlgorithm != "SAMO-IS") {
+        throw std::invalid_argument(
+            "Option --optimize must be any of: NSGA2, SAMO-IS");
       }
     }
 #endif
@@ -482,7 +488,8 @@ int main(int argc, const char **argv) {
         cfg.stopDelta, cfg.measurementInterval, cfg.metricPaths,
         cfg.stdinMetrics, cfg.optimize, cfg.preheat, cfg.optimizationAlgorithm,
         cfg.optimizationMetrics, cfg.evaluationDuration, cfg.individuals,
-        cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
+        cfg.optimizeOutfile, cfg.generations, cfg.maxEvaluations, cfg.nsga2_cr,
+        cfg.nsga2_m);
 
     firestarter.mainThread();
 

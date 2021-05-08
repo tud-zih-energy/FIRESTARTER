@@ -73,15 +73,11 @@ if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()
 
-add_subdirectory(lib/asmjit)
-add_subdirectory(lib/nitro)
+add_subdirectory(lib)
 
 include_directories(include)
 include_directories(lib/cxxopts/include)
-
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-set(JSON_Install OFF CACHE INTERNAL "")
-add_subdirectory(lib/json)
+include_directories(lib/SOT/include)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

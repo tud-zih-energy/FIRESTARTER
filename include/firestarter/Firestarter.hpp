@@ -84,7 +84,8 @@ public:
               std::vector<std::string> const &optimizationMetrics,
               std::chrono::seconds const &evaluationDuration,
               unsigned individuals, std::string const &optimizeOutfile,
-              unsigned generations, double nsga2_cr, double nsga2_m);
+              unsigned generations, unsigned maxEvaluations, double nsga2_cr,
+              double nsga2_m);
 
   ~Firestarter();
 
@@ -116,6 +117,7 @@ private:
   const unsigned _individuals;
   const std::string _optimizeOutfile;
   const unsigned _generations;
+  const unsigned _maxEvaluations;
   const double _nsga2_cr;
   const double _nsga2_m;
 
