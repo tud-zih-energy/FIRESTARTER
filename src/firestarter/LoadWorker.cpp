@@ -61,8 +61,7 @@ extern "C" {
 
 using namespace firestarter;
 
-int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
-                                 bool dumpRegisters) {
+int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
   int returnCode;
 
   if (EXIT_SUCCESS != (returnCode = this->environment().setCpuAffinity(0))) {
@@ -75,8 +74,9 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period,
 
   for (unsigned long long i = 0; i < this->environment().requestedNumThreads();
        i++) {
-    auto td = std::make_shared<LoadWorkerData>(
-        i, this->environment(), &this->loadVar, period, dumpRegisters);
+    auto td = std::make_shared<LoadWorkerData>(i, this->environment(),
+                                               &this->loadVar, period,
+                                               _dumpRegisters, _errorDetection);
 
     auto dataCacheSizeIt =
         td->config().platformConfig().dataCacheBufferSize().begin();
@@ -270,7 +270,8 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       td->config().payload().compilePayload(
           td->config().payloadSettings(), td->config().instructionCacheSize(),
           td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
-          td->config().thread(), td->config().lines(), td->dumpRegisters);
+          td->config().thread(), td->config().lines(), td->dumpRegisters,
+          td->errorDetection);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -350,7 +351,8 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       td->config().payload().compilePayload(
           td->config().payloadSettings(), td->config().instructionCacheSize(),
           td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
-          td->config().thread(), td->config().lines(), td->dumpRegisters);
+          td->config().thread(), td->config().lines(), td->dumpRegisters,
+          td->errorDetection);
 
       // call init function
       td->config().payload().init(td->addrMem, td->buffersizeMem);

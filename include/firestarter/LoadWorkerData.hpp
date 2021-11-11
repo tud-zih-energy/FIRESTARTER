@@ -33,9 +33,10 @@ class LoadWorkerData {
 public:
   LoadWorkerData(int id, environment::Environment &environment,
                  volatile unsigned long long *loadVar,
-                 unsigned long long period, bool dumpRegisters)
+                 unsigned long long period, bool dumpRegisters,
+                 bool errorDetection)
       : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
-        _id(id), _environment(environment),
+        errorDetection(errorDetection), _id(id), _environment(environment),
         _config(new environment::platform::RuntimeConfig(
             environment.selectedConfig())) {}
 
@@ -63,6 +64,7 @@ public:
   // used in low load routine to sleep 1/100th of this time
   unsigned long long period;
   bool dumpRegisters;
+  bool errorDetection;
 
 private:
   int _id;

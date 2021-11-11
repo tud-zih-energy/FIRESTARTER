@@ -56,6 +56,7 @@ struct Config {
   bool dumpRegisters = false;
   std::chrono::seconds dumpRegistersTimeDelta = std::chrono::seconds(0);
   std::string dumpRegistersOutpath = "";
+  bool errorDetection = false;
   // CUDA parameters
   int gpus = 0;
   unsigned gpuMatrixSize = 0;
@@ -215,10 +216,11 @@ Config::Config(int argc, const char **argv) {
 #ifdef FIRESTARTER_DEBUG_FEATURES
   parser.add_options("debug")
     ("allow-unavailable-payload", "")
-    ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs.",
+    ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs. Cannot be used with --error-detection.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If\nPATH is not given, current working directory will\nbe used.",
-      cxxopts::value<std::string>()->default_value(""), "PATH");
+      cxxopts::value<std::string>()->default_value(""), "PATH")
+    ("error-detection", "Enable error detection. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with --dump-registers.");
 #endif
 
 #if defined(linux) || defined(__linux__)
@@ -323,7 +325,9 @@ Config::Config(int argc, const char **argv) {
     }
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
+    allowUnavailablePayload = options.count("allow-unavailable-payload");
     dumpRegisters = options.count("dump-registers");
+    errorDetection = options.count("error-detection");
     if (dumpRegisters) {
       dumpRegistersTimeDelta =
           std::chrono::seconds(options["dump-registers"].as<unsigned>());
@@ -331,8 +335,12 @@ Config::Config(int argc, const char **argv) {
         throw std::invalid_argument("Option --dump-registers may only be used "
                                     "without a timeout and full load.");
       }
+      if (errorDetection) {
+        throw std::invalid_argument(
+            "Options --dump-registers and --error-detection cannot be used "
+            "together.");
+      }
     }
-    allowUnavailablePayload = options.count("allow-unavailable-payload");
 #endif
 
     requestedNumThreads = options["threads"].as<unsigned>();
@@ -453,13 +461,13 @@ int main(int argc, const char **argv) {
         cfg.requestedNumThreads, cfg.cpuBind, cfg.printFunctionSummary,
         cfg.functionId, cfg.listInstructionGroups, cfg.instructionGroups,
         cfg.lineCount, cfg.allowUnavailablePayload, cfg.dumpRegisters,
-        cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath, cfg.gpus,
-        cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
-        cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval,
-        cfg.metricPaths, cfg.stdinMetrics, cfg.optimize, cfg.preheat,
-        cfg.optimizationAlgorithm, cfg.optimizationMetrics,
-        cfg.evaluationDuration, cfg.individuals, cfg.optimizeOutfile,
-        cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
+        cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath,
+        cfg.errorDetection, cfg.gpus, cfg.gpuMatrixSize, cfg.gpuUseFloat,
+        cfg.gpuUseDouble, cfg.listMetrics, cfg.measurement, cfg.startDelta,
+        cfg.stopDelta, cfg.measurementInterval, cfg.metricPaths,
+        cfg.stdinMetrics, cfg.optimize, cfg.preheat, cfg.optimizationAlgorithm,
+        cfg.optimizationMetrics, cfg.evaluationDuration, cfg.individuals,
+        cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
     firestarter.mainThread();
 

@@ -33,7 +33,8 @@ int SSE2Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
     std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
+    unsigned thread, unsigned numberOfLines, bool dumpRegisters,
+    bool errorDetection) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);

@@ -50,8 +50,9 @@ Firestarter::Firestarter(
     std::string const &instructionGroups, unsigned lineCount,
     bool allowUnavailablePayload, bool dumpRegisters,
     std::chrono::seconds const &dumpRegistersTimeDelta,
-    std::string const &dumpRegistersOutpath, int gpus, unsigned gpuMatrixSize,
-    bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
+    std::string const &dumpRegistersOutpath, bool errorDetection, int gpus,
+    unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
+    bool listMetrics, bool measurement,
     std::chrono::milliseconds const &startDelta,
     std::chrono::milliseconds const &stopDelta,
     std::chrono::milliseconds const &measurementInterval,
@@ -66,7 +67,8 @@ Firestarter::Firestarter(
     : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
       _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
-      _dumpRegistersOutpath(dumpRegistersOutpath), _gpus(gpus),
+      _dumpRegistersOutpath(dumpRegistersOutpath),
+      _errorDetection(errorDetection), _gpus(gpus),
       _gpuMatrixSize(gpuMatrixSize), _gpuUseFloat(gpuUseFloat),
       _gpuUseDouble(gpuUseDouble), _startDelta(startDelta),
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
@@ -280,9 +282,8 @@ Firestarter::Firestarter(
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  if (EXIT_SUCCESS !=
-      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
-                                          _dumpRegisters))) {
+  if (EXIT_SUCCESS != (returnCode = this->initLoadWorkers((_loadPercent == 0),
+                                                          _period.count()))) {
     std::exit(returnCode);
   }
 #endif
