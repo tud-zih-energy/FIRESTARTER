@@ -55,7 +55,7 @@ protected:
   template <typename Vec>
   void
   emitErrorDetectionCode(asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-                         asmjit::x86::Gp temp_reg, asmjit::x86::Gp temp_reg2);
+                         asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 
 public:
   X86Payload(asmjit::x86::Features const &supportedFeatures,
