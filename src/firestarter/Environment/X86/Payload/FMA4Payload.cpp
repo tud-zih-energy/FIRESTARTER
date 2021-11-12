@@ -407,6 +407,10 @@ int FMA4Payload::compilePayload(
     cb.bind(SkipRegistersDump);
   }
 
+  if (errorDetection) {
+    this->emitErrorDetectionCode<Ymm>(cb, iter_reg, temp_reg, temp_reg2);
+  }
+
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));
   cb.jnz(Loop);
 
