@@ -92,43 +92,81 @@ X86Payload::highLoadFunction(unsigned long long *addrMem,
 }
 
 // add MM regs to dirty regs
-template <typename Vec>
+// zmm31 is used for backup if VectorReg is of type asmjit::x86::Zmm
+template <class IterReg, class VectorReg>
 void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
-                                        asmjit::x86::Mm iter_reg,
+                                        IterReg iter_reg,
                                         asmjit::x86::Gpq temp_reg,
                                         asmjit::x86::Gpq temp_reg2) {
-  static_assert(std::is_base_of<asmjit::x86::Vec, Vec>::value,
-                "Vec must be of asmjit::asmjit::x86::Vec");
-  assert(((iter_reg == asmjit::x86::mm0),
-          "iter_reg must be asmjit::asmjit::x86::mm0"));
+  // we don't want anything to break... so we use asserts for everything that
+  // could break it
+  static_assert(std::is_base_of<asmjit::x86::Vec, VectorReg>::value,
+                "VectorReg must be of asmjit::asmjit::x86::Vec");
+  static_assert(std::is_same<asmjit::x86::Xmm, VectorReg>::value ||
+                    std::is_same<asmjit::x86::Ymm, VectorReg>::value ||
+                    std::is_same<asmjit::x86::Zmm, VectorReg>::value,
+                "VectorReg ist not of any supported type");
+  static_assert(std::is_same<asmjit::x86::Mm, IterReg>::value ||
+                    std::is_same<asmjit::x86::Gpq, IterReg>::value,
+                "IterReg is not of any supported type");
+
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    assert((iter_reg == asmjit::x86::mm0, "iter_reg must be mm0"));
+  }
+
+  assert((iter_reg != temp_reg, "iter_reg must be != temp_reg"));
+  assert((temp_reg != temp_reg2, "temp_reg must be != temp_reg2"));
+
+  assert((iter_reg != asmjit::x86::r8, "iter_reg must be != r8"));
+  assert((iter_reg != asmjit::x86::r9, "iter_reg must be != r9"));
+  assert((iter_reg != asmjit::x86::rax, "iter_reg must be != rax"));
+  assert((iter_reg != asmjit::x86::rbx, "iter_reg must be != rbx"));
+  assert((iter_reg != asmjit::x86::rcx, "iter_reg must be != rcx"));
+  assert((iter_reg != asmjit::x86::rdx, "iter_reg must be != rdx"));
+
+  assert((temp_reg != asmjit::x86::r8, "temp_reg must be != r8"));
+  assert((temp_reg != asmjit::x86::r9, "temp_reg must be != r9"));
+  assert((temp_reg != asmjit::x86::rax, "temp_reg must be != rax"));
+  assert((temp_reg != asmjit::x86::rbx, "temp_reg must be != rbx"));
+  assert((temp_reg != asmjit::x86::rcx, "temp_reg must be != rcx"));
+  assert((temp_reg != asmjit::x86::rdx, "temp_reg must be != rdx"));
+
+  assert((temp_reg2 != asmjit::x86::r8, "temp_reg2 must be != r8"));
+  assert((temp_reg2 != asmjit::x86::r9, "temp_reg2 must be != r9"));
+  assert((temp_reg2 != asmjit::x86::rax, "temp_reg2 must be != rax"));
+  assert((temp_reg2 != asmjit::x86::rbx, "temp_reg2 must be != rbx"));
+  assert((temp_reg2 != asmjit::x86::rcx, "temp_reg2 must be != rcx"));
+  assert((temp_reg2 != asmjit::x86::rdx, "temp_reg2 must be != rdx"));
 
   // do the error detection every 1024 (2**10) iterations
   // check if lower 10 bits eq 0
   auto SkipErrorDetection = cb.newLabel();
 
-  cb.movq(temp_reg, iter_reg);
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    cb.movq(temp_reg, iter_reg);
+  } else {
+    cb.mov(temp_reg, iter_reg);
+  }
   cb.and_(temp_reg, asmjit::Imm(0x3ff));
   cb.test(temp_reg, asmjit::Imm(0));
   cb.jnz(SkipErrorDetection);
 
-  // ONLY IF ZMM ?
-#if 0
-			// 0. move mm0 (iter_reg) to temp_reg
-			cb.movq(temp_reg, iter_reg);
-#endif
   cb.mov(temp_reg, asmjit::Imm(0xffffffff));
 
-  // 1. use mm to backup vector registers 0
-  if constexpr (std::is_same<asmjit::x86::Xmm, Vec>::value) {
+  int registerCount = (int)this->registerCount();
+
+  // Create a backup of VectorReg(0)
+  if constexpr (std::is_same<asmjit::x86::Xmm, VectorReg>::value) {
     cb.movq(temp_reg2, asmjit::x86::xmm0);
-    cb.movq(asmjit::x86::Mm(7), temp_reg2);
+    cb.push(temp_reg2);
     cb.crc32(temp_reg, temp_reg2);
     cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
     cb.movq(temp_reg2, asmjit::x86::xmm0);
-    cb.movq(asmjit::x86::Mm(6), temp_reg2);
+    cb.push(temp_reg2);
     cb.crc32(temp_reg, temp_reg2);
 
-  } else if constexpr (std::is_same<asmjit::x86::Ymm, Vec>::value) {
+  } else if constexpr (std::is_same<asmjit::x86::Ymm, VectorReg>::value &&
+                       std::is_same<asmjit::x86::Mm, IterReg>::value) {
     cb.movq(temp_reg2, asmjit::x86::xmm0);
     cb.movq(asmjit::x86::Mm(7), temp_reg2);
     cb.crc32(temp_reg, temp_reg2);
@@ -146,22 +184,26 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     cb.movq(temp_reg2, asmjit::x86::xmm0);
     cb.movq(asmjit::x86::Mm(4), temp_reg2);
     cb.crc32(temp_reg, temp_reg2);
+  } else if constexpr (std::is_same<asmjit::x86::Zmm, VectorReg>::value &&
+                       std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    // We use vector registers zmm31 for our backup
+    cb.vmovapd(asmjit::x86::zmm31, asmjit::x86::zmm0);
+    registerCount--;
   }
 
-  // 1. calculate the hash
-  for (int i = 1; i < (int)this->registerCount(); i++) {
-    // mov vector[i] to vector[0]
-    cb.vmovapd(asmjit::x86::ymm0, asmjit::x86::Ymm(i));
+  // Calculate the hash of the remaining VectorReg
+  for (int i = 1; i < registerCount; i++) {
+    if constexpr (std::is_same<asmjit::x86::Xmm, VectorReg>::value) {
+      cb.vmovapd(asmjit::x86::xmm0, asmjit::x86::Xmm(i));
 
-    // calculate hash
-    if constexpr (std::is_same<asmjit::x86::Xmm, Vec>::value) {
       cb.movq(temp_reg2, asmjit::x86::xmm0);
       cb.crc32(temp_reg, temp_reg2);
       cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
       cb.movq(temp_reg2, asmjit::x86::xmm0);
       cb.crc32(temp_reg, temp_reg2);
+    } else if constexpr (std::is_same<asmjit::x86::Ymm, VectorReg>::value) {
+      cb.vmovapd(asmjit::x86::ymm0, asmjit::x86::Ymm(i));
 
-    } else if constexpr (std::is_same<asmjit::x86::Ymm, Vec>::value) {
       cb.movq(temp_reg2, asmjit::x86::xmm0);
       cb.crc32(temp_reg, temp_reg2);
       cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
@@ -175,19 +217,53 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
       cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
       cb.movq(temp_reg2, asmjit::x86::xmm0);
       cb.crc32(temp_reg, temp_reg2);
+    } else if constexpr (std::is_same<asmjit::x86::Zmm, VectorReg>::value) {
+      cb.vmovapd(asmjit::x86::ymm0, asmjit::x86::Ymm(i));
+
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+      cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+
+      cb.vextractf128(asmjit::x86::xmm0, asmjit::x86::ymm0, asmjit::Imm(1));
+
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+      cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+
+      cb.vextractf32x4(asmjit::x86::xmm0, asmjit::x86::Zmm(i), asmjit::Imm(2));
+
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+      cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+
+      cb.vextractf32x4(asmjit::x86::xmm0, asmjit::x86::Zmm(i), asmjit::Imm(3));
+
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
+      cb.movhlps(asmjit::x86::xmm0, asmjit::x86::xmm0);
+      cb.movq(temp_reg2, asmjit::x86::xmm0);
+      cb.crc32(temp_reg, temp_reg2);
     }
   }
 
-  // N-1. restore vector register 0 from backup
-  if constexpr (std::is_same<asmjit::x86::Xmm, Vec>::value) {
-    cb.movq2dq(asmjit::x86::xmm0, asmjit::x86::Mm(6));
+  // Restore VectorReg(0) from backup
+  if constexpr (std::is_same<asmjit::x86::Xmm, VectorReg>::value) {
+    cb.pop(temp_reg2);
+    cb.movq(asmjit::x86::xmm0, temp_reg2);
     cb.movlhps(asmjit::x86::xmm0, asmjit::x86::xmm0);
-    cb.movd(temp_reg2.r32(), asmjit::x86::Mm(7));
+    cb.pop(temp_reg2);
     cb.pinsrw(asmjit::x86::xmm0, temp_reg2.r32(), asmjit::Imm(0));
-    cb.psrlq(asmjit::x86::Mm(7), asmjit::Imm(32));
+    cb.shr(temp_reg2, asmjit::Imm(32));
     cb.movd(temp_reg2.r32(), asmjit::x86::Mm(7));
     cb.pinsrw(asmjit::x86::xmm0, temp_reg2.r32(), asmjit::Imm(1));
-  } else if constexpr (std::is_same<asmjit::x86::Ymm, Vec>::value) {
+  } else if constexpr (std::is_same<asmjit::x86::Ymm, VectorReg>::value &&
+                       std::is_same<asmjit::x86::Mm, IterReg>::value) {
     cb.movq(temp_reg2, asmjit::x86::Mm(5));
     cb.movq(asmjit::x86::xmm0, temp_reg2);
     cb.movq(temp_reg2, asmjit::x86::Mm(4));
@@ -200,31 +276,67 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     cb.movq(asmjit::x86::xmm0, temp_reg2);
     cb.movq(temp_reg2, asmjit::x86::Mm(6));
     cb.pinsrq(asmjit::x86::xmm0, temp_reg2, asmjit::Imm(1));
+  } else if constexpr (std::is_same<asmjit::x86::Zmm, VectorReg>::value &&
+                       std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    // We use vector registers zmm31 for our backup
+    cb.vmovapd(asmjit::x86::zmm0, asmjit::x86::zmm31);
   }
 
-  // before starting the communication, backup rax, rbx, rcx and rdx to mm[0:3]
-  cb.movq(asmjit::x86::Mm(7), asmjit::x86::rax);
-  cb.movq(asmjit::x86::Mm(6), asmjit::x86::rbx);
-  cb.movq(asmjit::x86::Mm(5), asmjit::x86::rcx);
-  cb.movq(asmjit::x86::Mm(4), asmjit::x86::rdx);
+  // before starting the communication, backup r8, r9, rax, rbx, rcx and rdx
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    cb.movq(asmjit::x86::Mm(7), asmjit::x86::rax);
+    cb.movq(asmjit::x86::Mm(6), asmjit::x86::rbx);
+    cb.movq(asmjit::x86::Mm(5), asmjit::x86::rcx);
+    cb.movq(asmjit::x86::Mm(4), asmjit::x86::rdx);
+    cb.movq(asmjit::x86::Mm(3), asmjit::x86::r8);
+    cb.movq(asmjit::x86::Mm(2), asmjit::x86::r9);
+  } else {
+    cb.push(asmjit::x86::rax);
+    cb.push(asmjit::x86::rbx);
+    cb.push(asmjit::x86::rcx);
+    cb.push(asmjit::x86::rdx);
+    cb.push(asmjit::x86::r8);
+    cb.push(asmjit::x86::r9);
+  }
 
   // TODO: communication
+  // TODO: mov iter_reg to rcx
+  // TODO: move hash in temp_reg to rbx
 
-  // restore rax, rbx, rcx and rdx from mm[0:3]
-  cb.movq(asmjit::x86::rax, asmjit::x86::Mm(7));
-  cb.movq(asmjit::x86::rbx, asmjit::x86::Mm(6));
-  cb.movq(asmjit::x86::rcx, asmjit::x86::Mm(5));
-  cb.movq(asmjit::x86::rdx, asmjit::x86::Mm(4));
-
-  // N. move temp_reg back to iter_reg
-  cb.movq(iter_reg, temp_reg);
+  // restore r8, r9, rax, rbx, rcx and rdx
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    cb.movq(asmjit::x86::rax, asmjit::x86::Mm(7));
+    cb.movq(asmjit::x86::rbx, asmjit::x86::Mm(6));
+    cb.movq(asmjit::x86::rcx, asmjit::x86::Mm(5));
+    cb.movq(asmjit::x86::rdx, asmjit::x86::Mm(4));
+    cb.movq(asmjit::x86::r8, asmjit::x86::Mm(3));
+    cb.movq(asmjit::x86::r9, asmjit::x86::Mm(2));
+  } else {
+    cb.pop(asmjit::x86::r9);
+    cb.pop(asmjit::x86::r8);
+    cb.pop(asmjit::x86::rdx);
+    cb.pop(asmjit::x86::rcx);
+    cb.pop(asmjit::x86::rbx);
+    cb.pop(asmjit::x86::rax);
+  }
 
   cb.bind(SkipErrorDetection);
 }
 
-template void X86Payload::emitErrorDetectionCode<asmjit::x86::Ymm>(
+template void
+X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Xmm>(
+    asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+template void
+X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Ymm>(
+    asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+
+template void
+X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Ymm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
-template void X86Payload::emitErrorDetectionCode<asmjit::x86::Xmm>(
+template void
+X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Zmm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);

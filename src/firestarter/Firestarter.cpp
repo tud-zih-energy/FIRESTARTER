@@ -103,6 +103,13 @@ Firestarter::Firestarter(
     std::exit(returnCode);
   }
 
+  if (_errorDetection && this->environment().requestedNumThreads() < 2) {
+    throw std::invalid_argument(
+        "Option --error-detection must run with 2 or more threads. Number of "
+        "threads is " +
+        std::to_string(this->environment().requestedNumThreads()) + "\n");
+  }
+
   this->environment().evaluateFunctions();
 
   if (printFunctionSummary) {

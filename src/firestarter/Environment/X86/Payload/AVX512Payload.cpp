@@ -103,6 +103,7 @@ int AVX512Payload::compilePayload(
   auto l3_count_reg = r11;
   auto ram_count_reg = r12;
   auto temp_reg = r13;
+  auto temp_reg2 = rbp;
   auto offset_reg = r14;
   auto addrHigh_reg = r15;
   auto iter_reg = mm0;
@@ -110,9 +111,9 @@ int AVX512Payload::compilePayload(
   auto shift_reg32 = std::vector<Gp>({edi, esi, edx});
   auto nr_shift_regs = 3;
   auto mul_regs = 3;
-  auto add_regs = 23;
+  auto add_regs = 24;
   auto alt_dst_regs = 5;
-  auto ram_reg = zmm31;
+  auto ram_reg = zmm30;
 
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
@@ -127,7 +128,9 @@ int AVX512Payload::compilePayload(
   for (int i = 0; i < 32; i++) {
     frame.addDirtyRegs(Zmm(i));
   }
-  frame.addDirtyRegs(Mm(0));
+  for (int i = 0; i < 8; i++) {
+    frame.addDirtyRegs(Mm(i));
+  }
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
                      l3_count_reg, ram_count_reg, temp_reg, offset_reg,
@@ -378,6 +381,11 @@ int AVX512Payload::compilePayload(
     cb.mov(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
 
     cb.bind(SkipRegistersDump);
+  }
+
+  if (errorDetection) {
+    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(cb, iter_reg,
+                                                          temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));

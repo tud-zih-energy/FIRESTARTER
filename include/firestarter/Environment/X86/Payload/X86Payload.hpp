@@ -52,10 +52,10 @@ protected:
     return this->_supportedFeatures;
   }
 
-  template <typename Vec>
-  void
-  emitErrorDetectionCode(asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-                         asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+  template <class IterReg, class VectorReg>
+  void emitErrorDetectionCode(asmjit::x86::Builder &cb, IterReg iter_reg,
+                              asmjit::x86::Gpq temp_reg,
+                              asmjit::x86::Gpq temp_reg2);
 
 public:
   X86Payload(asmjit::x86::Features const &supportedFeatures,

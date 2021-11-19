@@ -106,6 +106,7 @@ int AVXPayload::compilePayload(
   auto l3_count_reg = r9;
   auto ram_count_reg = r10;
   auto temp_reg = r11;
+  auto temp_reg2 = rbp;
   auto offset_reg = r12;
   auto addrHigh_reg = r13;
   auto iter_reg = r14;
@@ -132,8 +133,8 @@ int AVXPayload::compilePayload(
   }
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
-                     l3_count_reg, ram_count_reg, temp_reg, offset_reg,
-                     addrHigh_reg, iter_reg);
+                     l3_count_reg, ram_count_reg, temp_reg, temp_reg2,
+                     offset_reg, addrHigh_reg, iter_reg);
 
   FuncArgsAssignment args(&func);
   args.assignAll(pointer_reg, addrHigh_reg, iter_reg);
@@ -425,7 +426,8 @@ int AVXPayload::compilePayload(
   }
 
   if (errorDetection) {
-    this->emitErrorDetectionCode<Ymm>(cb, iter_reg, temp_reg, temp_reg2);
+    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(cb, iter_reg,
+                                                          temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));
