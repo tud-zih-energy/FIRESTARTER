@@ -96,6 +96,7 @@ X86Payload::highLoadFunction(unsigned long long *addrMem,
 template <class IterReg, class VectorReg>
 void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
                                         IterReg iter_reg,
+                                        asmjit::x86::Gpq pointer_reg,
                                         asmjit::x86::Gpq temp_reg,
                                         asmjit::x86::Gpq temp_reg2) {
   // we don't want anything to break... so we use asserts for everything that
@@ -116,6 +117,7 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 
   assert((iter_reg != temp_reg, "iter_reg must be != temp_reg"));
   assert((temp_reg != temp_reg2, "temp_reg must be != temp_reg2"));
+  assert((temp_reg != pointer_reg, "temp_reg must be != pointer_reg"));
 
   assert((iter_reg != asmjit::x86::r8, "iter_reg must be != r8"));
   assert((iter_reg != asmjit::x86::r9, "iter_reg must be != r9"));
@@ -192,6 +194,7 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   }
 
   // Calculate the hash of the remaining VectorReg
+  // use VectorReg(0) as a temporary place to unpack values
   for (int i = 1; i < registerCount; i++) {
     if constexpr (std::is_same<asmjit::x86::Xmm, VectorReg>::value) {
       cb.vmovapd(asmjit::x86::xmm0, asmjit::x86::Xmm(i));
@@ -299,9 +302,104 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     cb.push(asmjit::x86::r9);
   }
 
-  // TODO: communication
-  // TODO: mov iter_reg to rcx
-  // TODO: move hash in temp_reg to rbx
+  // do the actual communication
+  // temp_reg contains our hash
+
+  // save the pointer_reg. it might be any of r8, r9, rax, rbx, rcx or rdx
+  cb.mov(temp_reg2, pointer_reg);
+
+  // Don't touch me!
+  // This sychronization and communication works even if the threads run at
+  // different (changing) speed, with just one "lock cmpxchg16b" Brought to you
+  // by a few hours of headache for two people.
+  auto communication = [&](auto offset) {
+    // communication
+    cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(temp_reg2, offset));
+    // temp data
+    cb.mov(asmjit::x86::r9, asmjit::x86::ptr_64(temp_reg2, offset + 8));
+
+    cb.mov(asmjit::x86::rdx, asmjit::x86::ptr_64(asmjit::x86::r9, 0));
+    cb.mov(asmjit::x86::rax, asmjit::x86::ptr_64(asmjit::x86::r9, 8));
+
+    auto L0 = cb.newLabel();
+    cb.bind(L0);
+
+    cb.lock();
+    cb.cmpxchg16b(asmjit::x86::ptr(asmjit::x86::r8));
+
+    auto L1 = cb.newLabel();
+    cb.jnz(L1);
+
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 0), asmjit::x86::rcx);
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 8), asmjit::x86::rbx);
+    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+
+    cb.movq(asmjit::x86::rax, asmjit::Imm(2));
+
+    auto L6 = cb.newLabel();
+    cb.jmp(L6);
+
+    cb.bind(L1);
+
+    cb.cmp(asmjit::x86::rcx, asmjit::x86::rdx);
+
+    auto L2 = cb.newLabel();
+    cb.jle(L2);
+
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 0), asmjit::x86::rcx);
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 8), asmjit::x86::rbx);
+
+    cb.jmp(L0);
+
+    cb.bind(L2);
+
+    auto L3 = cb.newLabel();
+
+    cb.cmpq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.jne(L3);
+    cb.cmpq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+    cb.jne(L3);
+
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::x86::rdx);
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::x86::rax);
+
+    cb.bind(L3);
+
+    cb.cmp(asmjit::x86::rcx, asmjit::x86::ptr_64(asmjit::x86::r9, 16));
+    cb.movq(asmjit::x86::rax, asmjit::Imm(4));
+    cb.jne(L6);
+
+    cb.cmp(asmjit::x86::rbx, asmjit::x86::ptr_64(asmjit::x86::r9, 24));
+    auto L4 = cb.newLabel();
+    cb.jne(L4);
+
+    cb.movq(asmjit::x86::rax, asmjit::Imm(0));
+
+    auto L5 = cb.newLabel();
+    cb.jmp(L5);
+
+    cb.bind(L4);
+
+    cb.movq(asmjit::x86::rax, asmjit::Imm(1));
+
+    cb.bind(L5);
+
+    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+
+    cb.bind(L6);
+  };
+
+  // left communication
+  communication(-128);
+
+  // TODO: decide abort based on rax
+
+  // right communication
+  communication(-64);
+
+  // TODO: decide abort based on rax
 
   // restore r8, r9, rax, rbx, rcx and rdx
   if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {

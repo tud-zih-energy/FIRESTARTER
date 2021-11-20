@@ -420,8 +420,8 @@ int FMAPayload::compilePayload(
   }
 
   if (errorDetection) {
-    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(cb, iter_reg,
-                                                          temp_reg, temp_reg2);
+    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(
+        cb, iter_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));

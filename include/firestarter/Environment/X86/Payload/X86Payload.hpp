@@ -54,6 +54,7 @@ protected:
 
   template <class IterReg, class VectorReg>
   void emitErrorDetectionCode(asmjit::x86::Builder &cb, IterReg iter_reg,
+                              asmjit::x86::Gpq pointer_reg,
                               asmjit::x86::Gpq temp_reg,
                               asmjit::x86::Gpq temp_reg2);
 
