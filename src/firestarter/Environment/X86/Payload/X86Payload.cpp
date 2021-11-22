@@ -313,10 +313,20 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   // different (changing) speed, with just one "lock cmpxchg16b" Brought to you
   // by a few hours of headache for two people.
   auto communication = [&](auto offset) {
+    // move hash
+    cb.mov(asmjit::x86::rbx, temp_reg);
+    // move iterations counter
+    if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+      cb.movq(asmjit::x86::rcx, iter_reg);
+    } else {
+      cb.mov(asmjit::x86::rcx, iter_reg);
+    }
+
     // communication
     cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(temp_reg2, offset));
     // temp data
-    cb.mov(asmjit::x86::r9, asmjit::x86::ptr_64(temp_reg2, offset + 8));
+    cb.mov(asmjit::x86::r9, temp_reg2);
+    cb.add(asmjit::x86::r9, asmjit::Imm(offset + 8));
 
     cb.mov(asmjit::x86::rdx, asmjit::x86::ptr_64(asmjit::x86::r9, 0));
     cb.mov(asmjit::x86::rax, asmjit::x86::ptr_64(asmjit::x86::r9, 8));
