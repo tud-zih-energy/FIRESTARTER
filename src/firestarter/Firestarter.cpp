@@ -399,6 +399,10 @@ void Firestarter::mainThread() {
   }
 #endif
 #endif
+
+  if (_errorDetection) {
+    this->printThreadErrorReport();
+  }
 }
 
 void Firestarter::setLoad(unsigned long long value) {

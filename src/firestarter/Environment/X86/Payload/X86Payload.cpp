@@ -342,10 +342,10 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 
     cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 0), asmjit::x86::rcx);
     cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 8), asmjit::x86::rbx);
-    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
-    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
 
-    cb.movq(asmjit::x86::rax, asmjit::Imm(2));
+    cb.mov(asmjit::x86::rax, asmjit::Imm(2));
 
     auto L6 = cb.newLabel();
     cb.jmp(L6);
@@ -366,9 +366,9 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 
     auto L3 = cb.newLabel();
 
-    cb.cmpq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
     cb.jne(L3);
-    cb.cmpq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+    cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
     cb.jne(L3);
 
     cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::x86::rdx);
@@ -377,28 +377,38 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     cb.bind(L3);
 
     cb.cmp(asmjit::x86::rcx, asmjit::x86::ptr_64(asmjit::x86::r9, 16));
-    cb.movq(asmjit::x86::rax, asmjit::Imm(4));
+    cb.mov(asmjit::x86::rax, asmjit::Imm(4));
     cb.jne(L6);
 
     cb.cmp(asmjit::x86::rbx, asmjit::x86::ptr_64(asmjit::x86::r9, 24));
     auto L4 = cb.newLabel();
     cb.jne(L4);
 
-    cb.movq(asmjit::x86::rax, asmjit::Imm(0));
+    cb.mov(asmjit::x86::rax, asmjit::Imm(0));
 
     auto L5 = cb.newLabel();
     cb.jmp(L5);
 
     cb.bind(L4);
 
-    cb.movq(asmjit::x86::rax, asmjit::Imm(1));
+    cb.mov(asmjit::x86::rax, asmjit::Imm(1));
 
     cb.bind(L5);
 
-    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
-    cb.movq(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
 
     cb.bind(L6);
+
+    // if check failed
+    cb.cmp(asmjit::x86::rax, asmjit::Imm(1));
+    auto L7 = cb.newLabel();
+    cb.jne(L7);
+
+    // write the error flag
+    cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 32), asmjit::Imm(1));
+
+    cb.bind(L7);
   };
 
   // left communication
@@ -434,17 +444,21 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Xmm>(
     asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
+    asmjit::x86::Gpq temp_reg2);
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Ymm>(
     asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
+    asmjit::x86::Gpq temp_reg2);
 
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Ymm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
+    asmjit::x86::Gpq temp_reg2);
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Zmm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
+    asmjit::x86::Gpq temp_reg2);

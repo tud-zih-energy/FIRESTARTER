@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
@@ -40,25 +41,6 @@ extern "C" {
 #include <functional>
 #include <thread>
 
-#define PAD_SIZE(size, align)                                                  \
-  align *(int)std::ceil((double)size / (double)align)
-
-#if defined(__APPLE__)
-#define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE free
-#elif defined(__MINGW64__)
-#define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _mm_free
-#elif defined(_MSC_VER)
-#define ALIGNED_MALLOC(size, align)                                            \
-  _aligned_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _aligned_free
-#else
-#define ALIGNED_MALLOC(size, align)                                            \
-  std::aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE std::free
-#endif
-
 using namespace firestarter;
 
 int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
@@ -72,11 +54,34 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
   // work.
   this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
-  for (unsigned long long i = 0; i < this->environment().requestedNumThreads();
-       i++) {
+  auto numThreads = this->environment().requestedNumThreads();
+
+  // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
+  // communication pointers and add these to the threaddata
+  for (unsigned long long i = 0; i < numThreads; i++) {
+    auto commPtr = reinterpret_cast<unsigned long long *>(
+        ALIGNED_MALLOC(2 * sizeof(unsigned long long), 64));
+    assert(commPtr);
+    this->errorCommunication.push_back(
+        std::shared_ptr<unsigned long long>(commPtr));
+    log::debug() << "Threads " << (i + numThreads - 1) % numThreads << " and "
+                 << i << " commPtr = 0x" << std::setfill('0')
+                 << std::setw(sizeof(unsigned long long) * 2) << std::hex
+                 << (unsigned long long)commPtr;
+  }
+
+  for (unsigned long long i = 0; i < numThreads; i++) {
     auto td = std::make_shared<LoadWorkerData>(i, this->environment(),
                                                &this->loadVar, period,
                                                _dumpRegisters, _errorDetection);
+
+    if (_errorDetection) {
+      // distribute pointers for error deteciton. (set threads in a ring)
+      // give this thread the left pointer i and right pointer (i+1) %
+      // requestedNumThreads().
+      td->setErrorCommunication(this->errorCommunication[i],
+                                this->errorCommunication[(i + 1) % numThreads]);
+    }
 
     auto dataCacheSizeIt =
         td->config().platformConfig().dataCacheBufferSize().begin();
@@ -141,6 +146,35 @@ void Firestarter::joinLoadWorkers() {
   // wait for threads after watchdog has requested termination
   for (auto &thread : this->loadThreads) {
     thread.first.join();
+  }
+}
+
+void Firestarter::printThreadErrorReport() {
+  if (_errorDetection) {
+    auto maxSize = this->loadThreads.size();
+
+    std::vector<bool> errors(maxSize, false);
+
+    for (decltype(maxSize) i = 0; i < maxSize; i++) {
+      auto errorDetectionStruct =
+          this->loadThreads[i].second->errorDetectionStruct();
+
+      if (errorDetectionStruct->errorLeft) {
+        errors[(i + maxSize - 1) % maxSize] = true;
+      }
+      if (errorDetectionStruct->errorRight) {
+        errors[i] = true;
+      }
+    }
+
+    for (decltype(maxSize) i = 0; i < maxSize; i++) {
+      if (errors[i]) {
+        log::fatal()
+            << "Data mismatch between Threads " << i << " and "
+            << (i + 1) % maxSize
+            << ".\n       This may be caused by bit-flips in the hardware.";
+      }
+    }
   }
 }
 
@@ -231,15 +265,6 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
 
   int old = THREAD_WAIT;
 
-  // use REGISTER_MAX_NUM cache lines for the dumped registers
-  // and another cache line for the control variable.
-  // as we are doing aligned moves we only have the option to waste a whole
-  // cacheline
-  unsigned long long addrOffset =
-      td->dumpRegisters
-          ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
-          : 0;
-
 #if defined(linux) || defined(__linux__)
   pthread_setname_np(pthread_self(), "LoadWorker");
 #endif
@@ -278,23 +303,40 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       // for them.
       td->addrMem =
           reinterpret_cast<unsigned long long *>(ALIGNED_MALLOC(
-              (td->buffersizeMem + addrOffset) * sizeof(unsigned long long),
+              (td->buffersizeMem + td->addrOffset) * sizeof(unsigned long long),
               64)) +
-          addrOffset;
+          td->addrOffset;
 
       // exit application on error
-      if (td->addrMem - addrOffset == nullptr) {
-        workerLog::error() << "Could not allocate memory for CPU load thread";
+      if (td->addrMem - td->addrOffset == nullptr) {
+        workerLog::error() << "Could not allocate memory for CPU load thread "
+                           << td->id() << "\n";
         exit(ENOMEM);
       }
 
       if (td->dumpRegisters) {
-        reinterpret_cast<DumpRegisterStruct *>(td->addrMem - addrOffset)
+        reinterpret_cast<DumpRegisterStruct *>(td->addrMem - td->addrOffset)
             ->dumpVar = DumpVariable::Wait;
+      }
+
+      if (td->errorDetection) {
+        auto errorDetectionStruct = reinterpret_cast<ErrorDetectionStruct *>(
+            td->addrMem - td->addrOffset);
+
+        std::memset(errorDetectionStruct, 0, sizeof(ErrorDetectionStruct));
+
+        // distribute left and right communication pointers
+        errorDetectionStruct->communicationLeft = td->communicationLeft.get();
+        errorDetectionStruct->communicationRight = td->communicationRight.get();
+
+        // do first touch memset 0 for the communication pointers
+        std::memset((void *)errorDetectionStruct->communicationLeft, 0,
+                    sizeof(unsigned long long) * 2);
       }
 
       // call init function
       td->config().payload().init(td->addrMem, td->buffersizeMem);
+
       break;
     // perform stress test
     case THREAD_WORK:
@@ -335,7 +377,6 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
         if (*td->addrHigh == LOAD_STOP) {
           td->stopTsc = td->environment().topology().timestamp();
 
-          ALIGNED_FREE(td->addrMem - addrOffset);
           return;
         }
 
@@ -367,7 +408,6 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       break;
     case THREAD_STOP:
     default:
-      ALIGNED_FREE(td->addrMem - addrOffset);
       return;
     }
   }

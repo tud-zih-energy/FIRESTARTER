@@ -21,42 +21,22 @@
 
 #pragma once
 
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/LoadWorkerData.hpp>
-
-#include <chrono>
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-
 namespace firestarter {
 
-class DumpRegisterWorkerData {
-public:
-  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData,
-                         std::chrono::seconds dumpTimeDelta,
-                         std::string dumpFilePath)
-      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
+/* DO NOT CHANGE! the asm load-loop tests if it should dump the current register
+ * content */
+enum DumpVariable : unsigned long long { Start = 0, Wait = 1 };
 
-    if (dumpFilePath.empty()) {
-      char cwd[PATH_MAX];
-      if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        this->dumpFilePath = cwd;
-      } else {
-        log::error() << "getcwd() failed. Set --dump-registers-outpath to /tmp";
-        this->dumpFilePath = "/tmp";
-      }
-    } else {
-      this->dumpFilePath = dumpFilePath;
-    }
-  }
+#define REGISTER_MAX_NUM 32
 
-  ~DumpRegisterWorkerData() {}
-
-  std::shared_ptr<LoadWorkerData> loadWorkerData;
-  const std::chrono::seconds dumpTimeDelta;
-  std::string dumpFilePath;
+struct DumpRegisterStruct {
+  // REGISTER_MAX_NUM cachelines
+  volatile double registerValues[REGISTER_MAX_NUM * 8];
+  // pad to use a whole cacheline
+  volatile unsigned long long padding[7];
+  volatile DumpVariable dumpVar;
 };
 
-} // namespace firestarter
+#undef REGISTER_MAX_NUM
 
-#endif
+} // namespace firestarter

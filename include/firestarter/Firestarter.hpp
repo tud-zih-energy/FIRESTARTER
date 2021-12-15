@@ -147,6 +147,7 @@ private:
   // LoadThreadWorker.cpp
   int initLoadWorkers(bool lowLoad, unsigned long long period);
   void joinLoadWorkers();
+  void printThreadErrorReport();
   void printPerformanceReport();
 
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
@@ -194,6 +195,8 @@ private:
 #ifndef FIRESTARTER_BUILD_CUDA_ONLY
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>>
       loadThreads;
+
+  std::vector<std::shared_ptr<unsigned long long>> errorCommunication;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   std::thread dumpRegisterWorkerThread;
