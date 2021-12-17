@@ -149,7 +149,9 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   } else {
     cb.mov(temp_reg, iter_reg);
   }
-  cb.and_(temp_reg, asmjit::Imm(0x3ff));
+  // round about 100 Hz
+  // more or less, but this isn't really that relevant
+  cb.and_(temp_reg, asmjit::Imm(0x3fff));
   cb.test(temp_reg, asmjit::Imm(0));
   cb.jnz(SkipErrorDetection);
 
@@ -313,15 +315,6 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   // different (changing) speed, with just one "lock cmpxchg16b" Brought to you
   // by a few hours of headache for two people.
   auto communication = [&](auto offset) {
-    // move hash
-    cb.mov(asmjit::x86::rbx, temp_reg);
-    // move iterations counter
-    if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
-      cb.movq(asmjit::x86::rcx, iter_reg);
-    } else {
-      cb.mov(asmjit::x86::rcx, iter_reg);
-    }
-
     // communication
     cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(temp_reg2, offset));
     // temp data
@@ -412,11 +405,29 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   };
 
   // left communication
+  // move hash
+  cb.mov(asmjit::x86::rbx, temp_reg);
+  // move iterations counter
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    cb.movq(asmjit::x86::rcx, iter_reg);
+  } else {
+    cb.mov(asmjit::x86::rcx, iter_reg);
+  }
+
   communication(-128);
 
   // TODO: decide abort based on rax
 
   // right communication
+  // move hash
+  cb.mov(asmjit::x86::rbx, temp_reg);
+  // move iterations counter
+  if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
+    cb.movq(asmjit::x86::rcx, iter_reg);
+  } else {
+    cb.mov(asmjit::x86::rcx, iter_reg);
+  }
+
   communication(-64);
 
   // TODO: decide abort based on rax

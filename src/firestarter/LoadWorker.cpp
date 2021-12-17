@@ -43,6 +43,8 @@ extern "C" {
 
 using namespace firestarter;
 
+auto aligned_free_deleter = [](void *p) { ALIGNED_FREE(p); };
+
 int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
   int returnCode;
 
@@ -58,16 +60,18 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
 
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
-  for (unsigned long long i = 0; i < numThreads; i++) {
-    auto commPtr = reinterpret_cast<unsigned long long *>(
-        ALIGNED_MALLOC(2 * sizeof(unsigned long long), 64));
-    assert(commPtr);
-    this->errorCommunication.push_back(
-        std::shared_ptr<unsigned long long>(commPtr));
-    log::debug() << "Threads " << (i + numThreads - 1) % numThreads << " and "
-                 << i << " commPtr = 0x" << std::setfill('0')
-                 << std::setw(sizeof(unsigned long long) * 2) << std::hex
-                 << (unsigned long long)commPtr;
+  if (_errorDetection) {
+    for (unsigned long long i = 0; i < numThreads; i++) {
+      auto commPtr = reinterpret_cast<unsigned long long *>(
+          ALIGNED_MALLOC(2 * sizeof(unsigned long long), 64));
+      assert(commPtr);
+      this->errorCommunication.push_back(
+          std::shared_ptr<unsigned long long>(commPtr, aligned_free_deleter));
+      log::debug() << "Threads " << (i + numThreads - 1) % numThreads << " and "
+                   << i << " commPtr = 0x" << std::setfill('0')
+                   << std::setw(sizeof(unsigned long long) * 2) << std::hex
+                   << (unsigned long long)commPtr;
+    }
   }
 
   for (unsigned long long i = 0; i < numThreads; i++) {

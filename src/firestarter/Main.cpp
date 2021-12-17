@@ -168,7 +168,14 @@ Config::Config(int argc, const char **argv) {
 
   // clang-format off
   parser.add_options("information")
-    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads | debug\n| measurement | optimization",
+    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads"
+#ifdef FIRESTARTER_DEBUG_FEATURES
+     " | debug"
+#endif
+#if defined(linux) || defined(__linux__)
+     "\n| measurement | optimization"
+#endif
+     ,
       cxxopts::value<std::string>()->implicit_value(""), "SECTION")
     ("v,version", "Display version information")
     ("c,copyright", "Display copyright information")
@@ -204,7 +211,7 @@ Config::Config(int argc, const char **argv) {
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove. Cannot be combined with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-    ;
+    ("error-detection", "Enable error detection. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with --dump-registers.");
 
   parser.add_options("specialized-workloads")
     ("list-instruction-groups", "List the available instruction groups for the\npayload of the current platform.")
@@ -219,8 +226,7 @@ Config::Config(int argc, const char **argv) {
     ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs. Cannot be used with --error-detection.",
       cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
     ("dump-registers-outpath", "Path for the dump of the output files. If\nPATH is not given, current working directory will\nbe used.",
-      cxxopts::value<std::string>()->default_value(""), "PATH")
-    ("error-detection", "Enable error detection. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with --dump-registers.");
+      cxxopts::value<std::string>()->default_value(""), "PATH");
 #endif
 
 #if defined(linux) || defined(__linux__)
