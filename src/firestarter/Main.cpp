@@ -330,10 +330,15 @@ Config::Config(int argc, const char **argv) {
       throw std::invalid_argument("Option -l/--load may not be above 100.");
     }
 
+    errorDetection = options.count("error-detection");
+    if (errorDetection && loadPercent != 100) {
+      throw std::invalid_argument("Option --error-detection may only be used "
+                                  "with -l/--load equal 100.");
+    }
+
 #ifdef FIRESTARTER_DEBUG_FEATURES
     allowUnavailablePayload = options.count("allow-unavailable-payload");
     dumpRegisters = options.count("dump-registers");
-    errorDetection = options.count("error-detection");
     if (dumpRegisters) {
       dumpRegistersTimeDelta =
           std::chrono::seconds(options["dump-registers"].as<unsigned>());

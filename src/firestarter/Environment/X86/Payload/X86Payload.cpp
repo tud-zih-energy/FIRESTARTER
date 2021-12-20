@@ -96,6 +96,7 @@ X86Payload::highLoadFunction(unsigned long long *addrMem,
 template <class IterReg, class VectorReg>
 void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
                                         IterReg iter_reg,
+                                        asmjit::x86::Gpq addrHigh_reg,
                                         asmjit::x86::Gpq pointer_reg,
                                         asmjit::x86::Gpq temp_reg,
                                         asmjit::x86::Gpq temp_reg2) {
@@ -117,6 +118,7 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 
   assert((iter_reg != temp_reg, "iter_reg must be != temp_reg"));
   assert((temp_reg != temp_reg2, "temp_reg must be != temp_reg2"));
+  assert((temp_reg != addrHigh_reg, "temp_reg must be != addrHigh_reg"));
   assert((temp_reg != pointer_reg, "temp_reg must be != pointer_reg"));
 
   assert((iter_reg != asmjit::x86::r8, "iter_reg must be != r8"));
@@ -140,8 +142,13 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   assert((temp_reg2 != asmjit::x86::rcx, "temp_reg2 must be != rcx"));
   assert((temp_reg2 != asmjit::x86::rdx, "temp_reg2 must be != rdx"));
 
-  // do the error detection every 1024 (2**10) iterations
-  // check if lower 10 bits eq 0
+  assert((addrHigh_reg != asmjit::x86::r8, "addrHigh_reg must be != r8"));
+  assert((addrHigh_reg != asmjit::x86::r9, "addrHigh_reg must be != r9"));
+  assert((addrHigh_reg != asmjit::x86::rax, "addrHigh_reg must be != rax"));
+  assert((addrHigh_reg != asmjit::x86::rbx, "addrHigh_reg must be != rbx"));
+  assert((addrHigh_reg != asmjit::x86::rcx, "addrHigh_reg must be != rcx"));
+  assert((addrHigh_reg != asmjit::x86::rdx, "addrHigh_reg must be != rdx"));
+
   auto SkipErrorDetection = cb.newLabel();
 
   if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
@@ -149,10 +156,10 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   } else {
     cb.mov(temp_reg, iter_reg);
   }
-  // round about 100 Hz
+  // round about 50-100 Hz
   // more or less, but this isn't really that relevant
   cb.and_(temp_reg, asmjit::Imm(0x3fff));
-  cb.test(temp_reg, asmjit::Imm(0));
+  cb.test(temp_reg, temp_reg);
   cb.jnz(SkipErrorDetection);
 
   cb.mov(temp_reg, asmjit::Imm(0xffffffff));
@@ -317,6 +324,7 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   auto communication = [&](auto offset) {
     // communication
     cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(temp_reg2, offset));
+
     // temp data
     cb.mov(asmjit::x86::r9, temp_reg2);
     cb.add(asmjit::x86::r9, asmjit::Imm(offset + 8));
@@ -401,7 +409,14 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     // write the error flag
     cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 32), asmjit::Imm(1));
 
+    // stop the execution after some time
+    cb.mov(asmjit::x86::ptr_64(addrHigh_reg), asmjit::Imm(LOAD_STOP));
+    cb.mfence();
+
     cb.bind(L7);
+
+    auto L9 = cb.newLabel();
+    cb.jmp(L9);
   };
 
   // left communication
@@ -416,8 +431,6 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 
   communication(-128);
 
-  // TODO: decide abort based on rax
-
   // right communication
   // move hash
   cb.mov(asmjit::x86::rbx, temp_reg);
@@ -429,8 +442,6 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   }
 
   communication(-64);
-
-  // TODO: decide abort based on rax
 
   // restore r8, r9, rax, rbx, rcx and rdx
   if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
@@ -455,21 +466,21 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Xmm>(
     asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
-    asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Ymm>(
     asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
-    asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Ymm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
-    asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 template void
 X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Zmm>(
     asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
-    asmjit::x86::Gpq temp_reg2);
+    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+    asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
