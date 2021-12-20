@@ -211,7 +211,7 @@ Config::Config(int argc, const char **argv) {
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove. Cannot be combined with -n | --threads.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
 #endif
-    ("error-detection", "Enable error detection. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with --dump-registers.");
+    ("error-detection", "Enable error detection. This aborts execution when the calculated data is corruped by errors. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with -l | --load and --optimize.");
 
   parser.add_options("specialized-workloads")
     ("list-instruction-groups", "List the available instruction groups for the\npayload of the current platform.")
@@ -412,6 +412,10 @@ Config::Config(int argc, const char **argv) {
     listMetrics = options.count("list-metrics");
 
     if ((optimize = options.count("optimize"))) {
+      if (errorDetection) {
+        throw std::invalid_argument("Options --error-detection and --optimize "
+                                    "cannot be used together.");
+      }
       if (measurement) {
         throw std::invalid_argument(
             "Options --measurement and --optimize cannot be used together.");
