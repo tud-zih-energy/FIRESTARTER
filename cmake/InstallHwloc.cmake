@@ -12,7 +12,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 			SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 			INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
 			URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
-			URL_HASH SHA1=6e971b7d182ef8dde3c95b1c6afc2c4c7b5a0ce7
+			URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
 			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
@@ -32,7 +32,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 				SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 				INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
 				URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
-				URL_HASH SHA1=6e971b7d182ef8dde3c95b1c6afc2c4c7b5a0ce7
+				URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND cd <SOURCE_DIR>\\contrib\\windows && MSBuild /p:Configuration=Release /p:Platform=x64 hwloc.sln
 				INSTALL_COMMAND ""

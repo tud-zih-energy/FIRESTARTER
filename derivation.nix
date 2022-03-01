@@ -15,7 +15,7 @@ let
 
     src = fetchTarball {
       url = https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz;
-      sha256 = "028cee53ebcfe048283a2b3e87f2fa742c83645fc3ae329134bf5bb8b90384e0";
+      sha256 = "d9b23e9b0d17247e8b50254810427ca8a9857dc868e2e3a049f958d7c66af374";
     };
 
     configureFlags = [
