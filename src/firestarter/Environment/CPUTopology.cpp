@@ -136,6 +136,19 @@ CPUTopology::CPUTopology(std::string architecture)
 
   hwloc_topology_load(this->topology);
 
+  // check for hybrid processor
+  int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
+
+  switch (nr_cpukinds) {
+    case -1: log::warn() << "Hybrid core check failed"; break;
+    case  0: log::warn() << "Hybrid core check read no information"; break;
+    default: log::info() << "Number of CPU kinds:" << nr_cpukinds;
+  }
+  if (nr_cpukinds > 1 ) {
+    log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
+  }
+
+
   // get number of packages
   int depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
 
@@ -162,7 +175,7 @@ CPUTopology::CPUTopology(std::string architecture)
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
     this->_numThreadsPerCore = 1;
-    log::warn() << "Cound not get number of cores";
+    log::warn() << "Cound not get number of threads";
   } else {
     this->_numThreadsPerCore =
         hwloc_get_nbobjs_by_depth(this->topology, depth) /
