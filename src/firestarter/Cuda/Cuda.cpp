@@ -367,8 +367,8 @@ static void create_load(std::condition_variable &waitForInitCv,
         << "   GPU " << device_index << "\n"
         << "    name:           " << properties.name << "\n"
         << "    memory:         " << TO_MB(memory_avail) << "/"
-        << TO_MB(memory_total) << " MB available (using " << TO_MB(use_bytes)
-        << " MB)\n"
+        << TO_MB(memory_total) << " MiB available (using " << TO_MB(use_bytes)
+        << " MiB)\n"
         << "    matrix size:    " << size_use << "\n"
         << "    used precision: "
         << ((sizeof(T) == sizeof(double)) ? "double" : "single");
