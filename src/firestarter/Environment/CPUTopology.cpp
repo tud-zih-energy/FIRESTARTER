@@ -387,6 +387,21 @@ unsigned CPUTopology::maxNumThreads() const {
   // There might be more then one kind of cores
   int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
 
+  // fallback in case this did not work ... can happen on some platforms
+  // already printed a warning earlier
+  if (nr_cpukinds < 1) {
+      hwloc_obj_t obj;
+      int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+      unsigned max = 0;
+
+      for (int i = 0; i < width; i++) {
+        obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+        max = max < obj->os_index ? obj->os_index : max;
+      }
+
+      return max + 1;
+  }
+
   // Allocate bitmap to get CPUs later
   hwloc_bitmap_t bitmap = hwloc_bitmap_alloc();
   if (bitmap == NULL) {
