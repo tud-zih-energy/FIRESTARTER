@@ -305,16 +305,35 @@ static void create_load(std::condition_variable &waitForInitCv,
   // reserving the GPU and initializing cublas
   CUdevice device;
   cublasHandle_t cublas;
+
+  firestarter::log::trace() << "Getting CUDA device nr. " << device_index;
   CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+
+  firestarter::log::trace() << "Creating CUDA context for computation on device nr. "
+                     << device_index;
   CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+
+  firestarter::log::trace() << "Set crated CUDA context on device nr. "
+                     << device_index;
   CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+
+  firestarter::log::trace() << "Create CuBlas on device nr. "
+                     << device_index;
   CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
+
+  firestarter::log::trace() << "Get CUDA device properties (e.g., support for double)"
+                     << " on device nr. "
+                     << device_index;
   CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
                  device_index);
 
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
   CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
+
+  firestarter::log::trace() << "Get CUDA Memory info on device nr. "
+                     << device_index
+                     <<": " << memory_avail << " B avail.";
 
   // defining memory pointers
   CUdeviceptr a_data_ptr;
@@ -331,12 +350,42 @@ static void create_load(std::condition_variable &waitForInitCv,
   memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
 
+  firestarter::log::trace()
+      << "Allocating CUDA memory on device nr. "
+      << device_index;
+
+  size_t memory_avail, memory_total;
+
   // allocating memory on the GPU
   CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
   CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
   CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
                  device_index);
 
+  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+                     << device_index
+                     <<". A: " << a_data_ptr << "(Size: "
+                     << memory_size << "B)"
+                     << "\n";
+
+  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+                     << device_index
+                     <<". B: " << b_data_ptr << "(Size: "
+                     << memory_size << "B)"
+                     << "\n";
+  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+                     << device_index
+                     <<". C: " << c_data_ptr << "(Size: "
+                     << iterations * memory_size << "B)"
+                     << "\n";
+
+  firestarter::log::trace() << "Initializing CUDA matrices a, b on device nr. "
+                            << device_index
+                            << ". Using "
+                            << size_use * size_use
+                            << " elements. Using "
+                            << ((sizeof(T) == sizeof(double)) ? "double" : "single"
+                            << " precicion\n";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
   CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
@@ -353,6 +402,15 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
+      firestarter::log::trace() << "Initializing CUDA matrix c-"
+                                << i
+                                << " by copying "
+                                << memory_size
+                                << " byte from "
+                                << a_data_ptr
+                                << " to "
+                                << c_data_ptr + i * size_use * size_use
+                                << "\n";
     CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * size_use * size_use,
                                 a_data_ptr, memory_size),
                    device_index);
@@ -363,15 +421,15 @@ static void create_load(std::condition_variable &waitForInitCv,
     std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
 #define TO_MB(x) (unsigned long)(x / 1024 / 1024)
-    firestarter::log::info()
-        << "   GPU " << device_index << "\n"
-        << "    name:           " << properties.name << "\n"
-        << "    memory:         " << TO_MB(memory_avail) << "/"
-        << TO_MB(memory_total) << " MiB available (using " << TO_MB(use_bytes)
-        << " MiB)\n"
-        << "    matrix size:    " << size_use << "\n"
-        << "    used precision: "
-        << ((sizeof(T) == sizeof(double)) ? "double" : "single");
+  firestarter::log::info()
+      << "   GPU " << device_index << "\n"
+      << "    name:           " << properties.name << "\n"
+      << "    memory:         " << TO_MB(memory_avail) << "/"
+      << TO_MB(memory_total) << " MiB available (using " << TO_MB(use_bytes)
+      << " MiB)\n"
+      << "    matrix size:    " << size_use << "\n"
+      << "    used precision: "
+      << ((sizeof(T) == sizeof(double)) ? "double" : "single");
 #undef TO_MB
 
     initCount++;
