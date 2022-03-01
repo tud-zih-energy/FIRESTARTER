@@ -382,7 +382,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << ". Using "
                             << size_use * size_use
                             << " elements of size "
-                            << ((sizeof(T) == sizeof(double))
+                            << (sizeof(T) == sizeof(double))
                             << " B\n";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
