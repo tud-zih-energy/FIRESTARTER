@@ -154,7 +154,7 @@ CPUTopology::CPUTopology(std::string architecture)
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
     this->_numPackages = 1;
-    log::warn() << "Cound not get number of packages";
+    log::warn() << "Could not get number of packages";
   } else {
     this->_numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
   }
@@ -164,7 +164,7 @@ CPUTopology::CPUTopology(std::string architecture)
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
     this->_numCoresPerPackage = 1;
-    log::warn() << "Cound not get number of cores";
+    log::warn() << "Could not get number of cores";
   } else {
     this->_numCoresPerPackage =
         hwloc_get_nbobjs_by_depth(this->topology, depth) / this->_numPackages;
@@ -175,7 +175,7 @@ CPUTopology::CPUTopology(std::string architecture)
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
     this->_numThreadsPerCore = 1;
-    log::warn() << "Cound not get number of threads";
+    log::warn() << "Could not get number of threads";
   } else {
     this->_numThreadsPerCore =
         hwloc_get_nbobjs_by_depth(this->topology, depth) /
@@ -382,14 +382,29 @@ int CPUTopology::getPkgIdFromPU(unsigned pu) const {
 }
 
 unsigned CPUTopology::maxNumThreads() const {
-  hwloc_obj_t obj;
-  int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
   unsigned max = 0;
 
-  for (int i = 0; i < width; i++) {
-    obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
-    max = max < obj->os_index ? obj->os_index : max;
+  // There might be more then one kind of cores
+  int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
+
+  // Allocate bitmap to get CPUs later
+  hwloc_bitmap_t bitmap = hwloc_bitmap_alloc();
+  if (bitmap == NULL) {
+    log::error() << "Could not allocate memory for CPU bitmap";
+    return 1;
   }
 
-  return max + 1;
+  // Find CPUs per kind
+  for (int kind_index = 0; kind_index < nr_cpukinds; kind_index++){
+    int result = hwloc_cpukinds_get_info(this->topology, kind_index, bitmap,
+                                         NULL, NULL, NULL, 0);
+    if (result){
+      log::warn() << "Could not get information for CPU kind " << kind_index;
+    }
+    max += hwloc_bitmap_weight(bitmap);
+  }
+
+  hwloc_bitmap_free(bitmap);
+
+  return max;
 }
