@@ -142,7 +142,7 @@ CPUTopology::CPUTopology(std::string architecture)
   switch (nr_cpukinds) {
     case -1: log::warn() << "Hybrid core check failed"; break;
     case  0: log::warn() << "Hybrid core check read no information"; break;
-    default: log::info() << "Number of CPU kinds:" << nr_cpukinds;
+    default: log::trace() << "Number of CPU kinds:" << nr_cpukinds;
   }
   if (nr_cpukinds > 1 ) {
     log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
