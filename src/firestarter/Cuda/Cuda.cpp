@@ -354,8 +354,6 @@ static void create_load(std::condition_variable &waitForInitCv,
       << "Allocating CUDA memory on device nr. "
       << device_index;
 
-  size_t memory_avail, memory_total;
-
   // allocating memory on the GPU
   CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
   CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
@@ -383,9 +381,9 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << device_index
                             << ". Using "
                             << size_use * size_use
-                            << " elements. Using "
-                            << ((sizeof(T) == sizeof(double)) ? "double" : "single"
-                            << " precicion\n";
+                            << " elements of size "
+                            << ((sizeof(T) == sizeof(double))
+                            << " B\n";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
   CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
