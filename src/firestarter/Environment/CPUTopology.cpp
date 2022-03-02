@@ -34,7 +34,7 @@ using namespace firestarter::environment;
 
 std::ostream &CPUTopology::print(std::ostream &stream) const {
   stream << "  system summary:\n"
-         << "    number of processors:        " << this->numPackages() << "\n";
+         << "    number of processors: " << this->numPackages() << "\n";
   bool is_hybrid = false;
   for (unsigned package = 0; package < this->numPackages(); package++) {
     if (this->numKindsPerPackage(package)>1)
@@ -47,7 +47,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
       for (unsigned kind = 0; kind < this->numKindsPerPackage(package); kind++) {
         int nr_cores = this->numCoresPerPackage(package, kind);
         int nr_threads = this->numThreadsPerCore(package, kind);
-        stream << "      core type  " << kind
+        stream << "      core type: " << kind
                << "\n"
                << "        number of cores: " << nr_cores
                << "\n"
@@ -56,7 +56,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
         threads+=nr_cores*nr_threads;
       }
     }
-    stream << "    total number of threads:     " << threads << "\n\n";
+    stream << "    total number of threads: " << threads << "\n\n";
   } else {
     stream << "    number of cores per package: " << this->numCoresPerPackage(0,0)
            << "\n"
