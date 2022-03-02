@@ -51,7 +51,8 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
                << "\n"
                << "        number of cores: " << nr_cores
                << "\n"
-               << "        number of threads per core: " << nr_threads;
+               << "        number of threads per core: " << nr_threads
+               << "\n";
         threads+=nr_cores*nr_threads;
       }
     }
