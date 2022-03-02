@@ -381,6 +381,64 @@ int CPUTopology::getPkgIdFromPU(unsigned pu) const {
   return -1;
 }
 
+unsigned CPUTopology::numCoresPerPackage(unsigned package, unsigned kind) const {
+
+  // 1. get cpu - bitmap. to do so, we have to
+  // 1.1. get all NUMA nodes of the package
+  // 1.2. get cpu bitmasks for each of these and or them
+  // 2. (later: AND it with the mask of the kind)
+
+  hwloc_bitmap_t bitmap_all = hwloc_bitmap_alloc();
+  hwloc_bitmap_t bitmap_package = hwloc_bitmap_alloc();
+  if (bitmap_package == NULL || bitmap_all == NULL) {
+    log::error() << "Could not allocate memory for CPU bitmap";
+    return 1;
+  }
+  // get numa node set for package
+  for (unsigned numa_node = 0; numa_node < nr_numa_nodes; numa_node++)
+  // Get CPU bitmap per package
+
+
+  // Get CPU bitmap per kind
+  int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
+                                       NULL, NULL, NULL, 0);
+  if (result){
+    log::warn() << "Could not get information for CPU kind " << kind_index;
+    return 1;
+  } else {
+
+    // now get the bitmap for package and AND both maps
+    hwloc_bitmap_t bitmap_all = hwloc_bitmap_alloc();
+    if (bitmap_all == NULL) {
+      log::error() << "Could not allocate memory for CPU bitmap";
+      return 1;
+    }
+
+    // get nr of cores in bitmap
+    int nr_cores = hwloc_get_nbobjs_inside_cpuset_by_depth(this->topology, bitmap_all, HWLOC_OBJ_CORE);
+    hwloc_bitmap_free(bitmap_kind);
+
+    hwloc_bitmap_free(bitmap_);
+    if (nr_cores > 0)
+      return nr_cores;
+    else
+      return 1;
+  }
+}
+
+
+unsigned CPUTopology::numKindsPerPackage(unsigned package) const {
+  // There might be more then one kind of cores
+  int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, package);
+
+  // fallback in case this did not work ... can happen on some platforms
+  // already printed a warning earlier
+  if (nr_cpukinds < 1)
+      return 1;
+  else
+    return nr_cpukinds;
+}
+
 unsigned CPUTopology::maxNumThreads() const {
   unsigned max = 0;
 
