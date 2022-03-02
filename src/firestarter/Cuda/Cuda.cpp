@@ -293,7 +293,7 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   int iterations, i;
 
-  int size_use = 0;
+  size_t size_use = 0;
   if (matrixSize > 0) {
     size_use = matrixSize;
   }
@@ -381,9 +381,8 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << device_index
                             << ". Using "
                             << size_use * size_use
-                            << " elements of size "
-                            << (sizeof(T) == sizeof(double))
-                            << " B\n";
+                            << " elements of type "
+                            << (sizeof(T) == sizeof(double)) ? "double" : "float";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
   CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
