@@ -42,7 +42,7 @@ extern "C" {
     if (this->cpuAllowed(cpu)) {                                               \
       CPU_SET(cpu, &cpuset);                                                   \
     } else {                                                                   \
-      if (cpu >= this->topology().numThreads()) {                              \
+      if (cpu >= this->topology().maxNumThreads()) {                           \
         log::error() << "The given bind argument (-b/--bind) includes CPU "    \
                      << cpu << " that is not available on this system.";       \
       } else {                                                                 \
@@ -86,7 +86,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
 #endif
 
   if (requestedNumThreads > 0 &&
-      requestedNumThreads > this->topology().numThreads()) {
+      requestedNumThreads > this->topology().maxNumThreads()) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
