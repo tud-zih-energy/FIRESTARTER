@@ -293,6 +293,9 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   int iterations, i;
 
+  firestarter::log::trace() << "Starting CUDA with given matrix size "
+                            << matrixSize;
+
   size_t size_use = 0;
   if (matrixSize > 0) {
     size_use = matrixSize;
@@ -346,6 +349,7 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
                         1024); // a multiple of 1024 works always well
   }
+  firestarter::log::trace() << "Set CUDA matrix size: " << matrixSize;
   use_bytes = (size_t)((T)memory_avail);
   memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
