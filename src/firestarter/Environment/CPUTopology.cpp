@@ -34,19 +34,40 @@ using namespace firestarter::environment;
 
 std::ostream &CPUTopology::print(std::ostream &stream) const {
   stream << "  system summary:\n"
-         << "    number of processors:        " << this->numPackages() << "\n"
-         << "    number of cores per package: " << this->numCoresPerPackage()
-         << "\n"
-         << "    number of threads per core:  " << this->numThreadsPerCore()
-         << "\n"
-         << "    total number of threads:     " << this->numThreads() << "\n\n";
-
+         << "    number of processors:        " << this->numPackages() << "\n";
+  bool is_hybrid = false;
+  for (unsigned package = 0; package < this->numPackages(); package++) {
+    if (this->numKindsPerPackage(package)>1)
+      is_hybrid = true;
+  }
+  if (is_hybrid) {
+    int threads=0;
+    for (unsigned package = 0; package < this->numPackages(); package++) {
+      stream << "    package  " << package << ":\n";
+      for (unsigned kind = 0; kind < this->numKindsPerPackage(package); kind++) {
+        int nr_cores = this->numCoresPerPackage(package, kind);
+        int nr_threads = this->numThreadsPerCore(package, kind);
+        stream << "      core type  " << kind
+               << "\n"
+               << "        number of cores: " << nr_cores
+               << "\n"
+               << "        number of threads per core: " << nr_threads;
+        threads+=nr_cores*nr_threads;
+      }
+    }
+    stream << "    total number of threads:     " << threads << "\n\n";
+  } else {
+    stream << "    number of cores per package: " << this->numCoresPerPackage(0,0)
+           << "\n"
+           << "    number of threads per core:  " << this->numThreadsPerCore(0,0)
+           << "\n"
+           << "    total number of threads:     " << this->maxNumThreads() << "\n\n";
+  }
   std::stringstream ss;
 
   for (auto const &ent : this->features()) {
     ss << ent << " ";
   }
-
   stream << "  processor characteristics:\n"
          << "    architecture:       " << this->architecture() << "\n"
          << "    vendor:             " << this->vendor() << "\n"
@@ -110,7 +131,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
 
       ss << " associative, ";
 
-      shared = this->numThreads() / width;
+      shared = 999999999999 / width;
 
       if (shared > 1) {
         ss << "shared among " << shared << " threads.";
@@ -157,29 +178,6 @@ CPUTopology::CPUTopology(std::string architecture)
     log::warn() << "Could not get number of packages";
   } else {
     this->_numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
-  }
-
-  // get number of cores per package
-  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_CORE);
-
-  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    this->_numCoresPerPackage = 1;
-    log::warn() << "Could not get number of cores";
-  } else {
-    this->_numCoresPerPackage =
-        hwloc_get_nbobjs_by_depth(this->topology, depth) / this->_numPackages;
-  }
-
-  // get number of threads per core
-  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PU);
-
-  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    this->_numThreadsPerCore = 1;
-    log::warn() << "Could not get number of threads";
-  } else {
-    this->_numThreadsPerCore =
-        hwloc_get_nbobjs_by_depth(this->topology, depth) /
-        this->_numCoresPerPackage / this->_numPackages;
   }
 
   // get vendor, processor name and clockrate for linux
@@ -381,48 +379,90 @@ int CPUTopology::getPkgIdFromPU(unsigned pu) const {
   return -1;
 }
 
-unsigned CPUTopology::numCoresPerPackage(unsigned package, unsigned kind) const {
+unsigned CPUTopology::numThreadsPerCore(unsigned package, unsigned kind) const {
 
-  // 1. get cpu - bitmap. to do so, we have to
-  // 1.1. get all NUMA nodes of the package
-  // 1.2. get cpu bitmasks for each of these and or them
-  // 2. (later: AND it with the mask of the kind)
-
-  hwloc_bitmap_t bitmap_all = hwloc_bitmap_alloc();
-  hwloc_bitmap_t bitmap_package = hwloc_bitmap_alloc();
-  if (bitmap_package == NULL || bitmap_all == NULL) {
+  hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
+  if (bitmap_kind == NULL) {
     log::error() << "Could not allocate memory for CPU bitmap";
     return 1;
   }
-  // get numa node set for package
-  for (unsigned numa_node = 0; numa_node < nr_numa_nodes; numa_node++)
-  // Get CPU bitmap per package
+  // Get CPU bitmap per kind
+  int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
+                                       NULL, NULL, NULL, 0);
+  //
+  if (result){
+    log::warn() << "Could not get information for CPU kind "
+                << kind
+                << "Error: "
+                <<  strerror(errno);
+    hwloc_bitmap_free(bitmap_kind);
+    return 1;
+  } else {
 
+      // go through packages:
+      hwloc_obj_t current_package =
+          hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PACKAGE, NULL);
+      // TODO: check returnvalue
+      // now we are at package 0, maybe go to another package
+      for (unsigned i = 0; i< package; i++ ) {
+        current_package =
+              hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PACKAGE, current_package);
+        // TODO: check returnvalue
+      }
+
+      if (hwloc_bitmap_and(bitmap_kind, bitmap_kind, current_package->cpuset)) {
+          log::warn() << "Could not combine CPUset information";
+          hwloc_bitmap_free(bitmap_kind);
+          return hwloc_get_nbobjs_inside_cpuset_by_type(topology, bitmap_kind, HWLOC_OBJ_CORE);
+      }
+    int nr_cores = hwloc_get_nbobjs_inside_cpuset_by_type(topology, bitmap_kind, HWLOC_OBJ_CORE);
+    int nr_threads = hwloc_get_nbobjs_inside_cpuset_by_type(topology, bitmap_kind, HWLOC_OBJ_PU);
+    hwloc_bitmap_free(bitmap_kind);
+    return nr_threads/nr_cores;
+  }
+}
+unsigned CPUTopology::numCoresPerPackage(unsigned package, unsigned kind) const {
+
+  // 1. get cpu - bitmap. to do so, we have to
+  // 1.1. get bitmap of the package
+  // 1.2. get bitmap for kind
+  // 1.3. combine them by AND
+
+  hwloc_bitmap_t bitmap_all = hwloc_bitmap_alloc();
+  hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
+  if (bitmap_kind == NULL || bitmap_all == NULL) {
+    log::error() << "Could not allocate memory for CPU bitmap";
+    return 1;
+  }
+  // go through packages:
+  hwloc_obj_t current_package =
+      hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PACKAGE, NULL);
+  // TODO: check returnvalue
+  // now we are at package 0, maybe go to another package
+  for (unsigned i = 0; i< package; i++ ) {
+    current_package =
+          hwloc_get_next_obj_by_type(topology, HWLOC_OBJ_PACKAGE, current_package);
+    // TODO: check returnvalue
+  }
 
   // Get CPU bitmap per kind
   int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
                                        NULL, NULL, NULL, 0);
+  //
   if (result){
-    log::warn() << "Could not get information for CPU kind " << kind_index;
-    return 1;
+    log::warn() << "Could not get information for CPU kind "
+                << kind
+                << "Error: "
+                <<  strerror(errno);
+    return hwloc_get_nbobjs_inside_cpuset_by_type(topology, current_package->cpuset, HWLOC_OBJ_CORE);
   } else {
-
-    // now get the bitmap for package and AND both maps
-    hwloc_bitmap_t bitmap_all = hwloc_bitmap_alloc();
-    if (bitmap_all == NULL) {
-      log::error() << "Could not allocate memory for CPU bitmap";
-      return 1;
+    // returns -1 on error
+    if (hwloc_bitmap_and(bitmap_all, bitmap_kind, current_package->cpuset)) {
+        log::warn() << "Could not combine CPUset information";
+        return hwloc_get_nbobjs_inside_cpuset_by_type(topology, current_package->cpuset, HWLOC_OBJ_CORE);
     }
-
-    // get nr of cores in bitmap
-    int nr_cores = hwloc_get_nbobjs_inside_cpuset_by_depth(this->topology, bitmap_all, HWLOC_OBJ_CORE);
-    hwloc_bitmap_free(bitmap_kind);
-
-    hwloc_bitmap_free(bitmap_);
-    if (nr_cores > 0)
-      return nr_cores;
-    else
-      return 1;
+    // no error
+    return hwloc_get_nbobjs_inside_cpuset_by_type(topology, bitmap_all, HWLOC_OBJ_CORE);
   }
 }
 

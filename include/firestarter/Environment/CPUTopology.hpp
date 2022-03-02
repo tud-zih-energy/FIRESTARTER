@@ -45,19 +45,17 @@ public:
   /**
    * returns the number of threads a specific CPU kind of a specific package has
    */
-  unsigned numThreadsPerCore(unsigned package, unsigned kind)
+  unsigned numThreadsPerCore(unsigned package, unsigned kind) const;
 
   /**
    * returns the number of cores a specific CPU kind of a specific package has
    */
-  unsigned numCoresPerPackage(unsigned package, unsigned kind)
-    const { return _numCoresPerPackage; }
+  unsigned numCoresPerPackage(unsigned package, unsigned kind) const;
 
   /**
    * returns the number of different sets of cores (CPU kinds)
    */
-  unsigned numKindsPerPackage(unsigned package)
-      const { return _numCoresPerPackage; }
+  unsigned numKindsPerPackage(unsigned package) const;
   /**
    * returns the number of packages
    */
@@ -72,7 +70,7 @@ public:
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
 
   // return the cpu clockrate in Hz
-  virtual unsigned long long clockrate(unsigned PU)
+  virtual unsigned long long clockrate() const { return _clockrate; }
   // return the cpu features
   virtual std::list<std::string> const &features() const = 0;
 
@@ -89,19 +87,8 @@ protected:
 private:
   static std::stringstream getFileAsStream(std::string const &filePath);
 
-  // now hybrid, so we have the following information
-  // nr of packages (e.g., 2 if there are 2 packages present)
   unsigned _numPackages;
-  // nr of kinds of cores per package (e.g., 2 if you have a hybrid processor with 2 different kinds of cores)
-  // length: _numPackages
-  unsigned* _kindsPerPackage;
-  // nr of cores for a specific kind of cores in a specific package
-  // access: _coresPerKindPerPackage[package][kind]
-  unsigned** _coresPerKindPerPackage;
-  // nr of cores for a specific kind of cores in a specific package
-  // access: _coresPerKindPerPackage[package][kind]
-  unsigned** _threadsPerCorePerKindPerPackage;
-
+  unsigned _clockrate; // of ANY cpu. Todo: make it more sophisticated
   std::string _architecture;
   std::string _vendor = "";
   std::string _processorName = "";

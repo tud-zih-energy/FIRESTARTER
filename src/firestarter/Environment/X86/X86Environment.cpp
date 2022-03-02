@@ -33,13 +33,13 @@ void X86Environment::evaluateFunctions() {
     // add asmjit for model and family detection
     this->platformConfigs.push_back(
         ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
-             this->topology().modelId(), this->topology().numThreadsPerCore()));
+             this->topology().modelId(), this->topology().numThreadsPerCore(0,0)));
   }
 
   for (auto ctor : this->fallbackPlatformConfigsCtor) {
     this->fallbackPlatformConfigs.push_back(
         ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
-             this->topology().modelId(), this->topology().numThreadsPerCore()));
+             this->topology().modelId(), this->topology().numThreadsPerCore(0,0)));
   }
 }
 
@@ -69,7 +69,7 @@ int X86Environment::selectFunction(unsigned functionId,
       }
       // default function
       if (0 == functionId && config->isDefault()) {
-        if (thread == this->topology().numThreadsPerCore()) {
+        if (thread == this->topology().numThreadsPerCore(0,0)) {
           this->_selectedConfig =
               new ::firestarter::environment::platform::RuntimeConfig(
                   *config, thread, this->topology().instructionCacheSize());
@@ -89,7 +89,7 @@ int X86Environment::selectFunction(unsigned functionId,
       // default payload available, but number of threads per core is not
       // supported
       log::warn() << "No " << defaultPayloadName << " code path for "
-                  << this->topology().numThreadsPerCore()
+                  << this->topology().numThreadsPerCore(0,0)
                   << " threads per core!";
     }
     log::warn() << this->topology().vendor() << " " << this->topology().model()
@@ -103,7 +103,7 @@ int X86Environment::selectFunction(unsigned functionId,
         auto selectedThread = 0;
         auto selectedFunctionName = std::string("");
         for (auto const &[thread, functionName] : config->getThreadMap()) {
-          if (thread == this->topology().numThreadsPerCore()) {
+          if (thread == this->topology().numThreadsPerCore(0,0)) {
             selectedThread = thread;
             selectedFunctionName = functionName;
           }
