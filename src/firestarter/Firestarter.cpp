@@ -103,6 +103,17 @@ Firestarter::Firestarter(
     std::exit(returnCode);
   }
 
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
+  if (_errorDetection) {
+    if (!_environment->topology().featuresAsmjit().hasSSE4_2()) {
+      throw std::invalid_argument("Option --error-detection requires the crc32 "
+                                  "instruction added with SSE_4_2.\n");
+    }
+  }
+#endif
+
   if (_errorDetection && this->environment().requestedNumThreads() < 2) {
     throw std::invalid_argument(
         "Option --error-detection must run with 2 or more threads. Number of "
