@@ -384,7 +384,7 @@ int AVX512Payload::compilePayload(
   }
 
   if (errorDetection) {
-    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(
+    this->emitErrorDetectionCode<decltype(iter_reg), Zmm>(
         cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
