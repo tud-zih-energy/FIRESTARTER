@@ -336,7 +336,8 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   firestarter::log::trace() << "Get CUDA Memory info on device nr. "
                      << device_index
-                     <<": " << memory_avail << " B avail.";
+                     <<": " << memory_avail << " B avail. from "
+                     << memory_total << " B total";
 
   // defining memory pointers
   CUdeviceptr a_data_ptr;
@@ -385,8 +386,8 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << device_index
                             << ". Using "
                             << size_use * size_use
-                            << " elements of type "
-                            << (sizeof(T) == sizeof(double)) ? "double" : "float";
+                            << " elements of size "
+                            << sizeof(T) << " Byte";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
   CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
@@ -440,13 +441,14 @@ static void create_load(std::condition_variable &waitForInitCv,
   const T alpha = 1.0;
   const T beta = 0.0;
 
+  int size_use_i;
   // actual stress begins here
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      CUDA_SAFE_CALL(gemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use, size_use,
-                          size_use, &alpha, (const T *)a_data_ptr, size_use,
-                          (const T *)b_data_ptr, size_use, &beta,
-                          (T *)c_data_ptr + i * size_use * size_use, size_use),
+      CUDA_SAFE_CALL(gemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use_i, size_use_i,
+                          size_use, &alpha, (const T *)a_data_ptr, size_use_i,
+                          (const T *)b_data_ptr, size_use_i, &beta,
+                          (T *)c_data_ptr + i * size_use_i * size_use_i, size_use_i),
                      device_index);
       CUDA_SAFE_CALL(cudaDeviceSynchronize(), device_index);
     }
