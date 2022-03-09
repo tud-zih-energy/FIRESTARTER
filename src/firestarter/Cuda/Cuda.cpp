@@ -411,9 +411,9 @@ static void create_load(std::condition_variable &waitForInitCv,
                                 << " byte from "
                                 << a_data_ptr
                                 << " to "
-                                << c_data_ptr + i * size_use * size_use
+                                << c_data_ptr + i * memory_size
                                 << "\n";
-    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * size_use * size_use,
+    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * memory_size,
                                 a_data_ptr, memory_size),
                    device_index);
   }
