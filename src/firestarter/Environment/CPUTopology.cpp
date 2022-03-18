@@ -140,14 +140,18 @@ CPUTopology::CPUTopology(std::string architecture)
   int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
 
   switch (nr_cpukinds) {
-    case -1: log::warn() << "Hybrid core check failed"; break;
-    case  0: log::warn() << "Hybrid core check read no information"; break;
-    default: log::trace() << "Number of CPU kinds:" << nr_cpukinds;
+  case -1:
+    log::warn() << "Hybrid core check failed";
+    break;
+  case 0:
+    log::warn() << "Hybrid core check read no information";
+    break;
+  default:
+    log::trace() << "Number of CPU kinds:" << nr_cpukinds;
   }
-  if (nr_cpukinds > 1 ) {
+  if (nr_cpukinds > 1) {
     log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
   }
-
 
   // get number of packages
   int depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
@@ -390,16 +394,16 @@ unsigned CPUTopology::maxNumThreads() const {
   // fallback in case this did not work ... can happen on some platforms
   // already printed a warning earlier
   if (nr_cpukinds < 1) {
-      hwloc_obj_t obj;
-      int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
-      unsigned max = 0;
+    hwloc_obj_t obj;
+    int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+    unsigned max = 0;
 
-      for (int i = 0; i < width; i++) {
-        obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
-        max = max < obj->os_index ? obj->os_index : max;
-      }
+    for (int i = 0; i < width; i++) {
+      obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+      max = max < obj->os_index ? obj->os_index : max;
+    }
 
-      return max + 1;
+    return max + 1;
   }
 
   // Allocate bitmap to get CPUs later
@@ -410,10 +414,10 @@ unsigned CPUTopology::maxNumThreads() const {
   }
 
   // Find CPUs per kind
-  for (int kind_index = 0; kind_index < nr_cpukinds; kind_index++){
+  for (int kind_index = 0; kind_index < nr_cpukinds; kind_index++) {
     int result = hwloc_cpukinds_get_info(this->topology, kind_index, bitmap,
                                          NULL, NULL, NULL, 0);
-    if (result){
+    if (result) {
       log::warn() << "Could not get information for CPU kind " << kind_index;
     }
     max += hwloc_bitmap_weight(bitmap);
