@@ -15,8 +15,8 @@ let
     name = "hwloc";
 
     src = fetchTarball {
-      url = https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz;
-      sha256 = "1ibw14h9ppg8z3mmkwys8vp699n85kymdz20smjd2iq9b67y80b6";
+      url = https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz;
+      sha256 = "0gii1b8m5c5x6zan66m5hbbzqhmxn5sfkl879xxrf3gb2gxf9mi9";
     };
 
     configureFlags = [

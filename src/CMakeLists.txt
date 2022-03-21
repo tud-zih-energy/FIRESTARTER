@@ -126,8 +126,12 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
+		find_library( IOKIT_LIBRARY IOKit )
 		target_link_libraries(FIRESTARTER
 			Threads::Threads
+			${COREFOUNDATION_LIBRARY}
+			${IOKIT_LIBRARY}
 			)
 	else()
 		if (FIRESTARTER_LINK_STATIC)
