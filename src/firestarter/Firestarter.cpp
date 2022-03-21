@@ -173,7 +173,9 @@ Firestarter::Firestarter(
     // check if selected metrics are initialized
     for (auto const &optimizationMetric : optimizationMetrics) {
       auto nameEqual = [optimizationMetric](auto const &name) {
-        return name.compare(optimizationMetric) == 0;
+        auto invertedName = "-" + name;
+        return name.compare(optimizationMetric) == 0 ||
+               invertedName.compare(optimizationMetric) == 0;
       };
       // metric name is not found
       if (std::find_if(all.begin(), all.end(), nameEqual) == all.end()) {
@@ -372,12 +374,12 @@ void Firestarter::mainThread() {
 
     auto payloadItems = this->environment().selectedConfig().payloadItems();
 
+    firestarter::optimizer::History::save(_optimizeOutfile, startTime,
+                                          payloadItems, _argc, _argv);
+
     // print the best 20 according to each metric
     firestarter::optimizer::History::printBest(_optimizationMetrics,
                                                payloadItems);
-
-    firestarter::optimizer::History::save(_optimizeOutfile, startTime,
-                                          payloadItems, _argc, _argv);
 
     // stop all the load threads
     std::raise(SIGTERM);

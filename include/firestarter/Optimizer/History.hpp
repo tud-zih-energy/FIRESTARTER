@@ -116,6 +116,15 @@ public:
                                          SummaryMap const &mapB) {
         auto summaryA = mapA.find(metric);
         auto summaryB = mapB.find(metric);
+
+        if (summaryA == mapA.end() || summaryB == mapB.end()) {
+          summaryA = mapA.find(metric.substr(1));
+          summaryB = mapB.find(metric.substr(1));
+          assert(summaryA != mapA.end());
+          assert(summaryB != mapB.end());
+          return summaryA->second.average < summaryB->second.average;
+        }
+
         assert(summaryA != mapA.end());
         assert(summaryB != mapB.end());
         return summaryA->second.average > summaryB->second.average;
@@ -181,8 +190,8 @@ public:
 
       std::stringstream ss;
 
-      ss << "\n Best individuals sorted by metric " << metric
-         << " descending:\n"
+      ss << "\n Best individuals sorted by metric " << metric << " "
+         << ((metric[0] == '-') ? "ascending" : "descending") << ":\n"
          << firstLine.str() << "\n"
          << secondLine.str() << "\n";
 
@@ -196,9 +205,19 @@ public:
 
         for (auto const &metric : optimizationMetrics) {
           auto width = columnWidth[metric];
+          std::string value;
+
           auto fitnessOfMetric = fitness.find(metric);
-          assert(fitnessOfMetric != fitness.end());
-          auto value = std::to_string(fitnessOfMetric->second.average);
+          auto invertedMetric = metric.substr(1);
+          auto fitnessOfInvertedMetric = fitness.find(invertedMetric);
+
+          if (fitnessOfMetric != fitness.end()) {
+            value = std::to_string(fitnessOfMetric->second.average);
+          } else if (fitnessOfInvertedMetric != fitness.end()) {
+            value = std::to_string(fitnessOfInvertedMetric->second.average);
+          } else {
+            assert(false);
+          }
 
           ss << " | " << value;
           padding(ss, width, value.size(), ' ');

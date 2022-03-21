@@ -94,7 +94,9 @@ public:
 
     for (auto const &metricName : _metrics) {
       auto findName = [metricName](auto const &summary) {
-        return metricName.compare(summary.first) == 0;
+        auto invertedName = "-" + summary.first;
+        return metricName.compare(summary.first) == 0 ||
+               metricName.compare(invertedName) == 0;
       };
 
       auto it = std::find_if(summaries.begin(), summaries.end(), findName);
@@ -105,6 +107,12 @@ public:
 
       // round to two decimal places after the comma
       auto value = std::round(it->second.average * 100.0) / 100.0;
+
+      // invert metric
+      if (metricName[0] == '-') {
+        value *= -1.0;
+      }
+
       values.push_back(value);
     }
 
