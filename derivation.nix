@@ -1,4 +1,5 @@
 { stdenv
+, lib
 , cmake
 , glibc_multi
 , glibc
@@ -14,8 +15,8 @@ let
     name = "hwloc";
 
     src = fetchTarball {
-      url = https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz;
-      sha256 = "1ibw14h9ppg8z3mmkwys8vp699n85kymdz20smjd2iq9b67y80b6";
+      url = https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz;
+      sha256 = "0gii1b8m5c5x6zan66m5hbbzqhmxn5sfkl879xxrf3gb2gxf9mi9";
     };
 
     configureFlags = [
@@ -44,7 +45,6 @@ let
   };
 
 in
-with stdenv.lib;
 stdenv.mkDerivation rec {
   name = "firestarter";
   version = "0.0";
@@ -61,7 +61,7 @@ stdenv.mkDerivation rec {
     "-DFIRESTARTER_BUILD_HWLOC=OFF"
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
-  ] ++ optionals withCuda [
+  ] ++ lib.optionals withCuda [
    "-DFIRESTARTER_BUILD_TYPE=FIRESTARTER_CUDA"
   ];
 
@@ -69,7 +69,7 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp src/FIRESTARTER${optionalString withCuda ''_CUDA''} $out/bin/
+    cp src/FIRESTARTER${lib.optionalString withCuda ''_CUDA''} $out/bin/
   '';
 
 }

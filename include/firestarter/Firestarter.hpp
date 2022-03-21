@@ -71,9 +71,9 @@ public:
               unsigned lineCount, bool allowUnavailablePayload,
               bool dumpRegisters,
               std::chrono::seconds const &dumpRegistersTimeDelta,
-              std::string const &dumpRegistersOutpath, int gpus,
-              unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
-              bool listMetrics, bool measurement,
+              std::string const &dumpRegistersOutpath, bool errorDetection,
+              int gpus, unsigned gpuMatrixSize, bool gpuUseFloat,
+              bool gpuUseDouble, bool listMetrics, bool measurement,
               std::chrono::milliseconds const &startDelta,
               std::chrono::milliseconds const &stopDelta,
               std::chrono::milliseconds const &measurementInterval,
@@ -100,6 +100,7 @@ private:
   const bool _dumpRegisters;
   const std::chrono::seconds _dumpRegistersTimeDelta;
   const std::string _dumpRegistersOutpath;
+  const bool _errorDetection;
   const int _gpus;
   const unsigned _gpuMatrixSize;
   const bool _gpuUseFloat;
@@ -144,9 +145,9 @@ private:
 #endif
 
   // LoadThreadWorker.cpp
-  int initLoadWorkers(bool lowLoad, unsigned long long period,
-                      bool dumpRegisters);
+  int initLoadWorkers(bool lowLoad, unsigned long long period);
   void joinLoadWorkers();
+  void printThreadErrorReport();
   void printPerformanceReport();
 
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
@@ -194,6 +195,8 @@ private:
 #ifndef FIRESTARTER_BUILD_CUDA_ONLY
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>>
       loadThreads;
+
+  std::vector<std::shared_ptr<unsigned long long>> errorCommunication;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   std::thread dumpRegisterWorkerThread;

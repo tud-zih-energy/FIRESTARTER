@@ -58,6 +58,10 @@ General Options:
   -b, --bind CPULIST            Select certain CPUs. CPULIST format: "x,y,z",
                                 "x-y", "x-y/step", and any combination of the
                                 above. Cannot be combined with -n | --threads.
+      --error-detection         Enable error detection. This aborts execution when the
+                                calculated data is corruped by errors. FIRESTARTER must run
+                                with 2 or more threads for this feature. Cannot be used with
+                                -l | --load and --optimize.
 
 Specialized workloads:
       --list-instruction-groups

@@ -177,7 +177,7 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
   }
 #else
   if (requestedNumThreads == 0) {
-    requestedNumThreads = this->topology().numThreads();
+    requestedNumThreads = this->topology().maxNumThreads();
   }
 #endif
 
@@ -196,8 +196,8 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads,
   }
 #endif
 
-  if (requestedNumThreads > this->topology().numThreads()) {
-    requestedNumThreads = this->topology().numThreads();
+  if (requestedNumThreads > this->topology().maxNumThreads()) {
+    requestedNumThreads = this->topology().maxNumThreads();
   }
 
   this->_requestedNumThreads = requestedNumThreads;

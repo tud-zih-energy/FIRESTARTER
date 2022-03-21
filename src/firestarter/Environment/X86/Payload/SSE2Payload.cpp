@@ -33,7 +33,8 @@ int SSE2Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
     std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
+    unsigned thread, unsigned numberOfLines, bool dumpRegisters,
+    bool errorDetection) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -105,6 +106,7 @@ int SSE2Payload::compilePayload(
   auto l3_count_reg = r9;
   auto ram_count_reg = r10;
   auto temp_reg = r11;
+  auto temp_reg2 = rbp;
   auto offset_reg = r12;
   auto addrHigh_reg = r13;
   auto iter_reg = r14;
@@ -131,8 +133,8 @@ int SSE2Payload::compilePayload(
   }
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
-                     l3_count_reg, ram_count_reg, temp_reg, offset_reg,
-                     addrHigh_reg, iter_reg);
+                     l3_count_reg, ram_count_reg, temp_reg, temp_reg2,
+                     offset_reg, addrHigh_reg, iter_reg);
 
   FuncArgsAssignment args(&func);
   args.assignAll(pointer_reg, addrHigh_reg, iter_reg);
@@ -412,6 +414,11 @@ int SSE2Payload::compilePayload(
     cb.mov(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
 
     cb.bind(SkipRegistersDump);
+  }
+
+  if (errorDetection) {
+    this->emitErrorDetectionCode<decltype(iter_reg), Xmm>(
+        cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));

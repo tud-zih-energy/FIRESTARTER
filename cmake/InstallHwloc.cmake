@@ -11,8 +11,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 			DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/download
 			SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 			INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
-			URL https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz
-			URL_HASH SHA1=17f4d91ccf0cfe694e4000ec2e4e595790393d4c
+			URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
+			URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
 			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
@@ -31,8 +31,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 				DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/download
 				SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 				INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
-				URL https://download.open-mpi.org/release/hwloc/v2.2/hwloc-2.2.0.tar.gz
-				URL_HASH SHA1=17f4d91ccf0cfe694e4000ec2e4e595790393d4c
+				URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
+				URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND cd <SOURCE_DIR>\\contrib\\windows && MSBuild /p:Configuration=Release /p:Platform=x64 hwloc.sln
 				INSTALL_COMMAND ""
@@ -50,8 +50,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 				DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/download
 				SOURCE_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/sources
 				INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
-				URL https://download.open-mpi.org/release/hwloc/v2.2/hwloc-win64-build-2.2.0.zip
-				URL_HASH SHA256=3f58ef82a7c172529076b35b31c7bfab4e3cb4d8626a66b2bc64c4710b73e8a0
+				URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-win64-build-2.7.0.zip
+				URL_HASH SHA256=c3845b298e64fd9acf62aa2eaa2d1beced0a3a4f9a0678dc6fd0b880fd0c23d4
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND ""
 				INSTALL_COMMAND ""
