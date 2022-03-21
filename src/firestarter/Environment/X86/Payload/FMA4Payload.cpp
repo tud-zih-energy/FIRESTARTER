@@ -33,7 +33,8 @@ int FMA4Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
     std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines, bool dumpRegisters) {
+    unsigned thread, unsigned numberOfLines, bool dumpRegisters,
+    bool errorDetection) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
@@ -105,6 +106,7 @@ int FMA4Payload::compilePayload(
   auto l3_count_reg = r11;
   auto ram_count_reg = r12;
   auto temp_reg = r13;
+  auto temp_reg2 = rbp;
   auto offset_reg = r14;
   auto addrHigh_reg = r15;
   auto iter_reg = mm0;
@@ -129,11 +131,13 @@ int FMA4Payload::compilePayload(
   for (int i = 0; i < 16; i++) {
     frame.addDirtyRegs(Ymm(i));
   }
-  frame.addDirtyRegs(Mm(0));
+  for (int i = 0; i < 8; i++) {
+    frame.addDirtyRegs(Mm(i));
+  }
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
-                     l3_count_reg, ram_count_reg, temp_reg, offset_reg,
-                     addrHigh_reg, iter_reg, ram_addr);
+                     l3_count_reg, ram_count_reg, temp_reg, temp_reg2,
+                     offset_reg, addrHigh_reg, iter_reg, ram_addr);
   for (const auto &reg : shift_reg) {
     frame.addDirtyRegs(reg);
   }
@@ -404,6 +408,11 @@ int FMA4Payload::compilePayload(
     cb.mov(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
 
     cb.bind(SkipRegistersDump);
+  }
+
+  if (errorDetection) {
+    this->emitErrorDetectionCode<decltype(iter_reg), Ymm>(
+        cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));

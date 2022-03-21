@@ -52,6 +52,13 @@ protected:
     return this->_supportedFeatures;
   }
 
+  template <class IterReg, class VectorReg>
+  void emitErrorDetectionCode(asmjit::x86::Builder &cb, IterReg iter_reg,
+                              asmjit::x86::Gpq addrHigh_reg,
+                              asmjit::x86::Gpq pointer_reg,
+                              asmjit::x86::Gpq temp_reg,
+                              asmjit::x86::Gpq temp_reg2);
+
 public:
   X86Payload(asmjit::x86::Features const &supportedFeatures,
              std::initializer_list<asmjit::x86::Features::Id> featureRequests,

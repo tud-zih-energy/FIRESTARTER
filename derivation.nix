@@ -1,4 +1,5 @@
 { stdenv
+, lib
 , cmake
 , glibc_multi
 , glibc
@@ -44,7 +45,6 @@ let
   };
 
 in
-with stdenv.lib;
 stdenv.mkDerivation rec {
   name = "firestarter";
   version = "0.0";
@@ -61,7 +61,7 @@ stdenv.mkDerivation rec {
     "-DFIRESTARTER_BUILD_HWLOC=OFF"
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
-  ] ++ optionals withCuda [
+  ] ++ lib.optionals withCuda [
    "-DFIRESTARTER_BUILD_TYPE=FIRESTARTER_CUDA"
   ];
 
@@ -69,7 +69,7 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp src/FIRESTARTER${optionalString withCuda ''_CUDA''} $out/bin/
+    cp src/FIRESTARTER${lib.optionalString withCuda ''_CUDA''} $out/bin/
   '';
 
 }

@@ -50,8 +50,9 @@ Firestarter::Firestarter(
     std::string const &instructionGroups, unsigned lineCount,
     bool allowUnavailablePayload, bool dumpRegisters,
     std::chrono::seconds const &dumpRegistersTimeDelta,
-    std::string const &dumpRegistersOutpath, int gpus, unsigned gpuMatrixSize,
-    bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
+    std::string const &dumpRegistersOutpath, bool errorDetection, int gpus,
+    unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
+    bool listMetrics, bool measurement,
     std::chrono::milliseconds const &startDelta,
     std::chrono::milliseconds const &stopDelta,
     std::chrono::milliseconds const &measurementInterval,
@@ -66,7 +67,8 @@ Firestarter::Firestarter(
     : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
       _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
-      _dumpRegistersOutpath(dumpRegistersOutpath), _gpus(gpus),
+      _dumpRegistersOutpath(dumpRegistersOutpath),
+      _errorDetection(errorDetection), _gpus(gpus),
       _gpuMatrixSize(gpuMatrixSize), _gpuUseFloat(gpuUseFloat),
       _gpuUseDouble(gpuUseDouble), _startDelta(startDelta),
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
@@ -99,6 +101,24 @@ Firestarter::Firestarter(
   if (EXIT_SUCCESS != (returnCode = this->environment().evaluateCpuAffinity(
                            requestedNumThreads, cpuBind))) {
     std::exit(returnCode);
+  }
+
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+  // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
+  if (_errorDetection) {
+    if (!_environment->topology().featuresAsmjit().hasSSE4_2()) {
+      throw std::invalid_argument("Option --error-detection requires the crc32 "
+                                  "instruction added with SSE_4_2.\n");
+    }
+  }
+#endif
+
+  if (_errorDetection && this->environment().requestedNumThreads() < 2) {
+    throw std::invalid_argument(
+        "Option --error-detection must run with 2 or more threads. Number of "
+        "threads is " +
+        std::to_string(this->environment().requestedNumThreads()) + "\n");
   }
 
   this->environment().evaluateFunctions();
@@ -280,9 +300,8 @@ Firestarter::Firestarter(
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  if (EXIT_SUCCESS !=
-      (returnCode = this->initLoadWorkers((_loadPercent == 0), _period.count(),
-                                          _dumpRegisters))) {
+  if (EXIT_SUCCESS != (returnCode = this->initLoadWorkers((_loadPercent == 0),
+                                                          _period.count()))) {
     std::exit(returnCode);
   }
 #endif
@@ -391,6 +410,10 @@ void Firestarter::mainThread() {
   }
 #endif
 #endif
+
+  if (_errorDetection) {
+    this->printThreadErrorReport();
+  }
 }
 
 void Firestarter::setLoad(unsigned long long value) {
