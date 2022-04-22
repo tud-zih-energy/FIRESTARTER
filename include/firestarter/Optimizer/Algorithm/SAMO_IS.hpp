@@ -6,7 +6,8 @@ namespace firestarter::optimizer::algorithm {
 
 class SAMO_IS : public Algorithm {
 public:
-  SAMO_IS(unsigned maxEvaluations, double cr, double m);
+  SAMO_IS(unsigned maxEvaluations, unsigned nsga2_individuals,
+          unsigned nsga2_generations, double nsga2_cr, double nsga2_m);
   ~SAMO_IS() {}
 
   void checkPopulation(firestarter::optimizer::Population const &pop,
@@ -17,8 +18,10 @@ public:
 
 private:
   unsigned _maxEvaluations;
-  double _cr;
-  double _m;
+  unsigned _nsga2_individuals;
+  unsigned _nsga2_generations;
+  double _nsga2_cr;
+  double _nsga2_m;
 };
 
 } // namespace firestarter::optimizer::algorithm

@@ -13,17 +13,21 @@
 
 using namespace firestarter::optimizer::algorithm;
 
-SAMO_IS::SAMO_IS(unsigned maxEvaluations, double cr, double m)
-    : Algorithm(), _maxEvaluations(maxEvaluations), _cr(cr), _m(m) {
-  if (cr >= 1. || cr < 0.) {
+SAMO_IS::SAMO_IS(unsigned maxEvaluations, unsigned nsga2_individuals,
+                 unsigned nsga2_generations, double nsga2_cr, double nsga2_m)
+    : Algorithm(), _maxEvaluations(maxEvaluations),
+      _nsga2_individuals(nsga2_individuals),
+      _nsga2_generations(nsga2_generations), _nsga2_cr(nsga2_cr),
+      _nsga2_m(nsga2_m) {
+  if (nsga2_cr >= 1. || nsga2_cr < 0.) {
     throw std::invalid_argument("The crossover probability must be in the "
                                 "[0,1[ range, while a value of " +
-                                std::to_string(cr) + " was detected");
+                                std::to_string(nsga2_cr) + " was detected");
   }
-  if (m < 0. || m > 1.) {
+  if (nsga2_m < 0. || nsga2_m > 1.) {
     throw std::invalid_argument("The mutation probability must be in the [0,1] "
                                 "range, while a value of " +
-                                std::to_string(m) + " was detected");
+                                std::to_string(nsga2_m) + " was detected");
   }
 }
 
@@ -99,8 +103,8 @@ SAMO_IS::evolve(firestarter::optimizer::Population &pop) {
     firestarter::optimizer::Population surrogatePopulation(
         std::move(surrogateProblem), false);
 
-    surrogatePopulation.generateInitialPopulation(800);
-    NSGA2 nsga2(20, _cr, _m);
+    surrogatePopulation.generateInitialPopulation(_nsga2_individuals);
+    NSGA2 nsga2(_nsga2_generations, _nsga2_cr, _nsga2_m);
 
     auto solutions = nsga2.evolve(surrogatePopulation);
 

@@ -62,9 +62,10 @@ Firestarter::Firestarter(
     std::chrono::seconds const &preheat,
     std::string const &optimizationAlgorithm,
     std::vector<std::string> const &optimizationMetrics,
-    std::chrono::seconds const &evaluationDuration, unsigned individuals,
-    std::string const &optimizeOutfile, unsigned generations,
-    unsigned maxEvaluations, double nsga2_cr, double nsga2_m)
+    std::chrono::seconds const &evaluationDuration,
+    std::string const &optimizeOutfile, unsigned nsga2_individuals,
+    unsigned nsga2_generations, double nsga2_cr, double nsga2_m,
+    unsigned samo_is_individuals, unsigned samo_is_maxEvaluations)
     : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
       _period(period), _dumpRegisters(dumpRegisters),
       _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
@@ -75,9 +76,11 @@ Firestarter::Firestarter(
       _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
       _preheat(preheat), _optimizationAlgorithm(optimizationAlgorithm),
       _optimizationMetrics(optimizationMetrics),
-      _evaluationDuration(evaluationDuration), _individuals(individuals),
-      _optimizeOutfile(optimizeOutfile), _generations(generations),
-      _maxEvaluations(maxEvaluations), _nsga2_cr(nsga2_cr), _nsga2_m(nsga2_m) {
+      _evaluationDuration(evaluationDuration),
+      _optimizeOutfile(optimizeOutfile), _nsga2_individuals(nsga2_individuals),
+      _nsga2_generations(nsga2_generations), _nsga2_cr(nsga2_cr),
+      _nsga2_m(nsga2_m), _samo_is_individuals(samo_is_individuals),
+      _samo_is_maxEvaluations(samo_is_maxEvaluations) {
   int returnCode;
 
   _load = (_period * _loadPercent) / 100;
@@ -285,10 +288,13 @@ Firestarter::Firestarter(
 
     if (_optimizationAlgorithm == "NSGA2") {
       _algorithm = std::make_unique<firestarter::optimizer::algorithm::NSGA2>(
-          _generations, _nsga2_cr, _nsga2_m);
+          _nsga2_generations, _nsga2_cr, _nsga2_m);
+      _individuals = _nsga2_individuals;
     } else if (_optimizationAlgorithm == "SAMO-IS") {
       _algorithm = std::make_unique<firestarter::optimizer::algorithm::SAMO_IS>(
-          _maxEvaluations, _nsga2_cr, _nsga2_m);
+          _samo_is_maxEvaluations, _nsga2_individuals, _nsga2_generations,
+          _nsga2_cr, _nsga2_m);
+      _individuals = _samo_is_individuals;
     } else {
       throw std::invalid_argument("Algorithm " + _optimizationAlgorithm +
                                   " unknown.");
