@@ -111,7 +111,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
       hwloc_bitmap_free(bitmap_kind);
       return stream;
     } else {
-        bool first_common_cache=true;
+        bool first_common_cache=false;
   for (hwloc_obj_type_t const &cache : caches) {
     char string[128];
     int shared;
@@ -165,16 +165,16 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
           hwloc_get_nbobjs_by_type(this->topology, cache):
           hwloc_get_nbobjs_inside_cpuset_by_type(this->topology, bitmap_kind, cache);
 
-      int nr_cores_in_set = first_common_cache?
+      int nr_threads_in_set = first_common_cache?
           hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU):
           hwloc_get_nbobjs_inside_cpuset_by_type(this->topology, bitmap_kind, HWLOC_OBJ_PU);
 
-      shared = nr_cores_in_set / nr_caches_in_set;
+      shared = nr_threads_in_set / nr_caches_in_set;
 
       if (shared > 1) {
         ss << "shared among " << shared << " threads.";
       } else {
-        ss << "per thread.";
+        ss << "per thread." ;
       }
       stream << ss.str();
     }
