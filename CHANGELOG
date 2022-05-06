@@ -27,6 +27,12 @@ $$ TODO - support for AArch64 (64 Bit ARM)
 $$ TODO - support Infiniband interconnects
 $$ TODO
 
+Version 2.1
+- added Intel Alder Lake support
+- started support for hybrid architectures
+- bugfixes
+- some info statements changed for hybrid support
+
 Version 2.0
  - added AMD Rome (Zen 2) support
  - added macOS support

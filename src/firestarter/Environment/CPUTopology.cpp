@@ -88,41 +88,48 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
   std::vector<std::string> cacheStrings = {};
 
   int cc=-1;
+  for (unsigned kind=0;kind<this->numKindsPerPackage(0);kind++) {
+
+    if (is_hybrid) {
+      stream << "\nCore type " << kind <<":";
+    }
+
+    hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
+    if (bitmap_kind == NULL) {
+      stream << "Could not allocate memory for Core bitmap";
+      return stream;
+    }
+    // Get CPU bitmap per kind
+    int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
+                                         NULL, NULL, NULL, 0);
+    //
+    if (result) {
+        stream << "Could not get information for Core type "
+                  << kind
+                  << "Error: "
+                  <<  strerror(errno);
+      hwloc_bitmap_free(bitmap_kind);
+      return stream;
+    } else {
+        bool first_common_cache=true;
   for (hwloc_obj_type_t const &cache : caches) {
-    int width;
     char string[128];
     int shared;
     hwloc_obj_t cacheObj;
-    std::stringstream ss;
-    cc++;
 
-    for (unsigned kind=1;kind<this->numKindsPerPackage(0);kind++) {
-      ss << "Kind=" <<kind << "/"<<cc<<"\n";
-      hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
-      if (bitmap_kind == NULL) {
-        stream << "Could not allocate memory for CPU bitmap";
-        return stream;
-      }
-      // Get CPU bitmap per kind
-      int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
-                                           NULL, NULL, NULL, 0);
-      //
-      if (result){
-          stream << "Could not get information for CPU kind "
-                    << kind
-                    << "Error: "
-                    <<  strerror(errno);
-        hwloc_bitmap_free(bitmap_kind);
-        return stream;
-      } else {
-        cacheObj = hwloc_get_next_obj_inside_cpuset_by_type(this->topology, bitmap_kind, cache, NULL);
+      std::stringstream ss;
+      cacheObj = hwloc_get_next_obj_inside_cpuset_by_type(this->topology, bitmap_kind, cache, NULL);
 
-    if (cacheObj == NULL ) {
-        ss << "No object found for " << kind << "/" << cc << "\n";
-    } else {
+    if ( (cacheObj == NULL ) && ( kind == ( this->numKindsPerPackage(0) - 1 ) ) )
+    {
+        cacheObj = hwloc_get_next_obj_by_type(this->topology, cache, NULL);
+        if (cacheObj != NULL ) {
+            ss << "\n Common Cache:";
+            first_common_cache=true;
+        }
+    }
+    if (cacheObj != NULL ) {
       ss << "\n      - ";
-
-      hwloc_bitmap_free(bitmap_kind);
       hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
 
       switch (cacheObj->attr->cache.type) {
@@ -154,20 +161,30 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
       }
 
       ss << " associative, ";
+      int nr_caches_in_set = first_common_cache?
+          hwloc_get_nbobjs_by_type(this->topology, cache):
+          hwloc_get_nbobjs_inside_cpuset_by_type(this->topology, bitmap_kind, cache);
 
-      shared = 999999999999;
+      int nr_cores_in_set = first_common_cache?
+          hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU):
+          hwloc_get_nbobjs_inside_cpuset_by_type(this->topology, bitmap_kind, HWLOC_OBJ_PU);
+
+      shared = nr_cores_in_set / nr_caches_in_set;
 
       if (shared > 1) {
         ss << "shared among " << shared << " threads.";
       } else {
         ss << "per thread.";
       }
-
       stream << ss.str();
     }
     }
+
+      hwloc_bitmap_free(bitmap_kind);
     }
   }
+
+
 
   return stream;
 }
