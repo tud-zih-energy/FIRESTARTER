@@ -66,8 +66,11 @@ public:
   virtual std::string const &processorName() const { return _processorName; }
   virtual std::string const &model() const = 0;
 
-  // get the size of the L1i-cache in bytes
-  unsigned instructionCacheSize() const { return _instructionCacheSize; }
+  // get the size of the L1i-cache in bytes for a specific kind of cores
+  unsigned instructionCacheSize(unsigned kind) const;
+
+  // get the size of the L1i-cache in bytes for a specific kind of cores
+  unsigned minimalInstructionCacheSize() const;
 
   // return the cpu clockrate in Hz
   virtual unsigned long long clockrate() const { return _clockrate; }

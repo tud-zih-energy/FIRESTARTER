@@ -77,7 +77,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
          << "    frequency:          " << this->clockrate() / 1000000
          << " MHz\n"
          << "    supported features: " << ss.str() << "\n"
-         << "    Caches:";
+         << "    Caches (per core type):";
 
   std::vector<hwloc_obj_type_t> caches = {
       HWLOC_OBJ_L1CACHE,  HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE,
@@ -87,19 +87,42 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
 
   std::vector<std::string> cacheStrings = {};
 
+  int cc=-1;
   for (hwloc_obj_type_t const &cache : caches) {
     int width;
     char string[128];
     int shared;
     hwloc_obj_t cacheObj;
     std::stringstream ss;
+    cc++;
 
-    width = hwloc_get_nbobjs_by_type(this->topology, cache);
+    for (unsigned kind=1;kind<this->numKindsPerPackage(0);kind++) {
+      ss << "Kind=" <<kind << "/"<<cc<<"\n";
+      hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
+      if (bitmap_kind == NULL) {
+        stream << "Could not allocate memory for CPU bitmap";
+        return stream;
+      }
+      // Get CPU bitmap per kind
+      int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
+                                           NULL, NULL, NULL, 0);
+      //
+      if (result){
+          stream << "Could not get information for CPU kind "
+                    << kind
+                    << "Error: "
+                    <<  strerror(errno);
+        hwloc_bitmap_free(bitmap_kind);
+        return stream;
+      } else {
+        cacheObj = hwloc_get_next_obj_inside_cpuset_by_type(this->topology, bitmap_kind, cache, NULL);
 
-    if (width >= 1) {
+    if (cacheObj == NULL ) {
+        ss << "No object found for " << kind << "/" << cc << "\n";
+    } else {
       ss << "\n      - ";
 
-      cacheObj = hwloc_get_obj_by_type(this->topology, cache, 0);
+      hwloc_bitmap_free(bitmap_kind);
       hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
 
       switch (cacheObj->attr->cache.type) {
@@ -132,7 +155,7 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
 
       ss << " associative, ";
 
-      shared = 999999999999 / width;
+      shared = 999999999999;
 
       if (shared > 1) {
         ss << "shared among " << shared << " threads.";
@@ -141,6 +164,8 @@ std::ostream &CPUTopology::print(std::ostream &stream) const {
       }
 
       stream << ss.str();
+    }
+    }
     }
   }
 
@@ -378,6 +403,42 @@ int CPUTopology::getPkgIdFromPU(unsigned pu) const {
   }
 
   return -1;
+}
+
+unsigned CPUTopology::instructionCacheSize(unsigned kind) const {
+  hwloc_bitmap_t bitmap_kind = hwloc_bitmap_alloc();
+  if (bitmap_kind == NULL) {
+    log::error() << "Could not allocate memory for CPU bitmap";
+    return 0;
+  }
+  // Get CPU bitmap per kind
+  int result = hwloc_cpukinds_get_info(this->topology, kind, bitmap_kind,
+                                       NULL, NULL, NULL, 0);
+  //
+  if (result){
+    log::warn() << "Could not get information for CPU kind "
+                << kind
+                << "Error: "
+                <<  strerror(errno);
+    hwloc_bitmap_free(bitmap_kind);
+    return 0;
+  } else {
+      hwloc_obj_t l1i_obj = hwloc_get_next_obj_inside_cpuset_by_type(
+          this->topology, bitmap_kind, HWLOC_OBJ_L1ICACHE, NULL);
+      hwloc_bitmap_free(bitmap_kind);
+      return l1i_obj->attr->cache.size;
+  }
+}
+
+unsigned CPUTopology::minimalInstructionCacheSize() const {
+  unsigned minimal=0xFFFFFFFF;
+  for (unsigned pack=0; pack<this->_numPackages;pack++)
+    for (unsigned ki=0;ki<this->numKindsPerPackage(pack);ki++){
+      unsigned current_size = this->instructionCacheSize(ki);
+      if (current_size < minimal)
+        minimal=current_size;
+    }
+  return minimal;
 }
 
 unsigned CPUTopology::numThreadsPerCore(unsigned package, unsigned kind) const {
