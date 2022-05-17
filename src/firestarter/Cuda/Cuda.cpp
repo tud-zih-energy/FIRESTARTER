@@ -411,9 +411,9 @@ static void create_load(std::condition_variable &waitForInitCv,
                                 << " byte from "
                                 << a_data_ptr
                                 << " to "
-                                << c_data_ptr + i * memory_size
+                                << c_data_ptr + i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)
                                 << "\n";
-    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * memory_size,
+    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr),
                                 a_data_ptr, memory_size),
                    device_index);
   }
@@ -448,7 +448,7 @@ static void create_load(std::condition_variable &waitForInitCv,
       CUDA_SAFE_CALL(gemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use_i, size_use_i,
                           size_use_i, &alpha, (const T *)a_data_ptr, size_use_i,
                           (const T *)b_data_ptr, size_use_i, &beta,
-                          c_data_ptr + i * memory_size, size_use_i),
+                          (T *)c_data_ptr + i * size_use * size_use, size_use_i),
                      device_index);
       CUDA_SAFE_CALL(cudaDeviceSynchronize(), device_index);
     }
