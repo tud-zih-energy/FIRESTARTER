@@ -187,16 +187,22 @@ int FMAPayload::compilePayload(
   cb.add(ram_addr, Imm(l3_size)); // address for RAM-buffer
   cb.mov(l2_count_reg, Imm(l2_loop_count));
   workerLog::trace() << "reset counter for L2-buffer with "
+                     << l2_loop_count
                      << " cache line accesses per loop ("
-                     << ") KB";
+		     << l2_size/1024
+                     << ") KiB";
   cb.mov(l3_count_reg, Imm(l3_loop_count));
   workerLog::trace() << "reset counter for L3-buffer with "
+                     << l3_loop_count
                      << " cache line accesses per loop ("
-                     << ") KB";
+		     << l3_size/1024
+                     << ") KiB";
   cb.mov(ram_count_reg, Imm(ram_loop_count));
   workerLog::trace() << "reset counter for RAM-buffer with "
+                     << ram_loop_count
                      << " cache line accesses per loop ("
-                     << ") KB";
+		     << ram_size/1024
+                     << ") KiB";
 
   cb.align(kAlignCode, 64);
 
