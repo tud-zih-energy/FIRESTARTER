@@ -49,7 +49,7 @@ if (FIRESTARTER_THREAD_AFFINITY)
 endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
-	find_package(CUDA REQUIRED)
+	find_package(CUDAToolkit REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
@@ -72,9 +72,11 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		Nitro::log
 		nlohmann_json::nlohmann_json
 		Threads::Threads
-		${CUDA_LIBRARIES}
-		${CUDA_CUBLAS_LIBRARIES}
-		${CUDA_curand_LIBRARY}
+                CUDA::cuda_driver
+                CUDA::cudart
+                CUDA::cufft
+                CUDA::curand
+                CUDA::cublas
 		)
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -88,7 +90,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 			)
 	endif()
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
-	find_package(CUDA REQUIRED)
+	find_package(CUDAToolkit REQUIRED)
 	include_directories(${CUDA_INCLUDE_DIRS})
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA -DFIRESTARTER_BUILD_CUDA_ONLY")
@@ -103,9 +105,11 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
 	target_link_libraries(FIRESTARTER_CUDA_ONLY
 		Nitro::log
 		Threads::Threads
-		${CUDA_LIBRARIES}
-		${CUDA_CUBLAS_LIBRARIES}
-		${CUDA_curand_LIBRARY}
+                CUDA::cuda_driver
+                CUDA::cudart
+                CUDA::cufft
+                CUDA::curand
+                CUDA::cublas
 		)
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
