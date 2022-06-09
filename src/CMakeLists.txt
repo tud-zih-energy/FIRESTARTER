@@ -50,7 +50,7 @@ endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	find_package(CUDAToolkit REQUIRED)
-	include_directories(${CUDA_INCLUDE_DIRS})
+	include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
 
@@ -81,7 +81,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_CUDA
-			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib 
+                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA
@@ -91,7 +91,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	endif()
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
 	find_package(CUDAToolkit REQUIRED)
-	include_directories(${CUDA_INCLUDE_DIRS})
+	include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA -DFIRESTARTER_BUILD_CUDA_ONLY")
 
@@ -114,7 +114,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_CUDA_ONLY
-			${CUDA_TOOLKIT_ROOT_DIR}/lib/x64/cuda.lib
+                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA_ONLY
