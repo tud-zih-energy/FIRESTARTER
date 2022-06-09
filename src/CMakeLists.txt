@@ -72,11 +72,11 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		Nitro::log
 		nlohmann_json::nlohmann_json
 		Threads::Threads
-                CUDA::cuda_driver
-                CUDA::cudart
-                CUDA::cufft
-                CUDA::curand
-                CUDA::cublas
+		CUDA::cuda_driver
+		CUDA::cudart
+		CUDA::cufft
+		CUDA::curand
+		CUDA::cublas
 		)
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -105,11 +105,11 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
 	target_link_libraries(FIRESTARTER_CUDA_ONLY
 		Nitro::log
 		Threads::Threads
-                CUDA::cuda_driver
-                CUDA::cudart
-                CUDA::cufft
-                CUDA::curand
-                CUDA::cublas
+		CUDA::cuda_driver
+		CUDA::cudart
+		CUDA::cufft
+		CUDA::curand
+		CUDA::cublas
 		)
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
