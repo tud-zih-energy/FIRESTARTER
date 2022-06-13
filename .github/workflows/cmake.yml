@@ -113,7 +113,6 @@ jobs:
         cfg:
           - { CUDA: '0', MSVC: true }
           - { CUDA: '0', MSVC: false }
-          - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
 
@@ -130,12 +129,6 @@ jobs:
       if: matrix.cfg.MSVC == false
       with:
         args: install mingw
-    - name: Install CUDA Toolkit
-      if: matrix.cfg.CUDA == '11.0'
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy unrestricted
-        & '.github\\install-cuda.ps1' -Version '11.0'
     - uses: ilammy/msvc-dev-cmd@v1
       if: matrix.cfg.MSVC == true
     - name: Create build directory
@@ -154,12 +147,6 @@ jobs:
       run: |
         cd build
         cmake -G "NMake Makefiles" ..
-    - name: Run CMake configure
-      if: matrix.cfg.CUDA != '0'
-      shell: pwsh
-      run: |
-        cd build
-        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
@@ -185,13 +172,6 @@ jobs:
       with:
         name: FIRESTARTER-windows
         path: build\src\FIRESTARTER.exe
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA != '0'
-      with:
-        name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
-        path: |
-          build\src\FIRESTARTER_CUDA.exe
-          build\src\libhwloc-15.dll
   build-macos:
     strategy:
       fail-fast: false
@@ -317,17 +297,6 @@ jobs:
     - name: Move binary to right directory
       run: |
         mv FIRESTARTER/FIRESTARTER.exe FIRESTARTER-windows.exe
-        rm -rf FIRESTARTER
-    # Windows CUDA 11.0
-    - name: Retrieve FIRESTARTER_CUDA_11.0-windows
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER_CUDA_11.0-windows
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA.exe FIRESTARTER_CUDA_11.0-windows.exe
-        mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
         rm -rf FIRESTARTER
     # Create tar.gz
     - name: Copy CHANGELOG, README and LICENSE
