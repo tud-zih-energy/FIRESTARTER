@@ -57,12 +57,15 @@ jobs:
           NVHPC-22.5)
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            export NVHPC_SILENT="true"
-            export NVHPC_INSTALL_DIR="${CUDA_ROOT}"
-            export NVHPC_INSTALL_TYPE="single"
+            sudo export NVHPC_SILENT="true"
+            sudo export NVHPC_INSTALL_DIR="${CUDA_ROOT}"
+            sodo export NVHPC_INSTALL_TYPE="single"
             echo $NVHPC_SILENT
             echo $NVHPC_INSTALL_DIR
             echo $NVHPC_INSTALL_TYPE
+            sudo echo $NVHPC_SILENT
+            sudo echo $NVHPC_INSTALL_DIR
+            sudo echo $NVHPC_INSTALL_TYPE
             sudo ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
         esac
     - name: Create build directory
