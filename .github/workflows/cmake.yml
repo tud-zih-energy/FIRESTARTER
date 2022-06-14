@@ -1,4 +1,4 @@
-nnvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gzame: Build
+name: Build
 
 on: [push, pull_request]
 
