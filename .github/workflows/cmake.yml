@@ -1,4 +1,4 @@
-name: Build
+nnvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gzame: Build
 
 on: [push, pull_request]
 
@@ -8,9 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
+          #compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
+        compiler: [g++-7]
           #CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        CUDA: ['0', '8.0', '11.0']
+          #CUDA: ['0', '8.0', '11.0']
+        CUDA: ['0', '8.0']
 
     runs-on: ${{ matrix.os }}
 
@@ -307,6 +309,7 @@ jobs:
     - name: Move binary to right directory
       run: |
         mv FIRESTARTER/FIRESTARTER.exe FIRESTARTER-windows.exe
+        mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
         rm -rf FIRESTARTER
     # Create tar.gz
     - name: Copy CHANGELOG, README and LICENSE
