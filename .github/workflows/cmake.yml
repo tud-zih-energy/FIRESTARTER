@@ -86,6 +86,7 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+    - name: Run CMake configure
       if: matrix.CUDA == 'NVHPC-22.5'
       env:
         CXX: ${{ matrix.compiler }}
