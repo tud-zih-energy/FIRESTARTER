@@ -59,9 +59,6 @@ jobs:
             export NVHPC_INSTALL_DIR="${CUDA_ROOT}"
             export NVHPC_INSTALL_TYPE="single"
             sudo ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
-            NVARCH=`uname -s`_`uname -m`; export NVARCH
-            MANPATH=$MANPATH:$CUDA_ROOT/$NVARCH/22.5/compilers/man; export MANPATH
-            PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
         esac
     - name: Create build directory
       run: |
@@ -74,7 +71,7 @@ jobs:
         cd build
         cmake ..
     - name: Run CMake configure
-      if: matrix.CUDA != '0'
+      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
@@ -89,6 +86,15 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+      if: matrix.CUDA == 'NVHPC-22.5'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        NVARCH=`uname -s`_`uname -m`; export NVARCH
+        PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
+
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" ..
     - name: Build
       run: |
         cd build
