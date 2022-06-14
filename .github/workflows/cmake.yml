@@ -9,8 +9,8 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-          #CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        CUDA: ['0', '8.0', '11.0']
+        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
+          #CUDA: ['0', '8.0', '11.0']
 
     runs-on: ${{ matrix.os }}
 
@@ -59,6 +59,9 @@ jobs:
             export NVHPC_INSTALL_DIR="${CUDA_ROOT}"
             export NVHPC_INSTALL_TYPE="single"
             sudo ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            NVARCH=`uname -s`_`uname -m`; export NVARCH
+            MANPATH=$MANPATH:$CUDA_ROOT/$NVARCH/22.5/compilers/man; export MANPATH
+            PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
         esac
     - name: Create build directory
       run: |
@@ -163,6 +166,12 @@ jobs:
     - name: Copy Hwloc DLL
       shell: pwsh
       if: matrix.cfg.MSVC == true
+      run: |
+        cd build
+        cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
+    - name: Copy Hwloc DLL
+      shell: pwsh
+      if: matrix.cfg.MSVC == false
       run: |
         cd build
         cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
