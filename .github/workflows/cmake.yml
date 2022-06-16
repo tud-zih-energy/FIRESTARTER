@@ -99,9 +99,12 @@ jobs:
         NVARCH=`uname -s`_`uname -m`; export NVARCH
         PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
         LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
 
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/$NVARCH/22.5/compilers/lib" -LA ..
+        #cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/$NVARCH/22.5/compilers/lib" -LA ..
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -LA ..
     - name: Build
       run: |
         cd build
