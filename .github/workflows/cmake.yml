@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-        CUDA: ['0', '6.5', '8.0', '11.0']
+        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
 
     runs-on: ${{ matrix.os }}
 
@@ -40,11 +40,6 @@ jobs:
       if: matrix.CUDA != '0'
       run: |
         case ${{ matrix.CUDA }} in
-          6.5)
-            wget http://developer.download.nvidia.com/compute/cuda/6_5/rel/installers/cuda_6.5.14_linux_64.run
-            sudo sh cuda_6.5.14_linux_64.run -extract=${CUDA_ROOT}
-            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-6.5.14-18749181.run --tar mxvf -C ${CUDA_ROOT}
-            ;;
           8.0)
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
@@ -56,6 +51,10 @@ jobs:
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
             ;;
+          NVHPC-22.5)
+            wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
         esac
     - name: Create build directory
       run: |
@@ -68,7 +67,7 @@ jobs:
         cd build
         cmake ..
     - name: Run CMake configure
-      if: matrix.CUDA != '0'
+      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
@@ -79,10 +78,23 @@ jobs:
         export PATH=${CUDA_ROOT}:${PATH}
         export CUDA_HOME=${CUDA_ROOT}
         export CUDA_PATH=${CUDA_ROOT}
-        export CUDA_TOOLKIT_ROOT_DIR=${CUDA_ROOT}
+        export CUDAToolkit_ROOT=${CUDA_ROOT}
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+    - name: Run CMake configure
+      if: matrix.CUDA == 'NVHPC-22.5'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        NVARCH=`uname -s`_`uname -m`; export NVARCH
+        PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
     - name: Build
       run: |
         cd build
@@ -118,7 +130,6 @@ jobs:
         cfg:
           - { CUDA: '0', MSVC: true }
           - { CUDA: '0', MSVC: false }
-          - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
 
@@ -135,12 +146,6 @@ jobs:
       if: matrix.cfg.MSVC == false
       with:
         args: install mingw
-    - name: Install CUDA Toolkit
-      if: matrix.cfg.CUDA == '11.0'
-      shell: pwsh
-      run: |
-        Set-ExecutionPolicy unrestricted
-        & '.github\\install-cuda.ps1' -Version '11.0'
     - uses: ilammy/msvc-dev-cmd@v1
       if: matrix.cfg.MSVC == true
     - name: Create build directory
@@ -159,12 +164,6 @@ jobs:
       run: |
         cd build
         cmake -G "NMake Makefiles" ..
-    - name: Run CMake configure
-      if: matrix.cfg.CUDA != '0'
-      shell: pwsh
-      run: |
-        cd build
-        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDA_TOOLKIT_ROOT_DIR="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
@@ -189,13 +188,15 @@ jobs:
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       with:
         name: FIRESTARTER-windows
-        path: build\src\FIRESTARTER.exe
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA != '0'
-      with:
-        name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
         path: |
-          build\src\FIRESTARTER_CUDA.exe
+          build\src\FIRESTARTER.exe
+          build\src\libhwloc-15.dll
+    - uses: actions/upload-artifact@v2
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
+      with:
+        name: FIRESTARTER-windows
+        path: |
+          build\src\FIRESTARTER.exe
           build\src\libhwloc-15.dll
   build-macos:
     strategy:
@@ -269,17 +270,6 @@ jobs:
         mv FIRESTARTER/FIRESTARTER FIRESTARTER-linux
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER-linux
-    # Linux CUDA 6.5
-    - name: Retrieve FIRESTARTER_CUDA_6.5-linux 
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER_CUDA_6.5-linux
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_6.5
-        rm -rf FIRESTARTER
-        chmod +x FIRESTARTER_CUDA_6.5
     # Linux CUDA 8.0
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
       uses: actions/download-artifact@v2
@@ -333,16 +323,6 @@ jobs:
     - name: Move binary to right directory
       run: |
         mv FIRESTARTER/FIRESTARTER.exe FIRESTARTER-windows.exe
-        rm -rf FIRESTARTER
-    # Windows CUDA 11.0
-    - name: Retrieve FIRESTARTER_CUDA_11.0-windows
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER_CUDA_11.0-windows
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA.exe FIRESTARTER_CUDA_11.0-windows.exe
         mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
         rm -rf FIRESTARTER
     # Create tar.gz
