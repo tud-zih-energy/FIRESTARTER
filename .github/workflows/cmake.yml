@@ -178,12 +178,6 @@ jobs:
       run: |
         cd build
         cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
-    - name: Copy Hwloc DLL
-      shell: pwsh
-      if: matrix.cfg.MSVC == false
-      run: |
-        cd build
-        cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
     - name: Strip binary
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       run: |
@@ -195,6 +189,13 @@ jobs:
       run: .\build\src\FIRESTARTER.exe -t 1
     - uses: actions/upload-artifact@v2
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
+      with:
+        name: FIRESTARTER-windows
+        path: |
+          build\src\FIRESTARTER.exe
+          build\src\libhwloc-15.dll
+    - uses: actions/upload-artifact@v2
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       with:
         name: FIRESTARTER-windows
         path: |
