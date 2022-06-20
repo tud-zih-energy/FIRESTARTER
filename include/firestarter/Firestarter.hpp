@@ -27,7 +27,6 @@
 
 #include <firestarter/Constants.hpp>
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/MeasurementWorker.hpp>
 #include <firestarter/Optimizer/Algorithm.hpp>
@@ -41,7 +40,6 @@
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
 #include <firestarter/Environment/X86/X86Environment.hpp>
-#endif
 #endif
 
 #include <chrono>
@@ -119,7 +117,6 @@ private:
   const double _nsga2_cr;
   const double _nsga2_m;
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
   environment::x86::X86Environment *_environment = nullptr;
@@ -130,13 +127,11 @@ private:
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
-#endif
 
 #ifdef FIRESTARTER_BUILD_CUDA
   std::unique_ptr<cuda::Cuda> _cuda;
 #endif
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
   inline static std::unique_ptr<optimizer::OptimizerWorker> _optimizer;
   std::shared_ptr<measurement::MeasurementWorker> _measurementWorker;
@@ -167,16 +162,13 @@ private:
   // LoadThreadWorker.cpp
   void signalLoadWorkers(int comm);
   static void loadThreadWorker(std::shared_ptr<LoadWorkerData> td);
-#endif
 
   // CudaWorker.cpp
   static void *cudaWorker(void *cudaData);
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> data);
-#endif
 #endif
 
   static void setLoad(unsigned long long value);
@@ -192,7 +184,6 @@ private:
   // variable to control the load of the threads
   inline static volatile unsigned long long loadVar = LOAD_LOW;
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>>
       loadThreads;
 
@@ -200,7 +191,6 @@ private:
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   std::thread dumpRegisterWorkerThread;
-#endif
 #endif
 };
 

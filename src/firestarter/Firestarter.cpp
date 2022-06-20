@@ -21,7 +21,6 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/History.hpp>
@@ -29,7 +28,6 @@
 extern "C" {
 #include <firestarter/Measurement/Metric/IPCEstimate.h>
 }
-#endif
 #endif
 
 #include <csignal>
@@ -84,7 +82,6 @@ Firestarter::Firestarter(
     _period = std::chrono::microseconds::zero();
   }
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
 #else
   (void)listMetrics;
@@ -306,7 +303,6 @@ Firestarter::Firestarter(
                                                           _period.count()))) {
     std::exit(returnCode);
   }
-#endif
 
   // add some signal handler for aborting FIRESTARTER
 #ifndef _WIN32
@@ -322,22 +318,17 @@ Firestarter::~Firestarter() {
   _cuda.reset();
 #endif
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
   delete _environment;
-#endif
 }
 
 void Firestarter::mainThread() {
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
   this->environment().printThreadSummary();
-#endif
 
 #ifdef FIRESTARTER_BUILD_CUDA
   _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
                                        _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
   // if measurement is enabled, start it here
   if (_measurement) {
@@ -411,7 +402,6 @@ void Firestarter::mainThread() {
     }
   }
 #endif
-#endif
 
   if (_errorDetection) {
     this->printThreadErrorReport();
@@ -448,12 +438,10 @@ void Firestarter::sigtermHandler(int signum) {
   }
   Firestarter::_watchdogTerminateAlert.notify_all();
 
-#ifndef FIRESTARTER_BUILD_CUDA_ONLY
 #if defined(linux) || defined(__linux__)
   // if we have optimization running stop it
   if (Firestarter::_optimizer) {
     Firestarter::_optimizer->kill();
   }
-#endif
 #endif
 }
