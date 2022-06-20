@@ -89,39 +89,6 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 			-ldl
 			)
 	endif()
-elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA_ONLY")
-	find_package(CUDAToolkit REQUIRED)
-	include_directories(${CUDAToolkit_INCLUDE_DIRS})
-
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA -DFIRESTARTER_BUILD_CUDA_ONLY")
-
-	add_executable(FIRESTARTER_CUDA_ONLY
-		firestarter/Main.cpp
-		firestarter/Firestarter.cpp
-		firestarter/Cuda/Cuda.cpp
-		)
-	target_compile_features(FIRESTARTER_CUDA_ONLY PRIVATE cxx_std_17)
-
-	target_link_libraries(FIRESTARTER_CUDA_ONLY
-		Nitro::log
-		Threads::Threads
-		CUDA::cuda_driver
-		CUDA::cudart
-		CUDA::cufft
-		CUDA::curand
-		CUDA::cublas
-		)
-
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		target_link_libraries(FIRESTARTER_CUDA_ONLY
-                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib
-			)
-	else()
-		target_link_libraries(FIRESTARTER_CUDA_ONLY
-			cuda
-			-ldl
-			)
-	endif()
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
