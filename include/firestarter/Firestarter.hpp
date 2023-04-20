@@ -25,6 +25,12 @@
 #include <firestarter/Cuda/Cuda.hpp>
 #endif
 
+#ifdef FIRESTARTER_BUILD_ONEAPI
+#include <firestarter/oneAPI/oneAPI.hpp>
+#endif
+
+
+
 #include <firestarter/Constants.hpp>
 
 #if defined(linux) || defined(__linux__)
