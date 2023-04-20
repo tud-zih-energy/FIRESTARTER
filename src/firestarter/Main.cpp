@@ -196,6 +196,10 @@ Config::Config(int argc, const char **argv) {
     ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
       cxxopts::value<unsigned>()->default_value("0"))
 #endif
+#ifdef FIRESTARTER_BUILD_ONEAPI
+    ("m,matrixsize", "Size of the matrix to calculate, default: 8192",
+      cxxopts::value<unsigned>()->default_value("8192"))
+#endif
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER\nterminates itself, default: 0 (no timeout)",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
     ("l,load", "Set the percentage of high CPU load to LOAD\n(%) default: 100, valid values: 0 <= LOAD <=\n100, threads will be idle in the remaining time,\nfrequency of load changes is determined by -p."

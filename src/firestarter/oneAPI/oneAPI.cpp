@@ -23,7 +23,6 @@ using namespace firestarter::oneapi;
 int runLoad(volatile unsigned long long *loadVar, unsigned matrixsize, std::atomic<int> &initCount, std::condition_variable &waitForInitCv, std::mutex &waitForInitCvMutex);
 void init_data(float* f1, float* f2, float* f3, int size);
 void initACCs(volatile unsigned long long *loadVar, unsigned matrixsize, int gpus, std::condition_variable &cv);
-unsigned getMaxMem(unsigned matrixsize);
 int round_up(int num_to_round, int multiple);
 
 oneAPI::oneAPI(volatile unsigned long long *loadVar, unsigned matrixsize, int gpus){
@@ -86,14 +85,14 @@ void initACCs(volatile unsigned long long *loadVar, unsigned matrixsize, int gpu
 		else{
 			firestarter::log::info()
           			<< "    - No oneAPI devices. Just stressing CPU(s). Maybe use "
-             			"FIRESTARTER instead of FIRESTARTER_CUDA?";
+             			"FIRESTARTER instead of FIRESTARTER_ONEAPI?";
       			cv.notify_all();
 		}
 	}
 	else{
     		firestarter::log::info()
         		<< "--gpus 0 is set. Just stressing CPU(s). Maybe use "
-        	   	"FIRESTARTER instead of FIRESTARTER_CUDA?";
+        	   	"FIRESTARTER instead of FIRESTARTER_ONEAPI?";
     		cv.notify_all();
 	}
 }
@@ -101,10 +100,6 @@ void initACCs(volatile unsigned long long *loadVar, unsigned matrixsize, int gpu
 
 int runLoad(volatile unsigned long long *loadVar, unsigned matrixsize, std::atomic<int> &initCount, std::condition_variable &waitForInitCv, std::mutex &waitForInitCvMutex){
 
-	unsigned mem_avail;
-	mem_avail = getMaxMem(matrixsize); // TODO: Populate function to retrieve maximum memsize
-	
-		
 	unsigned size=matrixsize;
 	//unsigned size = 15000;
 	//mem_avail=15000*15000*15000;
@@ -136,15 +131,6 @@ int runLoad(volatile unsigned long long *loadVar, unsigned matrixsize, std::atom
 
 	srand(f3[rand()%size]);
 	return 0;
-}
-
-unsigned getMaxMem(unsigned matrixsize){
-
-	// Do some magic with oneAPI Level Zero to get device properties
-	// Return maximum memory
-	// For now we have to rely on the user to set an appropriate matrixsize -> matrixsize^3 should always satisfy condition
-	
-	return matrixsize*matrixsize*matrixsize;
 }
 
 void init_data(float* f1, float* f2, float* f3, int size) {
