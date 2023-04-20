@@ -26,10 +26,7 @@ void initACCs(volatile unsigned long long *loadVar, unsigned matrixsize, int gpu
 int round_up(int num_to_round, int multiple);
 
 oneAPI::oneAPI(volatile unsigned long long *loadVar, unsigned matrixsize, int gpus){
-	printf("Hello Worlf from oneAPI.cpp\n");
-	matrixsize = 4000; //Hack to get it running
-	printf("This is with icpx and matrixsize is %u\n", matrixsize);
-	
+	matrixsize = 4000; //Hack to get it running	
 	
 	std::thread initAccelerators_t(initACCs, loadVar, matrixsize, gpus, std::ref(_waitForInitCv));
 	initAccelerators_t.detach();
