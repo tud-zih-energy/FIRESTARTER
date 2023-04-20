@@ -329,6 +329,11 @@ void Firestarter::mainThread() {
                                        _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
 
+#ifdef FIRESTARTER_BUILD_ONEAPI
+  auto _oneAPI = std::make_unique<oneapi::oneAPI>(&this->loadVar, _gpuMatrixSize, _gpus);
+#endif
+
+
 #if defined(linux) || defined(__linux__)
   // if measurement is enabled, start it here
   if (_measurement) {

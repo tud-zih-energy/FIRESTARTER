@@ -89,6 +89,32 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 			-ldl
 			)
 	endif()
+
+elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -I/usr/local/include/ -L/usr/local/lib -fopenmp -qmkl=parallel -fiopenmp -fopenmp-targets=spir64 -DMKL_ILP64 -fsycl -O3 -lmkl_sycl -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lsycl -lOpenCL -lpthread -lm -ldl -lm -fopenmp -DFIRESTARTER_BUILD_ONEAPI")
+
+add_executable(FIRESTARTER_ONEAPI
+	${FIRESTARTER_FILES}
+	firestarter/oneAPI/oneAPI.cpp
+	)
+target_compile_features(FIRESTARTER_ONEAPI PRIVATE cxx_std_17)
+
+if(FIRESTARTER_BUILD_HWLOC)
+	add_dependencies(FIRESTARTER_ONEAPI
+		HwlocInstall
+		)
+endif()
+
+target_link_libraries(FIRESTARTER_ONEAPI
+	hwloc
+	AsmJit::AsmJit
+	Nitro::log
+	nlohmann_json::nlohmann_json
+	Threads::Threads
+
+	)
+
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
