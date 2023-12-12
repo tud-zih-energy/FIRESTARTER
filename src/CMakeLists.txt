@@ -92,11 +92,21 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -I/usr/local/include/ -L/usr/local/lib -fopenmp -qmkl=parallel -fiopenmp -fopenmp-targets=spir64 -DMKL_ILP64 -fsycl -O3 -lmkl_sycl -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lsycl -lOpenCL -lpthread -lm -ldl -lm -fopenmp -DFIRESTARTER_BUILD_ONEAPI")
+	find_program(ICX_PRESENT icx)
+
+	if(ICX_PRESENT)
+		message(STATUS "Executable found: ${ICX_PRESENT}")
+	else()
+		message(FATAL_ERROR "OneAPI Intel Compiler icx not found")
+	endif()
+	SET(CMAKE_CXX_COMPILER "icx")
+	SET(CMAKE_C_COMPILER "icx")
+
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -DFIRESTARTER_BUILD_ONEAPI")
 
 	add_executable(FIRESTARTER_ONEAPI
 		${FIRESTARTER_FILES}
-		firestarter/oneAPI/oneAPI.cpp
+		firestarter/OneAPI/OneAPI.cpp
 		)
 	target_compile_features(FIRESTARTER_ONEAPI PRIVATE cxx_std_17)
 
@@ -113,6 +123,14 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		nlohmann_json::nlohmann_json
 		Threads::Threads
 		)
+	target_link_libraries(FIRESTARTER_ONEAPI
+		mkl_sycl
+		mkl_intel_ilp64
+		mkl_sequential
+		mkl_core
+		sycl
+		stdc++
+	)
 
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER

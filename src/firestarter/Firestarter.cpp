@@ -317,6 +317,9 @@ Firestarter::~Firestarter() {
 #ifdef FIRESTARTER_BUILD_CUDA
   _cuda.reset();
 #endif
+#ifdef FIRESTARTER_BUILD_ONEAPI
+  _oneapi.reset();
+#endif
 
   delete _environment;
 }
@@ -330,7 +333,8 @@ void Firestarter::mainThread() {
 #endif
 
 #ifdef FIRESTARTER_BUILD_ONEAPI
-  auto _oneAPI = std::make_unique<oneapi::oneAPI>(&this->loadVar, _gpuMatrixSize, _gpus);
+  _oneapi = std::make_unique<oneapi::OneAPI>(&this->loadVar, _gpuUseFloat,
+                                       _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
 
 

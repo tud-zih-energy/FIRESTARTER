@@ -137,13 +137,13 @@ void print_help(cxxopts::Options const &parser, std::string const &section) {
     << "  ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER\n"
     << "  ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with\n"
     << "                                50\% high load and 50\% idle time\n"
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
     << "                                on CPUs and full load on GPUs\n"
 #endif
     << "  ./FIRESTARTER -l 75 -p 20000000\n"
     << "                                starts FIRESTARTER with an interval length\n"
     << "                                of 2 sec, 1.5s high load"
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
     << "                                on CPUs and full load on GPUs\n"
 #else
     << "\n"
@@ -188,7 +188,7 @@ Config::Config(int argc, const char **argv) {
   parser.add_options("general")
     ("i,function", "Specify integer ID of the load-function to be\nused (as listed by --avail)",
       cxxopts::value<unsigned>()->default_value("0"), "ID")
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
     ("f,usegpufloat", "Use single precision matrix multiplications\ninstead of default")
     ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default")
     ("g,gpus", "Number of gpus to use, default: -1 (all)",
@@ -196,14 +196,10 @@ Config::Config(int argc, const char **argv) {
     ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
       cxxopts::value<unsigned>()->default_value("0"))
 #endif
-#ifdef FIRESTARTER_BUILD_ONEAPI
-    ("m,matrixsize", "Size of the matrix to calculate, default: 8192",
-      cxxopts::value<unsigned>()->default_value("8192"))
-#endif
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER\nterminates itself, default: 0 (no timeout)",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
     ("l,load", "Set the percentage of high CPU load to LOAD\n(%) default: 100, valid values: 0 <= LOAD <=\n100, threads will be idle in the remaining time,\nfrequency of load changes is determined by -p."
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
      " This option does NOT influence the GPU\nworkload!"
 #endif
      , cxxopts::value<unsigned>()->default_value("100"), "LOAD")
@@ -371,7 +367,7 @@ Config::Config(int argc, const char **argv) {
     }
 #endif
 
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
     gpuUseFloat = options.count("usegpufloat");
     gpuUseDouble = options.count("usegpudouble");
 
