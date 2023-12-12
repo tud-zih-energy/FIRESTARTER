@@ -1,6 +1,13 @@
 name: Build
 
 on: [push, pull_request]
+env:
+  LINUX_CPP_COMPONENTS: intel-oneapi-dpcpp-cpp-compiler
+  LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
+  LINUX_DPCPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp
+  LINUX_CPP_COMPONENTS_WEB: intel.oneapi.lin.dpcpp-cpp-compiler
+  LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
+  LINUX_DPCPP_COMPONENTS_WEB: intel.oneapi.lin.dpcpp-cpp-compiler
 
 jobs:
   build-linux:
@@ -33,6 +40,10 @@ jobs:
       if: matrix.compiler == 'clang++-9'
       run: |
         sudo apt install clang-9
+    - name: Install clang++-10
+      if: matrix.compiler == 'clang++-10'
+      run: |
+        sudo apt install clang-10
     - uses: actions/checkout@v2
       with:
         fetch-depth: '0'
@@ -122,6 +133,7 @@ jobs:
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
+
   build-windows:
     strategy:
       fail-fast: false
