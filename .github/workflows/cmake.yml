@@ -1,13 +1,6 @@
 name: Build
 
 on: [push, pull_request]
-env:
-  LINUX_CPP_COMPONENTS: intel-oneapi-dpcpp-cpp-compiler
-  LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
-  LINUX_DPCPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp
-  LINUX_CPP_COMPONENTS_WEB: intel.oneapi.lin.dpcpp-cpp-compiler
-  LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
-  LINUX_DPCPP_COMPONENTS_WEB: intel.oneapi.lin.dpcpp-cpp-compiler
 
 jobs:
   build-linux:
