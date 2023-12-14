@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-20.04]
         compiler: [g++-10]
         CUDA: ['0']
-        ONEAPI: [2024.0]
+        ONEAPI: ['2024.0']
 
     runs-on: ${{ matrix.os }}
 
