@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-20.04]
         compiler: [g++-10]
         CUDA: ['0']
-        ONEAPI: [icx-2024.0]
+        ONEAPI: [2024.0]
 
     runs-on: ${{ matrix.os }}
 
@@ -61,13 +61,13 @@ jobs:
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
         esac
-    - name: Install OneAPI Base-Toolkit 2024.0
+    - name: Install OneAPI Base-Toolkit 
       if: matrix.ONEAPI != '0'
       run: |
         wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt update
-        sudo apt install intel-basekit
+        sudo apt install intel-basekit-${{ matrix.compiler }}
     - name: Create build directory
       run: |
         mkdir build
@@ -81,7 +81,7 @@ jobs:
     - name: Run CMake configure
       if: matrix.CUDA == '0' && matrix.ONEAPI !='0'
       run: |
-        . /opt/intel/oneapi/2024.0/oneapi-vars.sh
+        . /opt/intel/oneapi/${{matrix.ONEAPI}}/oneapi-vars.sh
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure
@@ -121,7 +121,7 @@ jobs:
     - name: Build (OneAPI)
       if: matrix.ONEAPI !='0'
       run: |
-        . /opt/intel/oneapi/2024.0/oneapi-vars.sh
+        . /opt/intel/oneapi/${{matrix.ONEAPI}}/oneapi-vars.sh
         cd build
         make -j2
     - name: Strip binary (default)
@@ -143,18 +143,18 @@ jobs:
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v2
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v2
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
-    - uses: actions/download-artifact@v2
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
+    - uses: actions/upload-artifact@v2
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
       with:
-        name: FIRESTARTER_ONEAPI-linux
+        name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
         path: build/src/FIRESTARTER_ONEAPI
 
