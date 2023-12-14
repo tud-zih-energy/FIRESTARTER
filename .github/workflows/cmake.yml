@@ -80,10 +80,7 @@ jobs:
         cmake ..
     - name: Run CMake configure
       if: matrix.CUDA == '0' && matrix.ONEAPI !='0'
-      env:
-        CXX: ${{ matrix.compiler }}
       run: |
-        ls /opt/intel/oneapi/2024.0/bin
         . /opt/intel/oneapi/2024.0/oneapi-vars.sh
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
@@ -116,6 +113,13 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
+      if: matrix.ONEAPI !='0'
+    - name: Build
+      run: |
+        . /opt/intel/oneapi/2024.0/oneapi-vars.sh
+        cd build
+        make -j2
+      if: matrix.ONEAPI =='0'
     - name: Build
       run: |
         cd build
