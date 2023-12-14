@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
+        os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-10, g++-10, clang++-8, clang++-9, clang++-10]
-        CUDA: ['0']
-        ONEAPI: ['0', '2024.0']
+        CUDA: ['0' '8.0', '11.0', 'NVHPC-22.5']
+        ONEAPI: ['0', '2022.3.1', '2023.2.0', '2024.0']
 
     runs-on: ${{ matrix.os }}
 
