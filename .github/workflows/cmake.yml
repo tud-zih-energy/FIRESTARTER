@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         compiler: [g++-10]
-        #CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
+        CUDA: ['0']
         ONEAPI: [icx-2024.0]
 
     runs-on: ${{ matrix.os }}
@@ -130,12 +130,12 @@ jobs:
         cd build
         strip src/FIRESTARTER
     - name: Strip binary
-      if: matrix.CUDA != '0'
+      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
     - name: Strip binary
-      if: matrix.ONEAPI != '0'
+      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
