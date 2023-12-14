@@ -84,6 +84,7 @@ jobs:
         CXX: icx
       run: |
         . /opt/intel/oneapi/compiler/2024.0/env/vars.sh
+        . /opt/intel/oneapi/mkl/2024.0/env/vars.sh
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure
