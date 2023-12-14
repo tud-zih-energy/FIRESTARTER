@@ -81,7 +81,7 @@ jobs:
     - name: Run CMake configure
       if: matrix.CUDA == '0' && matrix.ONEAPI !='0'
       env:
-        CXX: icx
+        CXX: ${{ matrix.compiler }}
       run: |
         . /opt/intel/oneapi/compiler/2024.0/env/vars.sh
         . /opt/intel/oneapi/mkl/2024.0/env/vars.sh
