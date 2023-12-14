@@ -67,7 +67,7 @@ jobs:
         wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt update
-        sudo apt install intel-basekit-${{ matrix.compiler }}
+        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
     - name: Create build directory
       run: |
         mkdir build
@@ -81,7 +81,7 @@ jobs:
     - name: Run CMake configure
       if: matrix.CUDA == '0' && matrix.ONEAPI !='0'
       run: |
-        . /opt/intel/oneapi/${{matrix.ONEAPI}}/oneapi-vars.sh
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure
@@ -121,7 +121,7 @@ jobs:
     - name: Build (OneAPI)
       if: matrix.ONEAPI !='0'
       run: |
-        . /opt/intel/oneapi/${{matrix.ONEAPI}}/oneapi-vars.sh
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
         make -j2
     - name: Strip binary (default)
