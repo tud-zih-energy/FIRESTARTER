@@ -83,13 +83,6 @@ jobs:
       env:
         CXX: ${{ matrix.compiler }}
       run: |
-      	echo "/opt"
-        ls /opt
-      	echo "/opt/intel"
-        ls /opt/intel
-      	echo "/opt/intel/oneapi"
-        ls /opt/intel/oneapi
-      	echo "/opt/intel/oneapi/2024.0"
         ls /opt/intel/oneapi/2024.0
         . /opt/intel/oneapi/2024.0/setvars.sh
         cd build
