@@ -119,7 +119,7 @@ jobs:
         cd build
         make -j2
     - name: Build (OneAPI)
-      if: matrix.ONEAPI !='0'
+      if: matrix.ONEAPI !='0' && matrix.CUDA =='0'
       run: |
         . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
