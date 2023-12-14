@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.04, ubuntu-22.04]
         compiler: [g++-7, g++-8, g++-10, g++-10, clang++-8, clang++-9, clang++-10]
         CUDA: ['0']
-        ONEAPI: ['2024.0']
+        ONEAPI: ['0', '2024.0']
 
     runs-on: ${{ matrix.os }}
 
@@ -42,7 +42,7 @@ jobs:
       with:
         fetch-depth: '0'
     - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0'
+      if: matrix.CUDA != '0' && matrix.ONEAPI == 0
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -62,7 +62,7 @@ jobs:
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
         esac
     - name: Install OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0'
+      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
         wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
@@ -79,7 +79,7 @@ jobs:
         cd build
         cmake ..
     - name: Run CMake configure (CUDA)
-      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5'
+      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5' && matrix.ONEAPI == '0'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
@@ -95,7 +95,7 @@ jobs:
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Run CMake configure (CUDA with NVHPC)
-      if: matrix.CUDA == 'NVHPC-22.5'
+      if: matrix.CUDA == 'NVHPC-22.5' && matrix.ONEAPI == '0'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
