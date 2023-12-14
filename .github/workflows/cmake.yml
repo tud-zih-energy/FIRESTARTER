@@ -113,32 +113,32 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
-    - name: Build
+    - name: Build (default)
       if: matrix.ONEAPI =='0'
       run: |
         cd build
         make -j2
-    - name: Build
+    - name: Build (OneAPI)
       if: matrix.ONEAPI !='0'
       run: |
         . /opt/intel/oneapi/2024.0/oneapi-vars.sh
         cd build
         make -j2
-    - name: Strip binary
+    - name: Strip binary (default)
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: |
         cd build
         strip src/FIRESTARTER
-    - name: Strip binary
+    - name: Strip binary (CUDA)
       if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
-    - name: Strip binary
+    - name: Strip binary (OneAPI)
       if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
         cd build
-        strip src/FIRESTARTER_CUDA
+        strip src/FIRESTARTER_ONEAPI
     - name: Test FIRESTARTER
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
