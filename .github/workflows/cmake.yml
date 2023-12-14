@@ -83,8 +83,8 @@ jobs:
       env:
         CXX: ${{ matrix.compiler }}
       run: |
-        ls /opt/intel/oneapi/2024.0
-        . /opt/intel/oneapi/2024.0/setvars.sh
+        ls /opt/intel/oneapi/2024.0/bin
+        . /opt/intel/oneapi/2024.0/oneapi-vars.sh
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure
