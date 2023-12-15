@@ -249,7 +249,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15]
+        os: [macos-12.0]
         #os: [macos-11.0, macos-10.15]
 
     runs-on: ${{ matrix.os }}
@@ -362,16 +362,16 @@ jobs:
     #    rm -rf FIRESTARTER
     #    chmod +x ../FIRESTARTER-macOS_11.0
     # OSX 10.15
-    - name: Retrieve FIRESTARTER-macOS_10.15
+    - name: Retrieve FIRESTARTER-macOS_12.0
       uses: actions/download-artifact@v2
       with:
-        name: FIRESTARTER-macOS_10.15
+        name: FIRESTARTER-macOS_12.0
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_10.15
+        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_12.0
         rm -rf FIRESTARTER
-        chmod +x FIRESTARTER-macOS_10.15
+        chmod +x FIRESTARTER-macOS_12.0
     # Windows
     - name: Retrieve FIRESTARTER-windows
       uses: actions/download-artifact@v2
