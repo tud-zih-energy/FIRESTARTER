@@ -1,4 +1,4 @@
-![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/workflows/Build/badge.svg?branch=master)
+![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/actions/workflows/cmake.yml/badge.svg?branch=intel_gpu)
 
 # FIRESTARTER - A Processor Stress Test Utility
 
@@ -147,10 +147,12 @@ GCC (>=7) or Clang (>=9) is supported.
 
 CMake option                  | Description
 :---------------------------- | :----------------------------
-`FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER` or `FIRESTARTER_CUDA`. Default `FIRESTARTER`
-`FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA enabled. Default `ON`
+`FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, or `FIRESTARTER_ONEAPI`,. Default `FIRESTARTER`
+`FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA or OneAPI enabled. Default `ON`
 `FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default `ON`
 `FIRESTARTER_THREAD_AFFINITY` | Enable FIRESTARTER to set affinity to hardware threads. Default `ON`
+
+When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel Library (MKL) and the complier `icx` can be found. These will be used to build `FIRESTARTER`, while dependencies will be build with `$CC` and `$CXX` respectively.
 
 ## Metrics
 
@@ -244,6 +246,13 @@ If `perf-ipc` is not available use `ipc-estimate`
 ```
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
 ```
+
+## OneAPI
+`FIRESTARTER_ONEAPI` needs to find certain libraries, which are installed with
+the Intel OneAPI toolkits, since some of these libraries cannot be linked statically.
+Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
+Make also sure that you have the correct drivers for your GPU installed so that
+OneAPI can apply work to it. 
 
 ## Reference
 
