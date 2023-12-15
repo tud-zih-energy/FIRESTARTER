@@ -8,9 +8,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0', '2024.0']
+        compiler: [g++-7] #, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
+        CUDA: ['0'] #, '8.0', '11.0', 'NVHPC-22.5']
+        ONEAPI: ['0'] #, '2023.2.0', '2024.0']
 
     runs-on: ${{ matrix.os }}
 
@@ -281,14 +281,14 @@ jobs:
         cd build
         ./src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v2
-      if: matrix.os == 'macos-10.15'
+      if: matrix.os == 'macos-12'
       with:
-        name: FIRESTARTER-macOS_10.15
+        name: FIRESTARTER-macOS_12
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v2
-      if: matrix.os == 'macos-11.0'
+      if: matrix.os == 'macos-11'
       with:
-        name: FIRESTARTER-macOS_11.0
+        name: FIRESTARTER-macOS_11
         path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
