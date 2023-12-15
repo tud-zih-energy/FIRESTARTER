@@ -339,6 +339,17 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_11.0
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_CUDA_11.0
+    # Linux CUDA HPC
+    - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux 
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_NVHPC-22.5-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_NVHPC-22.5
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER_CUDA_NVHPC-22.5
     # Linux OneAPI
     - name: Retrieve FIRESTARTER_ONEAPI_2024.0-linux 
       uses: actions/download-artifact@v2
