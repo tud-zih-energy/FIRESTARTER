@@ -1,4 +1,4 @@
-![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/actions/workflows/cmake.yml/badge.svg?branch=intel_gpu)
+![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/actions/workflows/cmake.yml/badge.svg?branch=master)
 
 # FIRESTARTER - A Processor Stress Test Utility
 
