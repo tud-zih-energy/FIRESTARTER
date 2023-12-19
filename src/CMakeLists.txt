@@ -89,6 +89,49 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 			-ldl
 			)
 	endif()
+
+elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+
+	find_program(ICX_PRESENT icx)
+
+	if(ICX_PRESENT)
+		message(STATUS "Executable found: ${ICX_PRESENT}")
+	else()
+		message(FATAL_ERROR "OneAPI Intel Compiler icx not found")
+	endif()
+	SET(CMAKE_CXX_COMPILER "icx")
+	SET(CMAKE_C_COMPILER "icx")
+
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -DFIRESTARTER_BUILD_ONEAPI")
+
+	add_executable(FIRESTARTER_ONEAPI
+		${FIRESTARTER_FILES}
+		firestarter/OneAPI/OneAPI.cpp
+		)
+	target_compile_features(FIRESTARTER_ONEAPI PRIVATE cxx_std_17)
+
+	if(FIRESTARTER_BUILD_HWLOC)
+		add_dependencies(FIRESTARTER_ONEAPI
+			HwlocInstall
+			)
+	endif()
+
+	target_link_libraries(FIRESTARTER_ONEAPI
+		hwloc
+		AsmJit::AsmJit
+		Nitro::log
+		nlohmann_json::nlohmann_json
+		Threads::Threads
+		)
+	target_link_libraries(FIRESTARTER_ONEAPI
+		mkl_sycl
+		mkl_intel_ilp64
+		mkl_sequential
+		mkl_core
+		sycl
+		stdc++
+	)
+
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}

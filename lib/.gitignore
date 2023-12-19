@@ -1,2 +1,5 @@
-LLVM/
+asmjit/
+cxxopts/
 Hwloc/
+json/
+nitro/

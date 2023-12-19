@@ -317,6 +317,9 @@ Firestarter::~Firestarter() {
 #ifdef FIRESTARTER_BUILD_CUDA
   _cuda.reset();
 #endif
+#ifdef FIRESTARTER_BUILD_ONEAPI
+  _oneapi.reset();
+#endif
 
   delete _environment;
 }
@@ -328,6 +331,12 @@ void Firestarter::mainThread() {
   _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
                                        _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
+
+#ifdef FIRESTARTER_BUILD_ONEAPI
+  _oneapi = std::make_unique<oneapi::OneAPI>(&this->loadVar, _gpuUseFloat,
+                                       _gpuUseDouble, _gpuMatrixSize, _gpus);
+#endif
+
 
 #if defined(linux) || defined(__linux__)
   // if measurement is enabled, start it here
