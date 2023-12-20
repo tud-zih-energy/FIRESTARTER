@@ -29,7 +29,9 @@ $$ TODO
 
 Version 2.1
  - added Intel OneAPI support for Intel GPUs
- - CUDA fixes
+ - added error detection
+ - various fixes
+ - removed CUDA_ONLY
 
 Version 2.0
  - added AMD Rome (Zen 2) support
