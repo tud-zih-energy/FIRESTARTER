@@ -258,4 +258,49 @@ jobs:
         path: |
           build\src\FIRESTARTER_CUDA.exe
           build\src\libhwloc-15.dll
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-11, macos-12, macos-13]
+        #os: [macos-11.0, macos-10.15]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - name: Install Homebrew dependencies
+      run: |
+        brew upgrade cmake
+    - name: Create build directory
+      run: |
+        mkdir build
+    - name: Run CMake configure
+      run: |
+        cd build
+        cmake ..
+    - name: Build
+      run: |
+        cd build
+        make -j2
+    - name: Strip binary
+      run: |
+        cd build
+        strip src/FIRESTARTER
+    - name: Test FIRESTARTER
+      run: |
+        cd build
+        ./src/FIRESTARTER -t 1
+    - uses: actions/upload-artifact@v2
+      if: matrix.os == 'macos-12'
+      with:
+        name: FIRESTARTER-macOS_12
+        path: build/src/FIRESTARTER
+    - uses: actions/upload-artifact@v2
+      if: matrix.os == 'macos-11'
+      with:
+        name: FIRESTARTER-macOS_11
+        path: build/src/FIRESTARTER
 
