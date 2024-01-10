@@ -9,8 +9,6 @@ jobs:
       matrix:
         os: [windows-2019]
         cfg:
-          - { CUDA: '0', ONEAPI: '0', MSVC: true }
-          - { CUDA: '0', ONEAPI: '0', MSVC: false }
           - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
@@ -41,62 +39,15 @@ jobs:
       run: |
         mkdir build
     - name: Run CMake configure
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
-      shell: pwsh
-      run: |
-        cd build
-        cmake -G "MinGW Makefiles" ..
-    - name: Run CMake configure
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
-      shell: pwsh
-      run: |
-        cd build
-        cmake -G "NMake Makefiles" ..
-    - name: Run CMake configure
       if: matrix.cfg.CUDA != '0'
       shell: pwsh
       run: |
         cd build
+        dir C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0
         cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
         cd build
         cmake --build . -j2
-    - name: Copy Hwloc DLL
-      shell: pwsh
-      if: matrix.cfg.MSVC == true
-      run: |
-        cd build
-        cp ../lib/Hwloc/sources/contrib/windows/x64/Release/libhwloc-15.dll src
-    - name: Strip binary
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
-      run: |
-        cd build
-        strip src\FIRESTARTER.exe
-    - name: Test FIRESTARTER
-      if: matrix.cfg.CUDA == '0'
-      shell: pwsh
-      run: .\build\src\FIRESTARTER.exe -t 1
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
-      with:
-        name: FIRESTARTER-windows
-        path: |
-          build\src\FIRESTARTER.exe
-          build\src\libhwloc-15.dll
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
-      with:
-        name: FIRESTARTER-windows
-        path: |
-          build\src\FIRESTARTER.exe
-          build\src\libhwloc-15.dll
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA != '0'
-      with:
-        name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
-        path: |
-          build\src\FIRESTARTER_CUDA.exe
-          build\src\libhwloc-15.dll
 
