@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
       matrix:
-      matrix:
         os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
         CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
@@ -256,51 +255,7 @@ jobs:
         path: |
           build\src\FIRESTARTER_CUDA.exe
           build\src\libhwloc-15.dll
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-11, macos-12, macos-13]
-        #os: [macos-11.0, macos-10.15]
 
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: '0'
-    - name: Install Homebrew dependencies
-      run: |
-        brew upgrade cmake
-    - name: Create build directory
-      run: |
-        mkdir build
-    - name: Run CMake configure
-      run: |
-        cd build
-        cmake ..
-    - name: Build
-      run: |
-        cd build
-        make -j2
-    - name: Strip binary
-      run: |
-        cd build
-        strip src/FIRESTARTER
-    - name: Test FIRESTARTER
-      run: |
-        cd build
-        ./src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v2
-      if: matrix.os == 'macos-12'
-      with:
-        name: FIRESTARTER-macOS_12
-        path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v2
-      if: matrix.os == 'macos-11'
-      with:
-        name: FIRESTARTER-macOS_11
-        path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
     runs-on: ubuntu-latest
@@ -423,17 +378,6 @@ jobs:
     - name: Move binary to right directory
       run: |
         mv FIRESTARTER/FIRESTARTER.exe FIRESTARTER-windows.exe
-        mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
-        rm -rf FIRESTARTER
-    # Windows CUDA 11.0
-    - name: Retrieve FIRESTARTER_CUDA_11.0-windows
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER_CUDA_11.0-windows
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER_CUDA.exe FIRESTARTER_CUDA_11.0-windows.exe
         mv FIRESTARTER/libhwloc-15.dll libhwloc-15.dll
         rm -rf FIRESTARTER
     # Create tar.gz
