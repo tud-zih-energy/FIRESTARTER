@@ -42,4 +42,13 @@ jobs:
       if: matrix.cfg.CUDA != '0'
       shell: pwsh
       run: |
+        cd build
+        ls 
         dir "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.0"
+        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
+    - name: Build
+      shell: pwsh
+      run: |
+        cd build
+        cmake --build . -j2
+

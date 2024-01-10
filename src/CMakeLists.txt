@@ -74,7 +74,6 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		Threads::Threads
 		CUDA::cuda_driver
 		CUDA::cudart
-		CUDA::cufft
 		CUDA::curand
 		CUDA::cublas
 		)
