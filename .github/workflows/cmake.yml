@@ -250,7 +250,16 @@ jobs:
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       with:
         name: FIRESTARTER-windows
-        path: build\src\FIRESTARTER.exe
+        path: |
+          build\src\FIRESTARTER.exe
+          build\src\libhwloc-15.dll
+    - uses: actions/upload-artifact@v2
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
+      with:
+        name: FIRESTARTER-windows
+        path: |
+          build\src\FIRESTARTER.exe
+          build\src\libhwloc-15.dll
     - uses: actions/upload-artifact@v2
       if: matrix.cfg.CUDA != '0'
       with:
