@@ -10,3 +10,6 @@
 [submodule "lib/cxxopts"]
 	path = lib/cxxopts
 	url = https://github.com/tud-zih-energy/FIRESTARTER.git
+[submodule "lib/SOT"]
+	path = lib/SOT
+	url = https://github.com/dme65/SOT.git

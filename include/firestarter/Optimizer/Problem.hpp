@@ -42,7 +42,27 @@ public:
 
   virtual std::vector<double>
   fitness(std::map<std::string, firestarter::measurement::Summary> const
-              &summaries) = 0;
+              &summaries) {
+    std::vector<double> values = {};
+
+    for (auto const &metricName : this->metrics()) {
+      auto findName = [metricName](auto const &summary) {
+        return metricName.compare(summary.first) == 0;
+      };
+
+      auto it = std::find_if(summaries.begin(), summaries.end(), findName);
+
+      if (it == summaries.end()) {
+        continue;
+      }
+
+      // round to two decimal places after the comma
+      auto value = std::round(it->second.average * 100.0) / 100.0;
+      values.push_back(value);
+    }
+
+    return values;
+  }
 
   // get the bounds of the problem
   virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() const = 0;
@@ -58,6 +78,8 @@ public:
 
   // get the number of fitness evaluations
   unsigned long long getFevals() const { return _fevals; };
+
+  virtual std::vector<std::string> metrics() const = 0;
 
 protected:
   // number of fitness evaluations
