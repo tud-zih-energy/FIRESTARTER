@@ -75,6 +75,17 @@ if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()
 
+option(FIRESTARTER_WITH_CALIPER "Enable Caliper" FALSE)
+if (FIRESTARTER_WITH_CALIPER)
+  find_package(caliper REQUIRED)
+  list(APPEND FIRESTARTER_DEPENDENCIES
+    caliper)
+  set(USE_CALIPER TRUE)
+  find_package(adiak REQUIRED)
+  list(APPEND FIRESTARTER_DEPENDENCIES
+    adiak::adiak)
+endif()
+
 add_subdirectory(lib/asmjit)
 add_subdirectory(lib/nitro)
 

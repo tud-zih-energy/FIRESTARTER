@@ -26,6 +26,11 @@
 
 #include <string>
 
+/********** Added Adiak and Caliper headers *********/
+// Put "if" block around these includes for Caliper
+#include <adiak.hpp>
+#include <caliper/cali.h>
+
 struct Config {
   inline static const std::vector<std::pair<std::string, std::string>>
       optionsMap = {{"information", "Information Options:\n"},
@@ -460,6 +465,19 @@ Config::Config(int argc, const char **argv) {
 
 int main(int argc, const char **argv) {
 
+  // Single adiak call to collect default adiak values
+  adiak::init(NULL);
+  adiak::uid();
+  adiak::date();
+  adiak::user();
+  adiak::launchdate();
+  adiak::executable();
+  adiak::executablepath();
+  adiak::libraries();
+  adiak::cmdline();
+  adiak::hostname();
+  adiak::clustername();
+
   firestarter::log::info()
       << "FIRESTARTER - A Processor Stress Test Utility, Version "
       << _FIRESTARTER_VERSION_STRING << "\n"
@@ -471,6 +489,7 @@ int main(int argc, const char **argv) {
   Config cfg{argc, argv};
 
   try {
+    CALI_MARK_FUNCTION_BEGIN;
     firestarter::Firestarter firestarter(
         argc, argv, cfg.timeout, cfg.loadPercent, cfg.period,
         cfg.requestedNumThreads, cfg.cpuBind, cfg.printFunctionSummary,
@@ -485,6 +504,7 @@ int main(int argc, const char **argv) {
         cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
     firestarter.mainThread();
+    CALI_MARK_FUNCTION_END;
 
   } catch (std::exception const &e) {
     firestarter::log::error() << e.what();

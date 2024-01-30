@@ -137,7 +137,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		${FIRESTARTER_FILES}
 		)
 	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
-
+	
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
@@ -149,6 +149,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 			)
 	else()
 		if (FIRESTARTER_LINK_STATIC)
+			MESSAGE(STATUS "RRR ${FIRESTARTER_DEPENDENCIES}")
 			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
 			# we are using pthreads
 			# static linking with pthreads and std::condition_variabale is evil and will cause segfaults
@@ -156,17 +157,20 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 			if(CMAKE_THREAD_LIBS_INIT MATCHES "^.*pthread.*$")
 				target_link_libraries(FIRESTARTER
 					"-Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+					${FIRESTARTER_DEPENDENCIES}
 					)
 			endif()
 		else()
 			if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 				target_link_libraries(FIRESTARTER
 					-ldl
+					${FIRESTARTER_DEPENDENCIES}
 					)
 			endif()
 
 			target_link_libraries(FIRESTARTER
 				Threads::Threads
+				${FIRESTARTER_DEPENDENCIES}
 				)
 		endif()
 	endif()
