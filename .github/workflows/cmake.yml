@@ -60,7 +60,12 @@ jobs:
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
-        esac
+          NVHPC-23.7)
+            wget https://developer.download.nvidia.com/hpc-sdk/23.7/nvhpc_2023_237_Linux_x86_64_cuda_12.2.tar.gz
+            https://developer.download.nvidia.com/hpc-sdk/23.7/nvhpc_2023_237_Linux_x86_64_cuda_12.2.tar.gz
+            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2023_237_Linux_x86_64_cuda_12.2/install
+
+            esac
     - name: Install OneAPI Base-Toolkit (if needed)
       if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
@@ -94,7 +99,7 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
-    - name: Run CMake configure (CUDA with NVHPC)
+    - name: Run CMake configure (CUDA with NVHPC 22.5)
       if: matrix.CUDA == 'NVHPC-22.5' && matrix.ONEAPI == '0'
       env:
         CXX: ${{ matrix.compiler }}
@@ -107,6 +112,19 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
+    - name: Run CMake configure (CUDA with NVHPC 23.7)
+      if: matrix.CUDA == 'NVHPC-23.7' && matrix.ONEAPI == '0'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        NVARCH=`uname -s`_`uname -m`; export NVARCH
+        PATH=$CUDA_ROOT/$NVARCH/23.7/compilers/bin:$PATH; export PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/23.7/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/23.7/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/23.7/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/23.7/cuda/12.2/lib64/stubs" -LA ..
     - name: Run CMake configure (OneAPI 2023.2.0)
       if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
       run: |
@@ -361,7 +379,7 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_11.0
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_CUDA_11.0
-    # Linux CUDA HPC
+    # Linux CUDA HPC 22.5
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux 
       uses: actions/download-artifact@v2
       with:
@@ -372,6 +390,17 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_NVHPC-22.5
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_CUDA_NVHPC-22.5
+    # Linux CUDA HPC 23.7
+    - name: Retrieve FIRESTARTER_CUDA_NVHPC-23.7-linux
+      uses: actions/download-artifact@v2
+      with:
+        name: FIRESTARTER_CUDA_NVHPC-23.7-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_NVHPC-23.7
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER_CUDA_NVHPC-23.7
     # Linux OneAPI
     - name: Retrieve FIRESTARTER_ONEAPI_2024.0-linux 
       uses: actions/download-artifact@v2
