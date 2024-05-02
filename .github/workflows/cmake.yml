@@ -63,7 +63,7 @@ jobs:
             ;;
           NVHPC-23.7)
             wget https://developer.download.nvidia.com/hpc-sdk/23.7/nvhpc_2023_237_Linux_x86_64_cuda_12.2.tar.gz
-            https://developer.download.nvidia.com/hpc-sdk/23.7/nvhpc_2023_237_Linux_x86_64_cuda_12.2.tar.gz
+            tar xpzf nvhpc_2023_237_Linux_x86_64_cuda_12.2.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2023_237_Linux_x86_64_cuda_12.2/install
 
             esac
