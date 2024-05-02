@@ -85,7 +85,7 @@ jobs:
         cd build
         cmake ..
     - name: Run CMake configure (CUDA)
-      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5' && matrix.ONEAPI == '0'
+      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5' && matrix.CUDA != 'NVHPC-23.7' && matrix.ONEAPI == '0'
       env:
         CXX: ${{ matrix.compiler }}
       run: |
