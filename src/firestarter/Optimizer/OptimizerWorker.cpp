@@ -23,6 +23,12 @@
 
 #include <thread>
 
+/********** Added Adiak and Caliper headers *********/
+#ifdef FIRESTARTER_WITH_CALIPER
+#include <adiak.hpp>
+#include <caliper/cali.h>
+#endif
+
 using namespace firestarter::optimizer;
 
 OptimizerWorker::OptimizerWorker(
@@ -33,10 +39,16 @@ OptimizerWorker::OptimizerWorker(
     : _algorithm(std::move(algorithm)), _population(population),
       _optimizationAlgorithm(optimizationAlgorithm), _individuals(individuals),
       _preheat(preheat) {
-  pthread_create(
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_BEGIN("pthread_create-optimizerThread");
+#endif
+   pthread_create(
       &this->workerThread, NULL,
       reinterpret_cast<void *(*)(void *)>(OptimizerWorker::optimizerThread),
       this);
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_END("pthread_create-optimizerThread");
+#endif
 }
 
 void OptimizerWorker::kill() {
@@ -50,6 +62,9 @@ void OptimizerWorker::join() {
 }
 
 void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_BEGIN("optimizerThread");
+#endif
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   auto _this = reinterpret_cast<OptimizerWorker *>(optimizerWorker);
@@ -67,6 +82,8 @@ void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
   }
 
   _this->_algorithm->evolve(_this->_population);
-
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("optimizerThread");
+#endif
   return NULL;
 }

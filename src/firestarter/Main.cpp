@@ -27,9 +27,11 @@
 #include <string>
 
 /********** Added Adiak and Caliper headers *********/
-// Put "if" block around these includes for Caliper
+#define FIRESTARTER_WITH_CALIPER
+#ifdef FIRESTARTER_WITH_CALIPER
 #include <adiak.hpp>
 #include <caliper/cali.h>
+#endif
 
 struct Config {
   inline static const std::vector<std::pair<std::string, std::string>>
@@ -417,6 +419,9 @@ Config::Config(int argc, const char **argv) {
     listMetrics = options.count("list-metrics");
 
     if ((optimize = options.count("optimize"))) {
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("optimize");
+  #endif
       if (errorDetection) {
         throw std::invalid_argument("Options --error-detection and --optimize "
                                     "cannot be used together.");
@@ -453,6 +458,9 @@ Config::Config(int argc, const char **argv) {
       if (optimizationAlgorithm != "NSGA2") {
         throw std::invalid_argument("Option --optimize must be any of: NSGA2");
       }
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("optimize");
+  #endif
     }
 #endif
 
@@ -466,17 +474,17 @@ Config::Config(int argc, const char **argv) {
 int main(int argc, const char **argv) {
 
   // Single adiak call to collect default adiak values
-  adiak::init(NULL);
-  adiak::uid();
-  adiak::date();
-  adiak::user();
-  adiak::launchdate();
-  adiak::executable();
-  adiak::executablepath();
-  adiak::libraries();
-  adiak::cmdline();
-  adiak::hostname();
-  adiak::clustername();
+//  adiak::init(NULL);
+//  adiak::uid();
+//  adiak::date();
+//  adiak::user();
+//  adiak::launchdate();
+//  adiak::executable();
+//  adiak::executablepath();
+//  adiak::libraries();
+//  adiak::cmdline();
+//  adiak::hostname();
+//  adiak::clustername();
 
   firestarter::log::info()
       << "FIRESTARTER - A Processor Stress Test Utility, Version "
@@ -489,7 +497,10 @@ int main(int argc, const char **argv) {
   Config cfg{argc, argv};
 
   try {
-    CALI_MARK_FUNCTION_BEGIN;
+    //CALI_MARK_FUNCTION_BEGIN;
+    #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("main");
+    #endif
     firestarter::Firestarter firestarter(
         argc, argv, cfg.timeout, cfg.loadPercent, cfg.period,
         cfg.requestedNumThreads, cfg.cpuBind, cfg.printFunctionSummary,
@@ -503,8 +514,17 @@ int main(int argc, const char **argv) {
         cfg.optimizationMetrics, cfg.evaluationDuration, cfg.individuals,
         cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("firestarter-mainThread");
+  #endif
     firestarter.mainThread();
-    CALI_MARK_FUNCTION_END;
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("firestarter-mainThread");
+  #endif
+    #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("main");
+    #endif
+    //CALI_MARK_FUNCTION_END;
 
   } catch (std::exception const &e) {
     firestarter::log::error() << e.what();

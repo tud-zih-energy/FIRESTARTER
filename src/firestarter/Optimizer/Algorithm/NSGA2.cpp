@@ -28,6 +28,12 @@
 #include <algorithm>
 #include <stdexcept>
 
+/********** Added Adiak and Caliper headers *********/
+#ifdef FIRESTARTER_WITH_CALIPER
+#include <adiak.hpp>
+#include <caliper/cali.h>
+#endif
+
 using namespace firestarter::optimizer::algorithm;
 
 NSGA2::NSGA2(unsigned gen, double cr, double m)
@@ -65,6 +71,9 @@ void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
 
 firestarter::optimizer::Population
 NSGA2::evolve(firestarter::optimizer::Population &pop) {
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_BEGIN("evolve");
+#endif
   const auto &prob = pop.problem();
   const auto bounds = prob.getBounds();
   auto NP = pop.size();
@@ -180,6 +189,8 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
       pop.insert(i, popnew.x()[best_idx[i]], popnew.f()[best_idx[i]]);
     }
   }
-
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("evolve");
+#endif
   return pop;
 }

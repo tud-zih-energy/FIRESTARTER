@@ -30,6 +30,12 @@ extern "C" {
 }
 #endif
 
+/********** Added Adiak and Caliper headers *********/
+#ifdef FIRESTARTER_WITH_CALIPER
+#include <adiak.hpp>
+#include <caliper/cali.h>
+#endif
+
 void insertCallback(void *cls, const char *metricName, int64_t timeSinceEpoch,
                     double value) {
   static_cast<firestarter::measurement::MeasurementWorker *>(cls)
@@ -121,17 +127,29 @@ MeasurementWorker::MeasurementWorker(
 
   this->availableMetricsString = ss.str();
 
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("pthread_create-dataAcquisitionWorker");
+  #endif
   pthread_create(&this->workerThread, NULL,
                  reinterpret_cast<void *(*)(void *)>(
                      MeasurementWorker::dataAcquisitionWorker),
                  this);
+  #ifdef FIRESTARTER_WITH_CALIPER
+     CALI_MARK_END("pthread_create-dataAcquisitionWorker");
+  #endif
 
   // create a worker for getting metric values from stdin
   if (this->_stdinMetrics.size() > 0) {
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("pthread_create-stdinDataAcquisitionWorker");
+  #endif
     pthread_create(&this->stdinThread, NULL,
                    reinterpret_cast<void *(*)(void *)>(
                        MeasurementWorker::stdinDataAcquisitionWorker),
                    this);
+  #ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("pthread_create-stdinDataAcquisitionWorker");
+  #endif
   }
 }
 
@@ -307,7 +325,9 @@ MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
 }
 
 int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
-
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_BEGIN("dataAcquisitionWorker");
+#endif
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   auto _this = reinterpret_cast<MeasurementWorker *>(measurementWorker);
@@ -410,10 +430,15 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
 
     std::this_thread::sleep_for(nextWake - clock::now());
   }
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("dataAcquisitionWorker");
+#endif
 }
 
 int *MeasurementWorker::stdinDataAcquisitionWorker(void *measurementWorker) {
-
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_BEGIN("stdinDataAcquisitionWorker");
+#endif
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   auto _this = reinterpret_cast<MeasurementWorker *>(measurementWorker);
@@ -438,6 +463,9 @@ int *MeasurementWorker::stdinDataAcquisitionWorker(void *measurementWorker) {
       }
     }
   }
+#ifdef FIRESTARTER_WITH_CALIPER
+   CALI_MARK_END("stdinDataAcquisitionWorker");
+#endif
 
   return NULL;
 }

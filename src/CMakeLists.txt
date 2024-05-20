@@ -20,6 +20,7 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
+	#firestarter/instrument.cpp
 	)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
