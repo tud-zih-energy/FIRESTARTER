@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <iostream>
 #include <firestarter/Firestarter.hpp>
 
 #include <cerrno>
@@ -26,6 +27,13 @@
 
 #ifdef ENABLE_SCOREP
 #include <SCOREP_User.h>
+#endif
+
+/********** Added Adiak and Caliper headers *********/
+#define FIRESTARTER_WITH_CALIPER
+#ifdef FIRESTARTER_WITH_CALIPER
+#include <adiak.hpp>
+#include <caliper/cali.h>
 #endif
 
 using namespace firestarter;
@@ -75,6 +83,10 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec load_nsec = load - load_reduction;
 
       // wait for time to be ellapsed with high load
+#ifdef FIRESTARTER_WITH_CALIPER
+    std::cout << "Watchdog Caliper Running";
+    CALI_MARK_BEGIN("WD_HIGH");
+#endif
 #ifdef ENABLE_VTRACING
       VT_USER_START("WD_HIGH");
 #endif
@@ -95,6 +107,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_HIGH");
 #endif
+#ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("WD_HIGH");
+#endif
 #ifdef ENABLE_SCOREP
       SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
 #endif
@@ -106,6 +121,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec idle_nsec = idle - idle_reduction;
 
       // wait for time to be ellapsed with low load
+#ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_BEGIN("WD_LOW");
+#endif
 #ifdef ENABLE_VTRACING
       VT_USER_START("WD_LOW");
 #endif
@@ -125,6 +143,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       }
 #ifdef ENABLE_VTRACING
       VT_USER_END("WD_LOW");
+#endif
+#ifdef FIRESTARTER_WITH_CALIPER
+    CALI_MARK_END("WD_LOW");
 #endif
 #ifdef ENABLE_SCOREP
       SCOREP_USER_REGION_BY_NAME_END("WD_LOW");

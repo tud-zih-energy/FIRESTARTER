@@ -359,14 +359,14 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       for (;;) {
         // call high load function
 #ifdef FIRESTARTER_WITH_CALIPER
-    std::cout << "Running CALIPER \n";
+    //std::cout << "Running CALIPER \n";
     CALI_MARK_BEGIN("HIGH_LOAD_FUNC");
 #endif
 #ifdef ENABLE_VTRACING
         VT_USER_START("HIGH_LOAD_FUNC");
 #endif
 #ifdef ENABLE_SCOREP
-	std::cout << "Running SCORE-P \n";
+	//std::cout << "Running SCORE-P \n";
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif

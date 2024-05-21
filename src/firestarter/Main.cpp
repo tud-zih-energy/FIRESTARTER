@@ -474,17 +474,17 @@ Config::Config(int argc, const char **argv) {
 int main(int argc, const char **argv) {
 
   // Single adiak call to collect default adiak values
-//  adiak::init(NULL);
-//  adiak::uid();
-//  adiak::date();
-//  adiak::user();
-//  adiak::launchdate();
-//  adiak::executable();
-//  adiak::executablepath();
-//  adiak::libraries();
-//  adiak::cmdline();
-//  adiak::hostname();
-//  adiak::clustername();
+  adiak::init(NULL);
+  adiak::uid();
+  //adiak::date();
+  adiak::user();
+  adiak::launchdate();
+  adiak::executable();
+  adiak::executablepath();
+  adiak::libraries();
+  adiak::cmdline();
+  adiak::hostname();
+  adiak::clustername();
 
   firestarter::log::info()
       << "FIRESTARTER - A Processor Stress Test Utility, Version "
