@@ -29,6 +29,7 @@
 #include <stdexcept>
 
 /********** Added Adiak and Caliper headers *********/
+#define FIRESTARTER_WITH_CALIPER
 #ifdef FIRESTARTER_WITH_CALIPER
 #include <adiak.hpp>
 #include <caliper/cali.h>

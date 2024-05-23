@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 /********** Added Adiak and Caliper headers *********/
+#define FIRESTARTER_WITH_CALIPER
 #ifdef FIRESTARTER_WITH_CALIPER
 #include <adiak.hpp>
 #include <caliper/cali.h>
@@ -332,8 +333,14 @@ int *MeasurementWorker::dataAcquisitionWorker(void *measurementWorker) {
 
   auto _this = reinterpret_cast<MeasurementWorker *>(measurementWorker);
 
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_BEGIN("DataAcquisition");
+#endif
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "DataAcquisition");
+#endif
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("DataAcquisition");
 #endif
 
   using clock = std::chrono::high_resolution_clock;
@@ -443,8 +450,14 @@ int *MeasurementWorker::stdinDataAcquisitionWorker(void *measurementWorker) {
 
   auto _this = reinterpret_cast<MeasurementWorker *>(measurementWorker);
 
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_BEGIN("StdinDataAcquis");
+#endif
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "StdinDataAcquis");
+#endif
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("StdinDataAcquis");
 #endif
 
   for (std::string line; std::getline(std::cin, line);) {

@@ -24,6 +24,7 @@
 #include <thread>
 
 /********** Added Adiak and Caliper headers *********/
+#define FIRESTARTER_WITH_CALIPER
 #ifdef FIRESTARTER_WITH_CALIPER
 #include <adiak.hpp>
 #include <caliper/cali.h>
@@ -69,8 +70,14 @@ void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
 
   auto _this = reinterpret_cast<OptimizerWorker *>(optimizerWorker);
 
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_BEGIN("Optimizer");
+#endif
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "Optimizer");
+#endif
+#ifdef FIRESTARTER_WITH_CALIPER
+  CALI_MARK_END("Optimizer");
 #endif
 
   // heat the cpu before attempting to optimize
@@ -78,7 +85,13 @@ void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
 
   // For NSGA2 we start with a initial population
   if (_this->_optimizationAlgorithm == "NSGA2") {
-    _this->_population.generateInitialPopulation(_this->_individuals);
+	#ifdef FIRESTARTER_WITH_CALIPER
+	  CALI_MARK_BEGIN("initPop-NSGA2");
+	#endif
+	_this->_population.generateInitialPopulation(_this->_individuals);
+	#ifdef FIRESTARTER_WITH_CALIPER
+	  CALI_MARK_END("initPop-NSGA2");
+	#endif
   }
 
   _this->_algorithm->evolve(_this->_population);
