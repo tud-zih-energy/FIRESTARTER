@@ -54,6 +54,9 @@ using namespace firestarter;
 auto aligned_free_deleter = [](void *p) { ALIGNED_FREE(p); };
 
 int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
+//#ifdef FIRESTARTER_WITH_CALIPER
+//  CALI_MARK_BEGIN("Load-Workers");
+//#endif
   int returnCode;
 
   if (EXIT_SUCCESS != (returnCode = this->environment().setCpuAffinity(0))) {
@@ -119,6 +122,9 @@ int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
 
   this->signalLoadWorkers(THREAD_INIT);
 
+//#ifdef FIRESTARTER_WITH_CALIPER
+//  CALI_MARK_END("Load-Workers");
+//#endif
   return EXIT_SUCCESS;
 }
 
@@ -359,14 +365,12 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       for (;;) {
         // call high load function
 #ifdef FIRESTARTER_WITH_CALIPER
-    //std::cout << "Running CALIPER \n";
     CALI_MARK_BEGIN("HIGH_LOAD_FUNC");
 #endif
 #ifdef ENABLE_VTRACING
         VT_USER_START("HIGH_LOAD_FUNC");
 #endif
 #ifdef ENABLE_SCOREP
-	//std::cout << "Running SCORE-P \n";
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
                                          SCOREP_USER_REGION_TYPE_COMMON);
 #endif
@@ -411,6 +415,9 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
         }
       }
       break;
+    #ifdef FIRESTARTER_WITH_CALIPER
+      CALI_MARK_BEGIN("switching-thread");
+    #endif
     case THREAD_SWITCH:
       // compile payload
       td->config().payload().compilePayload(
@@ -428,8 +435,17 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       td->lastStopTsc = td->stopTsc;
       td->iterations = 0;
       break;
+    #ifdef FIRESTARTER_WITH_CALIPER
+      CALI_MARK_END("switching-thread");
+    #endif
+    #ifdef FIRESTARTER_WITH_CALIPER
+      CALI_MARK_BEGIN("thread-wait");
+    #endif
     case THREAD_WAIT:
       break;
+    #ifdef FIRESTARTER_WITH_CALIPER
+      CALI_MARK_END("thread-wait");
+    #endif
     case THREAD_STOP:
     default:
       return;

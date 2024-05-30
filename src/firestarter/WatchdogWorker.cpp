@@ -42,6 +42,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
                                 std::chrono::microseconds load,
                                 std::chrono::seconds timeout) {
 
+//  #ifdef FIRESTARTER_WITH_CALIPER
+//	CALI_MARK_BEGIN("Watchdog-Init");
+//  #endif
   using clock = std::chrono::high_resolution_clock;
   using nsec = std::chrono::nanoseconds;
   using usec = std::chrono::microseconds;
@@ -84,7 +87,6 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
       // wait for time to be ellapsed with high load
 #ifdef FIRESTARTER_WITH_CALIPER
-    std::cout << "Watchdog Caliper Running";
     CALI_MARK_BEGIN("WD_HIGH");
 #endif
 #ifdef ENABLE_VTRACING
@@ -182,5 +184,8 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
     return EXIT_SUCCESS;
   }
 
+//#ifdef FIRESTARTER_WITH_CALIPER
+//  CALI_MARK_END("Watchdog-Init");
+//#endif
   return EXIT_SUCCESS;
 }

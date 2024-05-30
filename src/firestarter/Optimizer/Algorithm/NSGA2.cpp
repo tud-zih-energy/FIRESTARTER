@@ -73,7 +73,7 @@ void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
 firestarter::optimizer::Population
 NSGA2::evolve(firestarter::optimizer::Population &pop) {
 #ifdef FIRESTARTER_WITH_CALIPER
-  CALI_MARK_BEGIN("evolve");
+  CALI_MARK_BEGIN("evolve-optimizer");
 #endif
   const auto &prob = pop.problem();
   const auto bounds = prob.getBounds();
@@ -191,7 +191,7 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
     }
   }
 #ifdef FIRESTARTER_WITH_CALIPER
-  CALI_MARK_END("evolve");
+  CALI_MARK_END("evolve-optimizer");
 #endif
   return pop;
 }

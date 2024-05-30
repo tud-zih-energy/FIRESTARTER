@@ -497,7 +497,6 @@ int main(int argc, const char **argv) {
   Config cfg{argc, argv};
 
   try {
-    //CALI_MARK_FUNCTION_BEGIN;
     #ifdef FIRESTARTER_WITH_CALIPER
     CALI_MARK_BEGIN("main");
     #endif
@@ -515,16 +514,15 @@ int main(int argc, const char **argv) {
         cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
   #ifdef FIRESTARTER_WITH_CALIPER
-    CALI_MARK_BEGIN("firestarter-mainThread");
+    CALI_MARK_BEGIN("Firestarter-Main-Thread");
   #endif
     firestarter.mainThread();
   #ifdef FIRESTARTER_WITH_CALIPER
-    CALI_MARK_END("firestarter-mainThread");
+    CALI_MARK_END("Firestarter-Main-Thread");
   #endif
     #ifdef FIRESTARTER_WITH_CALIPER
     CALI_MARK_END("main");
     #endif
-    //CALI_MARK_FUNCTION_END;
 
   } catch (std::exception const &e) {
     firestarter::log::error() << e.what();
