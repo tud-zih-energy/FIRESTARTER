@@ -38,10 +38,13 @@ jobs:
       if: matrix.compiler == 'clang++-10'
       run: |
         sudo apt install clang-10
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
     - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
-        node-version: '20'
     - name: Install CUDA runtime (if needed)
       if: matrix.CUDA != '0' && matrix.ONEAPI == 0
       run: |
@@ -164,19 +167,16 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       with:
-        node-version: '20'
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
       with:
-        node-version: '20'
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
     - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
       with:
-        node-version: '20'
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
         path: build/src/FIRESTARTER_ONEAPI
   build-windows:
@@ -194,7 +194,6 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
-        node-version: '20'
     - name: Install CMake
       uses: crazy-max/ghaction-chocolatey@v1
       with:
@@ -245,7 +244,6 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       with:
-        node-version: '20'
         name: FIRESTARTER-windows
         path: |
           build\src\FIRESTARTER.exe
@@ -253,7 +251,6 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       with:
-        node-version: '20'
         name: FIRESTARTER-windows
         path: |
           build\src\FIRESTARTER.exe
@@ -269,7 +266,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        node-version: '20'
         fetch-depth: '0'
     - name: Install Homebrew dependencies
       run: |
@@ -296,8 +292,12 @@ jobs:
     - uses: actions/upload-artifact@v3
       if: matrix.os == 'macos-12'
       with:
-        node-version: '20'
         name: FIRESTARTER-macOS_12
+        path: build/src/FIRESTARTER
+    - uses: actions/upload-artifact@v3
+      if: matrix.os == 'macos-11'
+      with:
+        name: FIRESTARTER-macOS_11
         path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
@@ -306,7 +306,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        node-version: '20'
         fetch-depth: '0'
         path: 'sources'
     - name: Checkout submodules
@@ -320,7 +319,6 @@ jobs:
     - name: Retrieve FIRESTARTER-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -332,7 +330,6 @@ jobs:
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER_CUDA_8.0-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -344,7 +341,6 @@ jobs:
     - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER_CUDA_11.0-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -356,7 +352,6 @@ jobs:
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER_CUDA_NVHPC-22.5-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -368,7 +363,6 @@ jobs:
     - name: Retrieve FIRESTARTER_ONEAPI_2024.0-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER_ONEAPI_2024.0-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -379,7 +373,6 @@ jobs:
     - name: Retrieve FIRESTARTER_ONEAPI_2023.2.0-linux 
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER_ONEAPI_2023.2.0-linux
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -402,7 +395,6 @@ jobs:
     - name: Retrieve FIRESTARTER-macOS_12
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER-macOS_12
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -414,7 +406,6 @@ jobs:
     - name: Retrieve FIRESTARTER-windows
       uses: actions/download-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER-windows
         path: FIRESTARTER
     - name: Move binary to right directory
@@ -437,7 +428,6 @@ jobs:
         tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
     - uses: actions/upload-artifact@v3
       with:
-        node-version: '20'
         name: FIRESTARTER.tar.gz
         path: FIRESTARTER.tar.gz
 
