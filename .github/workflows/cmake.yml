@@ -255,8 +255,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, macos-12, macos-13]
-        #os: [macos-11.0, macos-10.15]
+        os: [macos-12, macos-13]
 
     runs-on: ${{ matrix.os }}
 
