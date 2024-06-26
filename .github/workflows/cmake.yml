@@ -388,16 +388,6 @@ jobs:
     #    rm -rf FIRESTARTER
     #    chmod +x ../FIRESTARTER-macOS_11.0
     # OSX 10.15
-    - name: Retrieve FIRESTARTER-macOS_11
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER-macOS_11
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_11
-        rm -rf FIRESTARTER
-        chmod +x FIRESTARTER-macOS_11
     - name: Retrieve FIRESTARTER-macOS_12
       uses: actions/download-artifact@v2
       with:
