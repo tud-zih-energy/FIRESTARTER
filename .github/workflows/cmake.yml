@@ -51,15 +51,21 @@ jobs:
             sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
             sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
             sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
+            rm cuda_8.0.61_375.26_linux-run
+            rm cuda_8.0.61.2_linux-run
             ;;
           11.0)
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            rm cuda_11.0.3_450.51.06_linux.run
             ;;
           NVHPC-22.5)
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
+
         esac
     - name: Install OneAPI Base-Toolkit (if needed)
       if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
