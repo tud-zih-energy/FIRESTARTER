@@ -38,7 +38,7 @@ jobs:
       if: matrix.compiler == 'clang++-10'
       run: |
         sudo apt install clang-10
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
     - name: Install CUDA runtime (if needed)
@@ -160,17 +160,17 @@ jobs:
     - name: Test FIRESTARTER (default)
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
       with:
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
@@ -187,7 +187,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
     - name: Install CMake
@@ -237,14 +237,14 @@ jobs:
       if: matrix.cfg.CUDA == '0'
       shell: pwsh
       run: .\build\src\FIRESTARTER.exe -t 1
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
       with:
         name: FIRESTARTER-windows
         path: |
           build\src\FIRESTARTER.exe
           build\src\libhwloc-15.dll
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       with:
         name: FIRESTARTER-windows
@@ -260,7 +260,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
     - name: Install Homebrew dependencies
@@ -285,12 +285,12 @@ jobs:
       run: |
         cd build
         ./src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.os == 'macos-12'
       with:
         name: FIRESTARTER-macOS_12
         path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.os == 'macos-11'
       with:
         name: FIRESTARTER-macOS_11
@@ -300,7 +300,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-linux, build-macos, build-windows]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: '0'
         path: 'sources'
@@ -313,7 +313,7 @@ jobs:
         mkdir build
     # Linux
     - name: Retrieve FIRESTARTER-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER-linux
         path: FIRESTARTER
@@ -324,7 +324,7 @@ jobs:
         chmod +x FIRESTARTER-linux
     # Linux CUDA 8.0
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER_CUDA_8.0-linux
         path: FIRESTARTER
@@ -335,7 +335,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_8.0
     # Linux CUDA 11.0
     - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER_CUDA_11.0-linux
         path: FIRESTARTER
@@ -346,7 +346,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_11.0
     # Linux CUDA HPC
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER_CUDA_NVHPC-22.5-linux
         path: FIRESTARTER
@@ -357,7 +357,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_NVHPC-22.5
     # Linux OneAPI
     - name: Retrieve FIRESTARTER_ONEAPI_2024.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER_ONEAPI_2024.0-linux
         path: FIRESTARTER
@@ -367,7 +367,7 @@ jobs:
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_ONEAPI_2024.0
     - name: Retrieve FIRESTARTER_ONEAPI_2023.2.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER_ONEAPI_2023.2.0-linux
         path: FIRESTARTER
@@ -378,7 +378,7 @@ jobs:
         chmod +x FIRESTARTER_ONEAPI_2023.2.0
     # OSX 11.0
     #- name: Retrieve FIRESTARTER-macOS_11.0
-    #  uses: actions/download-artifact@v2
+    #  uses: actions/download-artifact@v3
     #  with:
     #    name: FIRESTARTER-macOS_11.0
     #    path: FIRESTARTER
@@ -389,7 +389,7 @@ jobs:
     #    chmod +x ../FIRESTARTER-macOS_11.0
     # OSX 10.15
     - name: Retrieve FIRESTARTER-macOS_12
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER-macOS_12
         path: FIRESTARTER
@@ -400,7 +400,7 @@ jobs:
         chmod +x FIRESTARTER-macOS_12
     # Windows
     - name: Retrieve FIRESTARTER-windows
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: FIRESTARTER-windows
         path: FIRESTARTER
@@ -422,7 +422,7 @@ jobs:
         mv FIRESTARTER-linux FIRESTARTER
         rm -rf sources/.git*
         tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: FIRESTARTER.tar.gz
         path: FIRESTARTER.tar.gz
