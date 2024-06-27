@@ -27,6 +27,11 @@ $$ TODO - support for AArch64 (64 Bit ARM)
 $$ TODO - support Infiniband interconnects
 $$ TODO
 
+Version 2.1.1
+ - Removed MacOS 11
+ - (Re)Added Windows CUDA
+ - Fixed cgroup issue
+
 Version 2.1
  - added Intel OneAPI support for Intel GPUs
  - added error detection
