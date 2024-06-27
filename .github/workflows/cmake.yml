@@ -275,7 +275,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-13]
+        os: [macos-12, macos-13, macos-14]
 
     runs-on: ${{ matrix.os }}
 
@@ -311,9 +311,14 @@ jobs:
         name: FIRESTARTER-macOS_12
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-11'
+      if: matrix.os == 'macos-13'
       with:
-        name: FIRESTARTER-macOS_11
+        name: FIRESTARTER-macOS_13
+        path: build/src/FIRESTARTER
+    - uses: actions/upload-artifact@v4
+      if: matrix.os == 'macos-14'
+      with:
+        name: FIRESTARTER-macOS_14
         path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
@@ -418,6 +423,26 @@ jobs:
         mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_12
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER-macOS_12
+    - name: Retrieve FIRESTARTER-macOS_13
+      uses: actions/download-artifact@v4
+      with:
+        name: FIRESTARTER-macOS_13
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_13
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER-macOS_13
+    - name: Retrieve FIRESTARTER-macOS_14
+      uses: actions/download-artifact@v4
+      with:
+        name: FIRESTARTER-macOS_14
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER FIRESTARTER-14
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER-macOS_14
     # Windows
     - name: Retrieve FIRESTARTER-windows
       uses: actions/download-artifact@v4
