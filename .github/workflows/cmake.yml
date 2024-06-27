@@ -264,7 +264,7 @@ jobs:
         path: |
           build\src\FIRESTARTER.exe
           build\src\libhwloc-15.dll
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.cfg.CUDA != '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
@@ -429,7 +429,7 @@ jobs:
         rm -rf FIRESTARTER
     # Windows CUDA
     - name: Retrieve FIRESTARTER_CUDA_11.0-windows
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_CUDA_11.0-windows
         path: FIRESTARTER
