@@ -38,7 +38,12 @@ jobs:
       if: matrix.compiler == 'clang++-10'
       run: |
         sudo apt install clang-10
-    - uses: actions/checkout@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         fetch-depth: '0'
     - name: Install CUDA runtime (if needed)
@@ -51,15 +56,21 @@ jobs:
             sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
             sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
             sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
+            rm cuda_8.0.61_375.26_linux-run
+            rm cuda_8.0.61.2_linux-run
             ;;
           11.0)
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            rm cuda_11.0.3_450.51.06_linux.run
             ;;
           NVHPC-22.5)
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
+
         esac
     - name: Install OneAPI Base-Toolkit (if needed)
       if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
@@ -154,17 +165,17 @@ jobs:
     - name: Test FIRESTARTER (default)
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
       with:
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
@@ -182,15 +193,15 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: '0'
     - name: Install CMake
-      uses: crazy-max/ghaction-chocolatey@v1
+      uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install cmake
     - name: Install Mingw
-      uses: crazy-max/ghaction-chocolatey@v1
+      uses: crazy-max/ghaction-chocolatey@v3
       if: matrix.cfg.MSVC == false
       with:
         args: install mingw
@@ -246,14 +257,7 @@ jobs:
       if: matrix.cfg.CUDA == '0'
       shell: pwsh
       run: .\build\src\FIRESTARTER.exe -t 1
-    - uses: actions/upload-artifact@v2
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == false
-      with:
-        name: FIRESTARTER-windows
-        path: |
-          build\src\FIRESTARTER.exe
-          build\src\libhwloc-15.dll
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       with:
         name: FIRESTARTER-windows
@@ -271,13 +275,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, macos-12, macos-13]
-        #os: [macos-11.0, macos-10.15]
+        os: [macos-12, macos-13]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: '0'
     - name: Install Homebrew dependencies
@@ -302,12 +305,12 @@ jobs:
       run: |
         cd build
         ./src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.os == 'macos-12'
       with:
         name: FIRESTARTER-macOS_12
         path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       if: matrix.os == 'macos-11'
       with:
         name: FIRESTARTER-macOS_11
@@ -317,7 +320,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-linux, build-macos, build-windows]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: '0'
         path: 'sources'
@@ -330,7 +333,7 @@ jobs:
         mkdir build
     # Linux
     - name: Retrieve FIRESTARTER-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER-linux
         path: FIRESTARTER
@@ -341,7 +344,7 @@ jobs:
         chmod +x FIRESTARTER-linux
     # Linux CUDA 8.0
     - name: Retrieve FIRESTARTER_CUDA_8.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_CUDA_8.0-linux
         path: FIRESTARTER
@@ -352,7 +355,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_8.0
     # Linux CUDA 11.0
     - name: Retrieve FIRESTARTER_CUDA_11.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_CUDA_11.0-linux
         path: FIRESTARTER
@@ -363,7 +366,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_11.0
     # Linux CUDA HPC
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_CUDA_NVHPC-22.5-linux
         path: FIRESTARTER
@@ -374,7 +377,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_NVHPC-22.5
     # Linux OneAPI
     - name: Retrieve FIRESTARTER_ONEAPI_2024.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_ONEAPI_2024.0-linux
         path: FIRESTARTER
@@ -384,7 +387,7 @@ jobs:
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_ONEAPI_2024.0
     - name: Retrieve FIRESTARTER_ONEAPI_2023.2.0-linux 
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_ONEAPI_2023.2.0-linux
         path: FIRESTARTER
@@ -395,7 +398,7 @@ jobs:
         chmod +x FIRESTARTER_ONEAPI_2023.2.0
     # OSX 11.0
     #- name: Retrieve FIRESTARTER-macOS_11.0
-    #  uses: actions/download-artifact@v2
+    #  uses: actions/download-artifact@v4
     #  with:
     #    name: FIRESTARTER-macOS_11.0
     #    path: FIRESTARTER
@@ -405,18 +408,8 @@ jobs:
     #    rm -rf FIRESTARTER
     #    chmod +x ../FIRESTARTER-macOS_11.0
     # OSX 10.15
-    - name: Retrieve FIRESTARTER-macOS_11
-      uses: actions/download-artifact@v2
-      with:
-        name: FIRESTARTER-macOS_11
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_11
-        rm -rf FIRESTARTER
-        chmod +x FIRESTARTER-macOS_11
     - name: Retrieve FIRESTARTER-macOS_12
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER-macOS_12
         path: FIRESTARTER
@@ -427,7 +420,7 @@ jobs:
         chmod +x FIRESTARTER-macOS_12
     # Windows
     - name: Retrieve FIRESTARTER-windows
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER-windows
         path: FIRESTARTER
@@ -460,7 +453,7 @@ jobs:
         mv FIRESTARTER-linux FIRESTARTER
         rm -rf sources/.git*
         tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         name: FIRESTARTER.tar.gz
         path: FIRESTARTER.tar.gz
