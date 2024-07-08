@@ -6,6 +6,7 @@
 , git
 , pkgconfig
 , cudatoolkit
+, armadillo
 , withCuda ? false
 , linuxPackages
 }:
@@ -53,14 +54,16 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ cmake git pkgconfig ];
 
   buildInputs = if withCuda then
-    [ glibc_multi cudatoolkit linuxPackages.nvidia_x11 hwloc ]
+    [ glibc_multi cudatoolkit linuxPackages.nvidia_x11 hwloc armadillo ]
     else
-    [ glibc.static hwloc ];
+    [ glibc_multi hwloc armadillo ];
+#    [ glibc.static hwloc armadillo ];
 
   cmakeFlags = [
     "-DFIRESTARTER_BUILD_HWLOC=OFF"
     "-DCMAKE_C_COMPILER_WORKS=1"
     "-DCMAKE_CXX_COMPILER_WORKS=1"
+    "-DFIRESTARTER_LINK_STATIC=OFF"
   ] ++ lib.optionals withCuda [
    "-DFIRESTARTER_BUILD_TYPE=FIRESTARTER_CUDA"
   ];

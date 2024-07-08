@@ -63,19 +63,23 @@ void Population::append(Individual const &ind) {
   std::map<std::string, firestarter::measurement::Summary> metrics;
 
   // check if we already evaluated this individual
-  auto optional_metric = History::find(ind);
-  if (optional_metric.has_value()) {
-    metrics = optional_metric.value();
+  if (_saveHistory) {
+    auto optional_metric = History::find(ind);
+    if (optional_metric.has_value()) {
+      metrics = optional_metric.value();
+    } else {
+      metrics = this->_problem->metrics(ind);
+    }
+
+    auto fitness = this->_problem->fitness(metrics);
+
+    this->append(ind, fitness);
+
+    if (!optional_metric.has_value()) {
+      History::append(ind, metrics);
+    }
   } else {
-    metrics = this->_problem->metrics(ind);
-  }
-
-  auto fitness = this->_problem->fitness(metrics);
-
-  this->append(ind, fitness);
-
-  if (!optional_metric.has_value()) {
-    History::append(ind, metrics);
+    this->append(ind, this->_problem->fitness(this->_problem->metrics(ind)));
   }
 }
 
@@ -85,7 +89,7 @@ void Population::append(Individual const &ind, std::vector<double> const &fit) {
   for (auto const &v : fit) {
     ss << v << " ";
   }
-  firestarter::log::trace() << ss.str();
+  // firestarter::log::trace() << ss.str();
 
   assert(this->problem().getNobjs() == fit.size());
   assert(this->problem().getDims() == ind.size());
@@ -107,7 +111,8 @@ Individual Population::getRandomIndividual() {
   auto dims = this->problem().getDims();
   auto const bounds = this->problem().getBounds();
 
-  firestarter::log::trace() << "Generating random individual of size: " << dims;
+  // firestarter::log::trace() << "Generating random individual of size: " <<
+  // dims;
 
   Individual out(dims);
 
@@ -117,8 +122,8 @@ Individual Population::getRandomIndividual() {
 
     out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->gen);
 
-    firestarter::log::trace()
-        << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
+    // firestarter::log::trace()
+    //    << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
   }
 
   return out;

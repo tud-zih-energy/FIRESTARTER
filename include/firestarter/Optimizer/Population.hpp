@@ -40,16 +40,18 @@ public:
   // Construct a population from a problem.
   Population() = default;
 
-  Population(std::shared_ptr<Problem> &&problem)
-      : _problem(std::move(problem)), gen(rd()) {}
+  Population(std::shared_ptr<Problem> &&problem, bool saveHistory = true)
+      : _problem(std::move(problem)), _saveHistory(saveHistory), gen(rd()) {}
 
   Population(Population &pop)
-      : _problem(pop._problem), _x(pop._x), _f(pop._f), gen(rd()) {}
+      : _problem(pop._problem), _x(pop._x), _f(pop._f),
+        _saveHistory(pop._saveHistory), gen(rd()) {}
 
   Population &operator=(Population const &pop) {
     _problem = std::move(pop._problem);
     _x = pop._x;
     _f = pop._f;
+    _saveHistory = pop._saveHistory;
     gen = pop.gen;
 
     return *this;
@@ -88,6 +90,8 @@ private:
 
   std::vector<Individual> _x;
   std::vector<std::vector<double>> _f;
+
+  bool _saveHistory;
 
   std::random_device rd;
   std::mt19937 gen;

@@ -87,38 +87,6 @@ public:
     return _measurementWorker->getValues(_startDelta, _stopDelta);
   }
 
-  std::vector<double> fitness(
-      std::map<std::string, firestarter::measurement::Summary> const &summaries)
-      override {
-    std::vector<double> values = {};
-
-    for (auto const &metricName : _metrics) {
-      auto findName = [metricName](auto const &summary) {
-        auto invertedName = "-" + summary.first;
-        return metricName.compare(summary.first) == 0 ||
-               metricName.compare(invertedName) == 0;
-      };
-
-      auto it = std::find_if(summaries.begin(), summaries.end(), findName);
-
-      if (it == summaries.end()) {
-        continue;
-      }
-
-      // round to two decimal places after the comma
-      auto value = std::round(it->second.average * 100.0) / 100.0;
-
-      // invert metric
-      if (metricName[0] == '-') {
-        value *= -1.0;
-      }
-
-      values.push_back(value);
-    }
-
-    return values;
-  }
-
   // get the bounds of the problem
   std::vector<std::tuple<unsigned, unsigned>> getBounds() const override {
     std::vector<std::tuple<unsigned, unsigned>> vec(
@@ -129,6 +97,8 @@ public:
 
   // get the number of objectives.
   std::size_t getNobjs() const override { return _metrics.size(); }
+
+  std::vector<std::string> metrics() const override { return _metrics; }
 
 private:
   std::function<void(std::vector<std::pair<std::string, unsigned>> const &)>
