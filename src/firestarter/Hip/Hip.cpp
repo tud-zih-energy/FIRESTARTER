@@ -87,6 +87,10 @@ static const char *_cudaGetErrorEnum(hipblasStatus_t error) {
     return "HIPBLAS_STATUS_NOT_SUPPORTED";
   case HIPBLAS_STATUS_UNKNOWN:
     return "HIPBLAS_STATUS_UNKNOWN";
+  case HIPBLAS_STATUS_HANDLE_IS_NULLPTR:
+      return "HIPBLAS_STATUS_HANDLE_IS_NULLPTR";
+  case HIPBLAS_STATUS_INVALID_ENUM:
+      return "HIPBLAS_STATUS_INVALID_ENUM";
   }
 
   return "<unknown>";
@@ -133,6 +137,8 @@ static const char *_curandGetErrorEnum(hiprandStatus_t cuerr) {
     return "HIPRAND_STATUS_ARCH_MISMATCH";
   case HIPRAND_STATUS_INTERNAL_ERROR:
     return "HIPRAND_STATUS_INTERNAL_ERROR";
+  case HIPRAND_STATUS_NOT_IMPLEMENTED:
+      return "HIPRAND_STATUS_NOT_IMPLEMENTED";
   }
 
   return "<unknown>";
@@ -190,14 +196,10 @@ static int get_precision(int useDouble, struct hipDeviceProp_t properties) {
 #endif
 
 static int get_precision(int device_index, int useDouble) {
-  hipCtx_t context;
-  hipDevice_t device;
   size_t memory_avail, memory_total;
   struct hipDeviceProp_t properties;
 
-  CUDA_SAFE_CALL(hipDeviceGet(&device, device_index), device_index);
-  CUDA_SAFE_CALL(hipCtxCreate(&context, 0, device), device_index);
-  CUDA_SAFE_CALL(hipCtxSetCurrent(context), device_index);
+  CUDA_SAFE_CALL(hipSetDevice(device_index), device_index);
   CUDA_SAFE_CALL(hipMemGetInfo(&memory_avail, &memory_total), device_index);
   CUDA_SAFE_CALL(hipGetDeviceProperties(&properties, device_index),
                  device_index);
@@ -219,8 +221,6 @@ static int get_precision(int device_index, int useDouble) {
 
     useDouble = 0;
   }
-
-  CUDA_SAFE_CALL(hipCtxDestroy(context), device_index);
 
   return useDouble;
 }
@@ -265,7 +265,7 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   int iterations, i;
 
-  firestarter::log::trace() << "Starting CUDA with given matrix size "
+  firestarter::log::trace() << "Starting HIP with given matrix size "
                             << matrixSize;
 
   size_t size_use = 0;
@@ -273,7 +273,7 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = matrixSize;
   }
 
-  hipCtx_t context;
+  hipStream_t stream;
   size_t use_bytes, memory_size;
   struct hipDeviceProp_t properties;
 
@@ -281,22 +281,20 @@ static void create_load(std::condition_variable &waitForInitCv,
   hipDevice_t device;
   hipblasHandle_t cublas;
 
-  firestarter::log::trace() << "Getting CUDA device nr. " << device_index;
+  firestarter::log::trace() << "Getting HIP device nr. " << device_index;
   CUDA_SAFE_CALL(hipDeviceGet(&device, device_index), device_index);
 
-  firestarter::log::trace() << "Creating CUDA context for computation on device nr. "
+  firestarter::log::trace() << "Creating HIP Stream for computation on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(hipCtxCreate(&context, 0, device), device_index);
+  CUDA_SAFE_CALL(hipSetDevice(device_index), device_index);
+  CUDA_SAFE_CALL(hipStreamCreate(&stream), device_index);
 
-  firestarter::log::trace() << "Set crated CUDA context on device nr. "
-                     << device_index;
-  CUDA_SAFE_CALL(hipCtxSetCurrent(context), device_index);
-
-  firestarter::log::trace() << "Create CuBlas on device nr. "
+  firestarter::log::trace() << "Create HipBlas on device nr. "
                      << device_index;
   HIPBLAS_SAFE_CALL(hipblasCreate(&cublas), device_index);
+  HIPBLAS_SAFE_CALL(hipblasSetStream(&cublas, stream), device_index);
 
-  firestarter::log::trace() << "Get CUDA device properties (e.g., support for double)"
+  firestarter::log::trace() << "Get HIP device properties (e.g., support for double)"
                      << " on device nr. "
                      << device_index;
   CUDA_SAFE_CALL(hipGetDeviceProperties(&properties, device_index),
@@ -306,7 +304,7 @@ static void create_load(std::condition_variable &waitForInitCv,
   size_t memory_avail, memory_total;
   CUDA_SAFE_CALL(hipMemGetInfo(&memory_avail, &memory_total), device_index);
 
-  firestarter::log::trace() << "Get CUDA Memory info on device nr. "
+  firestarter::log::trace() << "Get HIP Memory info on device nr. "
                      << device_index
                      <<": " << memory_avail << " B avail. from "
                      << memory_total << " B total";
@@ -322,13 +320,13 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
                         1024); // a multiple of 1024 works always well
   }
-  firestarter::log::trace() << "Set CUDA matrix size: " << matrixSize;
+  firestarter::log::trace() << "Set HIP matrix size: " << matrixSize;
   use_bytes = (size_t)((T)memory_avail);
   memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
 
   firestarter::log::trace()
-      << "Allocating CUDA memory on device nr. "
+      << "Allocating HIP memory on device nr. "
       << device_index;
 
   // allocating memory on the GPU
@@ -337,24 +335,24 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(hipMalloc(&c_data_ptr, iterations * memory_size),
                  device_index);
 
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated HIP memory on device nr. "
                      << device_index
                      <<". A: " << a_data_ptr << "(Size: "
                      << memory_size << "B)"
                      << "\n";
 
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated HIP memory on device nr. "
                      << device_index
                      <<". B: " << b_data_ptr << "(Size: "
                      << memory_size << "B)"
                      << "\n";
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated HIP memory on device nr. "
                      << device_index
                      <<". C: " << c_data_ptr << "(Size: "
                      << iterations * memory_size << "B)"
                      << "\n";
 
-  firestarter::log::trace() << "Initializing CUDA matrices a, b on device nr. "
+  firestarter::log::trace() << "Initializing HIP matrices a, b on device nr. "
                             << device_index
                             << ". Using "
                             << size_use * size_use
@@ -376,7 +374,7 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
-      firestarter::log::trace() << "Initializing CUDA matrix c-"
+      firestarter::log::trace() << "Initializing HIP matrix c-"
                                 << i
                                 << " by copying "
                                 << memory_size
@@ -430,7 +428,8 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(hipFree(b_data_ptr), device_index);
   CUDA_SAFE_CALL(hipFree(c_data_ptr), device_index);
   HIPBLAS_SAFE_CALL(hipblasDestroy(cublas), device_index);
-  CUDA_SAFE_CALL(hipCtxDestroy(context), device_index);
+  CUDA_SAFE_CALL(hipStreamDestroy(stream), device_index);
+
 }
 
 Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
@@ -485,7 +484,7 @@ void Cuda::initGpus(std::condition_variable &cv,
                "Maybe you set CUDA_VISIBLE_DEVICES?";
         firestarter::log::warn()
             << "FIRESTARTER will use " << devCount << " of the requested "
-            << gpus << " CUDA device(s)";
+            << gpus << " HIP device(s)";
         gpus = devCount;
       }
 
@@ -526,14 +525,14 @@ void Cuda::initGpus(std::condition_variable &cv,
       }
     } else {
       firestarter::log::info()
-          << "    - No CUDA devices. Just stressing CPU(s). Maybe use "
-             "FIRESTARTER instead of FIRESTARTER_CUDA?";
+          << "    - No HIP devices. Just stressing CPU(s). Maybe use "
+             "FIRESTARTER instead of FIRESTARTER_HIP?";
       cv.notify_all();
     }
   } else {
     firestarter::log::info()
         << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
-           "FIRESTARTER instead of FIRESTARTER_CUDA?";
+           "FIRESTARTER instead of FIRESTARTER_HIP?";
     cv.notify_all();
   }
 }
