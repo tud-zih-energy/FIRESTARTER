@@ -35,9 +35,13 @@ jobs:
             ;;
           NVHPC-22.5)
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            echo "extract"
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            echo "remove tar gz"
             rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT${{ matrix.CUDA }}" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            echo "install"
+            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="${CUDA_ROOT}${{ matrix.CUDA }}" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            echo "remove installer"
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
         esac
     - name: Install OneAPI Base-Toolkit (if needed)
