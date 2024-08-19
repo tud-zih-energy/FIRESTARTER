@@ -5,11 +5,16 @@ on: [push, pull_request]
 jobs:
 
   install-cuda-oneapi:
+
+
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         CUDA: ['8.0', '11.0', 'NVHPC-22.5', '0']
-        ONEAPI: ['2021.2', '2021.3', '0']
+        ONEAPI: ['2023.2.0', '2024.0', '0']
+  env:
+    CUDA_ROOT: '/usr/local/cuda'
+
     steps:
     - name: Install CUDA (if needed)
       if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
@@ -18,22 +23,22 @@ jobs:
           8.0)
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
-            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
-            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
-            sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
+            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}/${{ matrix.CUDA }}
+            sudo sh ${CUDA_ROOT}/${{ matrix.CUDA }}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}/${{ matrix.CUDA }}
+            sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}/${{ matrix.CUDA }}
             rm cuda_8.0.61_375.26_linux-run
             rm cuda_8.0.61.2_linux-run
             ;;
           11.0)
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
-            sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT}/${{ matrix.CUDA }} --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
             ;;
           NVHPC-22.5)
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
+            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="${CUDA_ROOT}/${{ matrix.CUDA }}" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
         esac
     - name: Install OneAPI Base-Toolkit (if needed)
@@ -95,39 +100,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-    - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
-      run: |
-        case ${{ matrix.CUDA }} in
-          8.0)
-            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
-            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
-            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
-            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
-            sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
-            rm cuda_8.0.61_375.26_linux-run
-            rm cuda_8.0.61.2_linux-run
-            ;;
-          11.0)
-            wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
-            sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
-            rm cuda_11.0.3_450.51.06_linux.run
-            ;;
-          NVHPC-22.5)
-            wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
-            sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
-            rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
-
-        esac
-    - name: Install OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt update
-        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
     - name: Create build directory
       run: |
         mkdir build
@@ -143,14 +115,14 @@ jobs:
       env:
         CXX: ${{ matrix.compiler }}
       run: |
-        export CPATH=${CUDA_ROOT}/include:${CPATH}
-        export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
-        export LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LIBRARY_PATH}
-        export CUDA_LIB_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs
-        export PATH=${CUDA_ROOT}:${PATH}
-        export CUDA_HOME=${CUDA_ROOT}
-        export CUDA_PATH=${CUDA_ROOT}
-        export CUDAToolkit_ROOT=${CUDA_ROOT}
+        export CPATH=${CUDA_ROOT}/${{ matrix.CUDA }}/include:${CPATH}
+        export LD_LIBRARY_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/lib64:${CUDA_ROOT}/${{ matrix.CUDA }}/lib64/stubs:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/lib64:${CUDA_ROOT}/${{ matrix.CUDA }}/lib64/stubs:${LIBRARY_PATH}
+        export CUDA_LIB_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/lib64:${CUDA_ROOT}/${{ matrix.CUDA }}/lib64/stubs
+        export PATH=${CUDA_ROOT}/${{ matrix.CUDA }}:${PATH}
+        export CUDA_HOME=${CUDA_ROOT}/${{ matrix.CUDA }}
+        export CUDA_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}
+        export CUDAToolkit_ROOT=${CUDA_ROOT}/${{ matrix.CUDA }}
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
@@ -160,13 +132,13 @@ jobs:
         CXX: ${{ matrix.compiler }}
       run: |
         NVARCH=`uname -s`_`uname -m`; export NVARCH
-        PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
-        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
-        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
-        LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/$NVARCH/22.5/compilers/bin:$PATH; export PATH
+        LD_LIBRARY_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/$NVARCH/22.5/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/$NVARCH/22.5/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
+        LD_LIBRARY_PATH=${CUDA_ROOT}/${{ matrix.CUDA }}/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
 
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"${CUDA_ROOT}/${{ matrix.CUDA }}/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
     - name: Run CMake configure (OneAPI 2023.2.0)
       if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
       run: |
