@@ -3,15 +3,15 @@ name: Build
 on: [push, pull_request]
 
 jobs:
-  
+
   build-linux:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
+        compiler: [g++-10]
         CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0', '2024.0']
+        ONEAPI: ['0']
 
     runs-on: ${{ matrix.os }}
 
@@ -48,7 +48,7 @@ jobs:
       with:
         fetch-depth: '0'
     - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == 0
+      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -95,6 +95,7 @@ jobs:
       env:
         CXX: ${{ matrix.compiler }}
       run: |
+        ls ${CUDA_ROOT}
         export CPATH=${CUDA_ROOT}/include:${CPATH}
         export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
         export LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LIBRARY_PATH}
