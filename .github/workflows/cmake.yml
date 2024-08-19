@@ -27,6 +27,7 @@ jobs:
             sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}${{ matrix.CUDA }}
             rm cuda_8.0.61_375.26_linux-run
             rm cuda_8.0.61.2_linux-run
+            sudo rm ${CUDA_ROOT}${{ matrix.CUDA }}/cuda-linux64-rel-8.0.61-21551265.run
             ;;
           11.0)
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
@@ -51,10 +52,6 @@ jobs:
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt update
         sudo apt install intel-basekit-${{ matrix.ONEAPI }}
-    outputs:
-      CUDA_ROOT: /usr/local/cuda/${{ matrix.CUDA }}
-      ONEAPI_ROOT: /usr/local/oneapi/${{ matrix.ONEAPI }}
-
 
 
   build-linux:
