@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        CUDA: ['8.0', '11.0', 'NVHPC-22.5', '0']
-        ONEAPI: ['2021.2', '2021.3', '0']
+        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
+        ONEAPI: ['0', '2023.2.0', '2024.0']
 
     env:
       CUDA_ROOT: '/usr/local/cuda'
