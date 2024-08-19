@@ -18,7 +18,12 @@ jobs:
     env:
       CUDA_ROOT: '/usr/local/cuda'
 
+#kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
     steps:
+    - name: Try to clean up some things
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
     - name: Install g++-7 (if needed)
       if: matrix.compiler == 'g++-7'
       run: |
