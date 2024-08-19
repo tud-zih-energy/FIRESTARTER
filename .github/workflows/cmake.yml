@@ -110,7 +110,7 @@ jobs:
           export PATH=${CUDA_ROOT}${{ matrix.CUDA }}/bin:${PATH}
           export CUDA_HOME=${CUDA_ROOT}${{ matrix.CUDA }}
           export CUDA_PATH=${CUDA_ROOT}${{ matrix.CUDA }}
-          export CUDAToolkit_ROOT=${CUDA_ROOT}${{ matrix.CUDA }}
+          export CUDAToolkit_ROOT=${CUDA_ROOT}${{ matrix.CUDA }}/bin
           export CUDA_BIN_PATH=${CUDA_ROOT}${{ matrix.CUDA }}
   
           cd build
