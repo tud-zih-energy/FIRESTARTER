@@ -4,19 +4,17 @@ on: [push, pull_request]
 
 jobs:
 
-  install-cuda-oneapi:
+  install-cuda:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0', '2024.0']
+        CUDA: ['8.0', '11.0', 'NVHPC-22.5']
 
     env:
       CUDA_ROOT: '/usr/local/cuda'
 
     steps:
     - name: Install CUDA (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -45,19 +43,25 @@ jobs:
             echo "remove installer"
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
         esac
+
+  install-oneapi:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ONEAPI: ['2023.2.0', '2024.0']
+
+    steps:
     - name: Install OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
         wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt update
         sudo apt install intel-basekit-${{ matrix.ONEAPI }}
 
-
   build-linux:
     
-    needs: install-cuda-oneapi
-
+    needs: ['install-oneapi', 'install-oneapi']
+    
     strategy:
       fail-fast: false
       matrix:
