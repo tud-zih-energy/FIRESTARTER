@@ -21,12 +21,14 @@ jobs:
             rm cuda_8.0.61_375.26_linux-run
             rm cuda_8.0.61.2_linux-run
             sudo rm ${CUDA_ROOT}8.0/cuda-linux64-rel-8.0.61-21551265.run
+            sudo ls ${CUDA_ROOT}8.0/
     - name: Install CUDA 11.0
       run: |
             df
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT}11.0 --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
+            sudo ls ${CUDA_ROOT}11.0/
 #    - name: Install CUDA NVHPC-22.5
 #      run: |
 #            df
