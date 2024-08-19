@@ -22,8 +22,8 @@ jobs:
           8.0)
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
-            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
-            sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}${{ matrix.CUDA }}
+            sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}${{ matrix.CUDA }}
+            sudo sh ${CUDA_ROOT}${{ matrix.CUDA }}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}${{ matrix.CUDA }}
             sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}${{ matrix.CUDA }}
             rm cuda_8.0.61_375.26_linux-run
             rm cuda_8.0.61.2_linux-run
