@@ -6,18 +6,12 @@ jobs:
 
   install-cuda:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        CUDA: ['8.0', '11.0', 'NVHPC-22.5']
-
     env:
       CUDA_ROOT: '/usr/local/cuda'
 
     steps:
-    - name: Install CUDA (if needed)
+    - name: Install CUDA 8.0 (if needed)
       run: |
-        case ${{ matrix.CUDA }} in
-          8.0)
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
             sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}${{ matrix.CUDA }}
@@ -26,13 +20,13 @@ jobs:
             rm cuda_8.0.61_375.26_linux-run
             rm cuda_8.0.61.2_linux-run
             sudo rm ${CUDA_ROOT}${{ matrix.CUDA }}/cuda-linux64-rel-8.0.61-21551265.run
-            ;;
-          11.0)
+    - name: Install CUDA 11.0
+      run: |
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT}${{ matrix.CUDA }} --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
-            ;;
-          NVHPC-22.5)
+    - name: Install CUDA NVHPC-22.5
+      run: |
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             echo "extract"
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
@@ -42,7 +36,6 @@ jobs:
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="${CUDA_ROOT}${{ matrix.CUDA }}" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
             echo "remove installer"
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
-        esac
 
   install-oneapi:
     runs-on: ubuntu-20.04
