@@ -12,6 +12,7 @@ jobs:
     steps:
     - name: Install CUDA 8.0 (if needed)
       run: |
+            df
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
             wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
             sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}${{ matrix.CUDA }}
@@ -22,11 +23,13 @@ jobs:
             sudo rm ${CUDA_ROOT}${{ matrix.CUDA }}/cuda-linux64-rel-8.0.61-21551265.run
     - name: Install CUDA 11.0
       run: |
+            df
             wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT}${{ matrix.CUDA }} --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
     - name: Install CUDA NVHPC-22.5
       run: |
+            df
             wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             echo "extract"
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
