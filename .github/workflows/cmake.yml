@@ -413,7 +413,7 @@ jobs:
   create-download:
     name: Create download for Website
     runs-on: ubuntu-latest
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux-cuda, build-macos, build-windows, build-linux-oneapi]
     steps:
     - uses: actions/checkout@v4
       with:
