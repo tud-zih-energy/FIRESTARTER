@@ -96,6 +96,7 @@ jobs:
         path: build/src/FIRESTARTER_ONEAPI
 
   build-linux-2:
+    needs: [build-linux]
     strategy:
       fail-fast: false
       matrix:
