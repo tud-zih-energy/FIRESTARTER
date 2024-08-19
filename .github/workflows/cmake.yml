@@ -171,20 +171,6 @@ jobs:
     - name: Delete CUDA stuff
       run: |
         sudo rm -rf ${CUDA_ROOT}
-    install-oneapi:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        ONEAPI: ['2023.2.0', '2024.0']
-
-    steps:
-    - name: Install OneAPI Base-Toolkit (if needed)
-      run: |
-        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt update
-        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
-#        sudo apt install intel-oneapi-compiler-dpcpp-cpp-${{ matrix.ONEAPI }} intel-oneapi-mkl-${{ matrix.ONEAPI }} intel-oneapi-common-vars
 
   install-oneapi:
     needs: ['uninstall-cuda']
