@@ -19,6 +19,15 @@ jobs:
       CUDA_ROOT: '/usr/local/cuda'
 
     steps:
+
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 512
+        swap-size-mb: 1024
+        remove-dotnet: 'true'
+        remove-haskell: 'true'
+        remove-android: 'true'
     - name: Install g++-7 (if needed)
       if: matrix.compiler == 'g++-7'
       run: |
