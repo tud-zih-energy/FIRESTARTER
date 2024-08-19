@@ -207,10 +207,15 @@ jobs:
       run: |
         sudo apt remove clang-10
         sudo apt autoremove
-    - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == 0
+    - name: UnInstall CUDA runtime (if needed)
+      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         sudo rm -rf ${CUDA_ROOT}
+    - name: UnInstall OneAPI Base-Toolkit (if needed)
+      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
+      run: |
+        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
+        sudo apt autoremove
   build-windows:
     strategy:
       fail-fast: false
