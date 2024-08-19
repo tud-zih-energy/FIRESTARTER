@@ -3,6 +3,7 @@ name: Build
 on: [push, pull_request]
 
 jobs:
+  
   build-linux:
     strategy:
       fail-fast: false
@@ -157,6 +158,7 @@ jobs:
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
+        sudo rm ${CUDA_ROOT}
     - name: Strip binary (OneAPI)
       if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
       run: |
