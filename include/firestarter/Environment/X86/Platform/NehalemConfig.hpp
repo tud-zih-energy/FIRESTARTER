@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class NehalemConfig final : public X86PlatformConfig {
 
 public:
-  NehalemConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
+  NehalemConfig(asmjit::CpuFeatures const &supportedFeatures, unsigned family,
                 unsigned model, unsigned threads)
       : X86PlatformConfig("NHM_COREI", 6, {30, 37, 23}, {1, 2}, 0,
                           {32768, 262144, 1572864}, 104857600, 1536, family,

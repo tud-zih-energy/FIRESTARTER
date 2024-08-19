@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class KnightsLandingConfig final : public X86PlatformConfig {
 
 public:
-  KnightsLandingConfig(asmjit::x86::Features const &supportedFeatures,
+  KnightsLandingConfig(asmjit::CpuFeatures const &supportedFeatures,
                        unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4}, 0,
                           {32768, 524288, 236279125}, 26214400, 1536, family,

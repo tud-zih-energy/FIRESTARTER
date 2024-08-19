@@ -35,7 +35,6 @@ using namespace firestarter::environment::x86;
 
 X86CPUTopology::X86CPUTopology()
     : CPUTopology("x86_64"), cpuInfo(asmjit::CpuInfo::host()),
-      cpuFeatures(cpuInfo.features<asmjit::x86::Features>()),
       _vendor(this->cpuInfo.vendor()) {
 
   std::stringstream ss;
@@ -43,8 +42,8 @@ X86CPUTopology::X86CPUTopology()
      << ", Stepping " << this->stepping();
   this->_model = ss.str();
 
-  for (int i = 0; i < (int)asmjit::x86::Features::kMaxFeatures; i++) {
-    if (!this->cpuFeatures.has(i)) {
+  for (int i = 0; i <= (int)asmjit::CpuFeatures::X86::Id::kMaxValue; i++) {
+    if (!this->cpuInfo.hasFeature(i)) {
       continue;
     }
 

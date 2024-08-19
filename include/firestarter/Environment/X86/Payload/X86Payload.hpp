@@ -36,8 +36,8 @@ namespace firestarter::environment::x86::payload {
 class X86Payload : public environment::payload::Payload {
 private:
   // we can use this to check, if our platform support this payload
-  asmjit::x86::Features const &_supportedFeatures;
-  std::list<asmjit::x86::Features::Id> featureRequests;
+  asmjit::CpuFeatures const &_supportedFeatures;
+  std::list<asmjit::CpuFeatures::X86::Id> featureRequests;
 
 protected:
   //  asmjit::CodeHolder code;
@@ -48,7 +48,7 @@ protected:
                                              unsigned long long);
   LoadFunction loadFunction = nullptr;
 
-  asmjit::x86::Features const &supportedFeatures() const {
+  asmjit::CpuFeatures const &supportedFeatures() const {
     return this->_supportedFeatures;
   }
 
@@ -60,8 +60,8 @@ protected:
                               asmjit::x86::Gpq temp_reg2);
 
 public:
-  X86Payload(asmjit::x86::Features const &supportedFeatures,
-             std::initializer_list<asmjit::x86::Features::Id> featureRequests,
+  X86Payload(asmjit::CpuFeatures const &supportedFeatures,
+             std::initializer_list<asmjit::CpuFeatures::X86::Id> featureRequests,
              std::string name, unsigned registerSize, unsigned registerCount)
       : Payload(name, registerSize, registerCount),
         _supportedFeatures(supportedFeatures),
