@@ -26,8 +26,8 @@
 namespace firestarter::environment::x86::payload {
 class SSE2Payload final : public X86Payload {
 public:
-  SSE2Payload(asmjit::x86::Features const &supportedFeatures)
-      : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kSSE2},
+  SSE2Payload(asmjit::CpuFeatures const &supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::kSSE2},
                    "SSE2", 2, 16) {}
 
   int compilePayload(
