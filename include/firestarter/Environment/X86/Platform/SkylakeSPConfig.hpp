@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {
 
 public:
-  SkylakeSPConfig(asmjit::x86::Features const &supportedFeatures,
+  SkylakeSPConfig(asmjit::CpuFeatures const &supportedFeatures,
                   unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0,
                           {32768, 1048576, 1441792}, 1048576000, 1536, family,

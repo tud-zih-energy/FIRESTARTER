@@ -26,10 +26,10 @@
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload final : public X86Payload {
 public:
-  ZENFMAPayload(asmjit::x86::Features const &supportedFeatures)
+  ZENFMAPayload(asmjit::CpuFeatures const &supportedFeatures)
       : X86Payload(
             supportedFeatures,
-            {asmjit::x86::Features::Id::kAVX, asmjit::x86::Features::Id::kFMA},
+            {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
             "ZENFMA", 4, 16) {}
 
   int compilePayload(

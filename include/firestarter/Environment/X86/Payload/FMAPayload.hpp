@@ -26,9 +26,9 @@
 namespace firestarter::environment::x86::payload {
 class FMAPayload final : public X86Payload {
 public:
-  FMAPayload(asmjit::x86::Features const &supportedFeatures)
+  FMAPayload(asmjit::CpuFeatures const &supportedFeatures)
       : X86Payload(supportedFeatures,
-                   {asmjit::x86::Features::kAVX, asmjit::x86::Features::kFMA},
+                   {asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA},
                    "FMA", 4, 16) {}
 
   int compilePayload(

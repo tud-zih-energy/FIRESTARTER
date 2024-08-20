@@ -43,7 +43,7 @@
 #include <functional>
 
 #define REGISTER(NAME)                                                         \
-  [](asmjit::x86::Features const &supportedFeatures, unsigned family,          \
+  [](asmjit::CpuFeatures const &supportedFeatures, unsigned family,          \
      unsigned model, unsigned threads) -> platform::X86PlatformConfig * {      \
     return new platform::NAME(supportedFeatures, family, model, threads);      \
   }
@@ -81,7 +81,7 @@ private:
   // PlatformConfig. Add new PlatformConfig at the bottom to maintain stable
   // IDs.
   const std::list<std::function<platform::X86PlatformConfig *(
-      asmjit::x86::Features const &, unsigned, unsigned, unsigned)>>
+      asmjit::CpuFeatures const &, unsigned, unsigned, unsigned)>>
       platformConfigsCtor = {
           REGISTER(KnightsLandingConfig), REGISTER(SkylakeConfig),
           REGISTER(SkylakeSPConfig),      REGISTER(HaswellConfig),
@@ -94,7 +94,7 @@ private:
 
   // List of fallback PlatformConfig. Add one for each x86 extension.
   const std::list<std::function<platform::X86PlatformConfig *(
-      asmjit::x86::Features const &, unsigned, unsigned, unsigned)>>
+      asmjit::CpuFeatures const &, unsigned, unsigned, unsigned)>>
       fallbackPlatformConfigsCtor = {
           REGISTER(SkylakeSPConfig),   // AVX512
           REGISTER(BulldozerConfig),   // FMA4

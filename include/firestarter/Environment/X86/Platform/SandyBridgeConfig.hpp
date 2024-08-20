@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
 
 public:
-  SandyBridgeConfig(asmjit::x86::Features const &supportedFeatures,
+  SandyBridgeConfig(asmjit::CpuFeatures const &supportedFeatures,
                     unsigned family, unsigned model, unsigned threads)
       : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0,
                           {32768, 262144, 1572864}, 104857600, 1536, family,

@@ -1,6 +1,6 @@
 ###############################################################################
 # FIRESTARTER - A Processor Stress Test Utility
-# Copyright (C) 2016-2023 TU Dresden, Center for Information Services and High
+# Copyright (C) 2016-2024 TU Dresden, Center for Information Services and High
 # Performance Computing
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,11 @@ $$ TODO - add more processors
 $$ TODO - support for AArch64 (64 Bit ARM)
 $$ TODO - support Infiniband interconnects
 $$ TODO
+
+Version 2.1.1
+ - Removed MacOS 11
+ - (Re)Added Windows CUDA
+ - Fixed cgroup issue
 
 Version 2.1
  - added Intel OneAPI support for Intel GPUs

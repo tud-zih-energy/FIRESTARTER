@@ -28,7 +28,7 @@ namespace firestarter::environment::x86::platform {
 class NaplesConfig final : public X86PlatformConfig {
 
 public:
-  NaplesConfig(asmjit::x86::Features const &supportedFeatures, unsigned family,
+  NaplesConfig(asmjit::CpuFeatures const &supportedFeatures, unsigned family,
                unsigned model, unsigned threads)
       : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0,
                           {65536, 524288, 2097152}, 104857600, 1536, family,

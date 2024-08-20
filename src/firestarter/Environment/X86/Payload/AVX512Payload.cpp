@@ -90,9 +90,9 @@ int AVX512Payload::compilePayload(
   }
 
   Builder cb(&code);
-  cb.addValidationOptions(
-      BaseEmitter::ValidationOptions::kValidationOptionAssembler |
-      BaseEmitter::ValidationOptions::kValidationOptionIntermediate);
+  cb.addDiagnosticOptions(
+    asmjit::DiagnosticOptions::kValidateAssembler | 
+    asmjit::DiagnosticOptions::kValidateIntermediate );
 
   auto pointer_reg = rax;
   auto l1_addr = rbx;
@@ -118,7 +118,7 @@ int AVX512Payload::compilePayload(
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
                            volatile unsigned long long *, unsigned long long>(
-                CallConv::kIdHost),
+                CallConvId::kCDecl),
             this->rt.environment());
 
   FuncFrame frame;
@@ -201,7 +201,7 @@ int AVX512Payload::compilePayload(
 		     << ram_size/1024
                      << ") KiB";
 
-  cb.align(kAlignCode, 64);
+  cb.align(AlignMode::kCode, 64);
 
   auto Loop = cb.newLabel();
   cb.bind(Loop);

@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020-2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,8 +35,8 @@ using namespace firestarter::environment;
 std::ostream &CPUTopology::print(std::ostream &stream) const {
   stream << "  system summary:\n"
          << "    number of processors:        " << this->numPackages() << "\n"
-         << "    number of cores per package: " << this->numCoresPerPackage()
-         << "\n"
+         << "    number of cores (total)):    " << this->numCoresTotal() << "\n"
+         << "  (this includes only cores in the cgroup)"  << "\n"
          << "    number of threads per core:  " << this->numThreadsPerCore()
          << "\n"
          << "    total number of threads:     " << this->numThreads() << "\n\n";
@@ -152,7 +152,6 @@ CPUTopology::CPUTopology(std::string architecture)
   if (nr_cpukinds > 1) {
     log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
   }
-
   // get number of packages
   int depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
 
@@ -163,16 +162,22 @@ CPUTopology::CPUTopology(std::string architecture)
     this->_numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
   }
 
+    log::trace() << "Number of Packages:" << this->_numPackages;
   // get number of cores per package
   depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_CORE);
 
   if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    this->_numCoresPerPackage = 1;
+    this->_numCoresTotal = 1;
     log::warn() << "Could not get number of cores";
   } else {
-    this->_numCoresPerPackage =
-        hwloc_get_nbobjs_by_depth(this->topology, depth) / this->_numPackages;
+    this->_numCoresTotal =
+        hwloc_get_nbobjs_by_depth(this->topology, depth);
+    if ( this->_numCoresTotal == 0 ) {
+      log::warn() << "Could not get number of cores";
+      this->_numCoresTotal = 1;
+    }
   }
+  log::trace() << "Number of Cores:" << this->_numCoresTotal;
 
   // get number of threads per core
   depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PU);
@@ -183,7 +188,11 @@ CPUTopology::CPUTopology(std::string architecture)
   } else {
     this->_numThreadsPerCore =
         hwloc_get_nbobjs_by_depth(this->topology, depth) /
-        this->_numCoresPerPackage / this->_numPackages;
+        this->_numCoresTotal ;
+    if ( this->_numThreadsPerCore == 0 ) {
+      log::warn() << "Could not get number of threads per core";
+      this->_numThreadsPerCore = 1;
+    }
   }
 
   // get vendor, processor name and clockrate for linux

@@ -37,8 +37,8 @@ public:
   std::list<std::string> const &features() const override {
     return this->featureList;
   }
-  asmjit::x86::Features const &featuresAsmjit() const {
-    return this->cpuFeatures;
+  const asmjit::CpuFeatures& featuresAsmjit() const{
+    return this->cpuInfo.features();
   }
 
   std::string const &vendor() const override { return this->_vendor; }
@@ -59,7 +59,6 @@ private:
              unsigned long long *c, unsigned long long *d) const;
 
   asmjit::CpuInfo cpuInfo;
-  const asmjit::x86::Features cpuFeatures;
   std::list<std::string> featureList;
 
   bool _hasRdtsc;

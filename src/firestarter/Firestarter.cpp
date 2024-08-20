@@ -104,7 +104,7 @@ Firestarter::Firestarter(
     defined(_M_X64)
   // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
   if (_errorDetection) {
-    if (!_environment->topology().featuresAsmjit().hasSSE4_2()) {
+    if (!_environment->topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
       throw std::invalid_argument("Option --error-detection requires the crc32 "
                                   "instruction added with SSE_4_2.\n");
     }

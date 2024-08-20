@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020-2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -38,11 +38,11 @@ public:
   virtual ~CPUTopology();
 
   unsigned numThreads() const {
-    return _numThreadsPerCore * _numCoresPerPackage * _numPackages;
+    return _numThreadsPerCore * _numCoresTotal;
   }
   unsigned maxNumThreads() const;
   unsigned numThreadsPerCore() const { return _numThreadsPerCore; }
-  unsigned numCoresPerPackage() const { return _numCoresPerPackage; }
+  unsigned numCoresTotal() const { return _numCoresTotal; }
   unsigned numPackages() const { return _numPackages; }
 
   std::string const &architecture() const { return _architecture; }
@@ -72,7 +72,7 @@ private:
   static std::stringstream getFileAsStream(std::string const &filePath);
 
   unsigned _numThreadsPerCore;
-  unsigned _numCoresPerPackage;
+  unsigned _numCoresTotal;
   unsigned _numPackages;
   std::string _architecture;
   std::string _vendor = "";
