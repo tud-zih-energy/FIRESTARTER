@@ -191,17 +191,17 @@ jobs:
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
+      if: matrix.compiler == 'g++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER-linux
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
+      if: matrix.compiler == 'g++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         path: build/src/FIRESTARTER_CUDA
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
+      if: matrix.compiler == 'g++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
       with:
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
         path: build/src/FIRESTARTER_ONEAPI
@@ -324,11 +324,7 @@ jobs:
         path: |
           build\src\FIRESTARTER.exe
           build\src\libhwloc-15.dll
-<<<<<<< HEAD
-    - uses: actions/upload-artifact@v2
-=======
     - uses: actions/upload-artifact@v4
->>>>>>> master
       if: matrix.cfg.CUDA != '0'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
