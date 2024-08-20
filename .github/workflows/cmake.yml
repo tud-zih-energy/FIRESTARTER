@@ -500,11 +500,7 @@ jobs:
         rm -rf FIRESTARTER
     # Windows CUDA
     - name: Retrieve FIRESTARTER_CUDA_11.0-windows
-<<<<<<< HEAD
-      uses: actions/download-artifact@v2
-=======
       uses: actions/download-artifact@v4
->>>>>>> master
       with:
         name: FIRESTARTER_CUDA_11.0-windows
         path: FIRESTARTER
