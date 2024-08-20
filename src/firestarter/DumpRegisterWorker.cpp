@@ -137,7 +137,18 @@ void Firestarter::dumpRegisterWorker(
   for (; *data->loadWorkerData->addrHigh != LOAD_STOP;) {
     // signal the thread to dump its largest SIMD registers
     *dumpVar = DumpVariable::Start;
-    __asm__ __volatile__("mfence;");
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
+    defined(_M_X64)
+#ifndef _MSC_VER
+  __asm__ __volatile__("mfence;");
+#else
+  _mm_mfence();
+#endif
+#elif defined(__aarch64__)
+  __asm__ __volatile__("dmb sy" : : : "memory");
+#else
+#error "FIRESTARTER is not implemented for this ISA"
+#endif
     while (*dumpVar == DumpVariable::Start) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

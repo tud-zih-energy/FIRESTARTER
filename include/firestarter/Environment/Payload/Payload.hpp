@@ -39,7 +39,7 @@ protected:
   unsigned _bytes;
   // number of instructions in load loop
   unsigned _instructions;
-  // size of used simd registers in bytes
+  // size of used simd registers in 8 Bytes (e.g., 2 for SSE (128 Bit), 4 for AVX, and 8 for AVX-512)
   unsigned _registerSize;
   // number of used simd registers
   unsigned _registerCount;

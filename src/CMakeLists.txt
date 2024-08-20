@@ -8,7 +8,10 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/Environment.cpp
 	firestarter/Environment/CPUTopology.cpp
 	firestarter/Environment/Payload/Payload.cpp
-
+)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
 	# here starts the x86 specific code
 	firestarter/Environment/X86/X86Environment.cpp
 	firestarter/Environment/X86/X86CPUTopology.cpp
@@ -20,7 +23,18 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
-	)
+)
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+	# here starts the AArch64 specific code
+	firestarter/Environment/AArch64/AArch64Environment.cpp
+	firestarter/Environment/AArch64/AArch64CPUTopology.cpp
+
+	firestarter/Environment/AArch64/Payload/AArch64Payload.cpp
+	firestarter/Environment/AArch64/Payload/AArch64DefaultPayload.cpp
+)
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	SET(FIRESTARTER_FILES 

@@ -93,7 +93,12 @@ Firestarter::Firestarter(
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
   this->_environment = new environment::x86::X86Environment();
+#elif defined(__aarch64__)
+  this->_environment = new environment::aarch64::AArch64Environment();
+#else
+  #error "Unknown architecture, only x86 and AArch64 are supported"
 #endif
+
 
   if (EXIT_SUCCESS != (returnCode = this->environment().evaluateCpuAffinity(
                            requestedNumThreads, cpuBind))) {
@@ -109,7 +114,6 @@ Firestarter::Firestarter(
                                   "instruction added with SSE_4_2.\n");
     }
   }
-#endif
 
   if (_errorDetection && this->environment().requestedNumThreads() < 2) {
     throw std::invalid_argument(
@@ -117,6 +121,8 @@ Firestarter::Firestarter(
         "threads is " +
         std::to_string(this->environment().requestedNumThreads()) + "\n");
   }
+/* TODO: add errorDetection for other architectures */
+#endif
 
   this->environment().evaluateFunctions();
 
@@ -427,6 +433,8 @@ void Firestarter::setLoad(unsigned long long value) {
 #else
   _mm_mfence();
 #endif
+#elif defined(__aarch64__)
+  __asm__ __volatile__("dmb sy" : : : "memory");
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif

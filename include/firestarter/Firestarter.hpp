@@ -46,6 +46,8 @@
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)
 #include <firestarter/Environment/X86/X86Environment.hpp>
+#elif defined(__aarch64__)
+#include <firestarter/Environment/AArch64/AArch64Environment.hpp>
 #endif
 
 #include <chrono>
@@ -128,6 +130,12 @@ private:
   environment::x86::X86Environment *_environment = nullptr;
 
   environment::x86::X86Environment &environment() const {
+    return *_environment;
+  }
+#elif defined(__aarch64__)
+  environment::aarch64::AArch64Environment *_environment = nullptr;
+
+  environment::aarch64::AArch64Environment &environment() const {
     return *_environment;
   }
 #else
