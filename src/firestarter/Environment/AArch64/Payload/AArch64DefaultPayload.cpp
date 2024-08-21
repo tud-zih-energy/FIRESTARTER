@@ -95,11 +95,6 @@ int AArch64DefaultPayload::compilePayload(
   }
 
   Builder cb(&code);
-  // TODO add Logger cb.setLogger
-
-  FILE* f = fopen("Builder.log","W");
-  FileLogger fl = FileLogger(f);
-  cb.setLogger(&fl);
 
   cb.addDiagnosticOptions(
     asmjit::DiagnosticOptions::kValidateAssembler | 
@@ -133,7 +128,7 @@ int AArch64DefaultPayload::compilePayload(
 
   // make NEON registers dirty
   for (int i = 0; i < 32; i++) {
-    frame.addDirtyRegs(VecD(i));
+    frame.addDirtyRegs(VecV(i));
   }
   // make all other used registers dirty except r0
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
@@ -165,7 +160,7 @@ int AArch64DefaultPayload::compilePayload(
   auto trans_end = add_regs + trans_regs - 1;
   if (add_regs > 0) {
     for (int i = add_start; i <= add_end; i++) {
-      cb.ldr(VecV(i), ptr(pointer_reg, 32 * i));
+      cb.ldr(VecV(i).d2(), ptr(pointer_reg, 32 * i));
     }
   }
 
@@ -178,7 +173,7 @@ int AArch64DefaultPayload::compilePayload(
     }
 
     // this should use mov dup and ins instead ...
-    cb.dup(VecV(trans_start),temp_reg);
+    cb.dup(VecV(trans_start).d2(),temp_reg);
 
     for (int i = trans_start + 1; i <= trans_end; i++) {
       if (i % 2 == 0) {
@@ -186,7 +181,7 @@ int AArch64DefaultPayload::compilePayload(
       } else {
         cb.lsl(temp_reg, temp_reg, Imm(4));
       }
-      cb.dup(VecD(i),temp_reg);
+      cb.dup(VecV(i).d2(),temp_reg);
     }
   }
   auto mov_start = 0;
@@ -249,32 +244,32 @@ int AArch64DefaultPayload::compilePayload(
     for (const auto &item : sequence) {
       if (item == "REG") {
         cb.add(
-            VecD(add_dest),
-            VecD(add_dest),
-            VecD(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
+            VecD(add_dest).d2(),
+            VecD(add_dest).d2(),
+            VecD(add_start + (add_dest - add_start + add_regs + 1) % add_regs).d2());
       } else if (item == "L1_L") {
-        cb.ldr(VecD(add_dest), ptr(l1_addr, 32));
+        cb.ldr(VecD(add_dest).d2(), ptr(l1_addr, 32));
         L1_INCREMENT();
       } else if (item == "L1_S") {
-        cb.str(VecD(add_dest), ptr(l1_addr, 32));
+        cb.str(VecD(add_dest).d2(), ptr(l1_addr, 32));
         L1_INCREMENT();
       } else if (item == "L2_L") {
-        cb.ldr(VecD(add_dest), ptr(l2_addr, 64));
+        cb.ldr(VecD(add_dest).d2(), ptr(l2_addr, 64));
         L2_INCREMENT();
       } else if (item == "L2_S") {
-        cb.str(VecD(add_dest), ptr(l2_addr, 64));
+        cb.str(VecD(add_dest).d2(), ptr(l2_addr, 64));
         L2_INCREMENT();
       } else if (item == "L3_L") {
-        cb.ldr(VecD(add_dest), ptr(l3_addr, 64));
+        cb.ldr(VecD(add_dest).d2(), ptr(l3_addr, 64));
         L3_INCREMENT();
       } else if (item == "L3_S") {
-        cb.str(VecD(add_dest), ptr(l3_addr, 64));
+        cb.str(VecD(add_dest).d2(), ptr(l3_addr, 64));
         L3_INCREMENT();
       } else if (item == "RAM_L") {
-        cb.ldr(VecD(add_dest), ptr(ram_addr, 64));
+        cb.ldr(VecD(add_dest).d2(), ptr(ram_addr, 64));
         RAM_INCREMENT();
       } else if (item == "RAM_S") {
-        cb.str(VecD(add_dest), ptr(ram_addr, 64));
+        cb.str(VecD(add_dest).d2(), ptr(ram_addr, 64));
         RAM_INCREMENT();
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
@@ -386,7 +381,11 @@ int AArch64DefaultPayload::compilePayload(
 
   cb.finalize();
 
-
+/*  workerLog::error() << fl.data();
+  fflush(stderr);
+  fflush(stdout);
+  sleep(10);
+*/
   // String sb;
   // cb.dump(sb);
 
