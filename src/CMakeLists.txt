@@ -33,6 +33,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
 
 	firestarter/Environment/AArch64/Payload/AArch64Payload.cpp
 	firestarter/Environment/AArch64/Payload/AArch64DefaultPayload.cpp
+	firestarter/Environment/AArch64/Payload/AArch64NEONFMAPayload.cpp
 )
 endif()
 
