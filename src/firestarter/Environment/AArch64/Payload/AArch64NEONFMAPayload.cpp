@@ -164,14 +164,14 @@ int AArch64NEONFMAPayload::compilePayload(
     cb.mov(reg, Imm(0xAAAAAAAAAAAAAAAA));
   }
   // Initialize SSE-Registers for Addition
-  cb.mov(VecV(0).d2(), ymmword_ptr(pointer_reg));
+  cb.mov(VecV(0).d2(), ptr(pointer_reg));
   // todo, currently we have 256 bit initialized. this could and should be shrinked
-  cb.mov(VecV(1).d2(), ymmword_ptr(pointer_reg, 32));
-  cb.mov(VecV(2).d2(), ymmword_ptr(pointer_reg, 64));
+  cb.mov(VecV(1).d2(), ptr(pointer_reg, 32));
+  cb.mov(VecV(2).d2(), ptr(pointer_reg, 64));
   auto add_start = mul_regs;
   auto add_end = mul_regs + add_regs - 1;
   auto trans_start = add_regs + mul_regs;
-  auto trans_end = add_regs + mul_regs + trans_regs - 1;
+  auto trans_end = add_regs + mul_regs + alt_dst_regs - 1;
   if (add_regs > 0) {
     for (int i = add_start; i <= add_end; i++) {
       cb.ldr(VecV(i).d2(), ptr(pointer_reg, 32 * i));
@@ -210,7 +210,6 @@ int AArch64NEONFMAPayload::compilePayload(
 
   auto shift_pos = 0;
   bool left = false;
-  auto movq_dst = mov_start;
   auto add_dest = add_start + 1;
   auto mov_dst = trans_start;
   auto mov_src = mov_dst + 1;
@@ -411,7 +410,7 @@ int AArch64NEONFMAPayload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AArch64DefaultPayload::getAvailableInstructions() const {
+std::list<std::string> AArch64NEONFMAPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
 /*  transform(this->instructionFlops.begin(), this->instructionFlops.end(),
@@ -421,7 +420,7 @@ std::list<std::string> AArch64DefaultPayload::getAvailableInstructions() const {
   return instructions;
 }
 
-void AArch64DefaultPayload::init(unsigned long long *memoryAddr,
+void AArch64NEONFMAPayload::init(unsigned long long *memoryAddr,
                        unsigned long long bufferSize) {
   AArch64Payload::init(memoryAddr, bufferSize, 1.654738925401e-10,
                    1.654738925401e-15);
