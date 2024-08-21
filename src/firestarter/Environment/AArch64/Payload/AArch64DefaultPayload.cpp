@@ -96,6 +96,11 @@ int AArch64DefaultPayload::compilePayload(
 
   Builder cb(&code);
   // TODO add Logger cb.setLogger
+
+  FILE* f = fopen("Builder.log","W");
+  FileLogger fl = FileLogger(f);
+  cb.setLogger(fl);
+
   cb.addDiagnosticOptions(
     asmjit::DiagnosticOptions::kValidateAssembler | 
     asmjit::DiagnosticOptions::kValidateIntermediate );
