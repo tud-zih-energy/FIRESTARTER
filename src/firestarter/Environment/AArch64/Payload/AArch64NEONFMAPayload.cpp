@@ -164,10 +164,10 @@ int AArch64NEONFMAPayload::compilePayload(
     cb.mov(reg, Imm(0xAAAAAAAAAAAAAAAA));
   }
   // Initialize SSE-Registers for Addition
-  cb.mov(VecV(0).d2(), ptr(pointer_reg));
+  cb.ldr(VecV(0).d2(), ptr(pointer_reg));
   // todo, currently we have 256 bit initialized. this could and should be shrinked
-  cb.mov(VecV(1).d2(), ptr(pointer_reg, 32));
-  cb.mov(VecV(2).d2(), ptr(pointer_reg, 64));
+  cb.ldr(VecV(1).d2(), ptr(pointer_reg, 32));
+  cb.ldr(VecV(2).d2(), ptr(pointer_reg, 64));
   auto add_start = mul_regs;
   auto add_end = mul_regs + add_regs - 1;
   auto trans_start = add_regs + mul_regs;
