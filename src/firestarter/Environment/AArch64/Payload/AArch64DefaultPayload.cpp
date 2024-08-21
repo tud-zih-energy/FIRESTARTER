@@ -99,7 +99,7 @@ int AArch64DefaultPayload::compilePayload(
 
   FILE* f = fopen("Builder.log","W");
   FileLogger fl = FileLogger(f);
-  cb.setLogger(fl);
+  cb.setLogger(&fl);
 
   cb.addDiagnosticOptions(
     asmjit::DiagnosticOptions::kValidateAssembler | 
@@ -133,7 +133,7 @@ int AArch64DefaultPayload::compilePayload(
 
   // make NEON registers dirty
   for (int i = 0; i < 32; i++) {
-    frame.addDirtyRegs(VecV(i));
+    frame.addDirtyRegs(VecD(i));
   }
   // make all other used registers dirty except r0
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
@@ -178,7 +178,7 @@ int AArch64DefaultPayload::compilePayload(
     }
 
     // this should use mov dup and ins instead ...
-    cb.dup(VecD(trans_start),temp_reg);
+    cb.dup(VecV(trans_start),temp_reg);
 
     for (int i = trans_start + 1; i <= trans_end; i++) {
       if (i % 2 == 0) {
