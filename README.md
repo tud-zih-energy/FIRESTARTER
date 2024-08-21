@@ -1,9 +1,10 @@
 ![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/actions/workflows/cmake.yml/badge.svg?branch=master)
 
-Here we try to implement ARM support.
+In this branch, we try to implement ARM support.
 Current status:
-- asmjit does not support SVE yet - sponsors needed
+- asmjit does not support SVE yet - **sponsors needed**. Please check this site if you want to support the implementation: https://kobalicek.com/services.html 
 - Some NEON workload can be build that acts like the SSE2 workload on x86
+- TODOs: cleanup (lots of cleanup), Add FMA to existing workload
 
 # FIRESTARTER - A Processor Stress Test Utility
 
