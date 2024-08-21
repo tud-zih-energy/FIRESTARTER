@@ -1,5 +1,11 @@
 ![Build Status](https://github.com/tud-zih-energy/FIRESTARTER/actions/workflows/cmake.yml/badge.svg?branch=master)
 
+Here we try to implement ARM support.
+Current status:
+- asmjit does not support SVE yet - sponsors needed
+- Some NEON workload can be build
+- The thread synchronization does not work, you have to `kill -9` your AArch64 build process
+
 # FIRESTARTER - A Processor Stress Test Utility
 
 FIRESTARTER maximizes the energy consumption of 64-Bit x86 processors by
