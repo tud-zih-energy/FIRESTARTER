@@ -365,13 +365,14 @@ int AArch64DefaultPayload::compilePayload(
     cb.bind(SkipRegistersDump);
   }
 */
-  if (errorDetection) {
+/*  if (errorDetection) {
     this->emitErrorDetectionCode<decltype(iter_reg), VecD>(
         cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
+ */
   cb.ldr(temp_reg,ptr(addrHigh_reg));
-  cb.sub(temp_reg,temp_reg,Imm(LOAD_HIGH));
-  cb.cbnz(temp_reg,Loop);
+  cb.cmp(temp_reg,Imm(LOAD_HIGH));
+  cb.b_eq(Loop);
 
   cb.bind(FunctionExit);
 
@@ -380,14 +381,6 @@ int AArch64DefaultPayload::compilePayload(
   cb.emitEpilog(frame);
 
   cb.finalize();
-
-/*  workerLog::error() << fl.data();
-  fflush(stderr);
-  fflush(stdout);
-  sleep(10);
-*/
-  // String sb;
-  // cb.dump(sb);
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {

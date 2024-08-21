@@ -3,8 +3,7 @@
 Here we try to implement ARM support.
 Current status:
 - asmjit does not support SVE yet - sponsors needed
-- Some NEON workload can be build
-- The thread synchronization does not work, you have to `kill -9` your AArch64 build process
+- Some NEON workload can be build that acts like the SSE2 workload on x86
 
 # FIRESTARTER - A Processor Stress Test Utility
 
