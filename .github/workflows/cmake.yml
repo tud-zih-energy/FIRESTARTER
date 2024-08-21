@@ -18,9 +18,10 @@ jobs:
     env:
       CUDA_ROOT: '/usr/local/cuda'
 
-#kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
+
     steps:
     - name: Try to clean up some things
+    #kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
@@ -437,7 +438,7 @@ jobs:
         chmod +x FIRESTARTER_CUDA_NVHPC-22.5
     # Linux CUDA HPC 23.7
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-23.7-linux
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: FIRESTARTER_CUDA_NVHPC-23.7-linux
         path: FIRESTARTER
