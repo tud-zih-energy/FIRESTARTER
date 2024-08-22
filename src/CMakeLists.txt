@@ -9,7 +9,7 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/CPUTopology.cpp
 	firestarter/Environment/Payload/Payload.cpp
 )
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86)$" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
 	SET(FIRESTARTER_FILES 
 		${FIRESTARTER_FILES}
 	# here starts the x86 specific code
@@ -24,7 +24,7 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 )
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
 	SET(FIRESTARTER_FILES 
 		${FIRESTARTER_FILES}
 	# here starts the AArch64 specific code
