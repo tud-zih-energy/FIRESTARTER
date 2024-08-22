@@ -241,6 +241,7 @@ int AArch64NEONFMAPayload::compilePayload(
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
       if (item == "REG") {
+        // TODO wrong order!
         cb.fmadd(
             VecD(add_dest).d2(), 
             VecD(add_dest).d2(), 

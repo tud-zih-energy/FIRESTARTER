@@ -29,7 +29,7 @@ using namespace firestarter::environment::aarch64::payload;
 using namespace asmjit;
 using namespace asmjit::a64;
 
-// based on x86 SSE2 and FMA workload. Why? Because SSE2 use double precision in 128 registers and FMA uses FMA instructions...
+// based on x86 SSE2 workload. Why? Because SSE2 use double precision in 128 bit registers
 
 int AArch64DefaultPayload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
@@ -65,9 +65,10 @@ int AArch64DefaultPayload::compilePayload(
     }
   }
 
-  this->_flops = repetitions * flops;
-  this->_bytes = repetitions * bytes;
-  this->_instructions = repetitions * sequence.size() * 2 + 4;
+ this->_flops = repetitions * flops;
+ this->_bytes = repetitions * bytes;
+   // TODO fix this
+ this->_instructions = repetitions * sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
