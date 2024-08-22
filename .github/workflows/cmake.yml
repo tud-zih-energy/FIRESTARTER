@@ -172,19 +172,22 @@ jobs:
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER-linux
+        retention-days: 1
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
+        retention-days: 1
         path: build/src/FIRESTARTER_CUDA
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0'
+      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
+        retention-days: 1
         path: build/src/FIRESTARTER_ONEAPI
     
     - name: UnInstall g++-7 (if needed)
@@ -299,16 +302,18 @@ jobs:
       shell: pwsh
       run: .\build\src\FIRESTARTER.exe -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
+      if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER-windows
+        retention-days: 1
         path: |
           build\src\FIRESTARTER.exe
           build\src\libhwloc-15.dll
     - uses: actions/upload-artifact@v4
-      if: matrix.cfg.CUDA != '0'
+      if: matrix.cfg.CUDA != '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER_CUDA_${{ matrix.cfg.CUDA }}-windows
+        retention-days: 1
         path: |
           build\src\FIRESTARTER_CUDA.exe
           build\src\libhwloc-15.dll
@@ -347,18 +352,21 @@ jobs:
         cd build
         ./src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-12'
+      if: matrix.os == 'macos-12' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
+        retention-days: 1
         name: FIRESTARTER-macOS_12
         path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-13'
+      if: matrix.os == 'macos-13' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
+        retention-days: 1
         name: FIRESTARTER-macOS_13
         path: build/src/FIRESTARTER
   create-download:
     name: Create download for Website
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
     needs: [build-linux, build-macos, build-windows]
     steps:
     - uses: actions/checkout@v4
@@ -494,6 +502,7 @@ jobs:
         tar -cvzf FIRESTARTER.tar.gz CHANGELOG README.md LICENSE libhwloc-15.dll 3rd-party-licenses examples sources FIRESTARTER*
     - uses: actions/upload-artifact@v4
       with:
+        retention-days: 5
         name: FIRESTARTER.tar.gz
         path: FIRESTARTER.tar.gz
 
