@@ -83,7 +83,8 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
 #endif
 
 // Define a macro to create the full error code with the appropriate prefix
-#define SOME_ERROR(class,error) PREFIX##class##_##error
+#define CONCATENATE(a, b) a##b
+#define SOME_ERROR(class, error) CONCATENATE(PREFIX, CONCATENATE(class, CONCATENATE(_, error)))
 
 // Define a macro for generating the case statements
 #define SOME_ERROR_CASE(class, error) \
