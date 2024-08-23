@@ -82,31 +82,23 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
     #define DEVICE_PROP struct hipDeviceProp
 #endif
 
-// Define a macro to create the full error code with the appropriate prefix
-#define CONCATENATE(a, b) a##b
-#define SOME_ERROR(class, error) CONCATENATE(PREFIX, CONCATENATE(class, CONCATENATE(_, error)))
-
-// Define a macro for generating the case statements
-#define SOME_ERROR_CASE(class, error) \
-    case SOME_ERROR(class,error): return #error;
-
 static const char *_cudaGetErrorEnum(HANDLE_TYPE(blasStatus) error) {
     switch (error) {
-        SOME_ERROR_CASE(BLAS,SUCCESS)
-        SOME_ERROR_CASE(BLAS,NOT_INITIALIZED)
-        SOME_ERROR_CASE(BLAS,ALLOC_FAILED)
-        SOME_ERROR_CASE(BLAS,INVALID_VALUE)
-        SOME_ERROR_CASE(BLAS,ARCH_MISMATCH)
-        SOME_ERROR_CASE(BLAS,MAPPING_ERROR)
-        SOME_ERROR_CASE(BLAS,EXECUTION_FAILED)
-        SOME_ERROR_CASE(BLAS,INTERNAL_ERROR)
-        SOME_ERROR_CASE(BLAS,NOT_SUPPORTED)
+        PREFIX##BLAS_SUCCESS: return "success";
+        PREFIX##BLAS_NOT_INITIALIZED: return "not initialized";
+        PREFIX##BLAS_ALLOC_FAILED: return "alloc failed";
+        PREFIX##BLAS_INVALID_VALUE: return "invalid value";
+        PREFIX##BLAS_ARCH_MISMATCH: return "arch mismatch";
+        PREFIX##BLAS_MAPPING_ERROR: return "mapping error";
+        PREFIX##BLAS_EXECUTION_FAILED: return "execution failed";
+        PREFIX##BLAS_INTERNAL_ERROR: return "internal error";
+        PREFIX##BLAS_NOT_SUPPORTED: return "not supported";
 #ifdef FS_USE_HIP  // only avail for HIP
-        SOME_ERROR_CASE(BLAS,UNKNOWN)
-        SOME_ERROR_CASE(BLAS,HANDLE_IS_NULLPTR)
-        SOME_ERROR_CASE(BLAS,INVALID_ENUM)
+        PREFIX##BLAS_UNKNOWN: return "unknown";
+        PREFIX##BLAS_HANDLE_IS_NULLPTR: return "handle is nullptr";
+        PREFIX##BLAS_INVALID_ENUM: return "invalid enum";
 #else  // only avail for CUDA
-        SOME_ERROR_CASE(BLAS,LICENSE_ERROR)
+        PREFIX##BLAS_LICENSE_ERROR: return "license error";
 #endif  // end only avail for some arch
         default: return "<unknown>";
     }
@@ -130,21 +122,21 @@ static inline void cuda_safe_call(HANDLE_TYPE(blasStatus) cuerr, int dev_index,
 
 static const char *_curandGetErrorEnum(HANDLE_TYPE(randStatus) cuerr) {
   switch (cuerr) {
-    SOME_ERROR_CASE(RAND, SUCCESS)
-    SOME_ERROR_CASE(RAND, VERSION_MISMATCH)
-    SOME_ERROR_CASE(RAND, NOT_INITIALIZED)
-    SOME_ERROR_CASE(RAND, ALLOCATION_FAILED)
-    SOME_ERROR_CASE(RAND, TYPE_ERROR)
-    SOME_ERROR_CASE(RAND, OUT_OF_RANGE)
-    SOME_ERROR_CASE(RAND, LENGTH_NOT_MULTIPLE)
-    SOME_ERROR_CASE(RAND, DOUBLE_PRECISION_REQUIRED)
-    SOME_ERROR_CASE(RAND, LAUNCH_FAILURE)
-    SOME_ERROR_CASE(RAND, PREEXISTING_FAILURE)
-    SOME_ERROR_CASE(RAND, INITIALIZATION_FAILED)
-    SOME_ERROR_CASE(RAND, ARCH_MISMATCH)
-    SOME_ERROR_CASE(RAND, INTERNAL_ERROR)
+    PREFIX##RAND_SUCCESS: return "success";
+    PREFIX##RAND_VERSION_MISMATCH: return "version mismatch";
+    PREFIX##RAND_NOT_INITIALIZED: return "not initialized";
+    PREFIX##RAND_ALLOCATION_FAILED: return "alloc failed";
+    PREFIX##RAND_TYPE_ERROR: return "type error";
+    PREFIX##RAND_OUT_OF_RANGE: return "out of range";
+    PREFIX##RAND_LENGTH_NOT_MULTIPLE: return "length not multiple";
+    PREFIX##RAND_DOUBLE_PRECISION_REQUIRED: return "double precision required";
+    PREFIX##RAND_LAUNCH_FAILURE: return "launch failure";
+    PREFIX##RAND_PREEXISTING_FAILURE: return "preexisting failure";
+    PREFIX##RAND_INITIALIZATION_FAILED: return "initialization failed";
+    PREFIX##RAND_ARCH_MISMATCH: return "arch mismatch";
+    PREFIX##RAND_INTERNAL_ERROR: return "internal error";
 #ifdef FS_USE_HIP // only avail for HIP
-    SOME_ERROR_CASE(RAND, NOT_IMPLEMENTED)
+    PREFIX##RAND_NOT_IMPLEMENTED: return "not implemented";
 #endif // only avail for HIP
   }
 
