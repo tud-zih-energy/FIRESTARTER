@@ -24,30 +24,32 @@ jobs:
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
     - name: Install g++-7 (if needed)
-      if: matrix.compiler == 'g++-7'
+      if: matrix.compiler == 'g++-7' && (matrix.CUDA == '0' || matrix.OneAPI == '0')
       run: |
         sudo apt install g++-7
     - name: Install g++-8 (if needed)
-      if: matrix.compiler == 'g++-8'
+      if: matrix.compiler == 'g++-8' && (matrix.CUDA == '0' || matrix.OneAPI == '0')
       run: |
         sudo apt install g++-8
     - name: Install clang++-8 (if needed)
-      if: matrix.compiler == 'clang++-8'
+      if: matrix.compiler == 'clang++-8' && (matrix.CUDA == '0' || matrix.OneAPI == '0')
       run: |
         sudo apt install clang-8
     - name: Install clang++-9 (if needed)
-      if: matrix.compiler == 'clang++-9'
+      if: matrix.compiler == 'clang++-9' && (matrix.CUDA == '0' || matrix.OneAPI == '0')
       run: |
         sudo apt install clang-9
     - name: Install clang++-10 (if needed)
-      if: matrix.compiler == 'clang++-10'
+      if: matrix.compiler == 'clang++-10' && (matrix.CUDA == '0' || matrix.OneAPI == '0')
       run: |
         sudo apt install clang-10
     - name: Setup Node.js
+      if: matrix.CUDA == '0' || matrix.OneAPI == '0'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
     - name: Checkout repository
+      if: matrix.CUDA == '0' || matrix.OneAPI == '0'
       uses: actions/checkout@v4
       with:
         fetch-depth: '0'
@@ -188,38 +190,3 @@ jobs:
         name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
         retention-days: 1
         path: build/src/FIRESTARTER_ONEAPI
-    
-    - name: UnInstall g++-7 (if needed)
-      if: matrix.compiler == 'g++-7'
-      run: |
-        sudo apt remove g++-7
-        sudo apt autoremove
-    - name: UnInstall g++-8 (if needed)
-      if: matrix.compiler == 'g++-8'
-      run: |
-        sudo apt remove g++-8
-        sudo apt autoremove
-    - name: UnInstall clang++-8 (if needed)
-      if: matrix.compiler == 'clang++-8'
-      run: |
-        sudo apt remove clang-8
-        sudo apt autoremove
-    - name: UnInstall clang++-9 (if needed)
-      if: matrix.compiler == 'clang++-9'
-      run: |
-        sudo apt remove clang-9
-        sudo apt autoremove
-    - name: UnInstall clang++-10 (if needed)
-      if: matrix.compiler == 'clang++-10'
-      run: |
-        sudo apt remove clang-10
-        sudo apt autoremove
-    - name: UnInstall CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
-      run: |
-        sudo rm -rf ${CUDA_ROOT}
-    - name: UnInstall OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
-        sudo apt autoremove

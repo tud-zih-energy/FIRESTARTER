@@ -81,24 +81,25 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
     #define HANDLE_TYPE(type) hip##type##_t
     #define DEVICE_PROP struct hipDeviceProp
 #endif
+#define CONCATENATE(a, b) a##b
 
 static const char *_cudaGetErrorEnum(HANDLE_TYPE(blasStatus) error) {
     switch (error) {
-        PREFIX##BLAS_SUCCESS: return "success";
-        PREFIX##BLAS_NOT_INITIALIZED: return "not initialized";
-        PREFIX##BLAS_ALLOC_FAILED: return "alloc failed";
-        PREFIX##BLAS_INVALID_VALUE: return "invalid value";
-        PREFIX##BLAS_ARCH_MISMATCH: return "arch mismatch";
-        PREFIX##BLAS_MAPPING_ERROR: return "mapping error";
-        PREFIX##BLAS_EXECUTION_FAILED: return "execution failed";
-        PREFIX##BLAS_INTERNAL_ERROR: return "internal error";
-        PREFIX##BLAS_NOT_SUPPORTED: return "not supported";
+        CONCATENATE(PREFIX,BLAS_SUCCESS): return "success";
+        CONCATENATE(PREFIX,BLAS_NOT_INITIALIZED): return "not initialized";
+        CONCATENATE(PREFIX,BLAS_ALLOC_FAILED): return "alloc failed";
+        CONCATENATE(PREFIX,BLAS_INVALID_VALUE): return "invalid value";
+        CONCATENATE(PREFIX,BLAS_ARCH_MISMATCH): return "arch mismatch";
+        CONCATENATE(PREFIX,BLAS_MAPPING_ERROR): return "mapping error";
+        CONCATENATE(PREFIX,BLAS_EXECUTION_FAILED): return "execution failed";
+        CONCATENATE(PREFIX,BLAS_INTERNAL_ERROR): return "internal error";
+        CONCATENATE(PREFIX,BLAS_NOT_SUPPORTED): return "not supported";
 #ifdef FS_USE_HIP  // only avail for HIP
-        PREFIX##BLAS_UNKNOWN: return "unknown";
-        PREFIX##BLAS_HANDLE_IS_NULLPTR: return "handle is nullptr";
-        PREFIX##BLAS_INVALID_ENUM: return "invalid enum";
+        CONCATENATE(PREFIX,BLAS_UNKNOWN): return "unknown";
+        CONCATENATE(PREFIX,BLAS_HANDLE_IS_NULLPTR): return "handle is nullptr";
+        CONCATENATE(PREFIX,BLAS_INVALID_ENUM): return "invalid enum";
 #else  // only avail for CUDA
-        PREFIX##BLAS_LICENSE_ERROR: return "license error";
+        CONCATENATE(PREFIX,BLAS_LICENSE_ERROR): return "license error";
 #endif  // end only avail for some arch
         default: return "<unknown>";
     }
