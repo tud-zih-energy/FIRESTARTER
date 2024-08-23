@@ -118,10 +118,9 @@ int AArch64NEONFMAPayload::compilePayload(
   auto shift_reg = std::vector<Gp>({x13, x14, x15, x16, x17, x18, x19, x20});
   auto nr_shift_regs = 8;
   // TODO this should be more advanced
-  auto mul_regs = 3;
-  auto add_regs = 9;
-  auto alt_dst_regs = 3;
-  auto ram_reg = VecV(30);
+  auto mul_regs = 2;
+  auto add_regs = 6;
+  auto loadreg = VecV(15);
 
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
@@ -167,11 +166,8 @@ int AArch64NEONFMAPayload::compilePayload(
   cb.ldr(VecV(0).d2(), ptr(pointer_reg));
   // todo, currently we have 256 bit initialized. this could and should be shrinked
   cb.ldr(VecV(1).d2(), ptr(pointer_reg, 32));
-  cb.ldr(VecV(2).d2(), ptr(pointer_reg, 64));
   auto add_start = mul_regs;
   auto add_end = mul_regs + add_regs - 1;
-  auto trans_start = add_regs + mul_regs;
-  auto trans_end = add_regs + mul_regs + alt_dst_regs - 1;
   if (add_regs > 0) {
     for (int i = add_start; i <= add_end; i++) {
       cb.ldr(VecV(i).d2(), ptr(pointer_reg, 32 * i));
@@ -211,8 +207,6 @@ int AArch64NEONFMAPayload::compilePayload(
   auto shift_pos = 0;
   bool left = false;
   auto add_dest = add_start + 1;
-  auto mov_dst = trans_start;
-  auto mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT_TIMES(n)                                          \
@@ -223,7 +217,6 @@ int AArch64NEONFMAPayload::compilePayload(
     l1_offset = 0;                                                             \
     cb.mov(l1_addr, pointer_reg);                                              \
   }
-
 #define L1_INCREMENT() L1_INCREMENT_TIMES(1)
 
 #define L2_INCREMENT_TIMES(n)                                                 \
@@ -240,41 +233,46 @@ int AArch64NEONFMAPayload::compilePayload(
 
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
-      if (item == "REG") {
-        // TODO wrong order!
-        cb.fmadd(
-            VecD(add_dest).d2(), 
-            VecD(add_dest).d2(), 
-            VecD(0).d2(),
-            VecD(2).d2());
-        cb.eor(
+      if (item == "REG") { 
+        // alternate between
+        // v0, v1, v2 for multiply
+        // v3 ... = v3 ... + v0 * v2
+        // v3 ... = v3 ... + v1 * v2
+//        printf("fmul v%d, v%d, v%d\n",add_dest+add_end-add_start,0,2);
+        cb.fmul(VecD(add_dest+add_end-add_start).d2(),VecD(0).d2(),VecD(2).d2());
+//        cb.mul(VecD(add_dest-add_start+trans_end+1).d2(),VecD((shift_pos + nr_shift_regs - 1) % nr_shift_regs).d2(),VecD(2).d2());
+//        printf("fadd v%d, v%d, v%d\n",add_dest,add_dest,add_dest+add_end-add_start);
+        cb.fadd(VecD(add_dest).d2(), VecD(add_dest).d2(), VecD(add_dest+add_end-add_start).d2());
+//        cb.add(VecD(add_dest).d2(), VecD(add_dest).d2(), VecD(add_dest-add_start+trans_end+1).d2());
+//        printf("eor r%d, r%d, r%d\n",(shift_pos + nr_shift_regs - 1) % nr_shift_regs,(shift_pos + nr_shift_regs - 1) % nr_shift_regs,8);
+       cb.eor(
           shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
           shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
           temp_reg);
         shift_pos++;
       } else if (item == "L1_L") {
-        cb.ldr(VecD(add_dest).d2(), ptr(l1_addr, 32));
+        cb.ldr(VecV(add_dest).d2(), ptr(l1_addr, 32));
         L1_INCREMENT();
       } else if (item == "L1_S") {
-        cb.str(VecD(add_dest).d2(), ptr(l1_addr, 32));
+        cb.str(VecV(add_dest).d2(), ptr(l1_addr, 32));
         L1_INCREMENT();
       } else if (item == "L2_L") {
-        cb.ldr(VecD(add_dest).d2(), ptr(l2_addr, 64));
+        cb.prfm(Imm(1), ptr(l2_addr, 64));
         L2_INCREMENT();
       } else if (item == "L2_S") {
-        cb.str(VecD(add_dest).d2(), ptr(l2_addr, 64));
+        cb.str(VecV(add_dest).d2(), ptr(l2_addr, 64));
         L2_INCREMENT();
       } else if (item == "L3_L") {
-        cb.ldr(VecD(add_dest).d2(), ptr(l3_addr, 64));
+        cb.prfm(Imm(1), ptr(l3_addr, 64));
         L3_INCREMENT();
       } else if (item == "L3_S") {
-        cb.str(VecD(add_dest).d2(), ptr(l3_addr, 64));
+        cb.str(VecV(add_dest).d2(), ptr(l3_addr, 64));
         L3_INCREMENT();
       } else if (item == "RAM_L") {
-        cb.ldr(VecD(add_dest).d2(), ptr(ram_addr, 64));
+        cb.prfm(Imm(1), ptr(ram_addr, 64));
         RAM_INCREMENT();
       } else if (item == "RAM_S") {
-        cb.str(VecD(add_dest).d2(), ptr(ram_addr, 64));
+        cb.str(VecV(add_dest).d2(), ptr(ram_addr, 64));
         RAM_INCREMENT();
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
@@ -284,17 +282,9 @@ int AArch64NEONFMAPayload::compilePayload(
 
       add_dest++;
       if (add_dest > add_end) {
-        // DO NOT REMOVE the + 1. It serves for the good of ymm0. If it was to
+        // DO NOT REMOVE the + 1. It serves for the good of v0. If it was to
         // be overriden, the values in the other registers would rise up to inf.
         add_dest = add_start + 1;
-      }
-      mov_dst++;
-      if (mov_dst > trans_end) {
-        mov_dst = trans_start;
-      }
-      mov_src++;
-      if (mov_src > trans_end) {
-        mov_src = trans_start;
       }
       if (shift_pos == nr_shift_regs) {
         shift_pos = 0;
@@ -383,7 +373,10 @@ int AArch64NEONFMAPayload::compilePayload(
 
   cb.emitEpilog(frame);
 
-  cb.finalize();
+  if (cb.finalize()) {
+    workerLog::error() << "Error when finalizing workload:" << cb.finalize();
+    return EXIT_FAILURE;
+  }
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {
