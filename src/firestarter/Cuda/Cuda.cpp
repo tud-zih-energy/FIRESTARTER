@@ -53,19 +53,6 @@
 
 using namespace firestarter::cuda;
 
-// CUDA error checking
-static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
-                                  const char *file, const int line) {
-  if (cuerr != cudaSuccess && cuerr != 1) {
-    firestarter::log::error()
-        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
-        << " (" << cudaGetErrorString(cuerr)
-        << "), device index: " << dev_index;
-    exit(cuerr);
-  }
-
-  return;
-}
 
 // Check if FS_USE_HIP is defined and set the error prefix accordingly
 #ifndef FS_USE_HIP // CUDA case
@@ -82,6 +69,20 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
     #define DEVICE_PROP struct hipDeviceProp
 #endif
 #define CONCATENATE(a, b) a##b
+
+// CUDA error checking
+static inline void CONCATENATE(PREFIX_LC_LONG,_safe_call)(CONCATENATE(PREFIX_LC_LONG,Error_t) cuerr, int dev_index,
+                                  const char *file, const int line) {
+  if (cuerr != CONCATENATE(PREFIX_LC_LONG,Success) && cuerr != 1) {
+    firestarter::log::error()
+        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
+        << " (" << cudaGetErrorString(cuerr)
+        << "), device index: " << dev_index;
+    exit(cuerr);
+  }
+
+  return;
+}
 
 static const char *_cudaGetErrorEnum(HANDLE_TYPE(blasStatus) error) {
     switch (error) {
@@ -109,7 +110,7 @@ static const char *_cudaGetErrorEnum(HANDLE_TYPE(blasStatus) error) {
 
 static inline void cuda_safe_call(HANDLE_TYPE(blasStatus) cuerr, int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != PREFIX##BLAS_STATUS_SUCCESS) {
+  if (cuerr != CONCATENATE(PREFIX,BLAS_STATUS_SUCCESS)) {
     firestarter::log::error()
         << "CUBLAS error at " << file << ":" << line
         << ": error code = " << cuerr << " (" << _cudaGetErrorEnum(cuerr)
@@ -123,21 +124,21 @@ static inline void cuda_safe_call(HANDLE_TYPE(blasStatus) cuerr, int dev_index,
 
 static const char *_curandGetErrorEnum(HANDLE_TYPE(randStatus) cuerr) {
   switch (cuerr) {
-    PREFIX##RAND_SUCCESS: return "success";
-    PREFIX##RAND_VERSION_MISMATCH: return "version mismatch";
-    PREFIX##RAND_NOT_INITIALIZED: return "not initialized";
-    PREFIX##RAND_ALLOCATION_FAILED: return "alloc failed";
-    PREFIX##RAND_TYPE_ERROR: return "type error";
-    PREFIX##RAND_OUT_OF_RANGE: return "out of range";
-    PREFIX##RAND_LENGTH_NOT_MULTIPLE: return "length not multiple";
-    PREFIX##RAND_DOUBLE_PRECISION_REQUIRED: return "double precision required";
-    PREFIX##RAND_LAUNCH_FAILURE: return "launch failure";
-    PREFIX##RAND_PREEXISTING_FAILURE: return "preexisting failure";
-    PREFIX##RAND_INITIALIZATION_FAILED: return "initialization failed";
-    PREFIX##RAND_ARCH_MISMATCH: return "arch mismatch";
-    PREFIX##RAND_INTERNAL_ERROR: return "internal error";
+    CONCATENATE(PREFIX,RAND_SUCCESS): return "success";
+    CONCATENATE(PREFIX,RAND_VERSION_MISMATCH): return "version mismatch";
+    CONCATENATE(PREFIX,RAND_NOT_INITIALIZED): return "not initialized";
+    CONCATENATE(PREFIX,RAND_ALLOCATION_FAILED): return "alloc failed";
+    CONCATENATE(PREFIX,RAND_TYPE_ERROR): return "type error";
+    CONCATENATE(PREFIX,RAND_OUT_OF_RANGE): return "out of range";
+    CONCATENATE(PREFIX,RAND_LENGTH_NOT_MULTIPLE): return "length not multiple";
+    CONCATENATE(PREFIX,RAND_DOUBLE_PRECISION_REQUIRED): return "double precision required";
+    CONCATENATE(PREFIX,RAND_LAUNCH_FAILURE): return "launch failure";
+    CONCATENATE(PREFIX,RAND_PREEXISTING_FAILURE): return "preexisting failure";
+    CONCATENATE(PREFIX,RAND_INITIALIZATION_FAILED): return "initialization failed";
+    CONCATENATE(PREFIX,RAND_ARCH_MISMATCH): return "arch mismatch";
+    CONCATENATE(PREFIX,RAND_INTERNAL_ERROR): return "internal error";
 #ifdef FS_USE_HIP // only avail for HIP
-    PREFIX##RAND_NOT_IMPLEMENTED: return "not implemented";
+    CONCATENATE(PREFIX,RAND_NOT_IMPLEMENTED: return "not implemented";
 #endif // only avail for HIP
   }
 
@@ -146,7 +147,7 @@ static const char *_curandGetErrorEnum(HANDLE_TYPE(randStatus) cuerr) {
 
 static inline void cuda_safe_call(HANDLE_TYPE(randStatus), int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != PREFIX##RAND_STATUS_SUCCESS) {
+  if (cuerr != CONCATENATE(PREFIX,RAND_STATUS_SUCCESS)) {
     firestarter::log::error()
         << "cuRAND error at " << file << ":" << line
         << ": error code = " << cuerr << " (" << _curandGetErrorEnum(cuerr)
@@ -173,7 +174,7 @@ static int round_up(int num_to_round, int multiple) {
 #if (CUDART_VERSION >= 8000)
 // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
 // workload
-static int get_precision(int useDouble, struct PREFIX_LC_LONG##DeviceProp properties) {
+static int get_precision(int useDouble, struct CONCATENATE(PREFIX_LC_LONG,DeviceProp) properties) {
   if (useDouble == 2 && properties.singleToDoublePrecisionPerfRatio > 3) {
     return 0;
   } else if (useDouble) {
@@ -200,8 +201,8 @@ static int get_precision(int device_index, int useDouble) {
   CUcontext context;
   CUdevice device;
   size_t memory_avail, memory_total;
-  struct PREFIX_LC_LONG##DeviceProp properties;
-  CUDA_SAFE_CALL(PREFIX_LC_LONG##GetDeviceProperties(&properties, device_index),
+  struct CONCATENATE(PREFIX_LC_LONG,DeviceProp) properties;
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
                  device_index);
 
   useDouble = get_precision(useDouble, properties);
@@ -242,32 +243,32 @@ static int get_msize(int device_index, int useDouble) {
       1024); // a multiple of 1024 works always well
 }
 
-static PREFIX_LC##blasStatus_t gemm(PREFIX_LC##blasHandle_t handle, PREFIX_LC##blasOperation_t transa,
-                           PREFIX_LC##blasOperation_t transb, int &m, int &n, int &k,
+static CONCATENATE(PREFIX_LC,blasStatus_t) gemm(CONCATENATE(PREFIX_LC,blasHandle_t) handle, CONCATENATE(PREFIX_LC,blasOperation_t) transa,
+                           CONCATENATE(PREFIX_LC,blasOperation_t) transb, int &m, int &n, int &k,
                            const float *alpha, const float *A, int &lda,
                            const float *B, int &ldb, const float *beta,
                            float *C, int &ldc) {
-  return PREFIX_LC##blasSgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
+  return CONCATENATE(PREFIX_LC,blasSgemm)(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
                      beta, C, ldc);
 }
 
-static PREFIX_LC##blasStatus_t gemm(PREFIX_LC##blasHandle_t handle, PREFIX_LC##blasOperation_t transa,
-                           PREFIX_LC##blasOperation_t transb, int &m, int &n, int &k,
+static CONCATENATE(PREFIX_LC,blasStatus_t) gemm(CONCATENATE(PREFIX_LC,blasHandle_t) handle, CONCATENATE(PREFIX_LC,blasOperation_t) transa,
+                           CONCATENATE(PREFIX_LC,blasOperation_t) transb, int &m, int &n, int &k,
                            const double *alpha, const double *A, int &lda,
                            const double *B, int &ldb, const double *beta,
                            double *C, int &ldc) {
-  return PREFIX_LC##blasDgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
+  return CONCATENATE(PREFIX_LC,blasDgemm)(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
                      beta, C, ldc);
 }
 
-static PREFIX_LC##randStatus_t generateUniform(PREFIX_LC##randGenerator_t generator,
+static CONCATENATE(PREFIX_LC,randStatus_t) generateUniform(CONCATENATE(PREFIX_LC,randGenerator_t) generator,
                                       float *outputPtr, size_t num) {
-  return PREFIX_LC##randGenerateUniform(generator, outputPtr, num);
+  return CONCATENATE(PREFIX_LC,randGenerateUniform)(generator, outputPtr, num);
 }
 
-static PREFIX_LC##randStatus_t generateUniform(PREFIX_LC##randGenerator_t generator,
+static CONCATENATE(PREFIX_LC,randStatus_t) generateUniform(CONCATENATE(PREFIX_LC,randGenerator_t) generator,
                                       double *outputPtr, size_t num) {
-  return PREFIX_LC##randGenerateUniformDouble(generator, outputPtr, num);
+  return CONCATENATE(PREFIX_LC,randGenerateUniformDouble)(generator, outputPtr, num);
 }
 
 // GPU index. Used to pin this thread to the GPU.
@@ -310,16 +311,16 @@ static void create_load(std::condition_variable &waitForInitCv,
   // reserving the GPU and initializing cublas
 
   firestarter::log::trace() << "Getting accelerator device nr. " << device_index;
-  CUDA_SAFE_CALL(PREFIX_LC##DeviceGet(&device, device_index), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,DeviceGet)(&device, device_index), device_index);
 
 #ifndef FS_USE_HIP
   firestarter::log::trace() << "Creating CUDA context for computation on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(PREFIX_LC##CtxCreate(&context, 0, device), device_index);
+  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
 
   firestarter::log::trace() << "Set created CUDA context on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(PREFIX_LC##CtxSetCurrent(context), device_index);
+  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
 #else
   firestarter::log::trace() << "Set HIP device for computation on device nr. "
                      << device_index;
@@ -330,17 +331,17 @@ static void create_load(std::condition_variable &waitForInitCv,
 #endif
   firestarter::log::trace() << "Create BLAS on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(PREFIX_LC##blasCreate(&cublas), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,blasCreate)(&cublas), device_index);
 
   firestarter::log::trace() << "Get accelerator device properties (e.g., support for double)"
                      << " on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(PREFIX_LC_LONG##GetDeviceProperties(&properties, device_index),
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
                  device_index);
 
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
-  CUDA_SAFE_CALL(PREFIX_LC_LONG##MemGetInfo(&memory_avail, &memory_total), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC_LONG,MemGetInfo)(&memory_avail, &memory_total), device_index);
 
   firestarter::log::trace() << "Get accelerator Memory info on device nr. "
                      << device_index
@@ -374,9 +375,9 @@ static void create_load(std::condition_variable &waitForInitCv,
       << device_index;
 
   // allocating memory on the GPU
-  CUDA_SAFE_CALL(PREFIX_LC##MemAlloc(&a_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##MemAlloc(&b_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##MemAlloc(&c_data_ptr, iterations * memory_size),
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemAlloc)(&a_data_ptr, memory_size), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemAlloc)(&b_data_ptr, memory_size), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemAlloc)(&c_data_ptr, iterations * memory_size),
                  device_index);
 
   firestarter::log::trace() << "Allocated accelerator memory on device nr. "
@@ -403,10 +404,10 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << " elements of size "
                             << sizeof(T) << " Byte";
   // initialize matrix A and B on the GPU with random values
-  PREFIX_LC##randGenerator_t random_gen;
-  CUDA_SAFE_CALL(PREFIX_LC##randCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
+  CONCATENATE(PREFIX_LC,randGenerator_t) random_gen;
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,randCreateGenerator)(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
                  device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##randSetPseudoRandomGeneratorSeed(random_gen, SEED),
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,randSetPseudoRandomGeneratorSeed)(random_gen, SEED),
                  device_index);
   CUDA_SAFE_CALL(
       generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use),
@@ -414,7 +415,7 @@ static void create_load(std::condition_variable &waitForInitCv,
   CUDA_SAFE_CALL(
       generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use),
       device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##randDestroyGenerator(random_gen), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,randDestroyGenerator)(random_gen), device_index);
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
@@ -427,7 +428,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                                 << " to "
                                 << c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr))
                                 << "\n";
-    CUDA_SAFE_CALL(PREFIX_LC##MemcpyDtoD(c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)),
+    CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemcpyDtoD)(c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)),
                                 a_data_ptr, memory_size),
                    device_index);
   }
@@ -459,19 +460,19 @@ static void create_load(std::condition_variable &waitForInitCv,
   // actual stress begins here
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      CUDA_SAFE_CALL(gemm(PREFIX_LC##blas, PREFIX##BLAS_OP_N, PREFIX##BLAS_OP_N, size_use_i, size_use_i,
+      CUDA_SAFE_CALL(gemm(PCONCATENATE(PREFIX_LC,blas), CONCATENATE(PREFIX,BLAS_OP_N), CONCATENATE(PREFIX,BLAS_OP_N), size_use_i, size_use_i,
                           size_use_i, &alpha, (const T *)a_data_ptr, size_use_i,
                           (const T *)b_data_ptr, size_use_i, &beta,
                           (T *)c_data_ptr + i * size_use * size_use, size_use_i),
                      device_index);
-      CUDA_SAFE_CALL(PREFIX_LC_LONG##DeviceSynchronize(), device_index);
+      CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC_LONG,DeviceSynchronize)(), device_index);
     }
   }
 
-  CUDA_SAFE_CALL(PREFIX_LC##MemFree(a_data_ptr), device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##MemFree(b_data_ptr), device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##MemFree(c_data_ptr), device_index);
-  CUDA_SAFE_CALL(PREFIX_LC##blasDestroy(cublas), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemFree)(a_data_ptr), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemFree)(b_data_ptr), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,MemFree)(c_data_ptr), device_index);
+  CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,blasDestroy)(cublas), device_index);
 #ifndef FS_USE_HIP // CUDA
   CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
 #else // HIP
@@ -497,9 +498,9 @@ void Cuda::initGpus(std::condition_variable &cv,
   std::mutex waitForInitCvMutex;
 
   if (gpus) {
-    CUDA_SAFE_CALL(PREFIX_LC##Init(0), -1);
+    CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,Init)(0), -1);
     int devCount;
-    CUDA_SAFE_CALL(PREFIX_LC##DeviceGetCount(&devCount), -1);
+    CUDA_SAFE_CALL(CONCATENATE(PREFIX_LC,DeviceGetCount)(&devCount), -1);
 
     if (devCount) {
       std::vector<std::thread> gpuThreads;
