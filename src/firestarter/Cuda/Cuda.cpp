@@ -72,10 +72,14 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
     #define PREFIX CU
     #define PREFIX_LC cu
     #define PREFIX_LC_LONG cuda
+    #define HANDLE_TYPE(type) cu##type##_t
+    #define DEVICE_PROP struct cudaDeviceProp
 #else // HIP case
     #define PREFIX HIP
     #define PREFIX_LC hip
     #define PREFIX_LC_LONG hip
+    #define HANDLE_TYPE(type) hip##type##_t
+    #define DEVICE_PROP struct hipDeviceProp
 #endif
 
 // Define a macro to create the full error code with the appropriate prefix
@@ -85,7 +89,7 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
 #define SOME_ERROR_CASE(class, error) \
     case SOME_ERROR(class,error): return #error;
 
-static const char *_cudaGetErrorEnum(PREFIX_LC##blasStatus_t error) {
+static const char *_cudaGetErrorEnum(HANDLE_TYPE(blasStatus) error) {
     switch (error) {
         SOME_ERROR_CASE(BLAS,SUCCESS)
         SOME_ERROR_CASE(BLAS,NOT_INITIALIZED)
@@ -109,7 +113,7 @@ static const char *_cudaGetErrorEnum(PREFIX_LC##blasStatus_t error) {
   return "<unknown>";
 }
 
-static inline void cuda_safe_call(PREFIX_LC##blasStatus_t cuerr, int dev_index,
+static inline void cuda_safe_call(HANDLE_TYPE(blasStatus) cuerr, int dev_index,
                                   const char *file, const int line) {
   if (cuerr != PREFIX##BLAS_STATUS_SUCCESS) {
     firestarter::log::error()
@@ -123,7 +127,7 @@ static inline void cuda_safe_call(PREFIX_LC##blasStatus_t cuerr, int dev_index,
 }
 
 
-static const char *_curandGetErrorEnum(PREFIX_LC##randStatus_t cuerr) {
+static const char *_curandGetErrorEnum(HANDLE_TYPE(randStatus) cuerr) {
   switch (cuerr) {
     SOME_ERROR_CASE(RAND, SUCCESS)
     SOME_ERROR_CASE(RAND, VERSION_MISMATCH)
@@ -146,7 +150,7 @@ static const char *_curandGetErrorEnum(PREFIX_LC##randStatus_t cuerr) {
   return "<unknown>";
 }
 
-static inline void cuda_safe_call(PREFIX_LC##randStatus_t cuerr, int dev_index,
+static inline void cuda_safe_call(HANDLE_TYPE(randStatus), int dev_index,
                                   const char *file, const int line) {
   if (cuerr != PREFIX##RAND_STATUS_SUCCESS) {
     firestarter::log::error()
@@ -186,7 +190,7 @@ static int get_precision(int useDouble, struct PREFIX_LC_LONG##DeviceProp proper
 }
 #else
 // as precision ratio is not supported return default/user input value
-static int get_precision(int useDouble, struct PREFIX_LC_LONG##DeviceProp properties) {
+static int get_precision(int useDouble, DEVICE_PROP properties) {
   (void)properties;
 
   if (useDouble) {
