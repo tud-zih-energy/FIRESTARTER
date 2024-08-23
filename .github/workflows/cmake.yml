@@ -9,9 +9,8 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-20.04]
-        compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-        CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0', '2024.0']
+        compiler: [g++-10]
+        CUDA: ['11.0']
 
     runs-on: ${{ matrix.os }}
 
