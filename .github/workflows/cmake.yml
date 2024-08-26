@@ -49,7 +49,7 @@ jobs:
         export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
         export LD_LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
         export LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LIBRARY_PATH}
-        export HIPÜ_LIB_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs
+        export HIP_LIB_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs
         export PATH=${HIP_ROOT}:${PATH}
         export HIP_HOME=${HIP_ROOT}
         export HIP_PATH=${HIP_ROOT}
