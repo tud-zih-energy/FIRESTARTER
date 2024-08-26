@@ -41,6 +41,35 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		)
 endif()
 
+if("${FIRESTARTER_TRACING}" STREQUAL "None")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+		firestarter/Tracing/NoTracing.cpp
+	)
+elseif("${FIRESTARTER_TRACING}" STREQUAL "Logger")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+		firestarter/Tracing/LogTracing.cpp
+	)
+elseif("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+		firestarter/Tracing/ScoreP.cpp
+	)
+	#todo find folder
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCOREP_USER_ENABLE")
+	#todo link scorep
+elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
+	SET(FIRESTARTER_FILES 
+		${FIRESTARTER_FILES}
+		firestarter/Tracing/VampirTrace.cpp
+	)
+	#todo find folder
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVTRACE")
+	#todo link vt user
+endif()
+
+
 SET(FIRESTARTER_LINK_LIBRARIES
 	)
 
