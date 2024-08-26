@@ -176,6 +176,8 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		target_link_libraries(FIRESTARTER_HIP
 		hip
 		-ldl)
+	endif()
+	
 
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
