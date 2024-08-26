@@ -350,7 +350,7 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
                         1024); // a multiple of 1024 works always well
   }
-  firestarter::log::trace() << "Set CUDA matrix size: " << matrixSize;
+  firestarter::log::trace() << "Set CUDA matrix size: " << size_use;
   use_bytes = (size_t)((T)memory_avail);
   memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
@@ -359,11 +359,9 @@ static void create_load(std::condition_variable &waitForInitCv,
       << "Allocating CUDA memory on device nr. "
       << device_index;
 
+  firestarter::log::trace() << "Set CUDA memory size: " << memory_size;
   // allocating memory on the GPU
   CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
-                 device_index);
 
   firestarter::log::trace() << "Allocated CUDA memory on device nr. "
                      << device_index
@@ -371,11 +369,19 @@ static void create_load(std::condition_variable &waitForInitCv,
                      << memory_size << "B)"
                      << "\n";
 
+  CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
   firestarter::log::trace() << "Allocated CUDA memory on device nr. "
                      << device_index
                      <<". B: " << b_data_ptr << "(Size: "
                      << memory_size << "B)"
                      << "\n";
+  auto alloc_c_ret = cuMemAlloc(&c_data_ptr, iterations * memory_size);
+  /* try less iterations */
+  if (alloc_c_ret != CUDA_SUCCESS) {
+    iterations *= 9;
+    iterations /= 10;
+    CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size), device_index);
+  }
   firestarter::log::trace() << "Allocated CUDA memory on device nr. "
                      << device_index
                      <<". C: " << c_data_ptr << "(Size: "
