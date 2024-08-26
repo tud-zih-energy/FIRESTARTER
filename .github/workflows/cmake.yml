@@ -73,6 +73,8 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      CUDA_ROOT: '/usr/local/cuda'
 #kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
     steps:
     - name: Try to clean up some things
