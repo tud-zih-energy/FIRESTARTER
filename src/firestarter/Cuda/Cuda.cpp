@@ -608,7 +608,13 @@ void Cuda::initGpus(std::condition_variable &cv,
   if (gpus) {
     ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,Init)(0), -1);
     int devCount;
-    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,DeviceGetCount)(&devCount), -1);
+#ifdef FIRESTARTER_BUILD_CUDA
+    ACCELL_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
+#else
+#ifdef FIRESTARTER_BUILD_HIP
+    ACCELL_SAFE_CALL(hipGetDeviceCount(&devCount), -1);
+#endif
+#endif
 
     if (devCount) {
       std::vector<std::thread> gpuThreads;
