@@ -41,6 +41,10 @@ jobs:
             sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
             ;;
         esac
+
+    - name: Create build directory
+      run: |
+          mkdir build
     - name: Run CMake configure (HIP)
       if: matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       env:
