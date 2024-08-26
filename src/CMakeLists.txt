@@ -173,8 +173,8 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	if (! "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		target_link_libraries(FIRESTARTER_CUDA
-		cuda
+		target_link_libraries(FIRESTARTER_HIP
+		hip
 		-ldl)
 
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
