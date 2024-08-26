@@ -3,6 +3,65 @@ name: Build
 on: [push, pull_request]
 
 jobs:
+
+  build-linux-hip-rocm:
+    strategy:
+#      max-parallel: 1 # Sets the limit of jobs to run concurrently
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [g++-10]
+        HIP: ['6.2']
+    runs-on: ${{ matrix.os }}
+
+    env:
+      HIP_ROOT: '/opt/rocm'
+
+
+    steps:
+    - name: Try to clean up some things
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - name: Install HIP runtime (if needed)
+      if: matrix.HIP != '0' && matrix.ONEAPI == 0 && matrix.VUDA == 0
+      run: |
+        case ${{ matrix.HIP }} in
+          6.2)
+            wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb
+            sudo apt install ./amdgpu-install_6.2.60200-1_all.deb
+            sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
+            ;;
+        esac
+    - name: Run CMake configure (HIP)
+      if: matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
+        export LD_LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LIBRARY_PATH}
+        export HIPÜ_LIB_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs
+        export PATH=${HIP_ROOT}:${PATH}
+        export HIP_HOME=${HIP_ROOT}
+        export HIP_PATH=${HIP_ROOT}
+        export HIPToolkit_ROOT=${HIP_ROOT}
+
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
+    - name: Build (default, CUDA, HIP)
+      if: matrix.ONEAPI =='0'
+      run: |
+        cd build
+        make -j2
   build-linux:
     strategy:
 #      max-parallel: 1 # Sets the limit of jobs to run concurrently
@@ -13,9 +72,6 @@ jobs:
         CUDA: ['11.0']
 
     runs-on: ${{ matrix.os }}
-
-    env:
-      CUDA_ROOT: '/usr/local/cuda'
 
 #kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
     steps:
