@@ -554,7 +554,7 @@ static void create_load(std::condition_variable &waitForInitCv,
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
       ACCELL_SAFE_CALL(gemm(
-                          CONCAT(FS_ACCEL_PREFIX_LC,blas),
+                          cublas,
                           CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
                           CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
                           size_use_i, size_use_i,
@@ -573,10 +573,9 @@ static void create_load(std::condition_variable &waitForInitCv,
   ACCELL_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
 #else
 #ifdef FIRESTARTER_BUILD_HIP
-  ACCELL_SAFE_CALL(hipFree(&a_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(hipFree(&b_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(hipFree(&c_data_ptr, iterations * memory_size),
-                 device_index);
+  ACCELL_SAFE_CALL(hipFree(a_data_ptr), device_index);
+  ACCELL_SAFE_CALL(hipFree(b_data_ptr), device_index);
+  ACCELL_SAFE_CALL(hipFree(c_data_ptr), device_index);
 #endif
 #endif
   ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasDestroy)(cublas), device_index);
@@ -607,9 +606,9 @@ void Cuda::initGpus(std::condition_variable &cv,
   std::mutex waitForInitCvMutex;
 
   if (gpus) {
-    ACCELL_SAFE_CALL(cuInit(0), -1);
+    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,Init)(0), -1);
     int devCount;
-    ACCELL_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
+    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,DeviceGetCount)(&devCount), -1);
 
     if (devCount) {
       std::vector<std::thread> gpuThreads;
