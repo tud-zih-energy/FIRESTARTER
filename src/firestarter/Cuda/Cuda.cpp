@@ -30,8 +30,7 @@
 #include <firestarter/LoadWorkerData.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#define FIRESTARTER_USE_CUDA 1
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   #include <cublas_v2.h>
   #include <cuda.h>
   #include <cuda_runtime_api.h>
@@ -42,7 +41,7 @@
   #define FS_ACCEL_PREFIX_UC_LONG CUDA
   #define FS_ACCEL_STRING "CUDA"
 #else
-  #ifdef FIRESTARTER_USE_HIP
+  #ifdef FIRESTARTER_BUILD_HIP
     #include <hipblas/hipblas.h>
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
@@ -107,11 +106,11 @@ static const char *_accellGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) e
     return FS_ACCEL_STRING"blas status: internal error";
   case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_NOT_SUPPORTED):
     return FS_ACCEL_STRING"blas status: not supported";
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_LICENSE_ERROR):
     return FS_ACCEL_STRING"blas status: license error";
 #endif
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
     case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_UNKNOWN):
       return FS_ACCEL_STRING"blas status: unknown";
     case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_HANDLE_IS_NULLPTR):
@@ -182,7 +181,7 @@ static const char *_accellrandGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_
       return FS_ACCEL_STRING"rand status: arch mismatch";
     case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_INTERNAL_ERROR):
       return FS_ACCEL_STRING"rand status: internal error";
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_NOT_IMPLEMENTED):
       return FS_ACCEL_STRING"rand status: not implemented";
 #endif
@@ -217,10 +216,10 @@ static int round_up(int num_to_round, int multiple) {
   return num_to_round + multiple - remainder;
 }
 
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
 static int get_precision(int useDouble, struct cudaDeviceProp properties) {
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
 static int get_precision(int useDouble, struct hipDeviceProp_t properties) {
 #endif
 #endif
@@ -249,7 +248,7 @@ static int get_precision(int useDouble, struct hipDeviceProp_t properties) {
 
 static int get_precision(int device_index, int useDouble) {
   size_t memory_avail, memory_total;
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   CUcontext context;
   CUdevice device;
   struct cudaDeviceProp properties;
@@ -257,7 +256,7 @@ static int get_precision(int device_index, int useDouble) {
   ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
   ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   struct hipDeviceProp_t properties;
   ACCELL_SAFE_CALL(hipSetDevice(device_index), device_index);
 #endif
@@ -284,14 +283,14 @@ static int get_precision(int device_index, int useDouble) {
     useDouble = 0;
   }
 
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   ACCELL_SAFE_CALL(cuCtxDestroy(context), device_index);
 #endif
 
   return useDouble;
 }
 
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
 static int get_msize(int device_index, int useDouble) {
   CUcontext context;
   CUdevice device;
@@ -370,13 +369,13 @@ static void create_load(std::condition_variable &waitForInitCv,
   }
 
   size_t use_bytes, memory_size;
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   CUcontext context;
   struct cudaDeviceProp properties;
   CUdevice device;
   cublasHandle_t cublas;
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   hipStream_t stream;
   struct hipDeviceProp_t properties;
   hipDevice_t device;
@@ -388,7 +387,7 @@ static void create_load(std::condition_variable &waitForInitCv,
   firestarter::log::trace() << "Getting " FS_ACCEL_STRING " device nr. " << device_index;
   ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,DeviceGet)(&device, device_index), device_index);
 
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   firestarter::log::trace() << "Creating " FS_ACCEL_STRING " context for computation on device nr. "
                      << device_index;
   ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
@@ -397,7 +396,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                      << device_index;
   ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   firestarter::log::trace() << "Creating " FS_ACCEL_STRING " Stream for computation on device nr. "
                      << device_index;
   CUDA_SAFE_CALL(hipSetDevice(device_index), device_index);
@@ -425,12 +424,12 @@ static void create_load(std::condition_variable &waitForInitCv,
                      << memory_total << " B total";
 
   // defining memory pointers
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   CUdeviceptr a_data_ptr;
   CUdeviceptr b_data_ptr;
   CUdeviceptr c_data_ptr;
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   T* a_data_ptr;
   T* b_data_ptr;
   T* c_data_ptr;
@@ -453,13 +452,13 @@ static void create_load(std::condition_variable &waitForInitCv,
       << device_index;
 
   // allocating memory on the GPU
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   ACCELL_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
                  device_index);
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   ACCELL_SAFE_CALL(hipMalloc(&a_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(hipMalloc(&b_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(hipMalloc(&c_data_ptr, iterations * memory_size),
@@ -566,12 +565,12 @@ static void create_load(std::condition_variable &waitForInitCv,
     }
   }
 
-#ifdef FIRESTARTER_USE_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA
   ACCELL_SAFE_CALL(cuMemFree(a_data_ptr), device_index);
   ACCELL_SAFE_CALL(cuMemFree(b_data_ptr), device_index);
   ACCELL_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
 #else
-#ifdef FIRESTARTER_USE_HIP
+#ifdef FIRESTARTER_BUILD_HIP
   ACCELL_SAFE_CALL(hipFree(&a_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(hipFree(&b_data_ptr, memory_size), device_index);
   ACCELL_SAFE_CALL(hipFree(&c_data_ptr, iterations * memory_size),

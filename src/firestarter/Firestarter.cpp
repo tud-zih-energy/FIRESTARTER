@@ -314,7 +314,7 @@ Firestarter::Firestarter(
 }
 
 Firestarter::~Firestarter() {
-#ifdef FIRESTARTER_BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA || defined(FIRESTARTER_BUILD_HIP)
   _cuda.reset();
 #endif
 #ifdef FIRESTARTER_BUILD_ONEAPI
@@ -327,7 +327,7 @@ Firestarter::~Firestarter() {
 void Firestarter::mainThread() {
   this->environment().printThreadSummary();
 
-#ifdef FIRESTARTER_BUILD_CUDA
+#ifdef FIRESTARTER_BUILD_CUDA || defined(FIRESTARTER_BUILD_HIP)
   _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
                                        _gpuUseDouble, _gpuMatrixSize, _gpus);
 #endif
