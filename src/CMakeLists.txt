@@ -172,6 +172,11 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		roc::hipblas
 		)
 
+	if (! "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(FIRESTARTER_CUDA
+		cuda
+		-ldl)
+
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
