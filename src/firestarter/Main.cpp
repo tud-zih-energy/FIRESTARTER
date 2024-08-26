@@ -367,7 +367,7 @@ Config::Config(int argc, const char **argv) {
     }
 #endif
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI)
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
     gpuUseFloat = options.count("usegpufloat");
     gpuUseDouble = options.count("usegpudouble");
 
