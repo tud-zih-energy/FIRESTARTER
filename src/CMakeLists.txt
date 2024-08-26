@@ -172,7 +172,7 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		roc::hipblas
 		)
 
-	if (! "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+	if ("${CMAKE_CXX_COMPILER_ID}" NOT STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_HIP
 		hip
 		-ldl)
