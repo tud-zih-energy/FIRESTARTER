@@ -137,6 +137,7 @@ static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) cuer
   return;
 }
 
+#ifdef FIRESTARTER_BUILD_CUDA
 static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_UC,result) cuerr, int dev_index,
                                   const char *file, const int line) {
   if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC_LONG,_SUCCESS)) {
@@ -152,6 +153,7 @@ static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_UC,result) cuerr, int
 
   return;
 }
+#endif
 
 static const char *_accellrandGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) cuerr) {
   switch (cuerr) {
@@ -399,8 +401,8 @@ static void create_load(std::condition_variable &waitForInitCv,
 #ifdef FIRESTARTER_BUILD_HIP
   firestarter::log::trace() << "Creating " FS_ACCEL_STRING " Stream for computation on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(hipSetDevice(device_index), device_index);
-  CUDA_SAFE_CALL(hipStreamCreate(&stream), device_index);
+  ACCELL_SAFE_CALL(hipSetDevice(device_index), device_index);
+  ACCELL_SAFE_CALL(hipStreamCreate(&stream), device_index);
 #endif
 #endif
 
@@ -490,7 +492,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << " elements of size "
                             << sizeof(T) << " Byte";
   // initialize matrix A and B on the GPU with random values
-  curandGenerator_t random_gen;
+  CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) random_gen;
   ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randCreateGenerator)(
                               &random_gen,
                               CONCAT(FS_ACCEL_PREFIX_UC,RAND_RNG_PSEUDO_DEFAULT)),
@@ -578,7 +580,13 @@ static void create_load(std::condition_variable &waitForInitCv,
 #endif
 #endif
   ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasDestroy)(cublas), device_index);
+#ifdef FIRESTARTER_BUILD_CUDA
   ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,CtxDestroy)(context), device_index);
+#else
+#ifdef FIRESTARTER_BUILD_HIP
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,StreamDestroy)(stream), device_index);
+#endif
+#endif
 }
 
 Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
