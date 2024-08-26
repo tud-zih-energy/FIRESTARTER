@@ -30,28 +30,56 @@
 #include <firestarter/LoadWorkerData.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <cublas_v2.h>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#include <curand_kernel.h>
+#define FIRESTARTER_USE_CUDA 1
+#ifdef FIRESTARTER_USE_CUDA
+  #include <cublas_v2.h>
+  #include <cuda.h>
+  #include <cuda_runtime_api.h>
+  #include <curand_kernel.h>
+  #define FS_ACCEL_PREFIX_LC_LONG cuda
+  #define FS_ACCEL_PREFIX_LC cu
+  #define FS_ACCEL_PREFIX_UC CU
+  #define FS_ACCEL_PREFIX_UC_LONG CUDA
+  #define FS_ACCEL_STRING "CUDA"
+#else
+  #ifdef FIRESTARTER_USE_HIP
+    #include <hipblas/hipblas.h>
+    #include <hip/hip_runtime.h>
+    #include <hip/hip_runtime_api.h>
+    #include <hiprand_kernel.h>
+  #define FS_ACCEL_PREFIX_LC_LONG hip
+  #define FS_ACCEL_PREFIX_LC hip
+  #define FS_ACCEL_PREFIX_UC HIP
+  #define FS_ACCEL_PREFIX_UC_LONG HIP
+  #define FS_ACCEL_STRING "HIP"
+  #else
+    #error "Attempting to compile file but neither CUDA nor HIP is used"
+  #endif
+#endif
+#define CONCAT_(prefix, suffix) prefix##suffix
+/// Concatenate `prefix, suffix` into `prefixsuffix`
+#define CONCAT(prefix, suffix) CONCAT_(prefix, suffix)
+//#define FS_ACCEL_ERROR_TYPE CONCAT(FS_ACCEL_PREFIX_LC_LONG,Error_t)
+//#define FS_ACCEL_BLAS_STATUS_TYPE cublasStatus_t
+//#define FS_ACCEL_RAND_STATUS_TYPE curandStatus_t
 
 #include <algorithm>
 #include <atomic>
 #include <type_traits>
 
-#define CUDA_SAFE_CALL(cuerr, dev_index)                                       \
-  cuda_safe_call(cuerr, dev_index, __FILE__, __LINE__)
+#define ACCELL_SAFE_CALL(cuerr, dev_index)                                       \
+  accell_safe_call(cuerr, dev_index, __FILE__, __LINE__)
 #define SEED 123
 
 using namespace firestarter::cuda;
 
 // CUDA error checking
-static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
+static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC_LONG,Error_t) cuerr, int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != cudaSuccess && cuerr != 1) {
+  if (cuerr != CONCAT(FS_ACCEL_PREFIX_LC_LONG,Success) && cuerr != 1) {
     firestarter::log::error()
-        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
-        << " (" << cudaGetErrorString(cuerr)
+        << FS_ACCEL_STRING" error at " << file << ":" << line << ": error code = " << cuerr
+        << " (" << CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetErrorString)(cuerr)
         << "), device index: " << dev_index;
     exit(cuerr);
   }
@@ -59,39 +87,50 @@ static inline void cuda_safe_call(cudaError_t cuerr, int dev_index,
   return;
 }
 
-static const char *_cudaGetErrorEnum(cublasStatus_t error) {
+static const char *_accellGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) error) {
   switch (error) {
-  case CUBLAS_STATUS_SUCCESS:
-    return "CUBLAS_STATUS_SUCCESS";
-  case CUBLAS_STATUS_NOT_INITIALIZED:
-    return "CUBLAS_STATUS_NOT_INITIALIZED";
-  case CUBLAS_STATUS_ALLOC_FAILED:
-    return "CUBLAS_STATUS_ALLOC_FAILED";
-  case CUBLAS_STATUS_INVALID_VALUE:
-    return "CUBLAS_STATUS_INVALID_VALUE";
-  case CUBLAS_STATUS_ARCH_MISMATCH:
-    return "CUBLAS_STATUS_ARCH_MISMATCH";
-  case CUBLAS_STATUS_MAPPING_ERROR:
-    return "CUBLAS_STATUS_MAPPING_ERROR";
-  case CUBLAS_STATUS_EXECUTION_FAILED:
-    return "CUBLAS_STATUS_EXECUTION_FAILED";
-  case CUBLAS_STATUS_INTERNAL_ERROR:
-    return "CUBLAS_STATUS_INTERNAL_ERROR";
-  case CUBLAS_STATUS_NOT_SUPPORTED:
-    return "CUBLAS_STATUS_NOT_SUPPORTED";
-  case CUBLAS_STATUS_LICENSE_ERROR:
-    return "CUBLAS_STATUS_LICENSE_ERROR";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_SUCCESS):
+    return FS_ACCEL_STRING"blas status: success";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_NOT_INITIALIZED):
+    return FS_ACCEL_STRING"blas status: not initialized";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_ALLOC_FAILED):
+    return FS_ACCEL_STRING"blas status: alloc failed";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INVALID_VALUE):
+    return FS_ACCEL_STRING"blas status: invalid value";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_ARCH_MISMATCH):
+    return FS_ACCEL_STRING"blas status: arch mismatch";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_MAPPING_ERROR):
+    return FS_ACCEL_STRING"blas status: mapping error";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_EXECUTION_FAILED):
+    return FS_ACCEL_STRING"blas status: execution failed";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INTERNAL_ERROR):
+    return FS_ACCEL_STRING"blas status: internal error";
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_NOT_SUPPORTED):
+    return FS_ACCEL_STRING"blas status: not supported";
+#ifdef FIRESTARTER_USE_CUDA
+  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_LICENSE_ERROR):
+    return FS_ACCEL_STRING"blas status: license error";
+#endif
+#ifdef FIRESTARTER_USE_HIP
+    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_UNKNOWN):
+      return FS_ACCEL_STRING"blas status: unknown";
+    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_HANDLE_IS_NULLPTR):
+      return FS_ACCEL_STRING"blas status: handle is null pointer";
+    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INVALID_ENUM):
+      return FS_ACCEL_STRING"blas status: invalid enum";
+#endif
   }
+
 
   return "<unknown>";
 }
 
-static inline void cuda_safe_call(cublasStatus_t cuerr, int dev_index,
+static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) cuerr, int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != CUBLAS_STATUS_SUCCESS) {
+  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_SUCCESS)) {
     firestarter::log::error()
-        << "CUBLAS error at " << file << ":" << line
-        << ": error code = " << cuerr << " (" << _cudaGetErrorEnum(cuerr)
+        << FS_ACCEL_STRING"BLAS error at " << file << ":" << line
+        << ": error code = " << cuerr << " (" << _accellGetErrorEnum(cuerr)
         << "), device index: " << dev_index;
     exit(cuerr);
   }
@@ -99,15 +138,15 @@ static inline void cuda_safe_call(cublasStatus_t cuerr, int dev_index,
   return;
 }
 
-static inline void cuda_safe_call(CUresult cuerr, int dev_index,
+static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_UC,result) cuerr, int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != CUDA_SUCCESS) {
+  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC_LONG,_SUCCESS)) {
     const char *errorString;
 
-    CUDA_SAFE_CALL(cuGetErrorName(cuerr, &errorString), dev_index);
+    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,GetErrorName)(cuerr, &errorString), dev_index);
 
     firestarter::log::error()
-        << "CUDA error at " << file << ":" << line << ": error code = " << cuerr
+        << FS_ACCEL_STRING" error at " << file << ":" << line << ": error code = " << cuerr
         << " (" << errorString << "), device index: " << dev_index;
     exit(cuerr);
   }
@@ -115,45 +154,49 @@ static inline void cuda_safe_call(CUresult cuerr, int dev_index,
   return;
 }
 
-static const char *_curandGetErrorEnum(curandStatus_t cuerr) {
+static const char *_accellrandGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) cuerr) {
   switch (cuerr) {
-  case CURAND_STATUS_SUCCESS:
-    return "CURAND_STATUS_SUCCESS";
-  case CURAND_STATUS_VERSION_MISMATCH:
-    return "CURAND_STATUS_VERSION_MISMATCH";
-  case CURAND_STATUS_NOT_INITIALIZED:
-    return "CURAND_STATUS_NOT_INITIALIZED";
-  case CURAND_STATUS_ALLOCATION_FAILED:
-    return "CURAND_STATUS_ALLOCATION_FAILED";
-  case CURAND_STATUS_TYPE_ERROR:
-    return "CURAND_STATUS_TYPE_ERROR";
-  case CURAND_STATUS_OUT_OF_RANGE:
-    return "CURAND_STATUS_OUT_OF_RANGE";
-  case CURAND_STATUS_LENGTH_NOT_MULTIPLE:
-    return "CURAND_STATUS_LENGTH_NOT_MULTIPLE";
-  case CURAND_STATUS_DOUBLE_PRECISION_REQUIRED:
-    return "CURAND_STATUS_DOUBLE_PRECISION_REQUIRED";
-  case CURAND_STATUS_LAUNCH_FAILURE:
-    return "CURAND_STATUS_LAUNCH_FAILURE";
-  case CURAND_STATUS_PREEXISTING_FAILURE:
-    return "CURAND_STATUS_PREEXISTING_FAILURE";
-  case CURAND_STATUS_INITIALIZATION_FAILED:
-    return "CURAND_STATUS_INITIALIZATION_FAILED";
-  case CURAND_STATUS_ARCH_MISMATCH:
-    return "CURAND_STATUS_ARCH_MISMATCH";
-  case CURAND_STATUS_INTERNAL_ERROR:
-    return "CURAND_STATUS_INTERNAL_ERROR";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_SUCCESS):
+      return FS_ACCEL_STRING"rand status: success";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_VERSION_MISMATCH):
+      return FS_ACCEL_STRING"rand status: version mismatch";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_NOT_INITIALIZED):
+      return FS_ACCEL_STRING"rand status: not initialized";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_ALLOCATION_FAILED):
+      return FS_ACCEL_STRING"rand status: allocation failed";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_TYPE_ERROR):
+      return FS_ACCEL_STRING"rand status: type error";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_OUT_OF_RANGE):
+      return FS_ACCEL_STRING"rand status: out of range";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_LENGTH_NOT_MULTIPLE):
+      return FS_ACCEL_STRING"rand status: length not multiple";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_DOUBLE_PRECISION_REQUIRED):
+      return FS_ACCEL_STRING"rand status: double precision required";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_LAUNCH_FAILURE):
+      return FS_ACCEL_STRING"rand status: launch failure";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_PREEXISTING_FAILURE):
+      return FS_ACCEL_STRING"rand status: preexisting failure";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_INITIALIZATION_FAILED):
+      return FS_ACCEL_STRING"rand status: initialization failed";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_ARCH_MISMATCH):
+      return FS_ACCEL_STRING"rand status: arch mismatch";
+    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_INTERNAL_ERROR):
+      return FS_ACCEL_STRING"rand status: internal error";
+#ifdef FIRESTARTER_USE_HIP
+  case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_NOT_IMPLEMENTED):
+      return FS_ACCEL_STRING"rand status: not implemented";
+#endif
   }
 
   return "<unknown>";
 }
 
-static inline void cuda_safe_call(curandStatus_t cuerr, int dev_index,
+static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) cuerr, int dev_index,
                                   const char *file, const int line) {
-  if (cuerr != CURAND_STATUS_SUCCESS) {
+  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_SUCCESS)) {
     firestarter::log::error()
-        << "cuRAND error at " << file << ":" << line
-        << ": error code = " << cuerr << " (" << _curandGetErrorEnum(cuerr)
+        << FS_ACCEL_STRING"RAND error at " << file << ":" << line
+        << ": error code = " << cuerr << " (" << _accellrandGetErrorEnum(cuerr)
         << "), device index: " << dev_index;
     exit(cuerr);
   }
@@ -174,10 +217,16 @@ static int round_up(int num_to_round, int multiple) {
   return num_to_round + multiple - remainder;
 }
 
+#ifdef FIRESTARTER_USE_CUDA
+static int get_precision(int useDouble, struct cudaDeviceProp properties) {
+#else
+#ifdef FIRESTARTER_USE_HIP
+static int get_precision(int useDouble, struct hipDeviceProp_t properties) {
+#endif
+#endif
 #if (CUDART_VERSION >= 8000)
 // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
 // workload
-static int get_precision(int useDouble, struct cudaDeviceProp properties) {
   if (useDouble == 2 && properties.singleToDoublePrecisionPerfRatio > 3) {
     return 0;
   } else if (useDouble) {
@@ -188,7 +237,6 @@ static int get_precision(int useDouble, struct cudaDeviceProp properties) {
 }
 #else
 // as precision ratio is not supported return default/user input value
-static int get_precision(int useDouble, struct cudaDeviceProp properties) {
   (void)properties;
 
   if (useDouble) {
@@ -200,16 +248,22 @@ static int get_precision(int useDouble, struct cudaDeviceProp properties) {
 #endif
 
 static int get_precision(int device_index, int useDouble) {
+  size_t memory_avail, memory_total;
+#ifdef FIRESTARTER_USE_CUDA
   CUcontext context;
   CUdevice device;
-  size_t memory_avail, memory_total;
   struct cudaDeviceProp properties;
-
-  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
-  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
-  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
-  CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
+  ACCELL_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+#else
+#ifdef FIRESTARTER_USE_HIP
+  struct hipDeviceProp_t properties;
+  ACCELL_SAFE_CALL(hipSetDevice(device_index), device_index);
+#endif
+#endif
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemGetInfo)(&memory_avail, &memory_total), device_index);
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
                  device_index);
 
   useDouble = get_precision(useDouble, properties);
@@ -218,7 +272,7 @@ static int get_precision(int device_index, int useDouble) {
   // the user wants to compute DP on a SP-only-Card.
   if (useDouble && properties.major <= 1 && properties.minor <= 2) {
     std::stringstream ss;
-    ss << "GPU " << device_index << ": " << properties.name << " ";
+    ss << FS_ACCEL_STRING" GPU " << device_index << ": " << properties.name << " ";
 
     firestarter::log::error()
         << ss.str() << "Doesn't support double precision.\n"
@@ -230,55 +284,69 @@ static int get_precision(int device_index, int useDouble) {
     useDouble = 0;
   }
 
-  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+#ifdef FIRESTARTER_USE_CUDA
+  ACCELL_SAFE_CALL(cuCtxDestroy(context), device_index);
+#endif
 
   return useDouble;
 }
 
+#ifdef FIRESTARTER_USE_CUDA
 static int get_msize(int device_index, int useDouble) {
   CUcontext context;
   CUdevice device;
   size_t memory_avail, memory_total;
 
-  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
-  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
-  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
+  ACCELL_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+  ACCELL_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
 
-  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+  ACCELL_SAFE_CALL(cuCtxDestroy(context), device_index);
 
   return round_up(
       (int)(0.8 * sqrt(((memory_avail) /
                         ((useDouble ? sizeof(double) : sizeof(float)) * 3)))),
       1024); // a multiple of 1024 works always well
 }
+#endif
 
-static cublasStatus_t gemm(cublasHandle_t handle, cublasOperation_t transa,
-                           cublasOperation_t transb, int &m, int &n, int &k,
-                           const float *alpha, const float *A, int &lda,
-                           const float *B, int &ldb, const float *beta,
-                           float *C, int &ldc) {
-  return cublasSgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
-                     beta, C, ldc);
+static CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) gemm(
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasHandle_t) handle,
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transa,
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transb,
+                            int &m, int &n, int &k,
+                            const float *alpha, const float *A, int &lda,
+                            const float *B, int &ldb, const float *beta,
+                            float *C, int &ldc) {
+  return CONCAT(FS_ACCEL_PREFIX_LC,blasSgemm)(handle, transa, transb, m, n, k,
+                                              alpha, A, lda, B, ldb,
+                                              beta, C, ldc);
 }
 
-static cublasStatus_t gemm(cublasHandle_t handle, cublasOperation_t transa,
-                           cublasOperation_t transb, int &m, int &n, int &k,
-                           const double *alpha, const double *A, int &lda,
-                           const double *B, int &ldb, const double *beta,
-                           double *C, int &ldc) {
-  return cublasDgemm(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
-                     beta, C, ldc);
+static CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) gemm(
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasHandle_t) handle,
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transa,
+                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transb,
+                            int &m, int &n, int &k,
+                            const double *alpha, const double *A, int &lda,
+                            const double *B, int &ldb, const double *beta,
+                            double *C, int &ldc) {
+  return CONCAT(FS_ACCEL_PREFIX_LC,blasDgemm)(handle, transa, transb, m, n, k,
+                                              alpha, A, lda, B, ldb,
+                                              beta, C, ldc);
 }
 
-static curandStatus_t generateUniform(curandGenerator_t generator,
-                                      float *outputPtr, size_t num) {
-  return curandGenerateUniform(generator, outputPtr, num);
+static CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) generateUniform(
+                            CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) generator,
+                            float *outputPtr, size_t num) {
+  return CONCAT(FS_ACCEL_PREFIX_LC,randGenerateUniform)(generator, outputPtr, num);
 }
 
-static curandStatus_t generateUniform(curandGenerator_t generator,
-                                      double *outputPtr, size_t num) {
-  return curandGenerateUniformDouble(generator, outputPtr, num);
+static CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) generateUniform(
+                            CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) generator,
+                            double *outputPtr, size_t num) {
+  return CONCAT(FS_ACCEL_PREFIX_LC,randGenerateUniformDouble)(generator, outputPtr, num);
 }
 
 // GPU index. Used to pin this thread to the GPU.
@@ -293,7 +361,7 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   int iterations, i;
 
-  firestarter::log::trace() << "Starting CUDA with given matrix size "
+  firestarter::log::trace() << "Starting CUDA/HIP with given matrix size "
                             << matrixSize;
 
   size_t size_use = 0;
@@ -301,48 +369,73 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = matrixSize;
   }
 
-  CUcontext context;
   size_t use_bytes, memory_size;
+#ifdef FIRESTARTER_USE_CUDA
+  CUcontext context;
   struct cudaDeviceProp properties;
-
-  // reserving the GPU and initializing cublas
   CUdevice device;
   cublasHandle_t cublas;
+#else
+#ifdef FIRESTARTER_USE_HIP
+  hipStream_t stream;
+  struct hipDeviceProp_t properties;
+  hipDevice_t device;
+  hipblasHandle_t cublas;
+#endif
+#endif
+  // reserving the GPU and initializing cublas
 
-  firestarter::log::trace() << "Getting CUDA device nr. " << device_index;
-  CUDA_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
+  firestarter::log::trace() << "Getting " FS_ACCEL_STRING " device nr. " << device_index;
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,DeviceGet)(&device, device_index), device_index);
 
-  firestarter::log::trace() << "Creating CUDA context for computation on device nr. "
+#ifdef FIRESTARTER_USE_CUDA
+  firestarter::log::trace() << "Creating " FS_ACCEL_STRING " context for computation on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
 
-  firestarter::log::trace() << "Set crated CUDA context on device nr. "
+  firestarter::log::trace() << "Set created " FS_ACCEL_STRING " context on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-
-  firestarter::log::trace() << "Create CuBlas on device nr. "
+  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+#else
+#ifdef FIRESTARTER_USE_HIP
+  firestarter::log::trace() << "Creating " FS_ACCEL_STRING " Stream for computation on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(cublasCreate(&cublas), device_index);
+  CUDA_SAFE_CALL(hipSetDevice(device_index), device_index);
+  CUDA_SAFE_CALL(hipStreamCreate(&stream), device_index);
+#endif
+#endif
 
-  firestarter::log::trace() << "Get CUDA device properties (e.g., support for double)"
+  firestarter::log::trace() << "Create " FS_ACCEL_STRING " Blas on device nr. "
+                     << device_index;
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasCreate)(&cublas), device_index);
+
+  firestarter::log::trace() << "Get " FS_ACCEL_STRING " device properties (e.g., support for double)"
                      << " on device nr. "
                      << device_index;
-  CUDA_SAFE_CALL(cudaGetDeviceProperties(&properties, device_index),
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
                  device_index);
 
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
-  CUDA_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemGetInfo)(&memory_avail, &memory_total), device_index);
 
-  firestarter::log::trace() << "Get CUDA Memory info on device nr. "
+  firestarter::log::trace() << "Get " FS_ACCEL_STRING " Memory info on device nr. "
                      << device_index
                      <<": " << memory_avail << " B avail. from "
                      << memory_total << " B total";
 
   // defining memory pointers
+#ifdef FIRESTARTER_USE_CUDA
   CUdeviceptr a_data_ptr;
   CUdeviceptr b_data_ptr;
   CUdeviceptr c_data_ptr;
+#else
+#ifdef FIRESTARTER_USE_HIP
+  T* a_data_ptr;
+  T* b_data_ptr;
+  T* c_data_ptr;
+#endif
+#endif
 
   // check if the user has not set a matrix OR has set a too big matrixsite and
   // if this is true: set a good matrixsize
@@ -350,39 +443,48 @@ static void create_load(std::condition_variable &waitForInitCv,
     size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
                         1024); // a multiple of 1024 works always well
   }
-  firestarter::log::trace() << "Set CUDA matrix size: " << matrixSize;
+  firestarter::log::trace() << "Set " FS_ACCEL_STRING " matrix size: " << matrixSize;
   use_bytes = (size_t)((T)memory_avail);
   memory_size = sizeof(T) * size_use * size_use;
   iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
 
   firestarter::log::trace()
-      << "Allocating CUDA memory on device nr. "
+      << "Allocating " FS_ACCEL_STRING " memory on device nr. "
       << device_index;
 
   // allocating memory on the GPU
-  CUDA_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
-  CUDA_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
+#ifdef FIRESTARTER_USE_CUDA
+  ACCELL_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
                  device_index);
+#else
+#ifdef FIRESTARTER_USE_HIP
+  ACCELL_SAFE_CALL(hipMalloc(&a_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(hipMalloc(&b_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(hipMalloc(&c_data_ptr, iterations * memory_size),
+                 device_index);
+#endif
+#endif
 
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
                      << device_index
                      <<". A: " << a_data_ptr << "(Size: "
                      << memory_size << "B)"
                      << "\n";
 
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
                      << device_index
                      <<". B: " << b_data_ptr << "(Size: "
                      << memory_size << "B)"
                      << "\n";
-  firestarter::log::trace() << "Allocated CUDA memory on device nr. "
+  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
                      << device_index
                      <<". C: " << c_data_ptr << "(Size: "
                      << iterations * memory_size << "B)"
                      << "\n";
 
-  firestarter::log::trace() << "Initializing CUDA matrices a, b on device nr. "
+  firestarter::log::trace() << "Initializing " FS_ACCEL_STRING " matrices a, b on device nr. "
                             << device_index
                             << ". Using "
                             << size_use * size_use
@@ -390,21 +492,25 @@ static void create_load(std::condition_variable &waitForInitCv,
                             << sizeof(T) << " Byte";
   // initialize matrix A and B on the GPU with random values
   curandGenerator_t random_gen;
-  CUDA_SAFE_CALL(curandCreateGenerator(&random_gen, CURAND_RNG_PSEUDO_DEFAULT),
-                 device_index);
-  CUDA_SAFE_CALL(curandSetPseudoRandomGeneratorSeed(random_gen, SEED),
-                 device_index);
-  CUDA_SAFE_CALL(
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randCreateGenerator)(
+                              &random_gen,
+                              CONCAT(FS_ACCEL_PREFIX_UC,RAND_RNG_PSEUDO_DEFAULT)),
+                  device_index);
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randSetPseudoRandomGeneratorSeed)(
+                              random_gen, SEED),
+                   device_index);
+  ACCELL_SAFE_CALL(
       generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use),
       device_index);
-  CUDA_SAFE_CALL(
+  ACCELL_SAFE_CALL(
       generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use),
       device_index);
-  CUDA_SAFE_CALL(curandDestroyGenerator(random_gen), device_index);
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randDestroyGenerator)(random_gen),
+                   device_index);
 
   // initialize c_data_ptr with copies of A
   for (i = 0; i < iterations; i++) {
-      firestarter::log::trace() << "Initializing CUDA matrix c-"
+      firestarter::log::trace() << "Initializing " FS_ACCEL_STRING " matrix c-"
                                 << i
                                 << " by copying "
                                 << memory_size
@@ -413,7 +519,8 @@ static void create_load(std::condition_variable &waitForInitCv,
                                 << " to "
                                 << c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr))
                                 << "\n";
-    CUDA_SAFE_CALL(cuMemcpyDtoD(c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)),
+    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemcpyDtoD)(
+                                c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)),
                                 a_data_ptr, memory_size),
                    device_index);
   }
@@ -445,20 +552,34 @@ static void create_load(std::condition_variable &waitForInitCv,
   // actual stress begins here
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      CUDA_SAFE_CALL(gemm(cublas, CUBLAS_OP_N, CUBLAS_OP_N, size_use_i, size_use_i,
+      ACCELL_SAFE_CALL(gemm(
+                          CONCAT(FS_ACCEL_PREFIX_LC,blas),
+                          CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
+                          CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
+                          size_use_i, size_use_i,
                           size_use_i, &alpha, (const T *)a_data_ptr, size_use_i,
                           (const T *)b_data_ptr, size_use_i, &beta,
                           (T *)c_data_ptr + i * size_use * size_use, size_use_i),
                      device_index);
-      CUDA_SAFE_CALL(cudaDeviceSynchronize(), device_index);
+      ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
+                       device_index);
     }
   }
 
-  CUDA_SAFE_CALL(cuMemFree(a_data_ptr), device_index);
-  CUDA_SAFE_CALL(cuMemFree(b_data_ptr), device_index);
-  CUDA_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
-  CUDA_SAFE_CALL(cublasDestroy(cublas), device_index);
-  CUDA_SAFE_CALL(cuCtxDestroy(context), device_index);
+#ifdef FIRESTARTER_USE_CUDA
+  ACCELL_SAFE_CALL(cuMemFree(a_data_ptr), device_index);
+  ACCELL_SAFE_CALL(cuMemFree(b_data_ptr), device_index);
+  ACCELL_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
+#else
+#ifdef FIRESTARTER_USE_HIP
+  ACCELL_SAFE_CALL(hipFree(&a_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(hipFree(&b_data_ptr, memory_size), device_index);
+  ACCELL_SAFE_CALL(hipFree(&c_data_ptr, iterations * memory_size),
+                 device_index);
+#endif
+#endif
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasDestroy)(cublas), device_index);
+  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,CtxDestroy)(context), device_index);
 }
 
 Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
@@ -479,9 +600,9 @@ void Cuda::initGpus(std::condition_variable &cv,
   std::mutex waitForInitCvMutex;
 
   if (gpus) {
-    CUDA_SAFE_CALL(cuInit(0), -1);
+    ACCELL_SAFE_CALL(cuInit(0), -1);
     int devCount;
-    CUDA_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
+    ACCELL_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
 
     if (devCount) {
       std::vector<std::thread> gpuThreads;
@@ -509,11 +630,11 @@ void Cuda::initGpus(std::condition_variable &cv,
 
       if (gpus > devCount) {
         firestarter::log::warn()
-            << "You requested more CUDA devices than available. "
-               "Maybe you set CUDA_VISIBLE_DEVICES?";
+            << "You requested more " FS_ACCEL_STRING " devices than available. "
+               "Maybe you set " FS_ACCEL_STRING "_VISIBLE_DEVICES?";
         firestarter::log::warn()
             << "FIRESTARTER will use " << devCount << " of the requested "
-            << gpus << " CUDA device(s)";
+            << gpus << " " FS_ACCEL_STRING " device(s)";
         gpus = devCount;
       }
 
@@ -554,14 +675,14 @@ void Cuda::initGpus(std::condition_variable &cv,
       }
     } else {
       firestarter::log::info()
-          << "    - No CUDA devices. Just stressing CPU(s). Maybe use "
-             "FIRESTARTER instead of FIRESTARTER_CUDA?";
+          << "    - No " FS_ACCEL_STRING " devices. Just stressing CPU(s). Maybe use "
+             "FIRESTARTER instead of FIRESTARTER_" FS_ACCEL_STRING "?";
       cv.notify_all();
     }
   } else {
     firestarter::log::info()
         << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
-           "FIRESTARTER instead of FIRESTARTER_CUDA?";
+           "FIRESTARTER instead of FIRESTARTER_" FS_ACCEL_STRING "?";
     cv.notify_all();
   }
 }
