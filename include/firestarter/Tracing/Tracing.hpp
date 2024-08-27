@@ -26,10 +26,10 @@ namespace firestarter::tracing {
 class Tracing {
 public:
   Tracing();
-  virtual ~Tracing();
+  ~Tracing();
 
-  inline virtual void regionBegin(const char* const region_name);
-  inline virtual void regionEnd(const char* const region_name);
+  inline void regionBegin(const char* const region_name);
+  inline void regionEnd(const char* const region_name);
 };
 
 } // firestarter::tracing

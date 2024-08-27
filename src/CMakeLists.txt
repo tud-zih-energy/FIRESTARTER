@@ -57,16 +57,14 @@ elseif("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
 		firestarter/Tracing/ScoreP.cpp
 	)
 	#todo find folder
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCOREP_USER_ENABLE")
-	#todo link scorep
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCOREP_USER_ENABLE ${FIRESTARTER_TRACING_CXXFLAGS}")
 elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
 	SET(FIRESTARTER_FILES 
 		${FIRESTARTER_FILES}
 		firestarter/Tracing/VampirTrace.cpp
 	)
 	#todo find folder
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVTRACE")
-	#todo link vt user
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVTRACE ${FIRESTARTER_TRACING_CXXFLAGS}")
 endif()
 
 
@@ -210,5 +208,16 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		AsmJit::AsmJit
 		Nitro::log
 		nlohmann_json::nlohmann_json
+		)
+endif()
+if("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
+	#todo link scorep
+	target_link_libraries("${FIRESTARTER_BUILD_TYPE}"
+	"${FIRESTARTER_TRACING_LDFLAGS}"
+	)
+elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
+	#todo link vt user
+	target_link_libraries("${FIRESTARTER_BUILD_TYPE}"
+		"${FIRESTARTER_TRACING_LDFLAGS}"
 		)
 endif()
