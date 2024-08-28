@@ -23,15 +23,10 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Tracing/Tracing.hpp>
 
-using namespace firestarter::tracing;
-
-Tracing::Tracing(){}
-Tracing::~Tracing(){}
-
-void Tracing::regionBegin(char const* region_name) {
+void firestarter::tracing::regionBegin(char const* region_name) {
     firestarter::log::trace() << "Start " << region_name;
 }
 
-void Tracing::regionEnd(char const* region_name) {
+void firestarter::tracing::regionEnd(char const* region_name) {
     firestarter::log::trace() << "End " << region_name;
 }

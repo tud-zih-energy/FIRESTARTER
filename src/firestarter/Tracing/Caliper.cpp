@@ -24,16 +24,11 @@
 #include <adiak.hpp>
 #include <caliper/cali.h>
 
-using namespace firestarter::tracing;
-
-Tracing::Tracing(){}
-Tracing::~Tracing(){}
-
-void Tracing::regionBegin(char const* region_name) {
+void firestarter::tracing::regionBegin(char const* region_name) {
     CALI_MARK_BEGIN(region_name);
 }
 
-void Tracing::regionEnd(char const* region_name) {
+void firestarter::tracing::regionEnd(char const* region_name) {
     CALI_MARK_END(region_name);
 }
 

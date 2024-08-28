@@ -22,13 +22,6 @@
 #pragma once
 
 namespace firestarter::tracing {
-
-class Tracing {
-public:
-Tracing();
-~Tracing();
-  virtual void regionBegin(char const* region_name);
-  virtual void regionEnd(char const* region_name);
-};
-
+  void regionBegin(char const* region_name);
+  void regionEnd(char const* region_name);
 } // firestarter::tracing
