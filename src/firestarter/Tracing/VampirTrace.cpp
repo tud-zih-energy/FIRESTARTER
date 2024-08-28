@@ -27,10 +27,10 @@ using namespace firestarter::tracing;
 Tracing::Tracing(){}
 Tracing::~Tracing(){}
 
-inline void Tracing::regionBegin(char const* region_name) {
+void Tracing::regionBegin(char const* region_name) {
   VT_USER_START(region_name);
 }
 
-inline void Tracing::regionEnd(char const* region_name) {
+void Tracing::regionEnd(char const* region_name) {
   VT_USER_END(region_name);
 }

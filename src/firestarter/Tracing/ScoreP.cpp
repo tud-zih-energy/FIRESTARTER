@@ -28,11 +28,11 @@ using namespace firestarter::tracing;
 Tracing::Tracing(){}
 Tracing::~Tracing(){}
 
-inline void Tracing::regionBegin(char const* region_name) {
+void Tracing::regionBegin(char const* region_name) {
     SCOREP_USER_REGION_BY_NAME_BEGIN(region_name,
                                      SCOREP_USER_REGION_TYPE_COMMON);
 }
 
-inline void Tracing::regionEnd(char const* region_name) {
+void Tracing::regionEnd(char const* region_name) {
     SCOREP_USER_REGION_BY_NAME_END(region_name);
 }
