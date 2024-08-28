@@ -28,8 +28,8 @@ public:
   Tracing();
   ~Tracing();
 
-  inline void regionBegin(const char* const region_name);
-  inline void regionEnd(const char* const region_name);
+  inline void regionBegin(const char* region_name);
+  inline void regionEnd(const char* region_name);
 };
 
 } // firestarter::tracing
