@@ -26,11 +26,11 @@ using namespace firestarter::tracing;
 Tracing::Tracing(){}
 Tracing::~Tracing(){}
 
-inline void Tracing::regionBegin(const char const* region_name) {
+inline void Tracing::regionBegin(char const* region_name) {
     // Do nothing
 }
 
-inline void Tracing::regionEnd(const char const* region_name) {
+inline void Tracing::regionEnd(char const* region_name) {
     // Do nothing
 }
 
