@@ -285,7 +285,7 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake --build . -j2
+        VERBOSE=1 cmake --build . -j2
     - name: Copy Hwloc DLL
       shell: pwsh
       if: matrix.cfg.MSVC == true
