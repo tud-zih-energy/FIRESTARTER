@@ -118,9 +118,9 @@ int AArch64NEONFMAPayload::compilePayload(
   auto shift_reg = std::vector<Gp>({x13, x14, x15, x16, x17, x18, x19, x20});
   auto nr_shift_regs = 8;
   // TODO this should be more advanced
-  auto mul_regs = 2;
-  auto add_regs = 6;
-  auto loadreg = VecV(15);
+  // this should be a multiple of 4
+  auto fma_regs = 28;
+  auto load_regs = 4;
 
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
@@ -166,12 +166,8 @@ int AArch64NEONFMAPayload::compilePayload(
   cb.ldr(VecV(0).d2(), ptr(pointer_reg));
   // todo, currently we have 256 bit initialized. this could and should be shrinked
   cb.ldr(VecV(1).d2(), ptr(pointer_reg, 32));
-  auto add_start = mul_regs;
-  auto add_end = mul_regs + add_regs - 1;
-  if (add_regs > 0) {
-    for (int i = add_start; i <= add_end; i++) {
-      cb.ldr(VecV(i).d2(), ptr(pointer_reg, 32 * i));
-    }
+  for (int i = 0; i < fma_regs; i++) {
+    cb.ldr(VecV(i).d2(), ptr(pointer_reg, 32 * i));
   }
   cb.mov(l1_addr, pointer_reg); // address for L1-buffer
   cb.mov(l2_addr, pointer_reg);
@@ -206,7 +202,6 @@ int AArch64NEONFMAPayload::compilePayload(
 
   auto shift_pos = 0;
   bool left = false;
-  auto add_dest = add_start + 1;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT_TIMES(n)                                          \
@@ -231,6 +226,9 @@ int AArch64NEONFMAPayload::compilePayload(
 
 #define RAM_INCREMENT() cb.add(ram_addr, ram_addr, offset_reg)
 
+  auto fma_dest = 0;
+  auto load_dest = fma_regs;
+  bool use_add = true;
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
       if (item == "REG") { 
@@ -238,54 +236,66 @@ int AArch64NEONFMAPayload::compilePayload(
         // v0, v1, v2 for multiply
         // v3 ... = v3 ... + v0 * v2
         // v3 ... = v3 ... + v1 * v2
-//        printf("fmul v%d, v%d, v%d\n",add_dest+add_end-add_start,0,2);
-        cb.fmul(VecD(add_dest+add_end-add_start).d2(),VecD(0).d2(),VecD(2).d2());
-//        cb.mul(VecD(add_dest-add_start+trans_end+1).d2(),VecD((shift_pos + nr_shift_regs - 1) % nr_shift_regs).d2(),VecD(2).d2());
-//        printf("fadd v%d, v%d, v%d\n",add_dest,add_dest,add_dest+add_end-add_start);
-        cb.fadd(VecD(add_dest).d2(), VecD(add_dest).d2(), VecD(add_dest+add_end-add_start).d2());
-//        cb.add(VecD(add_dest).d2(), VecD(add_dest).d2(), VecD(add_dest-add_start+trans_end+1).d2());
-//        printf("eor r%d, r%d, r%d\n",(shift_pos + nr_shift_regs - 1) % nr_shift_regs,(shift_pos + nr_shift_regs - 1) % nr_shift_regs,8);
+        if (use_add) {
+          cb.fmla(VecD((fma_dest+32)%32).d2(),VecD((fma_dest+40)%32).d2(),VecD((fma_dest+48)%32).d2());
+          cb.fmla(VecD((fma_dest+33)%32).d2(),VecD((fma_dest+41)%32).d2(),VecD((fma_dest+49)%32).d2());
+          cb.fmla(VecD((fma_dest+34)%32).d2(),VecD((fma_dest+42)%32).d2(),VecD((fma_dest+50)%32).d2());
+          cb.fmla(VecD((fma_dest+35)%32).d2(),VecD((fma_dest+43)%32).d2(),VecD((fma_dest+51)%32).d2());
+        } else {
+          cb.fmls(VecD((fma_dest+32)%32).d2(),VecD((fma_dest+40)%32).d2(),VecD((fma_dest+48)%32).d2());
+          cb.fmls(VecD((fma_dest+33)%32).d2(),VecD((fma_dest+41)%32).d2(),VecD((fma_dest+49)%32).d2());
+          cb.fmls(VecD((fma_dest+34)%32).d2(),VecD((fma_dest+42)%32).d2(),VecD((fma_dest+50)%32).d2());
+          cb.fmls(VecD((fma_dest+35)%32).d2(),VecD((fma_dest+43)%32).d2(),VecD((fma_dest+51)%32).d2());
+        }
+        fma_dest+=4;
+        if (fma_dest == fma_regs) {
+          use_add = !use_add;
+          fma_dest = 0;
+        }
        cb.eor(
           shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
           shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
           temp_reg);
         shift_pos++;
       } else if (item == "L1_L") {
-        cb.ldr(VecV(add_dest).d2(), ptr(l1_addr, 32));
+        cb.ldr(VecV(load_dest).d2(), ptr(l1_addr, 32));
+        load_dest++;
         L1_INCREMENT();
       } else if (item == "L1_S") {
-        cb.str(VecV(add_dest).d2(), ptr(l1_addr, 32));
+        cb.str(VecV(load_dest).d2(), ptr(l1_addr, 32));
+        load_dest++;
         L1_INCREMENT();
       } else if (item == "L2_L") {
-        cb.prfm(Imm(1), ptr(l2_addr, 64));
+        cb.ldr(VecV(load_dest).d2(), ptr(l2_addr, 64));
+        load_dest++;
         L2_INCREMENT();
       } else if (item == "L2_S") {
-        cb.str(VecV(add_dest).d2(), ptr(l2_addr, 64));
+        cb.str(VecV(load_dest).d2(), ptr(l2_addr, 64));
+        load_dest++;
         L2_INCREMENT();
       } else if (item == "L3_L") {
-        cb.prfm(Imm(1), ptr(l3_addr, 64));
+        cb.ldr(VecV(load_dest).d2(), ptr(l3_addr, 64));
+        load_dest++;
         L3_INCREMENT();
       } else if (item == "L3_S") {
-        cb.str(VecV(add_dest).d2(), ptr(l3_addr, 64));
+        cb.str(VecV(load_dest).d2(), ptr(l3_addr, 64));
+        load_dest++;
         L3_INCREMENT();
       } else if (item == "RAM_L") {
-        cb.prfm(Imm(1), ptr(ram_addr, 64));
+        cb.ldr(VecV(load_dest).d2(), ptr(ram_addr, 64));
+        load_dest++;
         RAM_INCREMENT();
       } else if (item == "RAM_S") {
-        cb.str(VecV(add_dest).d2(), ptr(ram_addr, 64));
+        cb.str(VecV(load_dest).d2(), ptr(ram_addr, 64));
+        load_dest++;
         RAM_INCREMENT();
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
                            << this->name() << ".";
         return EXIT_FAILURE;
       }
-
-      add_dest++;
-      if (add_dest > add_end) {
-        // DO NOT REMOVE the + 1. It serves for the good of v0. If it was to
-        // be overriden, the values in the other registers would rise up to inf.
-        add_dest = add_start + 1;
-      }
+      if (load_dest == fma_regs+load_regs)
+        load_dest = fma_regs;
       if (shift_pos == nr_shift_regs) {
         shift_pos = 0;
         left = !left;
