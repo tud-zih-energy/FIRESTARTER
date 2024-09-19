@@ -10,7 +10,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-22.04]
-        compiler: [g++-9, g++-10, g++-11, g++-12, clang++-10, clang++-11, clang++-12, clang++-13, clang++-14, clang++-15]
+        compiler: [g++-9, g++-10, g++-11, g++-12, clang++-11, clang++-12, clang++-13, clang++-14, clang++-15]
         HIP: ['6.2']
     runs-on: ${{ matrix.os }}
 
@@ -38,10 +38,6 @@ jobs:
       if: matrix.compiler == 'g++-12'
       run: |
         sudo apt install g++-12
-    - name: Install clang++-10 (if needed)
-      if: matrix.compiler == 'clang++-10'
-      run: |
-        sudo apt install clang-10
     - name: Install clang++-11 (if needed)
       if: matrix.compiler == 'clang++-11'
       run: |
@@ -111,7 +107,7 @@ jobs:
         cd build
         strip src/FIRESTARTER_HIP
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      if: matrix.compiler == 'g++-9' && matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER_HIP_${{ matrix.HIP }}-linux
         retention-days: 1
