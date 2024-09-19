@@ -564,7 +564,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                      device_index);
       ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
                        device_index);
-      _flopsFromCUDA+=2*N*N*N;
+      _flopsFromCUDA+=2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
     }
   }
 
