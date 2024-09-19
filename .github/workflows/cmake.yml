@@ -3,6 +3,115 @@ name: Build
 on: [push, pull_request]
 
 jobs:
+
+  build-linux-hip-rocm:
+    strategy:
+#      max-parallel: 1 # Sets the limit of jobs to run concurrently
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04]
+        compiler: [g++-9, g++-10, g++-11, g++-12, clang++-11, clang++-12, clang++-13, clang++-14, clang++-15]
+        HIP: ['6.2']
+    runs-on: ${{ matrix.os }}
+
+    env:
+      HIP_ROOT: '/opt/rocm'
+    steps:
+    - name: Try to clean up some things
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+
+    - name: Install g++-9 (if needed)
+      if: matrix.compiler == 'g++-9'
+      run: |
+        sudo apt install g++-9
+    - name: Install g++-10 (if needed)
+      if: matrix.compiler == 'g++-10'
+      run: |
+        sudo apt install g++-10
+    - name: Install g++-11 (if needed)
+      if: matrix.compiler == 'g++-11'
+      run: |
+        sudo apt install g++-11
+    - name: Install g++-12 (if needed)
+      if: matrix.compiler == 'g++-12'
+      run: |
+        sudo apt install g++-12
+    - name: Install clang++-11 (if needed)
+      if: matrix.compiler == 'clang++-11'
+      run: |
+        sudo apt install clang-11
+    - name: Install clang++-12 (if needed)
+      if: matrix.compiler == 'clang++-12'
+      run: |
+        sudo apt install clang-12
+    - name: Install clang++-13 (if needed)
+      if: matrix.compiler == 'clang++-13'
+      run: |
+        sudo apt install clang-13
+    - name: Install clang++-14 (if needed)
+      if: matrix.compiler == 'clang++-14'
+      run: |
+        sudo apt install clang-14
+    - name: Install clang++-15 (if needed)
+      if: matrix.compiler == 'clang++-15'
+      run: |
+        sudo apt install clang-15
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - name: Install HIP runtime (if needed)
+      if: matrix.HIP != '0' && matrix.ONEAPI == 0 && matrix.CUDA == 0
+      run: |
+        case ${{ matrix.HIP }} in
+          6.2)
+            wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb
+            sudo apt install ./amdgpu-install_6.2.60200-1_all.deb
+            sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
+            ;;
+        esac
+
+    - name: Create build directory
+      run: |
+          mkdir build
+    - name: Run CMake configure (HIP)
+      if: matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
+        export LD_LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
+        export LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LIBRARY_PATH}
+        export HIP_LIB_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs
+        export PATH=${HIP_ROOT}:${PATH}
+        export HIP_HOME=${HIP_ROOT}
+        export HIP_PATH=${HIP_ROOT}
+        export HIPToolkit_ROOT=${HIP_ROOT}
+
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
+    - name: Build (default, CUDA, HIP)
+      if: matrix.ONEAPI =='0'
+      run: |
+        cd build
+        make -j2
+    - name: Strip binary (HIP)
+      if: matrix.CUDA == '0' && matrix.HIP != '0' && matrix.ONEAPI == '0'
+      run: |
+        cd build
+        strip src/FIRESTARTER_HIP
+    - uses: actions/upload-artifact@v4
+      if: matrix.compiler == 'g++-9' && matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      with:
+        name: FIRESTARTER_HIP_${{ matrix.HIP }}-linux
+        retention-days: 1
+        path: build/src/FIRESTARTER_HIP
   build-linux:
     strategy:
 #      max-parallel: 1 # Sets the limit of jobs to run concurrently
@@ -17,7 +126,6 @@ jobs:
 
     env:
       CUDA_ROOT: '/usr/local/cuda'
-
 #kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
     steps:
     - name: Try to clean up some things
@@ -367,7 +475,7 @@ jobs:
     name: Create download for Website
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux-hip-rocm, build-linux, build-macos, build-windows]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -445,6 +553,17 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_ONEAPI FIRESTARTER_ONEAPI_2023.2.0
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_ONEAPI_2023.2.0
+    # Linux HIP 6.2
+    - name: Retrieve FIRESTARTER_HIP_6.2-linux 
+      uses: actions/download-artifact@v4
+      with:
+        name: FIRESTARTER_HIP_6.2-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_HIP FIRESTARTER_HIP_6.2
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER_HIP_6.2
     - name: Retrieve FIRESTARTER-macOS_12
       uses: actions/download-artifact@v4
       with:
@@ -505,4 +624,3 @@ jobs:
         retention-days: 5
         name: FIRESTARTER.tar.gz
         path: FIRESTARTER.tar.gz
-
