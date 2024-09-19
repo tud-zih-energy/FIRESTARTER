@@ -153,7 +153,7 @@ private:
   int initLoadWorkers(bool lowLoad, unsigned long long period);
   void joinLoadWorkers();
   void printThreadErrorReport();
-  void printPerformanceReport(double gpuFlops, bool gpusUseFloat);
+  void printPerformanceReport();
 
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
 

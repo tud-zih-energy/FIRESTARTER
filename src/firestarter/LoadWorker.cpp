@@ -182,7 +182,7 @@ void Firestarter::printThreadErrorReport() {
   }
 }
 
-void Firestarter::printPerformanceReport(double gpuFlops, bool gpusUseFloat) {
+void Firestarter::printPerformanceReport() {
   // performance report
   unsigned long long startTimestamp = 0xffffffffffffffff;
   unsigned long long stopTimestamp = 0;
@@ -209,9 +209,6 @@ void Firestarter::printPerformanceReport(double gpuFlops, bool gpusUseFloat) {
 
   double runtime = (double)(stopTimestamp - startTimestamp) /
                    (double)this->environment().topology().clockrate();
-  double gFlops =
-      (double)this->loadThreads.front().second->config().payload().flops() *
-      0.000000001 * (double)iterations / runtime;
   double gFlops =
       (double)this->loadThreads.front().second->config().payload().flops() *
       0.000000001 * (double)iterations / runtime;
@@ -247,8 +244,18 @@ void Firestarter::printPerformanceReport(double gpuFlops, bool gpusUseFloat) {
 
   FORMAT(runtime);
   FORMAT(gFlops);
-  FORMAT(gpuFlops);
   FORMAT(bandwidth);
+
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+  double gpuFlops=0.0;
+  gpuFlops = _cuda.getFlops();
+  FORMAT(gpuFlops);
+#elif defined(FIRESTARTER_BUILD_ONEAPI)
+  double gpuFlops=0.0;
+  gpuFlops = _oneapi.getFlops();
+  FORMAT(gpuFlops);
+#endif
+
 
 #undef FORMAT
 
@@ -262,7 +269,7 @@ void Firestarter::printPerformanceReport(double gpuFlops, bool gpusUseFloat) {
       << "estimated floating point performance (CPU): " << gFlopsString << " GFLOPS\n"
       << "estimated memory bandwidth* (CPU): " << bandwidthString << " GB/s\n"
       << "estimated floating point performance (GPUs): " << gpuFlopsString << " GFLOPS ("
-      << gpusUseFloat? "single" : "double" << ")\n"
+      << _gpuUseFloat? "single" : "double" << ")\n"
 #else
       << "estimated floating point performance: " << gFlopsString << " GFLOPS\n"
       << "estimated memory bandwidth*: " << bandwidthString << " GB/s\n"
