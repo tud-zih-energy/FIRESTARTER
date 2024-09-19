@@ -16,13 +16,52 @@ jobs:
 
     env:
       HIP_ROOT: '/opt/rocm'
-
-
     steps:
     - name: Try to clean up some things
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
+
+    - name: Install g++-9 (if needed)
+      if: matrix.compiler == 'g++-9'
+      run: |
+        sudo apt install g++-9
+    - name: Install g++-10 (if needed)
+      if: matrix.compiler == 'g++-10'
+      run: |
+        sudo apt install g++-10
+    - name: Install g++-11 (if needed)
+      if: matrix.compiler == 'g++-11'
+      run: |
+        sudo apt install g++-11
+    - name: Install g++-12 (if needed)
+      if: matrix.compiler == 'g++-12'
+      run: |
+        sudo apt install g++-12
+    - name: Install clang++-10 (if needed)
+      if: matrix.compiler == 'clang++-10'
+      run: |
+        sudo apt install clang-10
+    - name: Install clang++-11 (if needed)
+      if: matrix.compiler == 'clang++-11'
+      run: |
+        sudo apt install clang-11
+    - name: Install clang++-12 (if needed)
+      if: matrix.compiler == 'clang++-12'
+      run: |
+        sudo apt install clang-12
+    - name: Install clang++-13 (if needed)
+      if: matrix.compiler == 'clang++-13'
+      run: |
+        sudo apt install clang-13
+    - name: Install clang++-14 (if needed)
+      if: matrix.compiler == 'clang++-14'
+      run: |
+        sudo apt install clang-14
+    - name: Install clang++-15 (if needed)
+      if: matrix.compiler == 'clang++-15'
+      run: |
+        sudo apt install clang-15
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -440,7 +479,7 @@ jobs:
     name: Create download for Website
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux-hip-rocm, build-linux, build-macos, build-windows]
     steps:
     - uses: actions/checkout@v4
       with:
