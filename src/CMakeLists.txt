@@ -131,6 +131,54 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		stdc++
 	)
 
+elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
+	if (NOT DEFINED ROCM_PATH )
+		set ( ROCM_PATH "/opt/rocm"  CACHE STRING "Default ROCM installation directory." )
+	endif ()
+	# Search for rocm in common locations
+	list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH}/lib ${ROCM_PATH})
+	find_package(HIP REQUIRED)
+	find_package(rocblas REQUIRED)
+	find_package(rocrand REQUIRED)
+	find_package(hiprand REQUIRED)
+	find_package(hipblas REQUIRED)
+
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_HIP")
+
+	set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
+	set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+	set( CMAKE_CXX_STANDARD 17 )
+
+	add_executable(FIRESTARTER_HIP
+		${FIRESTARTER_FILES}
+		firestarter/Cuda/Cuda.cpp
+		)
+	target_compile_features(FIRESTARTER_HIP PRIVATE cxx_std_17)
+
+	if(FIRESTARTER_BUILD_HWLOC)
+		add_dependencies(FIRESTARTER_HIP
+			HwlocInstall
+			)
+	endif()
+
+	target_link_libraries(FIRESTARTER_HIP
+		hwloc
+		AsmJit::AsmJit
+		Nitro::log
+		nlohmann_json::nlohmann_json
+		Threads::Threads
+		hip::host
+		hip::hiprand
+		roc::hipblas
+		)
+
+	if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+		target_link_libraries(FIRESTARTER_HIP
+		hip
+		-ldl)
+	endif()
+	
+
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}

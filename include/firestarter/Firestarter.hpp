@@ -21,7 +21,7 @@
 
 #pragma once
 
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
 #include <firestarter/Cuda/Cuda.hpp>
 #endif
 
@@ -134,7 +134,7 @@ private:
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
 
-#ifdef FIRESTARTER_BUILD_CUDA
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
   std::unique_ptr<cuda::Cuda> _cuda;
 #endif
 
