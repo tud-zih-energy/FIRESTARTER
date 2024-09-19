@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Environment/AArch64/Payload/AArch64DefaultPayload.hpp>
+#include <firestarter/Environment/AArch64/Payload/AArch64NEONFMAPayload.hpp>
 #include <firestarter/Environment/AArch64/Platform/AArch64PlatformConfig.hpp>
 
 namespace firestarter::environment::aarch64::platform {
@@ -33,7 +33,7 @@ public:
       : AArch64PlatformConfig("AARCH64_Default", 21, {1, 2, 3}, {1}, 0,
                           {16384, 1048576, 786432}, 104857600, 1536, family,
                           model, threads,
-                          new payload::AArch64DefaultPayload(supportedFeatures)) {}
+                          new payload::AArch64NEONFMAPayload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() const override {
