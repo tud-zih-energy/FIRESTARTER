@@ -248,11 +248,11 @@ void Firestarter::printPerformanceReport() {
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
   double gpuFlops=0.0;
-  gpuFlops = _cuda->getFlops();
+  gpuFlops = _cuda->getFlops()/1000000000.0;
   FORMAT(gpuFlops);
 #elif defined(FIRESTARTER_BUILD_ONEAPI)
   double gpuFlops=0.0;
-  gpuFlops = _oneapi->getFlops();
+  gpuFlops = _oneapi->getFlops()/1000000000.0;
   FORMAT(gpuFlops);
 #endif
 
