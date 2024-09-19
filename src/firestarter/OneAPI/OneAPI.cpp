@@ -260,7 +260,7 @@ static void create_load(std::condition_variable &waitForInitCv,
     oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
     firestarter::log::trace() << "wait gemm on device nr. " << device_index;
     device_queue.wait_and_throw();
-    flops += 2*N*N*N;
+    flops += 2*size_use*size_use*size_use;
   }
 
 }
