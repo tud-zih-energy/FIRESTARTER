@@ -49,9 +49,11 @@ public:
       _initThread.join();
     }
   }
-};
+
   auto getFLOPS(){
     return _flopsFromCUDA;
   }
+  
+};
 
 } // namespace firestarter::cuda
