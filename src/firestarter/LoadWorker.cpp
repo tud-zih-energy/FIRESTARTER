@@ -268,8 +268,8 @@ void Firestarter::printPerformanceReport() {
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP) | defined(FIRESTARTER_BUILD_ONEAPI)
       << "estimated floating point performance (CPU): " << gFlopsString << " GFLOPS\n"
       << "estimated memory bandwidth* (CPU): " << bandwidthString << " GB/s\n"
-      << "estimated floating point performance (GPUs): " << gpuFlopsString << " GFLOPS ("
-      << _gpuUseFloat? "single" : "double" << ")\n"
+      << "estimated floating point performance (GPUs): " << gpuFlopsString << " GFLOPS (";
+      << (_gpuUseFloat? "single" : "double") << ")\n"
 #else
       << "estimated floating point performance: " << gFlopsString << " GFLOPS\n"
       << "estimated memory bandwidth*: " << bandwidthString << " GB/s\n"
