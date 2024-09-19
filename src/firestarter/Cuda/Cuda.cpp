@@ -596,7 +596,6 @@ Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
   std::thread t(Cuda::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
                 useDouble, matrixSize, gpus);
   _initThread = std::move(t);
-  _flopsFromCUDA = 0;
 
   std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
   // wait for gpus to initialize
