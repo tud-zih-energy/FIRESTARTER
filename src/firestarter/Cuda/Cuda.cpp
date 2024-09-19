@@ -355,7 +355,8 @@ template <typename T>
 static void create_load(std::condition_variable &waitForInitCv,
                         std::mutex &waitForInitCvMutex, int device_index,
                         std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize) {
+                        volatile unsigned long long *loadVar, int matrixSize,
+                        std::atomic<unsigned long long> *flopsCount) {
   static_assert(
       std::is_same<T, float>::value || std::is_same<T, double>::value,
       "create_load<T>: Template argument T must be either float or double");
@@ -564,7 +565,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                      device_index);
       ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
                        device_index);
-      _flopsFromCUDA+=2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
+      *flopsCount += 2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
     }
   }
 
@@ -663,12 +664,12 @@ void Cuda::initGpus(std::condition_variable &cv,
           if (precision) {
             std::thread t(create_load<double>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
+                          loadVar, (int)matrixSize, _flopsFromCUDA);
             gpuThreads.push_back(std::move(t));
           } else {
             std::thread t(create_load<float>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
+                          loadVar, (int)matrixSize, _flopsFromCUDA);
             gpuThreads.push_back(std::move(t));
           }
         }
