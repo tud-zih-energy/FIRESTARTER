@@ -393,9 +393,15 @@ void Firestarter::mainThread() {
     this->joinDumpRegisterWorker();
   }
 #endif
+  double gpu_flops=0.0;
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+  _cuda.getFlops();
+#elif defined(FIRESTARTER_BUILD_ONEAPI)
+  _oneapi.getFlops();
+#endif
 
   if (!_optimize) {
-    this->printPerformanceReport();
+    this->printPerformanceReport(gpu_flops, _gpuUseDouble);
   }
 
 #if defined(linux) || defined(__linux__)
