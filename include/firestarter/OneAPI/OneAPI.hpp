@@ -25,6 +25,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 namespace firestarter::oneapi {
 
@@ -33,6 +34,7 @@ private:
   std::thread _initThread;
   std::condition_variable _waitForInitCv;
   std::mutex _waitForInitCvMutex;
+  std::atomic<unsigned long long> _flopsFromOneAPI;
 
   static void initGpus(std::condition_variable &cv,
                        volatile unsigned long long *loadVar, bool useFloat,
@@ -46,6 +48,9 @@ public:
     if (_initThread.joinable()) {
       _initThread.join();
     }
+  }
+  auto getFLOPS(){
+    return _flopsFromOneAPI;
   }
 };
 

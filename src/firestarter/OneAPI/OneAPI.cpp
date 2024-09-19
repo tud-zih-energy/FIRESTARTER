@@ -254,10 +254,11 @@ static void create_load(std::condition_variable &waitForInitCv,
   };
 */
   while (*loadVar != LOAD_STOP) {
-  firestarter::log::trace() << "Run gemm on device nr. " << device_index;
+    firestarter::log::trace() << "Run gemm on device nr. " << device_index;
     oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
-  firestarter::log::trace() << "wait gemm on device nr. " << device_index;
+    firestarter::log::trace() << "wait gemm on device nr. " << device_index;
     device_queue.wait_and_throw();
+    _flopsFromOneAPI+=2*N*N*N;
   }
 
 }
@@ -267,6 +268,7 @@ OneAPI::OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDoub
   std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
                 useDouble, matrixSize, gpus);
   _initThread = std::move(t);
+  _flopsFromOneAPI = 0;
 
   std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
   // wait for gpus to initialize

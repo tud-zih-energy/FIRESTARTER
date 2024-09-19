@@ -564,6 +564,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                      device_index);
       ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
                        device_index);
+      _flopsFromCUDA+=2*N*N*N;
     }
   }
 
@@ -593,6 +594,7 @@ Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
   std::thread t(Cuda::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
                 useDouble, matrixSize, gpus);
   _initThread = std::move(t);
+  _flopsFromCUDA = 0;
 
   std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
   // wait for gpus to initialize
