@@ -21,10 +21,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
-
-#include <algorithm>
 #include <initializer_list>
 #include <map>
 #include <sstream>
@@ -36,7 +35,7 @@ class PlatformConfig {
 private:
   std::string _name;
   std::list<unsigned> _threads;
-  payload::Payload *_payload;
+  payload::Payload* _payload;
 
 protected:
   unsigned _instructionCacheSize;
@@ -45,33 +44,31 @@ protected:
   unsigned _lines;
 
 public:
-  PlatformConfig(std::string name, std::list<unsigned> threads,
-                 unsigned instructionCacheSize,
-                 std::initializer_list<unsigned> dataCacheBufferSize,
-                 unsigned ramBufferSize, unsigned lines,
-                 payload::Payload *payload)
-      : _name(name), _threads(threads), _payload(payload),
-        _instructionCacheSize(instructionCacheSize),
-        _dataCacheBufferSize(dataCacheBufferSize),
-        _ramBufferSize(ramBufferSize), _lines(lines) {}
+  PlatformConfig(std::string name, std::list<unsigned> threads, unsigned instructionCacheSize,
+                 std::initializer_list<unsigned> dataCacheBufferSize, unsigned ramBufferSize, unsigned lines,
+                 payload::Payload* payload)
+      : _name(name)
+      , _threads(threads)
+      , _payload(payload)
+      , _instructionCacheSize(instructionCacheSize)
+      , _dataCacheBufferSize(dataCacheBufferSize)
+      , _ramBufferSize(ramBufferSize)
+      , _lines(lines) {}
   virtual ~PlatformConfig() { delete _payload; }
 
-  const std::string &name() const { return _name; }
+  const std::string& name() const { return _name; }
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
-  const std::list<unsigned> &dataCacheBufferSize() const {
-    return _dataCacheBufferSize;
-  }
+  const std::list<unsigned>& dataCacheBufferSize() const { return _dataCacheBufferSize; }
   unsigned ramBufferSize() const { return _ramBufferSize; }
   unsigned lines() const { return _lines; }
-  payload::Payload const &payload() const { return *_payload; }
+  payload::Payload const& payload() const { return *_payload; }
 
   std::map<unsigned, std::string> getThreadMap() const {
     std::map<unsigned, std::string> threadMap;
 
-    for (auto const &thread : _threads) {
+    for (auto const& thread : _threads) {
       std::stringstream functionName;
-      functionName << "FUNC_" << name() << "_" << payload().name() << "_"
-                   << thread << "T";
+      functionName << "FUNC_" << name() << "_" << payload().name() << "_" << thread << "T";
       threadMap[thread] = functionName.str();
     }
 
@@ -82,13 +79,12 @@ public:
 
   virtual bool isDefault() const = 0;
 
-  virtual std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const = 0;
+  virtual std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const = 0;
 
   std::string getDefaultPayloadSettingsString() const {
     std::stringstream ss;
 
-    for (auto const &[name, value] : this->getDefaultPayloadSettings()) {
+    for (auto const& [name, value] : this->getDefaultPayloadSettings()) {
       ss << name << ":" << value << ",";
     }
 

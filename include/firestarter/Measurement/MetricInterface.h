@@ -44,13 +44,13 @@ typedef struct {
 // load it during runtime.
 typedef struct {
   // the name of the metric
-  const char *name;
+  const char* name;
 
   // metric type with bitfield from metric_type_t
   metric_type_t type;
 
   // the unit of the metric
-  const char *unit;
+  const char* unit;
 
   uint64_t callback_time;
 
@@ -69,17 +69,15 @@ typedef struct {
   // Get a reading of the metric
   // Return EXIT_SUCCESS if we got a new value.
   // Set this function pointer to NULL if METRIC_INSERT_CALLBACK is specified.
-  int32_t (*get_reading)(double *value);
+  int32_t (*get_reading)(double* value);
 
   // Get error in case return code not being EXIT_SUCCESS
-  const char *(*get_error)(void);
+  const char* (*get_error)(void);
 
   // If METRIC_INSERT_CALLBACK is set in the type, this function will be passed
   // a callback and the first argument for the callback.
   // Further arguments of callback are the metric name, an unix timestamp (time
   // since epoch) and a metric value.
-  int32_t (*register_insert_callback)(void (*)(void *, const char *, int64_t,
-                                               double),
-                                      void *);
+  int32_t (*register_insert_callback)(void (*)(void*, const char*, int64_t, double), void*);
 
 } metric_interface_t;

@@ -29,8 +29,6 @@
 #include <firestarter/OneAPI/OneAPI.hpp>
 #endif
 
-
-
 #include <firestarter/Constants.hpp>
 
 #if defined(linux) || defined(__linux__)
@@ -43,8 +41,7 @@
 #include <firestarter/DumpRegisterWorkerData.hpp>
 #include <firestarter/LoadWorkerData.hpp>
 
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #endif
 
@@ -66,28 +63,18 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(const int argc, const char **argv,
-              std::chrono::seconds const &timeout, unsigned loadPercent,
-              std::chrono::microseconds const &period,
-              unsigned requestedNumThreads, std::string const &cpuBind,
-              bool printFunctionSummary, unsigned functionId,
-              bool listInstructionGroups, std::string const &instructionGroups,
-              unsigned lineCount, bool allowUnavailablePayload,
-              bool dumpRegisters,
-              std::chrono::seconds const &dumpRegistersTimeDelta,
-              std::string const &dumpRegistersOutpath, bool errorDetection,
-              int gpus, unsigned gpuMatrixSize, bool gpuUseFloat,
-              bool gpuUseDouble, bool listMetrics, bool measurement,
-              std::chrono::milliseconds const &startDelta,
-              std::chrono::milliseconds const &stopDelta,
-              std::chrono::milliseconds const &measurementInterval,
-              std::vector<std::string> const &metricPaths,
-              std::vector<std::string> const &stdinMetrics, bool optimize,
-              std::chrono::seconds const &preheat,
-              std::string const &optimizationAlgorithm,
-              std::vector<std::string> const &optimizationMetrics,
-              std::chrono::seconds const &evaluationDuration,
-              unsigned individuals, std::string const &optimizeOutfile,
+  Firestarter(const int argc, const char** argv, std::chrono::seconds const& timeout, unsigned loadPercent,
+              std::chrono::microseconds const& period, unsigned requestedNumThreads, std::string const& cpuBind,
+              bool printFunctionSummary, unsigned functionId, bool listInstructionGroups,
+              std::string const& instructionGroups, unsigned lineCount, bool allowUnavailablePayload,
+              bool dumpRegisters, std::chrono::seconds const& dumpRegistersTimeDelta,
+              std::string const& dumpRegistersOutpath, bool errorDetection, int gpus, unsigned gpuMatrixSize,
+              bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
+              std::chrono::milliseconds const& startDelta, std::chrono::milliseconds const& stopDelta,
+              std::chrono::milliseconds const& measurementInterval, std::vector<std::string> const& metricPaths,
+              std::vector<std::string> const& stdinMetrics, bool optimize, std::chrono::seconds const& preheat,
+              std::string const& optimizationAlgorithm, std::vector<std::string> const& optimizationMetrics,
+              std::chrono::seconds const& evaluationDuration, unsigned individuals, std::string const& optimizeOutfile,
               unsigned generations, double nsga2_cr, double nsga2_m);
 
   ~Firestarter();
@@ -96,7 +83,7 @@ public:
 
 private:
   const int _argc;
-  const char **_argv;
+  const char** _argv;
   const std::chrono::seconds _timeout;
   const unsigned _loadPercent;
   std::chrono::microseconds _load;
@@ -123,13 +110,10 @@ private:
   const double _nsga2_cr;
   const double _nsga2_m;
 
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-  environment::x86::X86Environment *_environment = nullptr;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+  environment::x86::X86Environment* _environment = nullptr;
 
-  environment::x86::X86Environment &environment() const {
-    return *_environment;
-  }
+  environment::x86::X86Environment& environment() const { return *_environment; }
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
@@ -158,14 +142,11 @@ private:
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
 
   // WatchdogWorker.cpp
-  int watchdogWorker(std::chrono::microseconds period,
-                     std::chrono::microseconds load,
-                     std::chrono::seconds timeout);
+  int watchdogWorker(std::chrono::microseconds period, std::chrono::microseconds load, std::chrono::seconds timeout);
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
-                             std::string dumpFilePath);
+  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta, std::string dumpFilePath);
   void joinDumpRegisterWorker();
 #endif
 
@@ -191,8 +172,7 @@ private:
   // variable to control the load of the threads
   inline static volatile unsigned long long loadVar = LOAD_LOW;
 
-  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>>
-      loadThreads;
+  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> loadThreads;
 
   std::vector<std::shared_ptr<unsigned long long>> errorCommunication;
 

@@ -22,11 +22,10 @@
 #ifndef FIRESTARTER_OPTIMIZER_POPULATION_HPP
 #define FIRESTARTER_OPTIMIZER_POPULATION_HPP
 
+#include <cstring>
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Individual.hpp>
 #include <firestarter/Optimizer/Problem.hpp>
-
-#include <cstring>
 #include <memory>
 #include <optional>
 #include <random>
@@ -40,13 +39,17 @@ public:
   // Construct a population from a problem.
   Population() = default;
 
-  Population(std::shared_ptr<Problem> &&problem)
-      : _problem(std::move(problem)), gen(rd()) {}
+  Population(std::shared_ptr<Problem>&& problem)
+      : _problem(std::move(problem))
+      , gen(rd()) {}
 
-  Population(Population &pop)
-      : _problem(pop._problem), _x(pop._x), _f(pop._f), gen(rd()) {}
+  Population(Population& pop)
+      : _problem(pop._problem)
+      , _x(pop._x)
+      , _f(pop._f)
+      , gen(rd()) {}
 
-  Population &operator=(Population const &pop) {
+  Population& operator=(Population const& pop) {
     _problem = std::move(pop._problem);
     _x = pop._x;
     _f = pop._f;
@@ -62,10 +65,9 @@ public:
   std::size_t size() const;
 
   // add one individual to the population. fitness will be evaluated.
-  void append(Individual const &ind);
+  void append(Individual const& ind);
 
-  void insert(std::size_t idx, Individual const &ind,
-              std::vector<double> const &fit);
+  void insert(std::size_t idx, Individual const& ind, std::vector<double> const& fit);
 
   // get a random individual inside bounds of problem
   Individual getRandomIndividual();
@@ -74,14 +76,14 @@ public:
   // return nothing in case of mutli-objective.
   std::optional<Individual> bestIndividual() const;
 
-  Problem const &problem() const { return *_problem; }
+  Problem const& problem() const { return *_problem; }
 
-  std::vector<Individual> const &x() const { return _x; }
-  std::vector<std::vector<double>> const &f() const { return _f; }
+  std::vector<Individual> const& x() const { return _x; }
+  std::vector<std::vector<double>> const& f() const { return _f; }
 
 private:
   // add one individual to the population with a fitness.
-  void append(Individual const &ind, std::vector<double> const &fit);
+  void append(Individual const& ind, std::vector<double> const& fit);
 
   // our problem.
   std::shared_ptr<Problem> _problem;

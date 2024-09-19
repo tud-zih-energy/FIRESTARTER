@@ -52,8 +52,7 @@ static int32_t init_value;
 
 static struct read_format last;
 
-static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
-                            int cpu, int group_fd, unsigned long flags) {
+static long perf_event_open(struct perf_event_attr* hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags) {
   return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
@@ -80,9 +79,7 @@ static int32_t init(void) {
     // The official way of knowing if perf_event_open() support is enabled
     // is checking for the existence of the file
     // /proc/sys/kernel/perf_event_paranoid.
-    errorString =
-        "syscall perf_event_open not supported or file " PERF_EVENT_PARANOID
-        " does not exist";
+    errorString = "syscall perf_event_open not supported or file " PERF_EVENT_PARANOID " does not exist";
     init_value = EXIT_FAILURE;
     init_done = true;
     return EXIT_FAILURE;
@@ -117,17 +114,16 @@ static int32_t init(void) {
   cpu_cycles_attr.exclude_kernel = 1;
   cpu_cycles_attr.exclude_hv = 1;
 
-  if ((cpu_cycles_fd = perf_event_open(
-           &cpu_cycles_attr,
-           // pid == 0 and cpu == -1
-           // This measures the calling process/thread on any CPU.
-           0, -1,
-           // The group_fd argument allows event groups to be created.  An event
-           // group has one event which is the group leader.  The leader is
-           // created first, with group_fd = -1.  The rest of the group members
-           // are created with subsequent perf_event_open() calls with group_fd
-           // being set to the file descriptor of the group leader.
-           -1, 0)) < 0) {
+  if ((cpu_cycles_fd = perf_event_open(&cpu_cycles_attr,
+                                       // pid == 0 and cpu == -1
+                                       // This measures the calling process/thread on any CPU.
+                                       0, -1,
+                                       // The group_fd argument allows event groups to be created.  An event
+                                       // group has one event which is the group leader.  The leader is
+                                       // created first, with group_fd = -1.  The rest of the group members
+                                       // are created with subsequent perf_event_open() calls with group_fd
+                                       // being set to the file descriptor of the group leader.
+                                       -1, 0)) < 0) {
     fini();
     errorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
     init_value = EXIT_FAILURE;
@@ -147,17 +143,16 @@ static int32_t init(void) {
   instructions_attr.exclude_kernel = 1;
   instructions_attr.exclude_hv = 1;
 
-  if ((instructions_fd = perf_event_open(
-           &instructions_attr,
-           // pid == 0 and cpu == -1
-           // This measures the calling process/thread on any CPU.
-           0, -1,
-           // The group_fd argument allows event groups to be created.  An event
-           // group has one event which is the group leader.  The leader is
-           // created first, with group_fd = -1.  The rest of the group members
-           // are created with subsequent perf_event_open() calls with group_fd
-           // being set to the file descriptor of the group leader.
-           cpu_cycles_fd, 0)) < 0) {
+  if ((instructions_fd = perf_event_open(&instructions_attr,
+                                         // pid == 0 and cpu == -1
+                                         // This measures the calling process/thread on any CPU.
+                                         0, -1,
+                                         // The group_fd argument allows event groups to be created.  An event
+                                         // group has one event which is the group leader.  The leader is
+                                         // created first, with group_fd = -1.  The rest of the group members
+                                         // are created with subsequent perf_event_open() calls with group_fd
+                                         // being set to the file descriptor of the group leader.
+                                         cpu_cycles_fd, 0)) < 0) {
     fini();
     errorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
     init_value = EXIT_FAILURE;
@@ -183,7 +178,7 @@ static int32_t init(void) {
   return EXIT_SUCCESS;
 }
 
-static uint64_t value_from_id(struct read_format *values, uint64_t id) {
+static uint64_t value_from_id(struct read_format* values, uint64_t id) {
   for (decltype(values->nr) i = 0; i < values->nr; ++i) {
     if (id == values->values[i].id) {
       return values->values[i].value;
@@ -193,7 +188,7 @@ static uint64_t value_from_id(struct read_format *values, uint64_t id) {
   return 0;
 }
 
-static int32_t get_reading(double *ipc_value, double *freq_value) {
+static int32_t get_reading(double* ipc_value, double* freq_value) {
 
   if (cpu_cycles_fd < 0 || instructions_fd < 0) {
     fini();
@@ -210,10 +205,8 @@ static int32_t get_reading(double *ipc_value, double *freq_value) {
 
   if (ipc_value != nullptr) {
     uint64_t diff[2];
-    diff[0] = value_from_id(&read_values, instructions_id) -
-              value_from_id(&last, instructions_id);
-    diff[1] = value_from_id(&read_values, cpu_cycles_id) -
-              value_from_id(&last, cpu_cycles_id);
+    diff[0] = value_from_id(&read_values, instructions_id) - value_from_id(&last, instructions_id);
+    diff[1] = value_from_id(&read_values, cpu_cycles_id) - value_from_id(&last, cpu_cycles_id);
 
     std::memcpy(&last, &read_values, sizeof(last));
 
@@ -227,16 +220,12 @@ static int32_t get_reading(double *ipc_value, double *freq_value) {
   return EXIT_SUCCESS;
 }
 
-static int32_t get_reading_ipc(double *value) {
-  return get_reading(value, nullptr);
-}
+static int32_t get_reading_ipc(double* value) { return get_reading(value, nullptr); }
 
-static int32_t get_reading_freq(double *value) {
-  return get_reading(nullptr, value);
-}
+static int32_t get_reading_freq(double* value) { return get_reading(nullptr, value); }
 
-static const char *get_error(void) {
-  const char *errorCString = errorString.c_str();
+static const char* get_error(void) {
+  const char* errorCString = errorString.c_str();
   return errorCString;
 }
 }

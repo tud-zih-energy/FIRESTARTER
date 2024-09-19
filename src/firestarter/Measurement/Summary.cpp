@@ -28,10 +28,8 @@ using namespace firestarter::measurement;
 
 // this functions borows a lot of code from
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
-Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
-                           std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType,
-                           unsigned long long numThreads) {
+Summary Summary::calculate(std::vector<TimeValue>::iterator begin, std::vector<TimeValue>::iterator end,
+                           metric_type_t metricType, unsigned long long numThreads) {
   std::vector<TimeValue> values = {};
 
   // TODO: i would really like to make this code a bit more readable, but i
@@ -43,10 +41,7 @@ Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
       prev = *begin++;
       for (auto it = begin; it != end; ++it) {
         auto time_diff =
-            1e-6 *
-            (double)std::chrono::duration_cast<std::chrono::microseconds>(
-                it->time - prev.time)
-                .count();
+            1e-6 * (double)std::chrono::duration_cast<std::chrono::microseconds>(it->time - prev.time).count();
         auto value_diff = it->value - prev.value;
 
         double value = value_diff / time_diff;
@@ -84,8 +79,7 @@ Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
 
     auto last = begin;
     std::advance(last, summary.num_timepoints - 1);
-    summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-        last->time - begin->time);
+    summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(last->time - begin->time);
 
     auto sum_over_nths = [&begin, end, summary](auto fn) {
       double acc = 0.0;

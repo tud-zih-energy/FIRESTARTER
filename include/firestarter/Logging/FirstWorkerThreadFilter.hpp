@@ -23,7 +23,6 @@
 
 #include <nitro/log/log.hpp>
 #include <nitro/log/severity.hpp>
-
 #include <thread>
 
 namespace firestarter {
@@ -34,13 +33,10 @@ template <typename Record> class FirstWorkerThreadFilter {
 public:
   typedef Record record_type;
 
-  static void setFirstThread(std::thread::id newFirstThread) {
-    firstThread = newFirstThread;
-  }
+  static void setFirstThread(std::thread::id newFirstThread) { firstThread = newFirstThread; }
 
-  bool filter(Record &r) const {
-    return r.std_thread_id() == firstThread ||
-           r.severity() >= nitro::log::severity_level::error;
+  bool filter(Record& r) const {
+    return r.std_thread_id() == firstThread || r.severity() >= nitro::log::severity_level::error;
   }
 
 private:

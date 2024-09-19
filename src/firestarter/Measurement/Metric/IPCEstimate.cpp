@@ -30,8 +30,8 @@ extern "C" {
 
 static std::string errorString = "";
 
-static void (*callback)(void *, const char *, int64_t, double) = nullptr;
-static void *callback_arg = nullptr;
+static void (*callback)(void*, const char*, int64_t, double) = nullptr;
+static void* callback_arg = nullptr;
 
 static int32_t fini(void) {
   callback = nullptr;
@@ -46,14 +46,12 @@ static int32_t init(void) {
   return EXIT_SUCCESS;
 }
 
-static const char *get_error(void) {
-  const char *errorCString = errorString.c_str();
+static const char* get_error(void) {
+  const char* errorCString = errorString.c_str();
   return errorCString;
 }
 
-static int32_t register_insert_callback(void (*c)(void *, const char *, int64_t,
-                                                  double),
-                                        void *arg) {
+static int32_t register_insert_callback(void (*c)(void*, const char*, int64_t, double), void* arg) {
   callback = c;
   callback_arg = arg;
   return EXIT_SUCCESS;
@@ -64,9 +62,9 @@ void ipc_estimate_metric_insert(double value) {
     return;
   }
 
-  int64_t t = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                  std::chrono::high_resolution_clock::now().time_since_epoch())
-                  .count();
+  int64_t t =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
+          .count();
 
   callback(callback_arg, "ipc-estimate", t, value);
 }

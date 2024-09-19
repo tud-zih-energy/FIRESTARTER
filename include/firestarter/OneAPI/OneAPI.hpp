@@ -34,13 +34,11 @@ private:
   std::condition_variable _waitForInitCv;
   std::mutex _waitForInitCvMutex;
 
-  static void initGpus(std::condition_variable &cv,
-                       volatile unsigned long long *loadVar, bool useFloat,
-                       bool useDouble, unsigned matrixSize, int gpus);
+  static void initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
+                       unsigned matrixSize, int gpus);
 
 public:
-  OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
-       unsigned matrixSize, int gpus);
+  OneAPI(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus);
 
   ~OneAPI() {
     if (_initThread.joinable()) {

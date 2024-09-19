@@ -27,16 +27,16 @@
 #include <string>
 
 struct Config {
-  inline static const std::vector<std::pair<std::string, std::string>>
-      optionsMap = {{"information", "Information Options:\n"},
-                    {"general", "General Options:\n"},
-                    {"specialized-workloads", "Specialized workloads:\n"},
+  inline static const std::vector<std::pair<std::string, std::string>> optionsMap = {
+      {"information", "Information Options:\n"},
+      {"general", "General Options:\n"},
+      {"specialized-workloads", "Specialized workloads:\n"},
 #ifdef FIRESTARTER_DEBUG_FEATURES
-                    {"debug", "Debugging:\n"},
+      {"debug", "Debugging:\n"},
 #endif
 #if defined(linux) || defined(__linux__)
-                    {"measurement", "Measurement:\n"},
-                    {"optimization", "Optimization:\n"}
+      {"measurement", "Measurement:\n"},
+      {"optimization", "Optimization:\n"}
 #endif
   };
 
@@ -84,48 +84,41 @@ struct Config {
   double nsga2_cr;
   double nsga2_m;
 
-  Config(int argc, const char **argv);
+  Config(int argc, const char** argv);
 };
 
 void print_copyright() {
-  firestarter::log::info()
-      << "This program is free software: you can redistribute it and/or "
-         "modify\n"
-      << "it under the terms of the GNU General Public License as published "
-         "by\n"
-      << "the Free Software Foundation, either version 3 of the License, or\n"
-      << "(at your option) any later version.\n"
-      << "\n"
-      << "You should have received a copy of the GNU General Public License\n"
-      << "along with this program.  If not, see "
-         "<http://www.gnu.org/licenses/>.\n";
+  firestarter::log::info() << "This program is free software: you can redistribute it and/or "
+                              "modify\n"
+                           << "it under the terms of the GNU General Public License as published "
+                              "by\n"
+                           << "the Free Software Foundation, either version 3 of the License, or\n"
+                           << "(at your option) any later version.\n"
+                           << "\n"
+                           << "You should have received a copy of the GNU General Public License\n"
+                           << "along with this program.  If not, see "
+                              "<http://www.gnu.org/licenses/>.\n";
 }
 
 void print_warranty() {
-  firestarter::log::info()
-      << "This program is distributed in the hope that it will be useful,\n"
-      << "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-      << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-      << "GNU General Public License for more details.\n"
-      << "\n"
-      << "You should have received a copy of the GNU General Public License\n"
-      << "along with this program.  If not, see "
-         "<http://www.gnu.org/licenses/>.\n";
+  firestarter::log::info() << "This program is distributed in the hope that it will be useful,\n"
+                           << "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+                           << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+                           << "GNU General Public License for more details.\n"
+                           << "\n"
+                           << "You should have received a copy of the GNU General Public License\n"
+                           << "along with this program.  If not, see "
+                              "<http://www.gnu.org/licenses/>.\n";
 }
 
-void print_help(cxxopts::Options const &parser, std::string const &section) {
-  std::vector<std::pair<std::string, std::string>> options(
-      Config::optionsMap.size());
+void print_help(cxxopts::Options const& parser, std::string const& section) {
+  std::vector<std::pair<std::string, std::string>> options(Config::optionsMap.size());
 
   if (section.size() == 0) {
-    std::copy(Config::optionsMap.begin(), Config::optionsMap.end(),
-              options.begin());
+    std::copy(Config::optionsMap.begin(), Config::optionsMap.end(), options.begin());
   } else {
-    auto findSection = [&](std::pair<std::string, std::string> const &pair) {
-      return pair.first == section;
-    };
-    auto it = std::copy_if(Config::optionsMap.begin(), Config::optionsMap.end(),
-                           options.begin(), findSection);
+    auto findSection = [&](std::pair<std::string, std::string> const& pair) { return pair.first == section; };
+    auto it = std::copy_if(Config::optionsMap.begin(), Config::optionsMap.end(), options.begin(), findSection);
     options.resize(std::distance(options.begin(), it));
   }
 
@@ -162,7 +155,7 @@ void print_help(cxxopts::Options const &parser, std::string const &section) {
   // clang-format on
 }
 
-Config::Config(int argc, const char **argv) {
+Config::Config(int argc, const char** argv) {
 
   cxxopts::Options parser(argv[0]);
 
@@ -270,17 +263,13 @@ Config::Config(int argc, const char **argv) {
     auto options = parser.parse(argc, argv);
 
     if (options.count("quiet")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(
-          nitro::log::severity_level::warn);
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::warn);
     } else if (options.count("report")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(
-          nitro::log::severity_level::debug);
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::debug);
     } else if (options.count("debug")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(
-          nitro::log::severity_level::trace);
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::trace);
     } else {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(
-          nitro::log::severity_level::info);
+      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
     }
 
     if (options.count("version")) {
@@ -297,25 +286,18 @@ Config::Config(int argc, const char **argv) {
       std::exit(EXIT_SUCCESS);
     }
 
-    firestarter::log::info()
-        << "This program comes with ABSOLUTELY NO WARRANTY; for details run `"
-        << argv[0] << " -w`.\n"
-        << "This is free software, and you are welcome to redistribute it\n"
-        << "under certain conditions; run `" << argv[0]
-        << " -c` for details.\n";
+    firestarter::log::info() << "This program comes with ABSOLUTELY NO WARRANTY; for details run `" << argv[0]
+                             << " -w`.\n"
+                             << "This is free software, and you are welcome to redistribute it\n"
+                             << "under certain conditions; run `" << argv[0] << " -c` for details.\n";
 
     if (options.count("help")) {
       auto section = options["help"].as<std::string>();
 
       // section not found
-      auto findSection = [&](std::pair<std::string, std::string> const &pair) {
-        return pair.first == section;
-      };
-      if (std::find_if(optionsMap.begin(), optionsMap.end(), findSection) ==
-              optionsMap.end() &&
-          section.size() != 0) {
-        throw std::invalid_argument("Section \"" + section +
-                                    "\" not found in help.");
+      auto findSection = [&](std::pair<std::string, std::string> const& pair) { return pair.first == section; };
+      if (std::find_if(optionsMap.begin(), optionsMap.end(), findSection) == optionsMap.end() && section.size() != 0) {
+        throw std::invalid_argument("Section \"" + section + "\" not found in help.");
       }
 
       print_help(parser, section);
@@ -340,29 +322,25 @@ Config::Config(int argc, const char **argv) {
     allowUnavailablePayload = options.count("allow-unavailable-payload");
     dumpRegisters = options.count("dump-registers");
     if (dumpRegisters) {
-      dumpRegistersTimeDelta =
-          std::chrono::seconds(options["dump-registers"].as<unsigned>());
+      dumpRegistersTimeDelta = std::chrono::seconds(options["dump-registers"].as<unsigned>());
       if (timeout != std::chrono::microseconds::zero() && loadPercent != 100) {
         throw std::invalid_argument("Option --dump-registers may only be used "
                                     "without a timeout and full load.");
       }
       if (errorDetection) {
-        throw std::invalid_argument(
-            "Options --dump-registers and --error-detection cannot be used "
-            "together.");
+        throw std::invalid_argument("Options --dump-registers and --error-detection cannot be used "
+                                    "together.");
       }
     }
 #endif
 
     requestedNumThreads = options["threads"].as<unsigned>();
 
-#if (defined(linux) || defined(__linux__)) &&                                  \
-    defined(FIRESTARTER_THREAD_AFFINITY)
+#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
     cpuBind = options["bind"].as<std::string>();
     if (!cpuBind.empty()) {
       if (requestedNumThreads != 0) {
-        throw std::invalid_argument(
-            "Options -b/--bind and -n/--threads cannot be used together.");
+        throw std::invalid_argument("Options -b/--bind and -n/--threads cannot be used together.");
       }
     }
 #endif
@@ -378,8 +356,7 @@ Config::Config(int argc, const char **argv) {
 
     gpuMatrixSize = options["matrixsize"].as<unsigned>();
     if (gpuMatrixSize > 0 && gpuMatrixSize < 64) {
-      throw std::invalid_argument(
-          "Option -m/--matrixsize may not be below 64.");
+      throw std::invalid_argument("Option -m/--matrixsize may not be below 64.");
     }
 
     gpus = options["gpus"].as<int>();
@@ -396,17 +373,14 @@ Config::Config(int argc, const char **argv) {
     }
 
 #if defined(linux) || defined(__linux__)
-    startDelta =
-        std::chrono::milliseconds(options["start-delta"].as<unsigned>());
+    startDelta = std::chrono::milliseconds(options["start-delta"].as<unsigned>());
     stopDelta = std::chrono::milliseconds(options["stop-delta"].as<unsigned>());
-    measurementInterval = std::chrono::milliseconds(
-        options["measurement-interval"].as<unsigned>());
+    measurementInterval = std::chrono::milliseconds(options["measurement-interval"].as<unsigned>());
 #ifndef FIRESTARTER_LINK_STATIC
     metricPaths = options["metric-path"].as<std::vector<std::string>>();
 #endif
     if (options.count("metric-from-stdin")) {
-      stdinMetrics =
-          options["metric-from-stdin"].as<std::vector<std::string>>();
+      stdinMetrics = options["metric-from-stdin"].as<std::vector<std::string>>();
     }
     measurement = options.count("measurement");
     listMetrics = options.count("list-metrics");
@@ -417,22 +391,19 @@ Config::Config(int argc, const char **argv) {
                                     "cannot be used together.");
       }
       if (measurement) {
-        throw std::invalid_argument(
-            "Options --measurement and --optimize cannot be used together.");
+        throw std::invalid_argument("Options --measurement and --optimize cannot be used together.");
       }
       preheat = std::chrono::seconds(options["preheat"].as<unsigned>());
       optimizationAlgorithm = options["optimize"].as<std::string>();
       if (options.count("optimization-metric")) {
-        optimizationMetrics =
-            options["optimization-metric"].as<std::vector<std::string>>();
+        optimizationMetrics = options["optimization-metric"].as<std::vector<std::string>>();
       }
       if (loadPercent != 100) {
         throw std::invalid_argument("Options -p | --period and -l | --load are "
                                     "not compatible with --optimize.");
       }
       if (timeout == std::chrono::seconds::zero()) {
-        throw std::invalid_argument(
-            "Option -t | --timeout must be specified for optimization.");
+        throw std::invalid_argument("Option -t | --timeout must be specified for optimization.");
       }
       evaluationDuration = timeout;
       // this will deactivate the watchdog worker
@@ -451,42 +422,37 @@ Config::Config(int argc, const char **argv) {
     }
 #endif
 
-  } catch (std::exception &e) {
+  } catch (std::exception& e) {
     firestarter::log::error() << e.what() << "\n";
     print_help(parser, "");
     std::exit(EXIT_FAILURE);
   }
 }
 
-int main(int argc, const char **argv) {
+int main(int argc, const char** argv) {
 
-  firestarter::log::info()
-      << "FIRESTARTER - A Processor Stress Test Utility, Version "
-      << _FIRESTARTER_VERSION_STRING << "\n"
-      << "Copyright (C) " << _FIRESTARTER_BUILD_YEAR
-      << " TU Dresden, Center for Information Services and High Performance "
-         "Computing"
-      << "\n";
+  firestarter::log::info() << "FIRESTARTER - A Processor Stress Test Utility, Version " << _FIRESTARTER_VERSION_STRING
+                           << "\n"
+                           << "Copyright (C) " << _FIRESTARTER_BUILD_YEAR
+                           << " TU Dresden, Center for Information Services and High Performance "
+                              "Computing"
+                           << "\n";
 
   Config cfg{argc, argv};
 
   try {
     firestarter::Firestarter firestarter(
-        argc, argv, cfg.timeout, cfg.loadPercent, cfg.period,
-        cfg.requestedNumThreads, cfg.cpuBind, cfg.printFunctionSummary,
-        cfg.functionId, cfg.listInstructionGroups, cfg.instructionGroups,
-        cfg.lineCount, cfg.allowUnavailablePayload, cfg.dumpRegisters,
-        cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath,
-        cfg.errorDetection, cfg.gpus, cfg.gpuMatrixSize, cfg.gpuUseFloat,
-        cfg.gpuUseDouble, cfg.listMetrics, cfg.measurement, cfg.startDelta,
-        cfg.stopDelta, cfg.measurementInterval, cfg.metricPaths,
-        cfg.stdinMetrics, cfg.optimize, cfg.preheat, cfg.optimizationAlgorithm,
-        cfg.optimizationMetrics, cfg.evaluationDuration, cfg.individuals,
-        cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
+        argc, argv, cfg.timeout, cfg.loadPercent, cfg.period, cfg.requestedNumThreads, cfg.cpuBind,
+        cfg.printFunctionSummary, cfg.functionId, cfg.listInstructionGroups, cfg.instructionGroups, cfg.lineCount,
+        cfg.allowUnavailablePayload, cfg.dumpRegisters, cfg.dumpRegistersTimeDelta, cfg.dumpRegistersOutpath,
+        cfg.errorDetection, cfg.gpus, cfg.gpuMatrixSize, cfg.gpuUseFloat, cfg.gpuUseDouble, cfg.listMetrics,
+        cfg.measurement, cfg.startDelta, cfg.stopDelta, cfg.measurementInterval, cfg.metricPaths, cfg.stdinMetrics,
+        cfg.optimize, cfg.preheat, cfg.optimizationAlgorithm, cfg.optimizationMetrics, cfg.evaluationDuration,
+        cfg.individuals, cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
 
     firestarter.mainThread();
 
-  } catch (std::exception const &e) {
+  } catch (std::exception const& e) {
     firestarter::log::error() << e.what();
     return EXIT_FAILURE;
   }

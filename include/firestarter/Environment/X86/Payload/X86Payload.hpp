@@ -21,13 +21,12 @@
 
 #pragma once
 
-#include <firestarter/Environment/Payload/Payload.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include <asmjit/x86.h>
 
 #include <firestarter/DumpRegisterWorkerData.hpp>
+#include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/LoadWorkerData.hpp>
-
-#include <asmjit/x86.h>
+#include <firestarter/Logging/Log.hpp>
 
 #define INIT_BLOCKSIZE 1024
 
@@ -36,41 +35,34 @@ namespace firestarter::environment::x86::payload {
 class X86Payload : public environment::payload::Payload {
 private:
   // we can use this to check, if our platform support this payload
-  asmjit::CpuFeatures const &_supportedFeatures;
+  asmjit::CpuFeatures const& _supportedFeatures;
   std::list<asmjit::CpuFeatures::X86::Id> featureRequests;
 
 protected:
   //  asmjit::CodeHolder code;
   asmjit::JitRuntime rt;
   // typedef int (*LoadFunction)(firestarter::ThreadData *);
-  typedef unsigned long long (*LoadFunction)(unsigned long long *,
-                                             volatile unsigned long long *,
-                                             unsigned long long);
+  typedef unsigned long long (*LoadFunction)(unsigned long long*, volatile unsigned long long*, unsigned long long);
   LoadFunction loadFunction = nullptr;
 
-  asmjit::CpuFeatures const &supportedFeatures() const {
-    return this->_supportedFeatures;
-  }
+  asmjit::CpuFeatures const& supportedFeatures() const { return this->_supportedFeatures; }
 
   template <class IterReg, class VectorReg>
-  void emitErrorDetectionCode(asmjit::x86::Builder &cb, IterReg iter_reg,
-                              asmjit::x86::Gpq addrHigh_reg,
-                              asmjit::x86::Gpq pointer_reg,
-                              asmjit::x86::Gpq temp_reg,
-                              asmjit::x86::Gpq temp_reg2);
+  void emitErrorDetectionCode(asmjit::x86::Builder& cb, IterReg iter_reg, asmjit::x86::Gpq addrHigh_reg,
+                              asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 
 public:
-  X86Payload(asmjit::CpuFeatures const &supportedFeatures,
-             std::initializer_list<asmjit::CpuFeatures::X86::Id> featureRequests,
-             std::string name, unsigned registerSize, unsigned registerCount)
-      : Payload(name, registerSize, registerCount),
-        _supportedFeatures(supportedFeatures),
-        featureRequests(featureRequests) {}
+  X86Payload(asmjit::CpuFeatures const& supportedFeatures,
+             std::initializer_list<asmjit::CpuFeatures::X86::Id> featureRequests, std::string name,
+             unsigned registerSize, unsigned registerCount)
+      : Payload(name, registerSize, registerCount)
+      , _supportedFeatures(supportedFeatures)
+      , featureRequests(featureRequests) {}
 
   bool isAvailable() const override {
     bool available = true;
 
-    for (auto const &feature : featureRequests) {
+    for (auto const& feature : featureRequests) {
       available &= this->_supportedFeatures.has(feature);
     }
 
@@ -84,18 +76,15 @@ public:
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
-  void init(unsigned long long *memoryAddr, unsigned long long bufferSize,
-            double firstValue, double lastValue);
+  void init(unsigned long long* memoryAddr, unsigned long long bufferSize, double firstValue, double lastValue);
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
   // use cpuid and usleep as low load
-  void lowLoadFunction(volatile unsigned long long *addrHigh,
-                       unsigned long long period) override;
+  void lowLoadFunction(volatile unsigned long long* addrHigh, unsigned long long period) override;
 
-  unsigned long long highLoadFunction(unsigned long long *addrMem,
-                                      volatile unsigned long long *addrHigh,
+  unsigned long long highLoadFunction(unsigned long long* addrMem, volatile unsigned long long* addrHigh,
                                       unsigned long long iterations) override;
 };
 

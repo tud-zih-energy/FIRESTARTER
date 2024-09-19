@@ -21,10 +21,9 @@
 
 #pragma once
 
+#include <cstring>
 #include <firestarter/Measurement/Summary.hpp>
 #include <firestarter/Optimizer/Individual.hpp>
-
-#include <cstring>
 #include <map>
 #include <tuple>
 #include <vector>
@@ -33,16 +32,14 @@ namespace firestarter::optimizer {
 
 class Problem {
 public:
-  Problem() : _fevals(0) {}
+  Problem()
+      : _fevals(0) {}
   virtual ~Problem() {}
 
   // return the fitness for an individual
-  virtual std::map<std::string, firestarter::measurement::Summary>
-  metrics(Individual const &individual) = 0;
+  virtual std::map<std::string, firestarter::measurement::Summary> metrics(Individual const& individual) = 0;
 
-  virtual std::vector<double>
-  fitness(std::map<std::string, firestarter::measurement::Summary> const
-              &summaries) = 0;
+  virtual std::vector<double> fitness(std::map<std::string, firestarter::measurement::Summary> const& summaries) = 0;
 
   // get the bounds of the problem
   virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() const = 0;

@@ -29,8 +29,7 @@
 using namespace firestarter::optimizer;
 
 void Population::generateInitialPopulation(std::size_t populationSize) {
-  firestarter::log::trace() << "Generating " << populationSize
-                            << " random individuals for initial population.";
+  firestarter::log::trace() << "Generating " << populationSize << " random individuals for initial population.";
 
   auto dims = this->problem().getDims();
   auto remaining = populationSize;
@@ -44,10 +43,8 @@ void Population::generateInitialPopulation(std::size_t populationSize) {
 
     remaining -= dims;
   } else {
-    firestarter::log::trace()
-        << "Population size (" << std::to_string(populationSize)
-        << ") is less than size of problem dimension (" << std::to_string(dims)
-        << ")";
+    firestarter::log::trace() << "Population size (" << std::to_string(populationSize)
+                              << ") is less than size of problem dimension (" << std::to_string(dims) << ")";
   }
 
   for (decltype(remaining) i = 0; i < remaining; i++) {
@@ -57,7 +54,7 @@ void Population::generateInitialPopulation(std::size_t populationSize) {
 
 std::size_t Population::size() const { return _x.size(); }
 
-void Population::append(Individual const &ind) {
+void Population::append(Individual const& ind) {
   assert(this->problem().getDims() == ind.size());
 
   std::map<std::string, firestarter::measurement::Summary> metrics;
@@ -79,10 +76,10 @@ void Population::append(Individual const &ind) {
   }
 }
 
-void Population::append(Individual const &ind, std::vector<double> const &fit) {
+void Population::append(Individual const& ind, std::vector<double> const& fit) {
   std::stringstream ss;
   ss << "  - Fitness: ";
-  for (auto const &v : fit) {
+  for (auto const& v : fit) {
     ss << v << " ";
   }
   firestarter::log::trace() << ss.str();
@@ -94,8 +91,7 @@ void Population::append(Individual const &ind, std::vector<double> const &fit) {
   this->_f.push_back(fit);
 }
 
-void Population::insert(std::size_t idx, Individual const &ind,
-                        std::vector<double> const &fit) {
+void Population::insert(std::size_t idx, Individual const& ind, std::vector<double> const& fit) {
   // assert that population is big enough
   assert(_x.size() > idx);
 
@@ -117,8 +113,7 @@ Individual Population::getRandomIndividual() {
 
     out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->gen);
 
-    firestarter::log::trace()
-        << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
+    firestarter::log::trace() << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
   }
 
   return out;
@@ -134,8 +129,7 @@ std::optional<Individual> Population::bestIndividual() const {
   // assert that we have individuals
   assert(this->_x.size() > 0);
 
-  auto best = std::max_element(this->_x.begin(), this->_x.end(),
-                               [](auto a, auto b) { return a < b; });
+  auto best = std::max_element(this->_x.begin(), this->_x.end(), [](auto a, auto b) { return a < b; });
 
   assert(best != this->_x.end());
 

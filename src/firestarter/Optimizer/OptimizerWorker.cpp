@@ -25,18 +25,16 @@
 
 using namespace firestarter::optimizer;
 
-OptimizerWorker::OptimizerWorker(
-    std::unique_ptr<firestarter::optimizer::Algorithm> &&algorithm,
-    firestarter::optimizer::Population &population,
-    std::string const &optimizationAlgorithm, unsigned individuals,
-    std::chrono::seconds const &preheat)
-    : _algorithm(std::move(algorithm)), _population(population),
-      _optimizationAlgorithm(optimizationAlgorithm), _individuals(individuals),
-      _preheat(preheat) {
-  pthread_create(
-      &this->workerThread, NULL,
-      reinterpret_cast<void *(*)(void *)>(OptimizerWorker::optimizerThread),
-      this);
+OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& algorithm,
+                                 firestarter::optimizer::Population& population,
+                                 std::string const& optimizationAlgorithm, unsigned individuals,
+                                 std::chrono::seconds const& preheat)
+    : _algorithm(std::move(algorithm))
+    , _population(population)
+    , _optimizationAlgorithm(optimizationAlgorithm)
+    , _individuals(individuals)
+    , _preheat(preheat) {
+  pthread_create(&this->workerThread, NULL, reinterpret_cast<void* (*)(void*)>(OptimizerWorker::optimizerThread), this);
 }
 
 void OptimizerWorker::kill() {
@@ -49,10 +47,10 @@ void OptimizerWorker::join() {
   pthread_join(this->workerThread, NULL);
 }
 
-void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
+void* OptimizerWorker::optimizerThread(void* optimizerWorker) {
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
-  auto _this = reinterpret_cast<OptimizerWorker *>(optimizerWorker);
+  auto _this = reinterpret_cast<OptimizerWorker*>(optimizerWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "Optimizer");

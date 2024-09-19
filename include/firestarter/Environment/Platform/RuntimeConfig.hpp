@@ -21,15 +21,14 @@
 
 #pragma once
 
-#include <firestarter/Environment/Platform/PlatformConfig.hpp>
-
 #include <cassert>
+#include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
 namespace firestarter::environment::platform {
 
 class RuntimeConfig {
 private:
-  PlatformConfig const &_platformConfig;
+  PlatformConfig const& _platformConfig;
   std::unique_ptr<payload::Payload> _payload;
   unsigned _thread;
   std::vector<std::pair<std::string, unsigned>> _payloadSettings;
@@ -39,31 +38,34 @@ private:
   unsigned _lines;
 
 public:
-  RuntimeConfig(PlatformConfig const &platformConfig, unsigned thread,
-                unsigned detectedInstructionCacheSize)
-      : _platformConfig(platformConfig), _payload(nullptr), _thread(thread),
-        _payloadSettings(platformConfig.getDefaultPayloadSettings()),
-        _instructionCacheSize(platformConfig.instructionCacheSize()),
-        _dataCacheBufferSize(platformConfig.dataCacheBufferSize()),
-        _ramBufferSize(platformConfig.ramBufferSize()),
-        _lines(platformConfig.lines()) {
+  RuntimeConfig(PlatformConfig const& platformConfig, unsigned thread, unsigned detectedInstructionCacheSize)
+      : _platformConfig(platformConfig)
+      , _payload(nullptr)
+      , _thread(thread)
+      , _payloadSettings(platformConfig.getDefaultPayloadSettings())
+      , _instructionCacheSize(platformConfig.instructionCacheSize())
+      , _dataCacheBufferSize(platformConfig.dataCacheBufferSize())
+      , _ramBufferSize(platformConfig.ramBufferSize())
+      , _lines(platformConfig.lines()) {
     if (detectedInstructionCacheSize != 0) {
       this->_instructionCacheSize = detectedInstructionCacheSize;
     }
   };
 
-  RuntimeConfig(const RuntimeConfig &c)
-      : _platformConfig(c.platformConfig()),
-        _payload(c.platformConfig().payload().clone()), _thread(c.thread()),
-        _payloadSettings(c.payloadSettings()),
-        _instructionCacheSize(c.instructionCacheSize()),
-        _dataCacheBufferSize(c.dataCacheBufferSize()),
-        _ramBufferSize(c.ramBufferSize()), _lines(c.lines()) {}
+  RuntimeConfig(const RuntimeConfig& c)
+      : _platformConfig(c.platformConfig())
+      , _payload(c.platformConfig().payload().clone())
+      , _thread(c.thread())
+      , _payloadSettings(c.payloadSettings())
+      , _instructionCacheSize(c.instructionCacheSize())
+      , _dataCacheBufferSize(c.dataCacheBufferSize())
+      , _ramBufferSize(c.ramBufferSize())
+      , _lines(c.lines()) {}
 
   ~RuntimeConfig() { _payload.reset(); }
 
-  PlatformConfig const &platformConfig() const { return _platformConfig; }
-  payload::Payload &payload() const {
+  PlatformConfig const& platformConfig() const { return _platformConfig; }
+  payload::Payload& payload() const {
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-value"
@@ -80,26 +82,21 @@ public:
     return *_payload;
   }
   unsigned thread() const { return _thread; }
-  const std::vector<std::pair<std::string, unsigned>> &payloadSettings() const {
-    return _payloadSettings;
-  }
+  const std::vector<std::pair<std::string, unsigned>>& payloadSettings() const { return _payloadSettings; }
   std::vector<std::string> payloadItems() const {
     std::vector<std::string> items;
-    for (auto const &pair : _payloadSettings) {
+    for (auto const& pair : _payloadSettings) {
       items.push_back(pair.first);
     }
     return items;
   }
 
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
-  const std::list<unsigned> &dataCacheBufferSize() const {
-    return _dataCacheBufferSize;
-  }
+  const std::list<unsigned>& dataCacheBufferSize() const { return _dataCacheBufferSize; }
   unsigned ramBufferSize() const { return _ramBufferSize; }
   unsigned lines() const { return _lines; }
 
-  void setPayloadSettings(
-      std::vector<std::pair<std::string, unsigned>> const &payloadSettings) {
+  void setPayloadSettings(std::vector<std::pair<std::string, unsigned>> const& payloadSettings) {
     this->_payloadSettings = payloadSettings;
   }
 
@@ -107,20 +104,17 @@ public:
 
   void printCodePathSummary() const {
     log::info() << "\n"
-                << "  Taking " << platformConfig().payload().name()
-                << " path optimized for " << platformConfig().name() << " - "
-                << thread() << " thread(s) per core\n"
+                << "  Taking " << platformConfig().payload().name() << " path optimized for " << platformConfig().name()
+                << " - " << thread() << " thread(s) per core\n"
                 << "  Used buffersizes per thread:";
 
     if (instructionCacheSize() != 0) {
-      log::info() << "    - L1i-Cache: " << instructionCacheSize() / thread()
-                  << " Bytes";
+      log::info() << "    - L1i-Cache: " << instructionCacheSize() / thread() << " Bytes";
     }
 
     unsigned i = 1;
-    for (auto const &bytes : dataCacheBufferSize()) {
-      log::info() << "    - L" << i << "d-Cache: " << bytes / thread()
-                  << " Bytes";
+    for (auto const& bytes : dataCacheBufferSize()) {
+      log::info() << "    - L" << i << "d-Cache: " << bytes / thread() << " Bytes";
       i++;
     }
 

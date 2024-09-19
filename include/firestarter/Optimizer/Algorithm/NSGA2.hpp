@@ -30,11 +30,9 @@ public:
   NSGA2(unsigned gen, double cr, double m);
   ~NSGA2() {}
 
-  void checkPopulation(firestarter::optimizer::Population const &pop,
-                       std::size_t populationSize) override;
+  void checkPopulation(firestarter::optimizer::Population const& pop, std::size_t populationSize) override;
 
-  firestarter::optimizer::Population
-  evolve(firestarter::optimizer::Population &pop) override;
+  firestarter::optimizer::Population evolve(firestarter::optimizer::Population& pop) override;
 
 private:
   unsigned _gen;

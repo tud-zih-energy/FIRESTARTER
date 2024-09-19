@@ -26,33 +26,25 @@
 namespace firestarter::environment::x86::payload {
 class FMAPayload final : public X86Payload {
 public:
-  FMAPayload(asmjit::CpuFeatures const &supportedFeatures)
-      : X86Payload(supportedFeatures,
-                   {asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA},
-                   "FMA", 4, 16) {}
+  FMAPayload(asmjit::CpuFeatures const& supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA}, "FMA", 4, 16) {}
 
-  int compilePayload(
-      std::vector<std::pair<std::string, unsigned>> const &proportion,
-      unsigned instructionCacheSize,
-      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-      unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-      bool errorDetection) override;
+  int compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion, unsigned instructionCacheSize,
+                     std::list<unsigned> const& dataCacheBufferSize, unsigned ramBufferSize, unsigned thread,
+                     unsigned numberOfLines, bool dumpRegisters, bool errorDetection) override;
   std::list<std::string> getAvailableInstructions() const override;
-  void init(unsigned long long *memoryAddr,
-            unsigned long long bufferSize) override;
+  void init(unsigned long long* memoryAddr, unsigned long long bufferSize) override;
 
-  firestarter::environment::payload::Payload *clone() const override {
+  firestarter::environment::payload::Payload* clone() const override {
     return new FMAPayload(this->supportedFeatures());
   };
 
 private:
   const std::map<std::string, unsigned> instructionFlops = {
-      {"REG", 16},  {"L1_L", 16},     {"L1_2L", 16},      {"L1_S", 8},
-      {"L1_LS", 8}, {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},
-      {"L2_S", 8},  {"L2_LS", 8},     {"L2_LS_256", 8},   {"L2_2LS_256", 16},
-      {"L3_L", 16}, {"L3_S", 8},      {"L3_LS", 8},       {"L3_LS_256", 8},
-      {"L3_P", 8},  {"RAM_L", 16},    {"RAM_S", 8},       {"RAM_LS", 8},
-      {"RAM_P", 8}};
+      {"REG", 16},        {"L1_L", 16},  {"L1_2L", 16}, {"L1_S", 8},      {"L1_LS", 8},     {"L1_LS_256", 8},
+      {"L1_2LS_256", 16}, {"L2_L", 16},  {"L2_S", 8},   {"L2_LS", 8},     {"L2_LS_256", 8}, {"L2_2LS_256", 16},
+      {"L3_L", 16},       {"L3_S", 8},   {"L3_LS", 8},  {"L3_LS_256", 8}, {"L3_P", 8},      {"RAM_L", 16},
+      {"RAM_S", 8},       {"RAM_LS", 8}, {"RAM_P", 8}};
 
   const std::map<std::string, unsigned> instructionMemory = {
       {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};

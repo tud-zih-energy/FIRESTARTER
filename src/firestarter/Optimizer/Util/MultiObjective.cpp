@@ -81,13 +81,11 @@ bool greater_than_f(double a, double b) {
  * @throws std::invalid_argument if the dimensions of the two objectives are
  * different
  */
-bool pareto_dominance(const std::vector<double> &obj1,
-                      const std::vector<double> &obj2) {
+bool pareto_dominance(const std::vector<double>& obj1, const std::vector<double>& obj2) {
   if (obj1.size() != obj2.size()) {
     throw std::invalid_argument(
-        "Different number of objectives found in input fitnesses: " +
-        std::to_string(obj1.size()) + " and " + std::to_string(obj2.size()) +
-        ". I cannot define dominance");
+        "Different number of objectives found in input fitnesses: " + std::to_string(obj1.size()) + " and " +
+        std::to_string(obj2.size()) + ". I cannot define dominance");
   }
   bool found_strictly_dominating_dimension = false;
   for (decltype(obj1.size()) i = 0u; i < obj1.size(); ++i) {
@@ -130,16 +128,14 @@ bool pareto_dominance(const std::vector<double> &obj1,
  *
  * @throws std::invalid_argument If the size of \p points is not at least 2
  */
-std::tuple<std::vector<std::vector<std::size_t>>,
-           std::vector<std::vector<std::size_t>>, std::vector<std::size_t>,
+std::tuple<std::vector<std::vector<std::size_t>>, std::vector<std::vector<std::size_t>>, std::vector<std::size_t>,
            std::vector<std::size_t>>
-fast_non_dominated_sorting(const std::vector<std::vector<double>> &points) {
+fast_non_dominated_sorting(const std::vector<std::vector<double>>& points) {
   auto N = points.size();
   // We make sure to have two points at least (one could also be allowed)
   if (N < 2u) {
-    throw std::invalid_argument(
-        "At least two points are needed for fast_non_dominated_sorting: " +
-        std::to_string(N) + " detected.");
+    throw std::invalid_argument("At least two points are needed for fast_non_dominated_sorting: " + std::to_string(N) +
+                                " detected.");
   }
   // Initialize the return values
   std::vector<std::vector<std::size_t>> non_dom_fronts(1u);
@@ -174,8 +170,7 @@ fast_non_dominated_sorting(const std::vector<std::vector<double>> &points) {
   while (current_front.size() != 0u) {
     std::vector<std::size_t> next_front;
     for (decltype(current_front.size()) p = 0u; p < current_front.size(); ++p) {
-      for (decltype(dom_list[current_front[p]].size()) q = 0u;
-           q < dom_list[current_front[p]].size(); ++q) {
+      for (decltype(dom_list[current_front[p]].size()) q = 0u; q < dom_list[current_front[p]].size(); ++q) {
         --dom_count_copy[dom_list[current_front[p]][q]];
         if (dom_count_copy[dom_list[current_front[p]][q]] == 0u) {
           non_dom_rank[dom_list[current_front[p]][q]] = front_counter + 1u;
@@ -189,8 +184,7 @@ fast_non_dominated_sorting(const std::vector<std::vector<double>> &points) {
       non_dom_fronts.push_back(current_front);
     }
   }
-  return std::make_tuple(std::move(non_dom_fronts), std::move(dom_list),
-                         std::move(dom_count), std::move(non_dom_rank));
+  return std::make_tuple(std::move(non_dom_fronts), std::move(dom_list), std::move(dom_count), std::move(non_dom_rank));
 }
 
 /// Crowding distance
@@ -218,14 +212,12 @@ fast_non_dominated_sorting(const std::vector<std::vector<double>> &points) {
  * @throws std::invalid_argument If points in \p non_dom_front do not all have
  * the same dimensionality
  */
-std::vector<double>
-crowding_distance(const std::vector<std::vector<double>> &non_dom_front) {
+std::vector<double> crowding_distance(const std::vector<std::vector<double>>& non_dom_front) {
   auto N = non_dom_front.size();
   // We make sure to have two points at least
   if (N < 2u) {
-    throw std::invalid_argument(
-        "A non dominated front must contain at least two points: " +
-        std::to_string(N) + " detected.");
+    throw std::invalid_argument("A non dominated front must contain at least two points: " + std::to_string(N) +
+                                " detected.");
   }
   auto M = non_dom_front[0].size();
   // We make sure the first point of the input non dominated front contains at
@@ -236,9 +228,8 @@ crowding_distance(const std::vector<std::vector<double>> &non_dom_front) {
                                 std::to_string(M) + " detected.");
   }
   // We make sure all points contain the same number of objectives
-  if (!std::all_of(
-          non_dom_front.begin(), non_dom_front.end(),
-          [M](const std::vector<double> &item) { return item.size() == M; })) {
+  if (!std::all_of(non_dom_front.begin(), non_dom_front.end(),
+                   [M](const std::vector<double>& item) { return item.size() == M; })) {
     throw std::invalid_argument("A non dominated front must contain points of "
                                 "uniform dimensionality. Some "
                                 "different sizes were instead detected.");
@@ -247,19 +238,14 @@ crowding_distance(const std::vector<std::vector<double>> &non_dom_front) {
   std::iota(indexes.begin(), indexes.end(), std::size_t(0u));
   std::vector<double> retval(N, 0.);
   for (decltype(M) i = 0u; i < M; ++i) {
-    std::sort(indexes.begin(), indexes.end(),
-              [i, &non_dom_front](std::size_t idx1, std::size_t idx2) {
-                return less_than_f(non_dom_front[idx1][i],
-                                   non_dom_front[idx2][i]);
-              });
+    std::sort(indexes.begin(), indexes.end(), [i, &non_dom_front](std::size_t idx1, std::size_t idx2) {
+      return less_than_f(non_dom_front[idx1][i], non_dom_front[idx2][i]);
+    });
     retval[indexes[0]] = std::numeric_limits<double>::infinity();
     retval[indexes[N - 1u]] = std::numeric_limits<double>::infinity();
-    double df =
-        non_dom_front[indexes[N - 1u]][i] - non_dom_front[indexes[0]][i];
+    double df = non_dom_front[indexes[N - 1u]][i] - non_dom_front[indexes[0]][i];
     for (decltype(N - 2u) j = 1u; j < N - 1u; ++j) {
-      retval[indexes[j]] += (non_dom_front[indexes[j + 1u]][i] -
-                             non_dom_front[indexes[j - 1u]][i]) /
-                            df;
+      retval[indexes[j]] += (non_dom_front[indexes[j + 1u]][i] - non_dom_front[indexes[j - 1u]][i]) / df;
     }
   }
   return retval;
@@ -267,10 +253,10 @@ crowding_distance(const std::vector<std::vector<double>> &non_dom_front) {
 
 // Multi-objective tournament selection. Requires all sizes to be consistent.
 // Does not check if input is well formed.
-std::vector<double>::size_type mo_tournament_selection(
-    std::vector<double>::size_type idx1, std::vector<double>::size_type idx2,
-    const std::vector<std::vector<double>::size_type> &non_domination_rank,
-    const std::vector<double> &crowding_d, std::mt19937 &mt) {
+std::vector<double>::size_type
+mo_tournament_selection(std::vector<double>::size_type idx1, std::vector<double>::size_type idx2,
+                        const std::vector<std::vector<double>::size_type>& non_domination_rank,
+                        const std::vector<double>& crowding_d, std::mt19937& mt) {
   if (non_domination_rank[idx1] < non_domination_rank[idx2])
     return idx1;
   if (non_domination_rank[idx1] > non_domination_rank[idx2])
@@ -288,11 +274,9 @@ std::vector<double>::size_type mo_tournament_selection(
 // otherwise Requires dimensions of the parent and bounds to be equal -> out of
 // bound reads. nix is the integer dimension (integer alleles assumed at the end
 // of the chromosome)
-std::pair<firestarter::optimizer::Individual,
-          firestarter::optimizer::Individual>
-sbx_crossover(const firestarter::optimizer::Individual &parent1,
-              const firestarter::optimizer::Individual &parent2,
-              const double p_cr, std::mt19937 &mt) {
+std::pair<firestarter::optimizer::Individual, firestarter::optimizer::Individual>
+sbx_crossover(const firestarter::optimizer::Individual& parent1, const firestarter::optimizer::Individual& parent2,
+              const double p_cr, std::mt19937& mt) {
   // Decision vector dimensions
   auto nix = parent1.size();
   firestarter::optimizer::Individual::size_type site1, site2;
@@ -304,14 +288,11 @@ sbx_crossover(const firestarter::optimizer::Individual &parent1,
                                         1.); // to generate a number in [0, 1)
 
   // This implements a Simulated Binary Crossover SBX
-  if (drng(mt) <
-      p_cr) { // No crossever at all will happen with probability p_cr
+  if (drng(mt) < p_cr) { // No crossever at all will happen with probability p_cr
     // This implements two-points crossover and applies it to the integer part
     // of the chromosome.
     if (nix > 0u) {
-      std::uniform_int_distribution<
-          firestarter::optimizer::Individual::size_type>
-          ra_num(0, nix - 1u);
+      std::uniform_int_distribution<firestarter::optimizer::Individual::size_type> ra_num(0, nix - 1u);
       site1 = ra_num(mt);
       site2 = ra_num(mt);
       if (site1 > site2) {
@@ -328,10 +309,9 @@ sbx_crossover(const firestarter::optimizer::Individual &parent1,
 
 // Performs polynomial mutation. Requires all sizes to be consistent. Does not
 // check if input is well formed. p_m is the mutation probability
-void polynomial_mutation(
-    firestarter::optimizer::Individual &child,
-    const std::vector<std::tuple<unsigned, unsigned>> &bounds, const double p_m,
-    std::mt19937 &mt) {
+void polynomial_mutation(firestarter::optimizer::Individual& child,
+                         const std::vector<std::tuple<unsigned, unsigned>>& bounds, const double p_m,
+                         std::mt19937& mt) {
   // Decision vector dimensions
   auto nix = child.size();
   // Random distributions
@@ -343,9 +323,7 @@ void polynomial_mutation(
       // We need to draw a random integer in [lb, ub].
       auto lb = std::get<0>(bounds[j]);
       auto ub = std::get<1>(bounds[j]);
-      std::uniform_int_distribution<
-          firestarter::optimizer::Individual::size_type>
-          dist(lb, ub);
+      std::uniform_int_distribution<firestarter::optimizer::Individual::size_type> dist(lb, ub);
       auto mutated = dist(mt);
       child[j] = mutated;
     }
@@ -384,9 +362,7 @@ void polynomial_mutation(
  * @throws unspecified all exceptions thrown by
  * pagmo::fast_non_dominated_sorting and pagmo::crowding_distance
  */
-std::vector<std::size_t>
-select_best_N_mo(const std::vector<std::vector<double>> &input_f,
-                 std::size_t N) {
+std::vector<std::size_t> select_best_N_mo(const std::vector<std::vector<double>>& input_f, std::size_t N) {
   if (N == 0u) { // corner case
     return {};
   }
@@ -406,7 +382,7 @@ select_best_N_mo(const std::vector<std::vector<double>> &input_f,
   // Run fast-non-dominated sorting
   auto tuple = fast_non_dominated_sorting(input_f);
   // Insert all non dominated fronts if not more than N
-  for (const auto &front : std::get<0>(tuple)) {
+  for (const auto& front : std::get<0>(tuple)) {
     if (retval.size() + front.size() <= N) {
       for (auto i : front) {
         retval.push_back(i);
@@ -430,10 +406,9 @@ select_best_N_mo(const std::vector<std::vector<double>> &input_f,
   // crowding
   std::vector<std::size_t> idxs(front.size());
   std::iota(idxs.begin(), idxs.end(), std::size_t(0u));
-  std::sort(idxs.begin(), idxs.end(),
-            [&cds](std::size_t idx1, std::size_t idx2) {
-              return greater_than_f(cds[idx1], cds[idx2]);
-            }); // Descending order1
+  std::sort(idxs.begin(), idxs.end(), [&cds](std::size_t idx1, std::size_t idx2) {
+    return greater_than_f(cds[idx1], cds[idx2]);
+  }); // Descending order1
   auto remaining = N - retval.size();
   for (decltype(remaining) i = 0u; i < remaining; ++i) {
     retval.push_back(front[idxs[i]]);
@@ -458,7 +433,7 @@ select_best_N_mo(const std::vector<std::vector<double>> &input_f,
  * @throws std::invalid_argument if the input objective vectors are not all of
  * the same size
  */
-std::vector<double> ideal(const std::vector<std::vector<double>> &points) {
+std::vector<double> ideal(const std::vector<std::vector<double>>& points) {
   // Corner case
   if (points.size() == 0u) {
     return {};
@@ -466,7 +441,7 @@ std::vector<double> ideal(const std::vector<std::vector<double>> &points) {
 
   // Sanity checks
   auto M = points[0].size();
-  for (const auto &f : points) {
+  for (const auto& f : points) {
     if (f.size() != M) {
       throw std::invalid_argument("Input vector of objectives must contain "
                                   "fitness vector of equal dimension " +
@@ -476,11 +451,10 @@ std::vector<double> ideal(const std::vector<std::vector<double>> &points) {
   // Actual algorithm
   std::vector<double> retval(M);
   for (decltype(M) i = 0u; i < M; ++i) {
-    retval[i] = (*std::min_element(
-        points.begin(), points.end(),
-        [i](const std::vector<double> &f1, const std::vector<double> &f2) {
-          return util::greater_than_f(f1[i], f2[i]);
-        }))[i];
+    retval[i] = (*std::min_element(points.begin(), points.end(),
+                                   [i](const std::vector<double>& f1, const std::vector<double>& f2) {
+                                     return util::greater_than_f(f1[i], f2[i]);
+                                   }))[i];
   }
   return retval;
 }

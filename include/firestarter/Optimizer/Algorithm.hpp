@@ -30,10 +30,9 @@ public:
   Algorithm() {}
   virtual ~Algorithm() {}
 
-  virtual void checkPopulation(Population const &pop,
-                               std::size_t populationSize) = 0;
+  virtual void checkPopulation(Population const& pop, std::size_t populationSize) = 0;
 
-  virtual Population evolve(Population &pop) = 0;
+  virtual Population evolve(Population& pop) = 0;
 };
 
 } // namespace firestarter::optimizer

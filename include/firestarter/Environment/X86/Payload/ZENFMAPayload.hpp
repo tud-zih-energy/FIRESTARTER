@@ -26,23 +26,17 @@
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload final : public X86Payload {
 public:
-  ZENFMAPayload(asmjit::CpuFeatures const &supportedFeatures)
-      : X86Payload(
-            supportedFeatures,
-            {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
-            "ZENFMA", 4, 16) {}
+  ZENFMAPayload(asmjit::CpuFeatures const& supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
+                   "ZENFMA", 4, 16) {}
 
-  int compilePayload(
-      std::vector<std::pair<std::string, unsigned>> const &proportion,
-      unsigned instructionCacheSize,
-      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-      unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-      bool errorDetection) override;
+  int compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion, unsigned instructionCacheSize,
+                     std::list<unsigned> const& dataCacheBufferSize, unsigned ramBufferSize, unsigned thread,
+                     unsigned numberOfLines, bool dumpRegisters, bool errorDetection) override;
   std::list<std::string> getAvailableInstructions() const override;
-  void init(unsigned long long *memoryAddr,
-            unsigned long long bufferSize) override;
+  void init(unsigned long long* memoryAddr, unsigned long long bufferSize) override;
 
-  firestarter::environment::payload::Payload *clone() const override {
+  firestarter::environment::payload::Payload* clone() const override {
     return new ZENFMAPayload(this->supportedFeatures());
   };
 

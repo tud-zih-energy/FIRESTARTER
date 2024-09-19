@@ -21,18 +21,18 @@
 
 #pragma once
 
+#include <cassert>
 #include <firestarter/Environment/CPUTopology.hpp>
 #include <firestarter/Environment/Platform/PlatformConfig.hpp>
 #include <firestarter/Environment/Platform/RuntimeConfig.hpp>
-
-#include <cassert>
 #include <vector>
 
 namespace firestarter::environment {
 
 class Environment {
 public:
-  Environment(CPUTopology *topology) : _topology(topology) {}
+  Environment(CPUTopology* topology)
+      : _topology(topology) {}
   ~Environment() {
     delete this->_topology;
     if (_selectedConfig != nullptr) {
@@ -45,15 +45,14 @@ public:
   void printThreadSummary();
 
   virtual void evaluateFunctions() = 0;
-  virtual int selectFunction(unsigned functionId,
-                             bool allowUnavailablePayload) = 0;
+  virtual int selectFunction(unsigned functionId, bool allowUnavailablePayload) = 0;
   virtual int selectInstructionGroups(std::string groups) = 0;
   virtual void printAvailableInstructionGroups() = 0;
   virtual void setLineCount(unsigned lineCount) = 0;
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  platform::RuntimeConfig &selectedConfig() const {
+  platform::RuntimeConfig& selectedConfig() const {
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-value"
@@ -68,18 +67,16 @@ public:
     return *_selectedConfig;
   }
 
-  unsigned long long requestedNumThreads() const {
-    return _requestedNumThreads;
-  }
+  unsigned long long requestedNumThreads() const { return _requestedNumThreads; }
 
-  CPUTopology const &topology() const {
+  CPUTopology const& topology() const {
     assert(_topology != nullptr);
     return *_topology;
   }
 
 protected:
-  platform::RuntimeConfig *_selectedConfig = nullptr;
-  CPUTopology *_topology = nullptr;
+  platform::RuntimeConfig* _selectedConfig = nullptr;
+  CPUTopology* _topology = nullptr;
 
 private:
   unsigned long long _requestedNumThreads;

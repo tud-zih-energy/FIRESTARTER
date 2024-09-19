@@ -25,29 +25,25 @@ using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-int AVX512Payload::compilePayload(
-    std::vector<std::pair<std::string, unsigned>> const &proportion,
-    unsigned instructionCacheSize,
-    std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-    unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-    bool errorDetection) {
+int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion,
+                                  unsigned instructionCacheSize, std::list<unsigned> const& dataCacheBufferSize,
+                                  unsigned ramBufferSize, unsigned thread, unsigned numberOfLines, bool dumpRegisters,
+                                  bool errorDetection) {
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
   auto sequence = this->generateSequence(proportion);
-  auto repetitions =
-      this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
+  auto repetitions = this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
 
   // compute count of flops and memory access for performance report
   unsigned flops = 0;
   unsigned bytes = 0;
 
-  for (const auto &item : sequence) {
+  for (const auto& item : sequence) {
     auto it = this->instructionFlops.find(item);
 
     if (it == this->instructionFlops.end()) {
-      workerLog::error() << "Instruction group " << item << " undefined in "
-                         << name() << ".";
+      workerLog::error() << "Instruction group " << item << " undefined in " << name() << ".";
       return EXIT_FAILURE;
     }
 
@@ -75,12 +71,9 @@ int AVX512Payload::compilePayload(
   auto ram_size = ramBufferSize / thread;
 
   // calculate the reset counters for the buffers
-  auto l2_loop_count =
-      getL2LoopCount(sequence, numberOfLines, l2_size * thread, thread);
-  auto l3_loop_count =
-      getL3LoopCount(sequence, numberOfLines, l3_size * thread, thread);
-  auto ram_loop_count =
-      getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
+  auto l2_loop_count = getL2LoopCount(sequence, numberOfLines, l2_size * thread, thread);
+  auto l3_loop_count = getL3LoopCount(sequence, numberOfLines, l3_size * thread, thread);
+  auto ram_loop_count = getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
 
   CodeHolder code;
   code.init(this->rt.environment());
@@ -90,9 +83,8 @@ int AVX512Payload::compilePayload(
   }
 
   Builder cb(&code);
-  cb.addDiagnosticOptions(
-    asmjit::DiagnosticOptions::kValidateAssembler | 
-    asmjit::DiagnosticOptions::kValidateIntermediate );
+  cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
+                          asmjit::DiagnosticOptions::kValidateIntermediate);
 
   auto pointer_reg = rax;
   auto l1_addr = rbx;
@@ -116,8 +108,7 @@ int AVX512Payload::compilePayload(
   auto ram_reg = zmm30;
 
   FuncDetail func;
-  func.init(FuncSignatureT<unsigned long long, unsigned long long *,
-                           volatile unsigned long long *, unsigned long long>(
+  func.init(FuncSignatureT<unsigned long long, unsigned long long*, volatile unsigned long long*, unsigned long long>(
                 CallConvId::kCDecl),
             this->rt.environment());
 
@@ -132,10 +123,9 @@ int AVX512Payload::compilePayload(
     frame.addDirtyRegs(Mm(i));
   }
   // make all other used registers dirty except RAX
-  frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
-                     l3_count_reg, ram_count_reg, temp_reg, offset_reg,
-                     addrHigh_reg, iter_reg, ram_addr);
-  for (const auto &reg : shift_reg) {
+  frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg, l3_count_reg, ram_count_reg, temp_reg,
+                     offset_reg, addrHigh_reg, iter_reg, ram_addr);
+  for (const auto& reg : shift_reg) {
     frame.addDirtyRegs(reg);
   }
 
@@ -161,7 +151,7 @@ int AVX512Payload::compilePayload(
   cb.mov(offset_reg,
          Imm(64)); // increment after each cache/memory access
   // Initialize registers for shift operations
-  for (auto const &reg : shift_reg32) {
+  for (auto const& reg : shift_reg32) {
     cb.mov(reg, Imm(0xAAAAAAAA));
   }
   // Initialize AVX512-Registers for FMA Operations
@@ -183,23 +173,14 @@ int AVX512Payload::compilePayload(
   cb.mov(ram_addr, pointer_reg);
   cb.add(ram_addr, Imm(l3_size)); // address for RAM-buffer
   cb.mov(l2_count_reg, Imm(l2_loop_count));
-  workerLog::trace() << "reset counter for L2-buffer with "
-                     << l2_loop_count
-                     << " cache line accesses per loop ("
-		     << l2_size/1024
-                     << ") KiB";
+  workerLog::trace() << "reset counter for L2-buffer with " << l2_loop_count << " cache line accesses per loop ("
+                     << l2_size / 1024 << ") KiB";
   cb.mov(l3_count_reg, Imm(l3_loop_count));
-  workerLog::trace() << "reset counter for L3-buffer with "
-                     << l3_loop_count
-                     << " cache line accesses per loop ("
-		     << l3_size/1024
-                     << ") KiB";
+  workerLog::trace() << "reset counter for L3-buffer with " << l3_loop_count << " cache line accesses per loop ("
+                     << l3_size / 1024 << ") KiB";
   cb.mov(ram_count_reg, Imm(ram_loop_count));
-  workerLog::trace() << "reset counter for RAM-buffer with "
-                     << ram_loop_count
-                     << " cache line accesses per loop ("
-		     << ram_size/1024
-                     << ") KiB";
+  workerLog::trace() << "reset counter for RAM-buffer with " << ram_loop_count << " cache line accesses per loop ("
+                     << ram_size / 1024 << ") KiB";
 
   cb.align(AlignMode::kCode, 64);
 
@@ -213,13 +194,13 @@ int AVX512Payload::compilePayload(
   auto mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
 
-#define L1_INCREMENT()                                                         \
-  l1_offset += 64;                                                             \
-  if (l1_offset < l1_size * 0.5) {                                             \
-    cb.add(l1_addr, offset_reg);                                               \
-  } else {                                                                     \
-    l1_offset = 0;                                                             \
-    cb.mov(l1_addr, pointer_reg);                                              \
+#define L1_INCREMENT()                                                                                                 \
+  l1_offset += 64;                                                                                                     \
+  if (l1_offset < l1_size * 0.5) {                                                                                     \
+    cb.add(l1_addr, offset_reg);                                                                                       \
+  } else {                                                                                                             \
+    l1_offset = 0;                                                                                                     \
+    cb.mov(l1_addr, pointer_reg);                                                                                      \
   }
 
 #define L2_INCREMENT() cb.add(l2_addr, offset_reg)
@@ -229,12 +210,11 @@ int AVX512Payload::compilePayload(
 #define RAM_INCREMENT() cb.add(ram_addr, offset_reg)
 
   for (unsigned count = 0; count < repetitions; count++) {
-    for (const auto &item : sequence) {
+    for (const auto& item : sequence) {
       if (item == "REG") {
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmm2);
         cb.vfmadd231pd(Zmm(mov_dst), zmm2, zmm1);
-        cb.xor_(shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
-                temp_reg);
+        cb.xor_(shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs], temp_reg);
         mov_dst++;
       } else if (item == "L1_L") {
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmm2);
@@ -297,8 +277,7 @@ int AVX512Payload::compilePayload(
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
       } else {
-        workerLog::error() << "Instruction group " << item << " not found in "
-                           << this->name() << ".";
+        workerLog::error() << "Instruction group " << item << " not found in " << this->name() << ".";
         return EXIT_FAILURE;
       }
 
@@ -378,9 +357,7 @@ int AVX512Payload::compilePayload(
 
     // dump all the ymm register
     for (int i = 0; i < (int)this->registerCount(); i++) {
-      cb.vmovapd(
-          zmmword_ptr(pointer_reg, -64 - this->registerSize() * 8 * (i + 1)),
-          Zmm(i));
+      cb.vmovapd(zmmword_ptr(pointer_reg, -64 - this->registerSize() * 8 * (i + 1)), Zmm(i));
     }
 
     // set read flag
@@ -390,8 +367,7 @@ int AVX512Payload::compilePayload(
   }
 
   if (errorDetection) {
-    this->emitErrorDetectionCode<decltype(iter_reg), Zmm>(
-        cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
+    this->emitErrorDetectionCode<decltype(iter_reg), Zmm>(cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
   cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));
@@ -410,8 +386,7 @@ int AVX512Payload::compilePayload(
 
   Error err = this->rt.add(&this->loadFunction, &code);
   if (err) {
-    workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in "
-                       << __FILE__ << " at " << __LINE__;
+    workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
   }
 
@@ -424,8 +399,7 @@ int AVX512Payload::compilePayload(
       workerLog::warn() << "Work-loop is bigger than the L1i-Cache.";
     }
 
-    workerLog::trace() << "Using " << loopSize << " of " << l1i_cache_size
-                       << " Bytes (" << instructionCachePercentage
+    workerLog::trace() << "Using " << loopSize << " of " << l1i_cache_size << " Bytes (" << instructionCachePercentage
                        << "%) from the L1i-Cache for the work-loop.";
     workerLog::trace() << "Sequence size: " << sequence.size();
     workerLog::trace() << "Repetition count: " << repetitions;
@@ -437,14 +411,12 @@ int AVX512Payload::compilePayload(
 std::list<std::string> AVX512Payload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
-  transform(this->instructionFlops.begin(), this->instructionFlops.end(),
-            back_inserter(instructions),
-            [](const auto &item) { return item.first; });
+  transform(this->instructionFlops.begin(), this->instructionFlops.end(), back_inserter(instructions),
+            [](const auto& item) { return item.first; });
 
   return instructions;
 }
 
-void AVX512Payload::init(unsigned long long *memoryAddr,
-                         unsigned long long bufferSize) {
+void AVX512Payload::init(unsigned long long* memoryAddr, unsigned long long bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }

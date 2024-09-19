@@ -19,10 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <chrono>
 #include <firestarter/Optimizer/Algorithm.hpp>
 #include <firestarter/Optimizer/Population.hpp>
-
-#include <chrono>
 #include <memory>
 
 extern "C" {
@@ -33,11 +32,9 @@ namespace firestarter::optimizer {
 
 class OptimizerWorker {
 public:
-  OptimizerWorker(
-      std::unique_ptr<firestarter::optimizer::Algorithm> &&algorithm,
-      firestarter::optimizer::Population &population,
-      std::string const &optimizationAlgorithm, unsigned individuals,
-      std::chrono::seconds const &preheat);
+  OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& algorithm,
+                  firestarter::optimizer::Population& population, std::string const& optimizationAlgorithm,
+                  unsigned individuals, std::chrono::seconds const& preheat);
 
   ~OptimizerWorker() {}
 
@@ -46,7 +43,7 @@ public:
   void kill();
 
 private:
-  static void *optimizerThread(void *optimizerWorker);
+  static void* optimizerThread(void* optimizerWorker);
 
   std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
   firestarter::optimizer::Population _population;

@@ -31,7 +31,10 @@
 using namespace firestarter::optimizer::algorithm;
 
 NSGA2::NSGA2(unsigned gen, double cr, double m)
-    : Algorithm(), _gen(gen), _cr(cr), _m(m) {
+    : Algorithm()
+    , _gen(gen)
+    , _cr(cr)
+    , _m(m) {
   if (cr >= 1. || cr < 0.) {
     throw std::invalid_argument("The crossover probability must be in the "
                                 "[0,1[ range, while a value of " +
@@ -44,14 +47,12 @@ NSGA2::NSGA2(unsigned gen, double cr, double m)
   }
 }
 
-void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
-                            std::size_t populationSize) {
-  const auto &prob = pop.problem();
+void NSGA2::checkPopulation(firestarter::optimizer::Population const& pop, std::size_t populationSize) {
+  const auto& prob = pop.problem();
 
   if (!prob.isMO()) {
-    throw std::invalid_argument(
-        "NSGA2 is a multiobjective algorithms, while number of objectives is " +
-        std::to_string(prob.getNobjs()));
+    throw std::invalid_argument("NSGA2 is a multiobjective algorithms, while number of objectives is " +
+                                std::to_string(prob.getNobjs()));
   }
 
   if (populationSize < 5u || (populationSize % 4 != 0u)) {
@@ -63,15 +64,13 @@ void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
   }
 }
 
-firestarter::optimizer::Population
-NSGA2::evolve(firestarter::optimizer::Population &pop) {
-  const auto &prob = pop.problem();
+firestarter::optimizer::Population NSGA2::evolve(firestarter::optimizer::Population& pop) {
+  const auto& prob = pop.problem();
   const auto bounds = prob.getBounds();
   auto NP = pop.size();
   auto fevals0 = prob.getFevals();
 
-  this->checkPopulation(
-      const_cast<firestarter::optimizer::Population const &>(pop), NP);
+  this->checkPopulation(const_cast<firestarter::optimizer::Population const&>(pop), NP);
 
   std::random_device rd;
   std::mt19937 rng(rd());
@@ -117,15 +116,11 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
     // We compute crowding distance and non dominated rank for the current
     // population
     auto fnds_res = util::fast_non_dominated_sorting(pop.f());
-    auto ndf =
-        std::get<0>(fnds_res); // non dominated fronts [[0,3,2],[1,5,6],[4],...]
-    std::vector<double> pop_cd(
-        NP); // crowding distances of the whole population
-    auto ndr =
-        std::get<3>(fnds_res); // non domination rank [0,1,0,0,2,1,1, ... ]
-    for (const auto &front_idxs : ndf) {
-      if (front_idxs.size() ==
-          1u) { // handles the case where the front has collapsed to one point
+    auto ndf = std::get<0>(fnds_res); // non dominated fronts [[0,3,2],[1,5,6],[4],...]
+    std::vector<double> pop_cd(NP);   // crowding distances of the whole population
+    auto ndr = std::get<3>(fnds_res); // non domination rank [0,1,0,0,2,1,1, ... ]
+    for (const auto& front_idxs : ndf) {
+      if (front_idxs.size() == 1u) { // handles the case where the front has collapsed to one point
         pop_cd[front_idxs[0]] = std::numeric_limits<double>::infinity();
       } else if (front_idxs.size() == 2u) { // handles the case where the front
         // has collapsed to one point
@@ -147,12 +142,9 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
     // of parents that will each create 2 new offspring
     for (decltype(NP) i = 0u; i < NP; i += 4) {
       // We create two offsprings using the shuffled list 1
-      parent1_idx = util::mo_tournament_selection(shuffle1[i], shuffle1[i + 1],
-                                                  ndr, pop_cd, rng);
-      parent2_idx = util::mo_tournament_selection(
-          shuffle1[i + 2], shuffle1[i + 3], ndr, pop_cd, rng);
-      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx],
-                                     _cr, rng);
+      parent1_idx = util::mo_tournament_selection(shuffle1[i], shuffle1[i + 1], ndr, pop_cd, rng);
+      parent2_idx = util::mo_tournament_selection(shuffle1[i + 2], shuffle1[i + 3], ndr, pop_cd, rng);
+      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx], _cr, rng);
       util::polynomial_mutation(children.first, bounds, _m, rng);
       util::polynomial_mutation(children.second, bounds, _m, rng);
 
@@ -160,12 +152,9 @@ NSGA2::evolve(firestarter::optimizer::Population &pop) {
       popnew.append(children.second);
 
       // We repeat with the shuffled list 2
-      parent1_idx = util::mo_tournament_selection(shuffle2[i], shuffle2[i + 1],
-                                                  ndr, pop_cd, rng);
-      parent2_idx = util::mo_tournament_selection(
-          shuffle2[i + 2], shuffle2[i + 3], ndr, pop_cd, rng);
-      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx],
-                                     _cr, rng);
+      parent1_idx = util::mo_tournament_selection(shuffle2[i], shuffle2[i + 1], ndr, pop_cd, rng);
+      parent2_idx = util::mo_tournament_selection(shuffle2[i + 2], shuffle2[i + 3], ndr, pop_cd, rng);
+      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx], _cr, rng);
       util::polynomial_mutation(children.first, bounds, _m, rng);
       util::polynomial_mutation(children.second, bounds, _m, rng);
 

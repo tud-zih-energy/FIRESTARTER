@@ -26,12 +26,10 @@
 
 using namespace firestarter::environment::payload;
 
-unsigned
-Payload::getSequenceStartCount(const std::vector<std::string> &sequence,
-                               const std::string start) {
+unsigned Payload::getSequenceStartCount(const std::vector<std::string>& sequence, const std::string start) {
   unsigned i = 0;
 
-  for (const auto &item : sequence) {
+  for (const auto& item : sequence) {
     if (0 == item.rfind(start, 0)) {
       i++;
     }
@@ -40,13 +38,10 @@ Payload::getSequenceStartCount(const std::vector<std::string> &sequence,
   return i;
 }
 
-std::vector<std::string> Payload::generateSequence(
-    std::vector<std::pair<std::string, unsigned>> const &proportions) {
+std::vector<std::string> Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> const& proportions) {
   std::vector<std::pair<std::string, unsigned>> prop = proportions;
 
-  prop.erase(std::remove_if(prop.begin(), prop.end(),
-                            [](auto const &pair) { return pair.second == 0; }),
-             prop.end());
+  prop.erase(std::remove_if(prop.begin(), prop.end(), [](auto const& pair) { return pair.second == 0; }), prop.end());
 
   std::vector<std::string> sequence = {};
 
@@ -62,8 +57,7 @@ std::vector<std::string> Payload::generateSequence(
   for (++it; it != prop.end(); ++it) {
     for (unsigned i = 0; i < it->second; i++) {
       insertIt = sequence.begin();
-      std::advance(insertIt, 1 + floor(i * (sequence.size() + it->second - i) /
-                                       (float)it->second));
+      std::advance(insertIt, 1 + floor(i * (sequence.size() + it->second - i) / (float)it->second));
       sequence.insert(insertIt, it->first);
     }
   }
@@ -71,38 +65,32 @@ std::vector<std::string> Payload::generateSequence(
   return sequence;
 }
 
-unsigned Payload::getL2LoopCount(const std::vector<std::string> &sequence,
-                                 const unsigned numberOfLines,
+unsigned Payload::getL2LoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
                                  const unsigned size, const unsigned threads) {
   if (this->getL2SequenceCount(sequence) == 0) {
     return 0;
   }
-  return (0.8 * size / 64 / threads /
-          (this->getL2SequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence,
-                                                numberOfLines / threads)));
+  return (
+      0.8 * size / 64 / threads /
+      (this->getL2SequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
 }
 
-unsigned Payload::getL3LoopCount(const std::vector<std::string> &sequence,
-                                 const unsigned numberOfLines,
+unsigned Payload::getL3LoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
                                  const unsigned size, const unsigned threads) {
   if (this->getL3SequenceCount(sequence) == 0) {
     return 0;
   }
-  return (0.8 * size / 64 / threads /
-          (this->getL3SequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence,
-                                                numberOfLines / threads)));
+  return (
+      0.8 * size / 64 / threads /
+      (this->getL3SequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
 }
 
-unsigned Payload::getRAMLoopCount(const std::vector<std::string> &sequence,
-                                  const unsigned numberOfLines,
+unsigned Payload::getRAMLoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
                                   const unsigned size, const unsigned threads) {
   if (this->getRAMSequenceCount(sequence) == 0) {
     return 0;
   }
-  return (1.0 * size / 64 / threads /
-          (this->getRAMSequenceCount(sequence) *
-           this->getNumberOfSequenceRepetitions(sequence,
-                                                numberOfLines / threads)));
+  return (
+      1.0 * size / 64 / threads /
+      (this->getRAMSequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
 }

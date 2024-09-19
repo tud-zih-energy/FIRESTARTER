@@ -35,23 +35,20 @@ private:
   unsigned _currentThreads;
 
 public:
-  X86PlatformConfig(std::string name, unsigned family,
-                    std::initializer_list<unsigned> models,
-                    std::initializer_list<unsigned> threads,
-                    unsigned instructionCacheSize,
-                    std::initializer_list<unsigned> dataCacheBufferSize,
-                    unsigned ramBuffersize, unsigned lines,
-                    unsigned currentFamily, unsigned currentModel,
-                    unsigned currentThreads, payload::X86Payload *payload)
-      : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize,
-                       ramBuffersize, lines, payload),
-        _family(family), _models(models), _currentFamily(currentFamily),
-        _currentModel(currentModel), _currentThreads(currentThreads) {}
+  X86PlatformConfig(std::string name, unsigned family, std::initializer_list<unsigned> models,
+                    std::initializer_list<unsigned> threads, unsigned instructionCacheSize,
+                    std::initializer_list<unsigned> dataCacheBufferSize, unsigned ramBuffersize, unsigned lines,
+                    unsigned currentFamily, unsigned currentModel, unsigned currentThreads,
+                    payload::X86Payload* payload)
+      : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize, ramBuffersize, lines, payload)
+      , _family(family)
+      , _models(models)
+      , _currentFamily(currentFamily)
+      , _currentModel(currentModel)
+      , _currentThreads(currentThreads) {}
 
   bool isDefault() const override {
-    return _family == _currentFamily &&
-           (std::find(_models.begin(), _models.end(), _currentModel) !=
-            _models.end()) &&
+    return _family == _currentFamily && (std::find(_models.begin(), _models.end(), _currentModel) != _models.end()) &&
            isAvailable();
   }
 };

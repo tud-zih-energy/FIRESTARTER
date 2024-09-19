@@ -32,8 +32,7 @@
 
 using namespace firestarter::environment::x86::payload;
 
-void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
-                                 unsigned long long period) {
+void X86Payload::lowLoadFunction(volatile unsigned long long* addrHigh, unsigned long long period) {
   int nap;
 #ifdef _MSC_VER
   std::array<int, 4> cpuid;
@@ -70,46 +69,36 @@ void X86Payload::lowLoadFunction(volatile unsigned long long *addrHigh,
   }
 }
 
-void X86Payload::init(unsigned long long *memoryAddr,
-                      unsigned long long bufferSize, double firstValue,
+void X86Payload::init(unsigned long long* memoryAddr, unsigned long long bufferSize, double firstValue,
                       double lastValue) {
   unsigned long long i = 0;
 
   for (; i < INIT_BLOCKSIZE; i++)
-    *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * firstValue;
+    *((double*)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * firstValue;
   for (; i <= bufferSize - INIT_BLOCKSIZE; i += INIT_BLOCKSIZE)
-    std::memcpy(memoryAddr + i, memoryAddr + i - INIT_BLOCKSIZE,
-                sizeof(unsigned long long) * INIT_BLOCKSIZE);
+    std::memcpy(memoryAddr + i, memoryAddr + i - INIT_BLOCKSIZE, sizeof(unsigned long long) * INIT_BLOCKSIZE);
   for (; i < bufferSize; i++)
-    *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * lastValue;
+    *((double*)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * lastValue;
 }
 
-unsigned long long
-X86Payload::highLoadFunction(unsigned long long *addrMem,
-                             volatile unsigned long long *addrHigh,
-                             unsigned long long iterations) {
+unsigned long long X86Payload::highLoadFunction(unsigned long long* addrMem, volatile unsigned long long* addrHigh,
+                                                unsigned long long iterations) {
   return this->loadFunction(addrMem, addrHigh, iterations);
 }
 
 // add MM regs to dirty regs
 // zmm31 is used for backup if VectorReg is of type asmjit::x86::Zmm
 template <class IterReg, class VectorReg>
-void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
-                                        IterReg iter_reg,
-                                        asmjit::x86::Gpq addrHigh_reg,
-                                        asmjit::x86::Gpq pointer_reg,
-                                        asmjit::x86::Gpq temp_reg,
+void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder& cb, IterReg iter_reg, asmjit::x86::Gpq addrHigh_reg,
+                                        asmjit::x86::Gpq pointer_reg, asmjit::x86::Gpq temp_reg,
                                         asmjit::x86::Gpq temp_reg2) {
   // we don't want anything to break... so we use asserts for everything that
   // could break it
-  static_assert(std::is_base_of<asmjit::x86::Vec, VectorReg>::value,
-                "VectorReg must be of asmjit::asmjit::x86::Vec");
-  static_assert(std::is_same<asmjit::x86::Xmm, VectorReg>::value ||
-                    std::is_same<asmjit::x86::Ymm, VectorReg>::value ||
+  static_assert(std::is_base_of<asmjit::x86::Vec, VectorReg>::value, "VectorReg must be of asmjit::asmjit::x86::Vec");
+  static_assert(std::is_same<asmjit::x86::Xmm, VectorReg>::value || std::is_same<asmjit::x86::Ymm, VectorReg>::value ||
                     std::is_same<asmjit::x86::Zmm, VectorReg>::value,
                 "VectorReg ist not of any supported type");
-  static_assert(std::is_same<asmjit::x86::Mm, IterReg>::value ||
-                    std::is_same<asmjit::x86::Gpq, IterReg>::value,
+  static_assert(std::is_same<asmjit::x86::Mm, IterReg>::value || std::is_same<asmjit::x86::Gpq, IterReg>::value,
                 "IterReg is not of any supported type");
 
   if constexpr (std::is_same<asmjit::x86::Mm, IterReg>::value) {
@@ -281,8 +270,7 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
     cb.movq(temp_reg2, asmjit::x86::Mm(4));
     cb.pinsrq(asmjit::x86::xmm0, temp_reg2, asmjit::Imm(1));
 
-    cb.vinsertf128(asmjit::x86::ymm0, asmjit::x86::ymm0, asmjit::x86::xmm0,
-                   asmjit::Imm(1));
+    cb.vinsertf128(asmjit::x86::ymm0, asmjit::x86::ymm0, asmjit::x86::xmm0, asmjit::Imm(1));
 
     cb.movq(temp_reg2, asmjit::x86::Mm(7));
     cb.movq(asmjit::x86::xmm0, temp_reg2);
@@ -463,24 +451,16 @@ void X86Payload::emitErrorDetectionCode(asmjit::x86::Builder &cb,
   cb.bind(SkipErrorDetection);
 }
 
-template void
-X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Xmm>(
-    asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+template void X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Xmm>(
+    asmjit::x86::Builder& cb, asmjit::x86::Gpq iter_reg, asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
-template void
-X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Ymm>(
-    asmjit::x86::Builder &cb, asmjit::x86::Gpq iter_reg,
-    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+template void X86Payload::emitErrorDetectionCode<asmjit::x86::Gpq, asmjit::x86::Ymm>(
+    asmjit::x86::Builder& cb, asmjit::x86::Gpq iter_reg, asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
 
-template void
-X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Ymm>(
-    asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+template void X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Ymm>(
+    asmjit::x86::Builder& cb, asmjit::x86::Mm iter_reg, asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);
-template void
-X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Zmm>(
-    asmjit::x86::Builder &cb, asmjit::x86::Mm iter_reg,
-    asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
+template void X86Payload::emitErrorDetectionCode<asmjit::x86::Mm, asmjit::x86::Zmm>(
+    asmjit::x86::Builder& cb, asmjit::x86::Mm iter_reg, asmjit::x86::Gpq addrHigh_reg, asmjit::x86::Gpq pointer_reg,
     asmjit::x86::Gpq temp_reg, asmjit::x86::Gpq temp_reg2);

@@ -21,17 +21,15 @@
 
 #pragma once
 
+#include <atomic>
 #include <firestarter/Constants.hpp>
 #include <firestarter/DumpRegisterStruct.hpp>
 #include <firestarter/Environment/Environment.hpp>
 #include <firestarter/ErrorDetectionStruct.hpp>
-
-#include <atomic>
 #include <memory>
 #include <mutex>
 
-#define PAD_SIZE(size, align)                                                  \
-  align *(int)std::ceil((double)size / (double)align)
+#define PAD_SIZE(size, align) align*(int)std::ceil((double)size / (double)align)
 
 #if defined(__APPLE__)
 #define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
@@ -40,12 +38,10 @@
 #define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
 #define ALIGNED_FREE _mm_free
 #elif defined(_MSC_VER)
-#define ALIGNED_MALLOC(size, align)                                            \
-  _aligned_malloc(PAD_SIZE(size, align), align)
+#define ALIGNED_MALLOC(size, align) _aligned_malloc(PAD_SIZE(size, align), align)
 #define ALIGNED_FREE _aligned_free
 #else
-#define ALIGNED_MALLOC(size, align)                                            \
-  std::aligned_alloc(align, PAD_SIZE(size, align))
+#define ALIGNED_MALLOC(size, align) std::aligned_alloc(align, PAD_SIZE(size, align))
 #define ALIGNED_FREE std::free
 #endif
 
@@ -53,25 +49,22 @@ namespace firestarter {
 
 class LoadWorkerData {
 public:
-  LoadWorkerData(int id, environment::Environment &environment,
-                 volatile unsigned long long *loadVar,
-                 unsigned long long period, bool dumpRegisters,
-                 bool errorDetection)
-      : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
-        errorDetection(errorDetection), _id(id), _environment(environment),
-        _config(new environment::platform::RuntimeConfig(
-            environment.selectedConfig())) {
+  LoadWorkerData(int id, environment::Environment& environment, volatile unsigned long long* loadVar,
+                 unsigned long long period, bool dumpRegisters, bool errorDetection)
+      : addrHigh(loadVar)
+      , period(period)
+      , dumpRegisters(dumpRegisters)
+      , errorDetection(errorDetection)
+      , _id(id)
+      , _environment(environment)
+      , _config(new environment::platform::RuntimeConfig(environment.selectedConfig())) {
     // use REGISTER_MAX_NUM cache lines for the dumped registers
     // and another cache line for the control variable.
-    // as we are doing aligned moves we only have the option to waste a whole
-    // cacheline
-    addrOffset = dumpRegisters
-                     ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
-                     : 0;
+    // as we are doing aligned moves we only have the option to waste a
+    // whole cacheline
+    addrOffset = dumpRegisters ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long) : 0;
 
-    addrOffset += errorDetection ? sizeof(ErrorDetectionStruct) /
-                                       sizeof(unsigned long long)
-                                 : 0;
+    addrOffset += errorDetection ? sizeof(ErrorDetectionStruct) / sizeof(unsigned long long) : 0;
   }
 
   ~LoadWorkerData() {
@@ -81,27 +74,26 @@ public:
     }
   }
 
-  void setErrorCommunication(
-      std::shared_ptr<unsigned long long> communicationLeft,
-      std::shared_ptr<unsigned long long> communicationRight) {
+  void setErrorCommunication(std::shared_ptr<unsigned long long> communicationLeft,
+                             std::shared_ptr<unsigned long long> communicationRight) {
     this->communicationLeft = communicationLeft;
     this->communicationRight = communicationRight;
   }
 
   int id() const { return _id; }
-  environment::Environment &environment() const { return _environment; }
-  environment::platform::RuntimeConfig &config() const { return *_config; }
+  environment::Environment& environment() const { return _environment; }
+  environment::platform::RuntimeConfig& config() const { return *_config; }
 
-  const ErrorDetectionStruct *errorDetectionStruct() const {
-    return reinterpret_cast<ErrorDetectionStruct *>(addrMem - addrOffset);
+  const ErrorDetectionStruct* errorDetectionStruct() const {
+    return reinterpret_cast<ErrorDetectionStruct*>(addrMem - addrOffset);
   }
 
   int comm = THREAD_WAIT;
   bool ack = false;
   std::mutex mutex;
-  unsigned long long *addrMem = nullptr;
+  unsigned long long* addrMem = nullptr;
   unsigned long long addrOffset;
-  volatile unsigned long long *addrHigh;
+  volatile unsigned long long* addrHigh;
   unsigned long long buffersizeMem;
   unsigned long long iterations = 0;
   // save the last iteration count when switching payloads
@@ -121,8 +113,8 @@ public:
 
 private:
   int _id;
-  environment::Environment &_environment;
-  environment::platform::RuntimeConfig *_config;
+  environment::Environment& _environment;
+  environment::platform::RuntimeConfig* _config;
 };
 
 } // namespace firestarter

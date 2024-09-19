@@ -22,14 +22,12 @@
 /* OneAPI for GPUs, based on CUDA component
  *****************************************************************************/
 
-#include <firestarter/OneAPI/OneAPI.hpp>
 #include <firestarter/LoadWorkerData.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/OneAPI/OneAPI.hpp>
 
-
-#include <sycl/sycl.hpp>
 #include <oneapi/mkl.hpp>
-
+#include <sycl/sycl.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -37,34 +35,28 @@
 
 using namespace firestarter::oneapi;
 
-
 /* Random number generation helpers */
-template <typename T>
-void generate_random_data(size_t elems, T *v)
-{
-    for (size_t i = 0; i < elems; i++)
-        v[i] = double(std::rand()) / RAND_MAX;
+template <typename T> void generate_random_data(size_t elems, T* v) {
+  for (size_t i = 0; i < elems; i++)
+    v[i] = double(std::rand()) / RAND_MAX;
 }
 
-template <typename T>
-void replicate_data(sycl::queue &Q, T *dst, size_t dst_elems, const T *src, size_t src_elems)
-{
-    firestarter::log::trace() << "replicate_data " << dst_elems << " elements from " <<
-                                 src << " to " << dst ;
-    while (dst_elems > 0) {
-        auto copy_elems = std::min(dst_elems, src_elems);
-        Q.copy(src,  dst, copy_elems);
-        dst += copy_elems;
-        dst_elems -= copy_elems;
-    }
-    Q.wait();
+template <typename T> void replicate_data(sycl::queue& Q, T* dst, size_t dst_elems, const T* src, size_t src_elems) {
+  firestarter::log::trace() << "replicate_data " << dst_elems << " elements from " << src << " to " << dst;
+  while (dst_elems > 0) {
+    auto copy_elems = std::min(dst_elems, src_elems);
+    Q.copy(src, dst, copy_elems);
+    dst += copy_elems;
+    dst_elems -= copy_elems;
+  }
+  Q.wait();
 }
 
 static int get_precision(int device_index, int useDouble) {
 
   firestarter::log::trace() << "Checking useDouble " << useDouble;
 
-  if (!useDouble){
+  if (!useDouble) {
     return 0;
   }
 
@@ -79,11 +71,11 @@ static int get_precision(int device_index, int useDouble) {
   // Choose a platform based on specific criteria (e.g., device type)
   sycl::platform chosenPlatform;
   auto nr_gpus = 0;
-  for (const auto &platform : platforms) {
+  for (const auto& platform : platforms) {
     firestarter::log::trace() << "Checking SYCL platform " << platform.get_info<sycl::info::platform::name>();
     auto devices = platform.get_devices();
     nr_gpus = 0;
-    for (const auto &device : devices) {
+    for (const auto& device : devices) {
       firestarter::log::trace() << "Checking SYCL device " << device.get_info<sycl::info::device::name>();
       if (device.is_gpu()) { // Choose GPU, you can use other criteria
         firestarter::log::trace() << " ... is GPU";
@@ -99,13 +91,11 @@ static int get_precision(int device_index, int useDouble) {
   }
   // Get a list of devices for the chosen platform
 
-
   firestarter::log::trace() << "Get support for double"
-                     << " on device nr. "
-                     << device_index;
+                            << " on device nr. " << device_index;
   auto devices = chosenPlatform.get_devices();
   if (devices[device_index].has(sycl::aspect::fp64))
-    supports_double=1;
+    supports_double = 1;
 
   return supports_double;
 }
@@ -123,19 +113,14 @@ static int round_up(int num_to_round, int multiple) {
   return num_to_round + multiple - remainder;
 }
 
-
 // GPU index. Used to pin this thread to the GPU.
 template <typename T>
-static void create_load(std::condition_variable &waitForInitCv,
-                        std::mutex &waitForInitCvMutex, int device_index,
-                        std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize) {
-  static_assert(
-      std::is_same<T, float>::value || std::is_same<T, double>::value,
-      "create_load<T>: Template argument T must be either float or double");
+static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
+                        std::atomic<int>& initCount, volatile unsigned long long* loadVar, int matrixSize) {
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
+                "create_load<T>: Template argument T must be either float or double");
 
-  firestarter::log::trace() << "Starting OneAPI with given matrix size "
-                            << matrixSize;
+  firestarter::log::trace() << "Starting OneAPI with given matrix size " << matrixSize;
 
   size_t size_use = 0;
   if (matrixSize > 0) {
@@ -158,14 +143,14 @@ static void create_load(std::condition_variable &waitForInitCv,
   // Choose a platform based on specific criteria (e.g., device type)
   sycl::platform chosenPlatform;
   auto nr_gpus = 0;
-  for (const auto &platform : platforms) {
+  for (const auto& platform : platforms) {
     auto devices = platform.get_devices();
     nr_gpus = 0;
-    for (const auto &device : devices) {
-        if (device.is_gpu()) { // Choose GPU, you can use other criteria
-            chosenPlatform = platform;
-            nr_gpus++;
-        }
+    for (const auto& device : devices) {
+      if (device.is_gpu()) { // Choose GPU, you can use other criteria
+        chosenPlatform = platform;
+        nr_gpus++;
+      }
     }
   }
 
@@ -174,24 +159,20 @@ static void create_load(std::condition_variable &waitForInitCv,
     return;
   }
 
-    // Get a list of devices for the chosen platform
+  // Get a list of devices for the chosen platform
   auto devices = chosenPlatform.get_devices();
-  
 
-  firestarter::log::trace() << "Creating SYCL queue for computation on device nr. "
-                     << device_index;
+  firestarter::log::trace() << "Creating SYCL queue for computation on device nr. " << device_index;
   auto chosenDevice = devices[device_index];
   sycl::queue device_queue(chosenDevice);
 
   firestarter::log::trace() << "Get memory size on device nr. " << device_index;
-  
 
   // getting information about the GPU memory
   size_t memory_total = devices[device_index].get_info<sycl::info::device::global_mem_size>();
 
-  firestarter::log::trace() << "Get Memory info on device nr. "
-                     << device_index
-                     <<": has " << memory_total << " B global memory";
+  firestarter::log::trace() << "Get Memory info on device nr. " << device_index << ": has " << memory_total
+                            << " B global memory";
 
   // check if the user has not set a matrix OR has set a too big matrixsite and
   // if this is true: set a good matrixsize
@@ -201,27 +182,21 @@ static void create_load(std::condition_variable &waitForInitCv,
   }
 
   firestarter::log::trace() << "Set OneAPI matrix size in B: " << size_use;
-  use_bytes =sizeof(T) * size_use * size_use * 3;
-
-
+  use_bytes = sizeof(T) * size_use * size_use * 3;
 
   /* Allocate A/B/C matrices */
 
-  firestarter::log::trace()
-      << "Allocating memory on device nr. "
-      << device_index;
+  firestarter::log::trace() << "Allocating memory on device nr. " << device_index;
   auto A = malloc_device<T>(size_use * size_use, device_queue);
   auto B = malloc_device<T>(size_use * size_use, device_queue);
   auto C = malloc_device<T>(size_use * size_use, device_queue);
 
   /* Create 64 MB random data on Host */
-  constexpr int rd_size = 1024*1024*64;
+  constexpr int rd_size = 1024 * 1024 * 64;
   auto random_data = malloc_host<T>(rd_size, device_queue);
   generate_random_data(rd_size, random_data);
 
-  firestarter::log::trace()
-      << "Copy memory to device nr. "
-      << device_index;
+  firestarter::log::trace() << "Copy memory to device nr. " << device_index;
   /* fill A and B with random data */
   replicate_data(device_queue, A, size_use * size_use, random_data, rd_size);
   replicate_data(device_queue, B, size_use * size_use, random_data, rd_size);
@@ -230,14 +205,13 @@ static void create_load(std::condition_variable &waitForInitCv,
     std::lock_guard<std::mutex> lk(waitForInitCvMutex);
 
 #define TO_MB(x) (unsigned long)(x / 1024 / 1024)
-  firestarter::log::info()
-      << "   GPU " << device_index << "\n"
-      << "    name:           " << devices[device_index].get_info<sycl::info::device::name>() << "\n"
-      << "    memory:         " << TO_MB(memory_total) << " MiB total (using " << TO_MB(use_bytes)
-      << " MiB)\n"
-      << "    matrix size:    " << size_use << "\n"
-      << "    used precision: "
-      << ((sizeof(T) == sizeof(double)) ? "double" : "single");
+    firestarter::log::info() << "   GPU " << device_index << "\n"
+                             << "    name:           " << devices[device_index].get_info<sycl::info::device::name>()
+                             << "\n"
+                             << "    memory:         " << TO_MB(memory_total) << " MiB total (using "
+                             << TO_MB(use_bytes) << " MiB)\n"
+                             << "    matrix size:    " << size_use << "\n"
+                             << "    used precision: " << ((sizeof(T) == sizeof(double)) ? "double" : "single");
 #undef TO_MB
 
     initCount++;
@@ -246,26 +220,24 @@ static void create_load(std::condition_variable &waitForInitCv,
 
   firestarter::log::trace() << "Run gemm on device nr. " << device_index;
   /* With this, we could run multiple gemms ...*/
-/*  auto run_gemms = [=, &device_queue](int runs) -> double {
-      using namespace oneapi::mkl;
-      for (int i = 0; i < runs; i++)
-          
-      return runs;
-  };
-*/
+  /*  auto run_gemms = [=, &device_queue](int runs) -> double {
+        using namespace oneapi::mkl;
+        for (int i = 0; i < runs; i++)
+
+        return runs;
+    };
+  */
   while (*loadVar != LOAD_STOP) {
-  firestarter::log::trace() << "Run gemm on device nr. " << device_index;
-    oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
-  firestarter::log::trace() << "wait gemm on device nr. " << device_index;
+    firestarter::log::trace() << "Run gemm on device nr. " << device_index;
+    oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use,
+                            size_use, 1, A, size_use, B, size_use, 0, C, size_use);
+    firestarter::log::trace() << "wait gemm on device nr. " << device_index;
     device_queue.wait_and_throw();
   }
-
 }
 
-OneAPI::OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
-           unsigned matrixSize, int gpus) {
-  std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
-                useDouble, matrixSize, gpus);
+OneAPI::OneAPI(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
+  std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat, useDouble, matrixSize, gpus);
   _initThread = std::move(t);
 
   std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
@@ -273,9 +245,8 @@ OneAPI::OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDoub
   _waitForInitCv.wait(lk);
 }
 
-void OneAPI::initGpus(std::condition_variable &cv,
-                    volatile unsigned long long *loadVar, bool useFloat,
-                    bool useDouble, unsigned matrixSize, int gpus) {
+void OneAPI::initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
+                      unsigned matrixSize, int gpus) {
   std::condition_variable waitForInitCv;
   std::mutex waitForInitCvMutex;
 
@@ -291,14 +262,14 @@ void OneAPI::initGpus(std::condition_variable &cv,
     // Choose a platform based on specific criteria (e.g., device type)
     sycl::platform chosenPlatform;
     auto devCount = 0;
-    for (const auto &platform : platforms) {
+    for (const auto& platform : platforms) {
       auto devices = platform.get_devices();
       devCount = 0;
-      for (const auto &device : devices) {
-          if (device.is_gpu()) { // Choose GPU, you can use other criteria
-              chosenPlatform = platform;
-              devCount++;
-          }
+      for (const auto& device : devices) {
+        if (device.is_gpu()) { // Choose GPU, you can use other criteria
+          chosenPlatform = platform;
+          devCount++;
+        }
       }
     }
 
@@ -327,9 +298,8 @@ void OneAPI::initGpus(std::condition_variable &cv,
       }
       if (gpus > devCount) {
         firestarter::log::warn() << "You requested more OneAPI devices than available.";
-        firestarter::log::warn()
-            << "FIRESTARTER will use " << devCount << " of the requested "
-            << gpus << " OneAPI device(s)";
+        firestarter::log::warn() << "FIRESTARTER will use " << devCount << " of the requested " << gpus
+                                 << " OneAPI device(s)";
         gpus = devCount;
       }
 
@@ -340,21 +310,19 @@ void OneAPI::initGpus(std::condition_variable &cv,
           // if there's a GPU in the system without Double Precision support, we
           // have to correct this.
           int precision = get_precision(i, use_double);
-          if (precision == -1){
+          if (precision == -1) {
             firestarter::log::warn() << "This should not have happened. Could not get precision via SYCL.";
           }
 
           if (precision) {
             firestarter::log::trace() << "Starting OneAPI GPU double workload.";
-            std::thread t(create_load<double>, std::ref(waitForInitCv),
-                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
+            std::thread t(create_load<double>, std::ref(waitForInitCv), std::ref(waitForInitCvMutex), i,
+                          std::ref(initCount), loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           } else {
             firestarter::log::trace() << "Starting OneAPI GPU float workload.";
-            std::thread t(create_load<float>, std::ref(waitForInitCv),
-                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
+            std::thread t(create_load<float>, std::ref(waitForInitCv), std::ref(waitForInitCvMutex), i,
+                          std::ref(initCount), loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           }
         }
@@ -370,19 +338,17 @@ void OneAPI::initGpus(std::condition_variable &cv,
       cv.notify_all();
 
       /* join computation threads */
-      for (auto &t : gpuThreads) {
+      for (auto& t : gpuThreads) {
         t.join();
       }
     } else {
-      firestarter::log::info()
-          << "    - No OneAPI devices. Just stressing CPU(s). Maybe use "
-             "FIRESTARTER instead of FIRESTARTER_OneAPI?";
+      firestarter::log::info() << "    - No OneAPI devices. Just stressing CPU(s). Maybe use "
+                                  "FIRESTARTER instead of FIRESTARTER_OneAPI?";
       cv.notify_all();
     }
   } else {
-    firestarter::log::info()
-        << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
-           "FIRESTARTER instead of FIRESTARTER_OneAPI?";
+    firestarter::log::info() << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
+                                "FIRESTARTER instead of FIRESTARTER_OneAPI?";
     cv.notify_all();
   }
 }

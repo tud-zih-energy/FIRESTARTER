@@ -28,14 +28,14 @@ struct ErrorDetectionStruct {
   // one ptr (8B)
 
   // the pointer to 16B of communication
-  volatile unsigned long long *communicationLeft;
+  volatile unsigned long long* communicationLeft;
   volatile unsigned long long localsLeft[4];
-  // if this variable is not 0, an error occured in the comparison with the left
-  // thread.
+  // if this variable is not 0, an error occured in the comparison with the
+  // left thread.
   volatile unsigned long long errorLeft;
   volatile unsigned long long paddingLeft[2];
 
-  volatile unsigned long long *communicationRight;
+  volatile unsigned long long* communicationRight;
   volatile unsigned long long localsRight[4];
   // if this variable is not 0, an error occured in the comparison with the
   // right thread.

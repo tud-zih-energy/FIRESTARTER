@@ -22,21 +22,17 @@
 #pragma once
 
 #include <firestarter/Logging/FirstWorkerThreadFilter.hpp>
-
-#include <nitro/log/log.hpp>
-#include <nitro/log/severity.hpp>
-
+#include <iomanip>
+#include <ios>
+#include <iostream>
 #include <nitro/log/attribute/message.hpp>
 #include <nitro/log/attribute/severity.hpp>
 #include <nitro/log/attribute/std_thread_id.hpp>
 #include <nitro/log/attribute/timestamp.hpp>
-
 #include <nitro/log/filter/and_filter.hpp>
 #include <nitro/log/filter/severity_filter.hpp>
-
-#include <iomanip>
-#include <ios>
-#include <iostream>
+#include <nitro/log/log.hpp>
+#include <nitro/log/severity.hpp>
 #include <sstream>
 #include <string>
 
@@ -46,8 +42,7 @@ namespace logging {
 
 class StdOut {
 public:
-  void sink(nitro::log::severity_level severity,
-            const std::string &formatted_record) {
+  void sink(nitro::log::severity_level severity, const std::string& formatted_record) {
     switch (severity) {
     case nitro::log::severity_level::warn:
     case nitro::log::severity_level::error:
@@ -61,13 +56,12 @@ public:
   }
 };
 
-using record = nitro::log::record<
-    nitro::log::severity_attribute, nitro::log::message_attribute,
-    nitro::log::timestamp_attribute, nitro::log::std_thread_id_attribute>;
+using record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute,
+                                  nitro::log::timestamp_attribute, nitro::log::std_thread_id_attribute>;
 
 template <typename Record> class formater {
 public:
-  std::string format(Record &r) {
+  std::string format(Record& r) {
     std::stringstream s;
 
     switch (r.severity()) {
@@ -93,21 +87,16 @@ public:
   }
 };
 
-template <typename Record>
-using filter = nitro::log::filter::severity_filter<Record>;
+template <typename Record> using filter = nitro::log::filter::severity_filter<Record>;
 
 template <typename Record>
-using workerFilter =
-    nitro::log::filter::and_filter<filter<Record>,
-                                   FirstWorkerThreadFilter<Record>>;
+using workerFilter = nitro::log::filter::and_filter<filter<Record>, FirstWorkerThreadFilter<Record>>;
 
 } // namespace logging
 
-using log = nitro::log::logger<logging::record, logging::formater,
-                               firestarter::logging::StdOut, logging::filter>;
+using log = nitro::log::logger<logging::record, logging::formater, firestarter::logging::StdOut, logging::filter>;
 
 using workerLog =
-    nitro::log::logger<logging::record, logging::formater,
-                       firestarter::logging::StdOut, logging::workerFilter>;
+    nitro::log::logger<logging::record, logging::formater, firestarter::logging::StdOut, logging::workerFilter>;
 
 } // namespace firestarter

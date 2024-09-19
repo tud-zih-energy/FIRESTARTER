@@ -30,8 +30,7 @@
 
 using namespace firestarter;
 
-int Firestarter::watchdogWorker(std::chrono::microseconds period,
-                                std::chrono::microseconds load,
+int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::microseconds load,
                                 std::chrono::seconds timeout) {
 
   using clock = std::chrono::high_resolution_clock;
@@ -58,14 +57,13 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
       // get the time already advanced in the current timeslice
       // this can happen if a load function does not terminates just on time
-      nsec advance = std::chrono::duration_cast<nsec>(currentTime - startTime) %
-                     std::chrono::duration_cast<nsec>(period);
+      nsec advance =
+          std::chrono::duration_cast<nsec>(currentTime - startTime) % std::chrono::duration_cast<nsec>(period);
 
       // subtract the advaned time from our timeslice by spilting it based on
       // the load level
       nsec load_reduction =
-          (std::chrono::duration_cast<nsec>(load).count() * advance) /
-          std::chrono::duration_cast<nsec>(period).count();
+          (std::chrono::duration_cast<nsec>(load).count() * advance) / std::chrono::duration_cast<nsec>(period).count();
       nsec idle_reduction = advance - load_reduction;
 
       // signal high load level
@@ -79,14 +77,12 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       VT_USER_START("WD_HIGH");
 #endif
 #ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
+      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
-        this->_watchdogTerminateAlert.wait_for(
-            lk, load_nsec, [this]() { return this->_watchdog_terminate; });
+        this->_watchdogTerminateAlert.wait_for(lk, load_nsec, [this]() { return this->_watchdog_terminate; });
         // terminate on interrupt
         if (this->_watchdog_terminate) {
           return EXIT_SUCCESS;
@@ -110,14 +106,12 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       VT_USER_START("WD_LOW");
 #endif
 #ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
+      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
-        this->_watchdogTerminateAlert.wait_for(
-            lk, idle_nsec, [this]() { return this->_watchdog_terminate; });
+        this->_watchdogTerminateAlert.wait_for(lk, idle_nsec, [this]() { return this->_watchdog_terminate; });
         // terminate on interrupt
         if (this->_watchdog_terminate) {
           return EXIT_SUCCESS;
@@ -136,8 +130,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       // exit when termination signal is received or timeout is reached
       {
         std::lock_guard<std::mutex> lk(this->_watchdogTerminateMutex);
-        if (this->_watchdog_terminate ||
-            (timeout > sec::zero() && (time > timeout))) {
+        if (this->_watchdog_terminate || (timeout > sec::zero() && (time > timeout))) {
           this->setLoad(LOAD_STOP);
 
           return EXIT_SUCCESS;
@@ -152,8 +145,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
     {
       std::unique_lock<std::mutex> lk(Firestarter::_watchdogTerminateMutex);
       // abort waiting if we get the interrupt signal
-      Firestarter::_watchdogTerminateAlert.wait_for(
-          lk, timeout, []() { return Firestarter::_watchdog_terminate; });
+      Firestarter::_watchdogTerminateAlert.wait_for(lk, timeout, []() { return Firestarter::_watchdog_terminate; });
     }
 
     this->setLoad(LOAD_STOP);

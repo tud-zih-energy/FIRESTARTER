@@ -25,14 +25,13 @@
 
 namespace nlohmann {
 template <> struct adl_serializer<firestarter::measurement::Summary> {
-  static firestarter::measurement::Summary from_json(const json &j) {
+  static firestarter::measurement::Summary from_json(const json& j) {
     return {j["num_timepoints"].get<size_t>(),
-            std::chrono::milliseconds(
-                j["duration"].get<std::chrono::milliseconds::rep>()),
-            j["average"].get<double>(), j["stddev"].get<double>()};
+            std::chrono::milliseconds(j["duration"].get<std::chrono::milliseconds::rep>()), j["average"].get<double>(),
+            j["stddev"].get<double>()};
   }
 
-  static void to_json(json &j, firestarter::measurement::Summary s) {
+  static void to_json(json& j, firestarter::measurement::Summary s) {
     j = json::object();
 
     j["num_timepoints"] = s.num_timepoints;

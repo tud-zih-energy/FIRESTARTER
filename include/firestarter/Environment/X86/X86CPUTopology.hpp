@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include <firestarter/Environment/CPUTopology.hpp>
-
 #include <asmjit/asmjit.h>
+
+#include <firestarter/Environment/CPUTopology.hpp>
 
 namespace firestarter::environment::x86 {
 
@@ -31,18 +31,13 @@ class X86CPUTopology final : public CPUTopology {
 public:
   X86CPUTopology();
 
-  friend std::ostream &operator<<(std::ostream &stream,
-                                  X86CPUTopology const &cpuTopology);
+  friend std::ostream& operator<<(std::ostream& stream, X86CPUTopology const& cpuTopology);
 
-  std::list<std::string> const &features() const override {
-    return this->featureList;
-  }
-  const asmjit::CpuFeatures& featuresAsmjit() const{
-    return this->cpuInfo.features();
-  }
+  std::list<std::string> const& features() const override { return this->featureList; }
+  const asmjit::CpuFeatures& featuresAsmjit() const { return this->cpuInfo.features(); }
 
-  std::string const &vendor() const override { return this->_vendor; }
-  std::string const &model() const override { return this->_model; }
+  std::string const& vendor() const override { return this->_vendor; }
+  std::string const& model() const override { return this->_model; }
 
   unsigned long long clockrate() const override;
 
@@ -55,8 +50,7 @@ public:
 private:
   bool hasRdtsc() const { return this->_hasRdtsc; }
   bool hasInvariantRdtsc() const { return this->_hasInvariantRdtsc; }
-  void cpuid(unsigned long long *a, unsigned long long *b,
-             unsigned long long *c, unsigned long long *d) const;
+  void cpuid(unsigned long long* a, unsigned long long* b, unsigned long long* c, unsigned long long* d) const;
 
   asmjit::CpuInfo cpuInfo;
   std::list<std::string> featureList;
@@ -67,8 +61,7 @@ private:
   std::string _model;
 };
 
-inline std::ostream &operator<<(std::ostream &stream,
-                                X86CPUTopology const &cpuTopology) {
+inline std::ostream& operator<<(std::ostream& stream, X86CPUTopology const& cpuTopology) {
   return cpuTopology.print(stream);
 }
 

@@ -34,12 +34,12 @@
 using namespace firestarter::environment::x86;
 
 X86CPUTopology::X86CPUTopology()
-    : CPUTopology("x86_64"), cpuInfo(asmjit::CpuInfo::host()),
-      _vendor(this->cpuInfo.vendor()) {
+    : CPUTopology("x86_64")
+    , cpuInfo(asmjit::CpuInfo::host())
+    , _vendor(this->cpuInfo.vendor()) {
 
   std::stringstream ss;
-  ss << "Family " << this->familyId() << ", Model " << this->modelId()
-     << ", Stepping " << this->stepping();
+  ss << "Family " << this->familyId() << ", Model " << this->modelId() << ", Stepping " << this->stepping();
   this->_model = ss.str();
 
   for (int i = 0; i <= (int)asmjit::CpuFeatures::X86::Id::kMaxValue; i++) {
@@ -152,8 +152,7 @@ unsigned long long X86CPUTopology::clockrate() const {
   }
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
-  if (!this->hasInvariantRdtsc() && governor.compare("performance") &&
-      governor.compare("powersave")) {
+  if (!this->hasInvariantRdtsc() && governor.compare("performance") && governor.compare("powersave")) {
     return CPUTopology::clockrate();
   }
 
@@ -181,8 +180,7 @@ unsigned long long X86CPUTopology::clockrate() const {
       end_time = Clock::now();
       end2_tsc = this->timestamp();
 
-      time_diff =
-          std::chrono::duration_cast<ticks>(end_time - start_time).count();
+      time_diff = std::chrono::duration_cast<ticks>(end_time - start_time).count();
     } while (0 == time_diff);
 
     clock_lower_bound = (((end1_tsc - start2_tsc) * 1000000) / (time_diff));
@@ -190,8 +188,7 @@ unsigned long long X86CPUTopology::clockrate() const {
 
     // if both values differ significantly, the measurement could have been
     // interrupted between 2 rdtsc's
-    if (((double)clock_lower_bound > (((double)clock_upper_bound) * 0.999)) &&
-        ((time_diff) > 2000)) {
+    if (((double)clock_lower_bound > (((double)clock_upper_bound) * 0.999)) && ((time_diff) > 2000)) {
       num_measurements++;
       clock = (clock_lower_bound + clock_upper_bound) / 2;
       if (clockrate == 0)
@@ -230,8 +227,8 @@ unsigned long long X86CPUTopology::timestamp() const {
 #endif
 }
 
-void X86CPUTopology::cpuid(unsigned long long *a, unsigned long long *b,
-                           unsigned long long *c, unsigned long long *d) const {
+void X86CPUTopology::cpuid(unsigned long long* a, unsigned long long* b, unsigned long long* c,
+                           unsigned long long* d) const {
 #ifndef _MSC_VER
   unsigned long long reg_a, reg_b, reg_c, reg_d;
 

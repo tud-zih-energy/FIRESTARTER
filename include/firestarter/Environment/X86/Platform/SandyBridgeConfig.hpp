@@ -26,22 +26,14 @@
 
 namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
-
 public:
-  SandyBridgeConfig(asmjit::CpuFeatures const &supportedFeatures,
-                    unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0,
-                          {32768, 262144, 1572864}, 104857600, 1536, family,
-                          model, threads,
-                          new payload::AVXPayload(supportedFeatures)) {}
+  SandyBridgeConfig(asmjit::CpuFeatures const& supportedFeatures, unsigned family, unsigned model, unsigned threads)
+      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536, family, model,
+                          threads, new payload::AVXPayload(supportedFeatures)) {}
 
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 2},
-                                                          {"L3_LS", 4},
-                                                          {"L2_LS", 10},
-                                                          {"L1_LS", 90},
-                                                          {"REG", 45}});
+  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const override {
+    return std::vector<std::pair<std::string, unsigned>>(
+        {{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}});
   }
 };
 } // namespace firestarter::environment::x86::platform

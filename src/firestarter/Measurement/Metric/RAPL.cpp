@@ -37,19 +37,19 @@ extern "C" {
 static std::string errorString = "";
 
 struct reader_def {
-  char *path;
+  char* path;
   long long int last_reading;
   long long int overflow;
   long long int max;
 };
 
 struct reader_def_free {
-  void operator()(struct reader_def *def) {
+  void operator()(struct reader_def* def) {
     if (def != nullptr) {
-      if (((void *)def->path) != nullptr) {
-        free((void *)def->path);
+      if (((void*)def->path) != nullptr) {
+        free((void*)def->path);
       }
-      free((void *)def);
+      free((void*)def);
     }
   }
 };
@@ -65,7 +65,7 @@ static int32_t fini(void) {
 static int32_t init(void) {
   errorString = "";
 
-  DIR *raplDir = opendir(RAPL_PATH);
+  DIR* raplDir = opendir(RAPL_PATH);
   if (raplDir == NULL) {
     errorString = "Could not open " RAPL_PATH;
     return EXIT_FAILURE;
@@ -81,7 +81,7 @@ static int32_t init(void) {
   // a vector of all paths to package and dram
   std::vector<std::string> paths = {};
 
-  struct dirent *dir;
+  struct dirent* dir;
   while ((dir = readdir(raplDir)) != NULL) {
     std::stringstream path;
     std::stringstream namePath;
@@ -120,7 +120,7 @@ static int32_t init(void) {
     return EXIT_FAILURE;
   }
 
-  for (auto const &path : paths) {
+  for (auto const& path : paths) {
     std::stringstream energyUjPath;
     energyUjPath << path << "/energy_uj";
     std::ifstream energyReadingStream(energyUjPath.str());
@@ -147,8 +147,7 @@ static int32_t init(void) {
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << energyUjPath.str()
-         << " do not conform to mask (unsigned long long)";
+      ss << "Contents in file " << energyUjPath.str() << " do not conform to mask (unsigned long long)";
       errorString = ss.str();
       break;
     }
@@ -158,21 +157,18 @@ static int32_t init(void) {
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << maxEnergyUjRangePath.str()
-         << " do not conform to mask (unsigned long long)";
+      ss << "Contents in file " << maxEnergyUjRangePath.str() << " do not conform to mask (unsigned long long)";
       errorString = ss.str();
       break;
     }
 
-    std::shared_ptr<struct reader_def> def(
-        reinterpret_cast<struct reader_def *>(
-            malloc(sizeof(struct reader_def))),
-        reader_def_free());
+    std::shared_ptr<struct reader_def> def(reinterpret_cast<struct reader_def*>(malloc(sizeof(struct reader_def))),
+                                           reader_def_free());
     auto pathName = path.c_str();
     size_t size = (strlen(pathName) + 1) * sizeof(char);
-    void *name = malloc(size);
+    void* name = malloc(size);
     memcpy(name, pathName, size);
-    def->path = (char *)name;
+    def->path = (char*)name;
     def->max = max;
     def->last_reading = reading;
     def->overflow = 0;
@@ -188,10 +184,10 @@ static int32_t init(void) {
   return EXIT_SUCCESS;
 }
 
-static int32_t get_reading(double *value) {
+static int32_t get_reading(double* value) {
   double finalReading = 0.0;
 
-  for (auto &def : readers) {
+  for (auto& def : readers) {
     long long int reading;
     std::string buffer;
 
@@ -207,8 +203,7 @@ static int32_t get_reading(double *value) {
 
     def->last_reading = reading;
 
-    finalReading +=
-        1.0E-6 * (double)(def->overflow * def->max + def->last_reading);
+    finalReading += 1.0E-6 * (double)(def->overflow * def->max + def->last_reading);
   }
 
   if (value != nullptr) {
@@ -218,8 +213,8 @@ static int32_t get_reading(double *value) {
   return EXIT_SUCCESS;
 }
 
-static const char *get_error(void) {
-  const char *errorCString = errorString.c_str();
+static const char* get_error(void) {
+  const char* errorCString = errorString.c_str();
   return errorCString;
 }
 

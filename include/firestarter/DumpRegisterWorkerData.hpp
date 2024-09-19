@@ -21,10 +21,9 @@
 
 #pragma once
 
+#include <chrono>
 #include <firestarter/DumpRegisterStruct.hpp>
 #include <firestarter/LoadWorkerData.hpp>
-
-#include <chrono>
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
 
@@ -32,11 +31,10 @@ namespace firestarter {
 
 class DumpRegisterWorkerData {
 public:
-  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData,
-                         std::chrono::seconds dumpTimeDelta,
+  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData, std::chrono::seconds dumpTimeDelta,
                          std::string dumpFilePath)
-      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
-
+      : loadWorkerData(loadWorkerData)
+      , dumpTimeDelta(dumpTimeDelta) {
     if (dumpFilePath.empty()) {
       char cwd[PATH_MAX];
       if (getcwd(cwd, sizeof(cwd)) != NULL) {

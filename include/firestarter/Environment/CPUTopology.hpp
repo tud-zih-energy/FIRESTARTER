@@ -37,18 +37,16 @@ public:
   CPUTopology(std::string architecture);
   virtual ~CPUTopology();
 
-  unsigned numThreads() const {
-    return _numThreadsPerCore * _numCoresTotal;
-  }
+  unsigned numThreads() const { return _numThreadsPerCore * _numCoresTotal; }
   unsigned maxNumThreads() const;
   unsigned numThreadsPerCore() const { return _numThreadsPerCore; }
   unsigned numCoresTotal() const { return _numCoresTotal; }
   unsigned numPackages() const { return _numPackages; }
 
-  std::string const &architecture() const { return _architecture; }
-  virtual std::string const &vendor() const { return _vendor; }
-  virtual std::string const &processorName() const { return _processorName; }
-  virtual std::string const &model() const = 0;
+  std::string const& architecture() const { return _architecture; }
+  virtual std::string const& vendor() const { return _vendor; }
+  virtual std::string const& processorName() const { return _processorName; }
+  virtual std::string const& model() const = 0;
 
   // get the size of the L1i-cache in bytes
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
@@ -56,7 +54,7 @@ public:
   // return the cpu clockrate in Hz
   virtual unsigned long long clockrate() const { return _clockrate; }
   // return the cpu features
-  virtual std::list<std::string> const &features() const = 0;
+  virtual std::list<std::string> const& features() const = 0;
 
   // get a timestamp
   virtual unsigned long long timestamp() const = 0;
@@ -66,10 +64,10 @@ public:
 
 protected:
   std::string scalingGovernor() const;
-  std::ostream &print(std::ostream &stream) const;
+  std::ostream& print(std::ostream& stream) const;
 
 private:
-  static std::stringstream getFileAsStream(std::string const &filePath);
+  static std::stringstream getFileAsStream(std::string const& filePath);
 
   unsigned _numThreadsPerCore;
   unsigned _numCoresTotal;

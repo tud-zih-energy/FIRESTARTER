@@ -55,24 +55,18 @@ static std::string registerNameBySize(unsigned registerSize) {
 }
 } // namespace
 
-int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
-                                        std::string dumpFilePath) {
+int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta, std::string dumpFilePath) {
 
-  auto data = std::make_unique<DumpRegisterWorkerData>(
-      this->loadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
+  auto data = std::make_unique<DumpRegisterWorkerData>(this->loadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
 
-  this->dumpRegisterWorkerThread =
-      std::thread(Firestarter::dumpRegisterWorker, std::move(data));
+  this->dumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(data));
 
   return EXIT_SUCCESS;
 }
 
-void Firestarter::joinDumpRegisterWorker() {
-  this->dumpRegisterWorkerThread.join();
-}
+void Firestarter::joinDumpRegisterWorker() { this->dumpRegisterWorkerThread.join(); }
 
-void Firestarter::dumpRegisterWorker(
-    std::unique_ptr<DumpRegisterWorkerData> data) {
+void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> data) {
 
   pthread_setname_np(pthread_self(), "DumpRegWorker");
 
@@ -81,21 +75,16 @@ void Firestarter::dumpRegisterWorker(
   std::string registerPrefix = registerNameBySize(registerSize);
   auto offset = sizeof(DumpRegisterStruct) / sizeof(unsigned long long);
 
-  auto dumpRegisterStruct = reinterpret_cast<DumpRegisterStruct *>(
-      data->loadWorkerData->addrMem - offset);
+  auto dumpRegisterStruct = reinterpret_cast<DumpRegisterStruct*>(data->loadWorkerData->addrMem - offset);
 
-  auto dumpVar = reinterpret_cast<volatile unsigned long long *>(
-      &dumpRegisterStruct->dumpVar);
+  auto dumpVar = reinterpret_cast<volatile unsigned long long*>(&dumpRegisterStruct->dumpVar);
   // memory of simd variables is before the padding
-  volatile unsigned long long *dumpMemAddr =
-      dumpRegisterStruct->padding - registerCount * registerSize;
+  volatile unsigned long long* dumpMemAddr = dumpRegisterStruct->padding - registerCount * registerSize;
 
   // TODO: maybe use aligned_malloc to make memcpy more efficient and don't
   // interrupt the workload as much?
-  unsigned long long *last = reinterpret_cast<unsigned long long *>(
-      malloc(sizeof(unsigned long long) * offset));
-  unsigned long long *current = reinterpret_cast<unsigned long long *>(
-      malloc(sizeof(unsigned long long) * offset));
+  unsigned long long* last = reinterpret_cast<unsigned long long*>(malloc(sizeof(unsigned long long) * offset));
+  unsigned long long* current = reinterpret_cast<unsigned long long*>(malloc(sizeof(unsigned long long) * offset));
 
   if (last == nullptr || current == nullptr) {
     log::error() << "Malloc failed in Firestarter::dumpRegisterWorker";
@@ -143,8 +132,7 @@ void Firestarter::dumpRegisterWorker(
     }
 
     // copy the register content to minimize the interruption of the load worker
-    std::memcpy(current, (void *)dumpMemAddr,
-                sizeof(unsigned long long) * offset);
+    std::memcpy(current, (void*)dumpMemAddr, sizeof(unsigned long long) * offset);
 
     // skip the first output, as we first have to get some valid values for last
     if (!skipFirst) {
@@ -162,8 +150,7 @@ void Firestarter::dumpRegisterWorker(
 
         for (auto j = 0; j < registerSize; j++) {
           auto index = registerSize * i + j;
-          auto hd = static_cast<unsigned long long>(
-              hammingDistance(current[index], last[index]));
+          auto hd = static_cast<unsigned long long>(hammingDistance(current[index], last[index]));
 
           dumpFile << hd;
           if (j != registerSize - 1) {
