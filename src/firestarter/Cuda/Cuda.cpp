@@ -664,12 +664,12 @@ void Cuda::initGpus(std::condition_variable &cv,
           if (precision) {
             std::thread t(create_load<double>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, _flopsFromCUDA);
+                          loadVar, (int)matrixSize, &_flopsFromCUDA);
             gpuThreads.push_back(std::move(t));
           } else {
             std::thread t(create_load<float>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, _flopsFromCUDA);
+                          loadVar, (int)matrixSize, &_flopsFromCUDA);
             gpuThreads.push_back(std::move(t));
           }
         }
