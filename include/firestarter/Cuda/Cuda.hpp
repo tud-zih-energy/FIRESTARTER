@@ -34,7 +34,7 @@ private:
   std::thread _initThread;
   std::condition_variable _waitForInitCv;
   std::mutex _waitForInitCvMutex;
-  std::atomic<unsigned long long> _flopsFromCUDA;
+  static std::atomic<unsigned long long> _flopsFromCUDA;
 
   static void initGpus(std::condition_variable &cv,
                        volatile unsigned long long *loadVar, bool useFloat,
