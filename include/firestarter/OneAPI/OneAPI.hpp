@@ -49,7 +49,7 @@ public:
       _initThread.join();
     }
   }
-  auto getFLOPS(){
+  auto getFlops(){
     return _flopsFromOneAPI.load();
   }
 };

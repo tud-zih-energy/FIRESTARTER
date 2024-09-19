@@ -50,7 +50,7 @@ public:
     }
   }
 
-  auto getFLOPS(){
+  auto getFlops(){
     return _flopsFromCUDA.load();
   }
 
