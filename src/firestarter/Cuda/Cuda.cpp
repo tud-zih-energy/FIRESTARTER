@@ -66,6 +66,8 @@
 #include <atomic>
 #include <type_traits>
 
+static std::atomic<unsigned long long> flops;
+
 #define ACCELL_SAFE_CALL(cuerr, dev_index)                                       \
   accell_safe_call(cuerr, dev_index, __FILE__, __LINE__)
 #define SEED 123
@@ -355,8 +357,7 @@ template <typename T>
 static void create_load(std::condition_variable &waitForInitCv,
                         std::mutex &waitForInitCvMutex, int device_index,
                         std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize,
-                        std::atomic<unsigned long long> *flopsCount) {
+                        volatile unsigned long long *loadVar, int matrixSize) {
   static_assert(
       std::is_same<T, float>::value || std::is_same<T, double>::value,
       "create_load<T>: Template argument T must be either float or double");
@@ -565,7 +566,7 @@ static void create_load(std::condition_variable &waitForInitCv,
                      device_index);
       ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
                        device_index);
-      *flopsCount += 2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
+      flops += 2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
     }
   }
 
@@ -664,12 +665,12 @@ void Cuda::initGpus(std::condition_variable &cv,
           if (precision) {
             std::thread t(create_load<double>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, &_flopsFromCUDA);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           } else {
             std::thread t(create_load<float>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, &_flopsFromCUDA);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           }
         }
@@ -700,4 +701,7 @@ void Cuda::initGpus(std::condition_variable &cv,
            "FIRESTARTER instead of FIRESTARTER_" FS_ACCEL_STRING "?";
     cv.notify_all();
   }
+}
+double OneAPI::getFlops(){
+  return flops.load();
 }

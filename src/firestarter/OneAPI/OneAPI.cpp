@@ -35,6 +35,8 @@
 #include <atomic>
 #include <type_traits>
 
+static std::atomic<unsigned long long> flops;
+
 using namespace firestarter::oneapi;
 
 
@@ -129,8 +131,7 @@ template <typename T>
 static void create_load(std::condition_variable &waitForInitCv,
                         std::mutex &waitForInitCvMutex, int device_index,
                         std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize,
-                        std::atomic<unsigned long long> *flopsCount) {
+                        volatile unsigned long long *loadVar, int matrixSize) {
   static_assert(
       std::is_same<T, float>::value || std::is_same<T, double>::value,
       "create_load<T>: Template argument T must be either float or double");
@@ -259,7 +260,7 @@ static void create_load(std::condition_variable &waitForInitCv,
     oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
     firestarter::log::trace() << "wait gemm on device nr. " << device_index;
     device_queue.wait_and_throw();
-    *flopsCount += 2*N*N*N;
+    flops += 2*N*N*N;
   }
 
 }
@@ -269,7 +270,7 @@ OneAPI::OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDoub
   std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
                 useDouble, matrixSize, gpus);
   _initThread = std::move(t);
-  _flopsFromOneAPI = 0;
+  flops = 0;
 
   std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
   // wait for gpus to initialize
@@ -351,13 +352,13 @@ void OneAPI::initGpus(std::condition_variable &cv,
             firestarter::log::trace() << "Starting OneAPI GPU double workload.";
             std::thread t(create_load<double>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, &_flopsFromOneAPI);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           } else {
             firestarter::log::trace() << "Starting OneAPI GPU float workload.";
             std::thread t(create_load<float>, std::ref(waitForInitCv),
                           std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize, &_flopsFromOneAPI);
+                          loadVar, (int)matrixSize);
             gpuThreads.push_back(std::move(t));
           }
         }
@@ -388,4 +389,8 @@ void OneAPI::initGpus(std::condition_variable &cv,
            "FIRESTARTER instead of FIRESTARTER_OneAPI?";
     cv.notify_all();
   }
+}
+
+double OneAPI::getFlops(){
+  return flops.load();
 }
