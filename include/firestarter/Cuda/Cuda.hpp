@@ -51,9 +51,9 @@ public:
   }
 
   auto getFLOPS(){
-    return _flopsFromCUDA;
+    return _flopsFromCUDA.load();
   }
-  
+
 };
 
 } // namespace firestarter::cuda

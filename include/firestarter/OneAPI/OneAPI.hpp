@@ -50,7 +50,7 @@ public:
     }
   }
   auto getFLOPS(){
-    return _flopsFromOneAPI;
+    return _flopsFromOneAPI.load();
   }
 };
 
