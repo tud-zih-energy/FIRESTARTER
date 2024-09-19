@@ -702,6 +702,7 @@ void Cuda::initGpus(std::condition_variable &cv,
     cv.notify_all();
   }
 }
-double OneAPI::getFlops(){
+
+double Cuda::getFlops(){
   return flops.load();
 }
