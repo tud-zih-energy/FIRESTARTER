@@ -57,7 +57,7 @@ typedef struct __tile_config
 
 void create_AMX_config(__tilecfg *tileinfo);
 void request_permission();
-void init_buffer_int8_rand(uintptr_t buf1, uintptr_t buf2);
+void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
 
 int AVX512_AMX_Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
@@ -221,7 +221,7 @@ int AVX512_AMX_Payload::compilePayload(
   }
   
   //Init buffers
-  init_buffer_int8_rand(src1, src2);
+  init_buffer_rand(src1, src2);
   memset((void*) src3, 0, aligned_alloc_size);
 
   cb.tileloaddt1(tmm6, zmmword_ptr(src1));
@@ -299,9 +299,6 @@ int AVX512_AMX_Payload::compilePayload(
 
 #define RAM_INCREMENT() cb.add(ram_addr, offset_reg)
 
-int amx = 0;
-int reg = 0;
-
   for (unsigned count = 0; count < repetitions; count++) {
     for (const auto &item : sequence) {
       if (item == "REG") {
@@ -310,7 +307,6 @@ int reg = 0;
         cb.xor_(shift_reg[(shift_pos + nr_shift_regs - 1) % nr_shift_regs],
                 temp_reg);
         mov_dst++;
-        reg++;
       } else if (item == "L1_L") {
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmm2);
         cb.vfmadd231pd(Zmm(add_dest), zmm1, zmmword_ptr(l1_addr, 64));
@@ -372,9 +368,8 @@ int reg = 0;
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
       } else if (item == "AMX") {
-      	    cb.tdpbssd(Tmm(counter%6), tmm6, tmm7); // TODO: If asmJit supports bf16 operations, change this to bf16 and init buffer for bf16
+      	    cb.tdpbf16ps(Tmm(counter%6), tmm6, tmm7);
             counter++;
-            amx++;
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
                            << this->name() << ".";
@@ -570,34 +565,32 @@ void request_permission(){
 
 }
 
-void init_buffer_int8_rand(uintptr_t src1, uintptr_t src2){
+void init_buffer_bf16_rand(uintptr_t src1, uintptr_t src2){
 
   // Initialize buffer with random values
-  // Multiplication always produces either random_init^2 or (-1) * random_init^2
-  // Accumulation operation always on (random_init^2 + -random_init^2) = 0 ensures stable values 
+  // Multiplication always produces either 1 or -1
+  // Accumulation operation always on (1 + -1) = 0 ensures stable values 
 
-  int8_t *buf1 = (int8_t*) src1;
-  int8_t *buf2 = (int8_t*) src2;
-  int rows, colsb;
+  __bfloat16 *buf1 = (__bfloat16*) src1;
+  __bfloat16 *buf2 = (__bfloat16*) src2;
   
   // TODO: Change MAX_ROWS/MAXC_COLS from constant to maximum size check by asmJit
   //	   Currently not supported by asmJit
   //	   Alternative: Manually parse CPUID
-  rows  = MAX_ROWS;
-  colsb = MAX_COLS;
   
   for(int i = 0; i<MAX_ROWS; i++){
-    int8_t random_init = (int8_t) (rand() % 12);
+    __bfloat16 random_init = (__bfloat16) rand();
     for(int j = 0; j<MAX_COLS; j++){
-      buf1[i*MAX_COLS+j] = (int8_t) (random_init);
+      buf1[i*MAX_COLS+j] = (__bfloat16) (random_init);
       if(!(j%2)){
-        buf2[i*MAX_COLS+j] = (int8_t) ((-1) * random_init);
+        buf2[i*MAX_COLS+j] = (__bfloat16) ((-1) / random_init);
       }
       else if(j%2){
-        buf2[i*MAX_COLS+j] = (int8_t) (random_init);
+        buf2[i*MAX_COLS+j] = (__bfloat16) (1 / random_init);
       }
     }
   }
 
 }
+
 

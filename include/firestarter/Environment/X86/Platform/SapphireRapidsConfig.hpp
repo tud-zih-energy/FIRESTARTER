@@ -56,7 +56,7 @@ public:
                                                           {"L1_S", 0},
                                                           {"L1_L", 0},
                                                           {"REG", 140},
-							  {"AMX", 0}});
+							  {"AMX", 1}});
   }
 };
 } // namespace firestarter::environment::x86::platform
