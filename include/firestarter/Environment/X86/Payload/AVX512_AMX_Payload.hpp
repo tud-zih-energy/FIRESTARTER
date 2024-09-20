@@ -26,8 +26,8 @@
 namespace firestarter::environment::x86::payload {
 class AVX512_AMX_Payload final : public X86Payload {
 public:
-  AVX512_AMX_Payload(asmjit::x86::Features const &supportedFeatures)
-      : X86Payload(supportedFeatures, {asmjit::x86::Features::Id::kAMX_BF16},
+  AVX512_AMX_Payload(asmjit::CpuFeatures const &supportedFeatures)
+      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::kAMX_BF16},
                    "AVX512_AMX", 8, 32) {}
 
   int compilePayload(
