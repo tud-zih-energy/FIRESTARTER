@@ -152,7 +152,7 @@ int AVX512_AMX_Payload::compilePayload(
   FuncDetail func;
   func.init(FuncSignatureT<unsigned long long, unsigned long long *,
                            volatile unsigned long long *, unsigned long long>(
-                CallConv::kCDecl),
+                CallConvId::kCDecl),
             this->rt.environment());
 
   FuncFrame frame;
