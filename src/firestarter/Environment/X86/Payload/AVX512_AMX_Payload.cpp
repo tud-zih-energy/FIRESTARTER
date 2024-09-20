@@ -565,7 +565,7 @@ void request_permission(){
 
 }
 
-void init_buffer_bf16_rand(uintptr_t src1, uintptr_t src2){
+void init_buffer_rand(uintptr_t src1, uintptr_t src2){
 
   // Initialize buffer with random values
   // Multiplication always produces either 1 or -1
