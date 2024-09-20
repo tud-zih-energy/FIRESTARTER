@@ -268,7 +268,7 @@ void Firestarter::printPerformanceReport() {
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP) | defined(FIRESTARTER_BUILD_ONEAPI)
       << "estimated floating point performance (CPU): " << gFlopsString << " GFLOPS\n"
       << "estimated memory bandwidth* (CPU): " << bandwidthString << " GB/s\n"
-      << "estimated floating point performance* (GPUs): " << gpuFlopsString << " GFLOPS ("
+      << "estimated floating point performance** (GPUs): " << gpuFlopsString << " GFLOPS ("
       << (_gpuUseFloat? "single" : "double") << ")\n"
 #else
       << "estimated floating point performance: " << gFlopsString << " GFLOPS\n"
@@ -280,7 +280,13 @@ void Firestarter::printPerformanceReport() {
          "select\n"
       << "  a function that is not optimized for your architecture, or if "
          "FIRESTARTER is\n"
-      << "  executed on an unsupported architecture!";
+      << "  executed on an unsupported architecture!"
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP) | defined(FIRESTARTER_BUILD_ONEAPI)
+      << "** this estimate is based on the assumption that no algorithmically optimized version\n"
+      << "    of the called algorithm has been implemented by the vendor. It also might not be not accurate\n"
+      << "    for short runs of FIRESTARTER"
+#endif // if gpu
+      ;
 }
 
 void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
