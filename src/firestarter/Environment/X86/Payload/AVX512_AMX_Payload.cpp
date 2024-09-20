@@ -404,8 +404,6 @@ int reg = 0;
       }
     }
   }
-  
-  printf("[DIAGNOSTIC] Counted %d AVX instructions and %d AMX instructions\n", reg, amx);
 
   cb.movq(temp_reg, iter_reg); // restore iteration counter
   if (this->getRAMSequenceCount(sequence) > 0) {
