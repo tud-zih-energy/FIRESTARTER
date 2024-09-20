@@ -22,7 +22,9 @@
 #include <vt_user.h>
 #include <firestarter/Tracing/Tracing.hpp>
 
+void firestarter::tracing::rinitialize(int argc, const char **argv){
 
+}
 void firestarter::tracing::regionBegin(char const* region_name) {
   VT_USER_START(region_name);
 }

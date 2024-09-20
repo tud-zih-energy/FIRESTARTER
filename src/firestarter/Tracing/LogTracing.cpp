@@ -23,6 +23,9 @@
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Tracing/Tracing.hpp>
 
+void firestarter::tracing::rinitialize(int argc, const char **argv){
+
+}
 void firestarter::tracing::regionBegin(char const* region_name) {
     firestarter::log::trace() << "Start " << region_name;
 }

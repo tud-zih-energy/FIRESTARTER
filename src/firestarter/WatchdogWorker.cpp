@@ -24,10 +24,6 @@
 #include <cerrno>
 #include <csignal>
 
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
-#endif
-
 using namespace firestarter;
 
 int Firestarter::watchdogWorker(std::chrono::microseconds period,
@@ -75,13 +71,10 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec load_nsec = load - load_reduction;
 
       // wait for time to be ellapsed with high load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_HIGH");
+#ifdef FIRESTARTER_TRACING
+      firestarter::tracing::regionBegin("WD_HIGH");
 #endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -92,11 +85,8 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
+#ifdef FIRESTARTER_TRACING
+      firestarter::tracing::regionEnd("WD_HIGH");
 #endif
 
       // signal low load
@@ -106,12 +96,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec idle_nsec = idle - idle_reduction;
 
       // wait for time to be ellapsed with low load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_LOW");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
+
+#ifdef FIRESTARTER_TRACING
+      firestarter::tracing::regionBegin("WD_LOW");
 #endif
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
@@ -123,13 +110,9 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_LOW");
+#ifdef FIRESTARTER_TRACING
+      firestarter::tracing::regionEnd("WD_LOW");
 #endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_LOW");
-#endif
-
       // increment elapsed time
       time += period;
 

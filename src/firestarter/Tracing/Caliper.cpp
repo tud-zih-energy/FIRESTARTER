@@ -24,6 +24,21 @@
 #include <adiak.hpp>
 #include <caliper/cali.h>
 
+void firestarter::tracing::rinitialize(int argc, const char **argv){
+  // Single adiak call to collect default adiak values
+  adiak::init(NULL);
+  adiak::uid();
+  adiak::date();
+  adiak::user();
+  adiak::launchdate();
+  adiak::executable();
+  adiak::executablepath();
+  adiak::libraries();
+  adiak::cmdline();
+  adiak::hostname();
+  adiak::clustername();
+}
+
 void firestarter::tracing::regionBegin(char const* region_name) {
     CALI_MARK_BEGIN(region_name);
 }

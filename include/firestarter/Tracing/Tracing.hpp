@@ -22,6 +22,7 @@
 #pragma once
 
 namespace firestarter::tracing {
+  void initialize(int argc, const char **argv);
   void regionBegin(char const* region_name);
   void regionEnd(char const* region_name);
 } // firestarter::tracing

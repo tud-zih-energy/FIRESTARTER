@@ -468,6 +468,10 @@ int main(int argc, const char **argv) {
          "Computing"
       << "\n";
 
+#ifdef FIRESTARTER_TRACING
+    firestarter::tracing::initialize();
+#endif
+
   Config cfg{argc, argv};
 
   try {

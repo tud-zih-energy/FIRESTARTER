@@ -351,15 +351,24 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       // will be terminated by watchdog
       for (;;) {
         // call high load function
+
+#ifdef FIRESTARTER_TRACING
         tracing::regionBegin("High");
+#endif
         td->iterations = td->config().payload().highLoadFunction(
             td->addrMem, td->addrHigh, td->iterations);
 
-        // call low load function
+#ifdef FIRESTARTER_TRACING
         tracing::regionEnd("High");
         tracing::regionBegin("Low");
+#endif
+
+        // call low load function
         td->config().payload().lowLoadFunction(td->addrHigh, td->period);
+
+#ifdef FIRESTARTER_TRACING
         tracing::regionEnd("Low");
+#endif
 
         // terminate if master signals end of run and record stop timestamp
         if (*td->addrHigh == LOAD_STOP) {
