@@ -24,6 +24,7 @@
 #include <firestarter/Environment/Environment.hpp>
 #include <firestarter/Environment/X86/X86CPUTopology.hpp>
 
+#include <firestarter/Environment/X86/Platform/SapphireRapidsConfig.hpp>
 #include <firestarter/Environment/X86/Platform/BulldozerConfig.hpp>
 #include <firestarter/Environment/X86/Platform/HaswellConfig.hpp>
 #include <firestarter/Environment/X86/Platform/HaswellEPConfig.hpp>
