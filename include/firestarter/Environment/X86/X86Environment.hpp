@@ -89,7 +89,8 @@ private:
           REGISTER(HaswellEPConfig),      REGISTER(SandyBridgeConfig),
           REGISTER(SandyBridgeEPConfig),  REGISTER(NehalemConfig),
           REGISTER(NehalemEPConfig),      REGISTER(BulldozerConfig),
-          REGISTER(NaplesConfig),         REGISTER(RomeConfig)};
+          REGISTER(NaplesConfig),         REGISTER(RomeConfig),
+          REGISTER(SapphireRapidsConfig)};
 
   std::list<platform::X86PlatformConfig *> platformConfigs;
 
@@ -97,6 +98,7 @@ private:
   const std::list<std::function<platform::X86PlatformConfig *(
       asmjit::CpuFeatures const &, unsigned, unsigned, unsigned)>>
       fallbackPlatformConfigsCtor = {
+	  REGISTER(SapphireRapidsConfig), // AMX + AVX512
           REGISTER(SkylakeSPConfig),   // AVX512
           REGISTER(BulldozerConfig),   // FMA4
           REGISTER(HaswellConfig),     // FMA
