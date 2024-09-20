@@ -38,6 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/OptimizerWorker.cpp
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
+		firestarter/Optimizer/Algorithm/SAMO_IS.cpp
 		)
 endif()
 
@@ -51,6 +52,8 @@ endif()
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	find_package(CUDAToolkit REQUIRED)
 	include_directories(${CUDAToolkit_INCLUDE_DIRS})
+
+	find_package(Armadillo REQUIRED)
 
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
 
@@ -68,6 +71,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 
 	target_link_libraries(FIRESTARTER_CUDA
 		hwloc
+		${ARMADILLO_LIBRARIES}
 		AsmJit::AsmJit
 		Nitro::log
 		nlohmann_json::nlohmann_json
@@ -185,6 +189,8 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
 
+	find_package(Armadillo REQUIRED)
+
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
@@ -226,6 +232,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 
 	target_link_libraries(FIRESTARTER
 		hwloc
+		${ARMADILLO_LIBRARIES}
 		AsmJit::AsmJit
 		Nitro::log
 		nlohmann_json::nlohmann_json

@@ -87,8 +87,9 @@ public:
               std::string const &optimizationAlgorithm,
               std::vector<std::string> const &optimizationMetrics,
               std::chrono::seconds const &evaluationDuration,
-              unsigned individuals, std::string const &optimizeOutfile,
-              unsigned generations, double nsga2_cr, double nsga2_m);
+              std::string const &optimizeOutfile, unsigned nsga2_individuals,
+              unsigned nsga2_generations, double nsga2_cr, double nsga2_m,
+              unsigned samo_is_individuals, unsigned samo_is_maxEvaluations);
 
   ~Firestarter();
 
@@ -117,11 +118,14 @@ private:
   const std::string _optimizationAlgorithm;
   const std::vector<std::string> _optimizationMetrics;
   const std::chrono::seconds _evaluationDuration;
-  const unsigned _individuals;
   const std::string _optimizeOutfile;
-  const unsigned _generations;
+  unsigned _individuals;
+  const unsigned _nsga2_individuals;
+  const unsigned _nsga2_generations;
   const double _nsga2_cr;
   const double _nsga2_m;
+  const unsigned _samo_is_individuals;
+  const unsigned _samo_is_maxEvaluations;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
     defined(_M_X64)

@@ -78,11 +78,13 @@ struct Config {
   std::string optimizationAlgorithm;
   std::vector<std::string> optimizationMetrics;
   std::chrono::seconds evaluationDuration;
-  unsigned individuals;
   std::string optimizeOutfile = "";
-  unsigned generations;
+  unsigned nsga2_individuals;
+  unsigned nsga2_generations;
   double nsga2_cr;
   double nsga2_m;
+  unsigned samo_is_individuals;
+  unsigned samo_is_maxEvaluations;
 
   Config(int argc, const char **argv);
 };
@@ -249,20 +251,24 @@ Config::Config(int argc, const char **argv) {
       cxxopts::value<unsigned>()->default_value("240"), "N");
 
   parser.add_options("optimization")
-    ("optimize", "Run the optimization with one of these algorithms: NSGA2.\nCannot be combined with --measurement.",
+    ("optimize", "Run the optimization with one of these algorithms: NSGA2, SAMO-IS.\nCannot be combined with --measurement.",
       cxxopts::value<std::string>())
     ("optimize-outfile", "Dump the output of the optimization into this\nfile, default: $PWD/$HOSTNAME_$DATE.json",
       cxxopts::value<std::string>())
     ("optimization-metric", "Use a metric for optimization. Metrics listed\nwith cli argument --list-metrics or specified\nwith --metric-from-stdin are valid.",
       cxxopts::value<std::vector<std::string>>())
-    ("individuals", "Number of individuals for the population. For\nNSGA2 specify at least 5 and a multiple of 4,\ndefault: 20",
+    ("nsga2-individuals", "Number of individuals for the population.\nSpecify at least 5 and a multiple of 4,\ndefault: 20",
       cxxopts::value<unsigned>()->default_value("20"))
-    ("generations", "Number of generations, default: 20",
+    ("nsga2-generations", "Number of generations, default: 20",
       cxxopts::value<unsigned>()->default_value("20"))
     ("nsga2-cr", "Crossover probability. Must be in range [0,1[\ndefault: 0.6",
       cxxopts::value<double>()->default_value("0.6"))
     ("nsga2-m", "Mutation probability. Must be in range [0,1]\ndefault: 0.4",
-      cxxopts::value<double>()->default_value("0.4"));
+      cxxopts::value<double>()->default_value("0.4"))
+    ("samo-is-individuals", "Number of individuals for the population.",
+      cxxopts::value<unsigned>()->default_value("20"))
+    ("samo-is-max-evaluations", "Maximum number of evaluations, default: 800",
+      cxxopts::value<unsigned>()->default_value("800"));
 #endif
   // clang-format on
 
@@ -437,16 +443,21 @@ Config::Config(int argc, const char **argv) {
       evaluationDuration = timeout;
       // this will deactivate the watchdog worker
       timeout = std::chrono::seconds::zero();
-      individuals = options["individuals"].as<unsigned>();
       if (options.count("optimize-outfile")) {
         optimizeOutfile = options["optimize-outfile"].as<std::string>();
       }
-      generations = options["generations"].as<unsigned>();
+      nsga2_individuals = options["nsga2-individuals"].as<unsigned>();
+      nsga2_generations = options["nsga2-generations"].as<unsigned>();
       nsga2_cr = options["nsga2-cr"].as<double>();
       nsga2_m = options["nsga2-m"].as<double>();
+      samo_is_individuals = options["samo-is-individuals"].as<unsigned>();
+      samo_is_maxEvaluations =
+          options["samo-is-max-evaluations"].as<unsigned>();
 
-      if (optimizationAlgorithm != "NSGA2") {
-        throw std::invalid_argument("Option --optimize must be any of: NSGA2");
+      if (optimizationAlgorithm != "NSGA2" &&
+          optimizationAlgorithm != "SAMO-IS") {
+        throw std::invalid_argument(
+            "Option --optimize must be any of: NSGA2, SAMO-IS");
       }
     }
 #endif
@@ -488,8 +499,9 @@ int main(int argc, const char **argv) {
         cfg.gpuUseDouble, cfg.listMetrics, cfg.measurement, cfg.startDelta,
         cfg.stopDelta, cfg.measurementInterval, cfg.metricPaths,
         cfg.stdinMetrics, cfg.optimize, cfg.preheat, cfg.optimizationAlgorithm,
-        cfg.optimizationMetrics, cfg.evaluationDuration, cfg.individuals,
-        cfg.optimizeOutfile, cfg.generations, cfg.nsga2_cr, cfg.nsga2_m);
+        cfg.optimizationMetrics, cfg.evaluationDuration, cfg.optimizeOutfile,
+        cfg.nsga2_individuals, cfg.nsga2_generations, cfg.nsga2_cr, cfg.nsga2_m,
+        cfg.samo_is_individuals, cfg.samo_is_maxEvaluations);
 
     firestarter.mainThread();
 

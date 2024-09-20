@@ -74,6 +74,16 @@ private:
       _f = {};
 
 public:
+  inline static std::size_t size() { return _x.size(); }
+
+  inline static std::vector<Individual> const &x() { return _x; }
+
+  inline static std::vector<
+      std::map<std::string, firestarter::measurement::Summary>> const &
+  f() {
+    return _f;
+  }
+
   inline static void append(
       std::vector<unsigned> const &ind,
       std::map<std::string, firestarter::measurement::Summary> const &metric) {
