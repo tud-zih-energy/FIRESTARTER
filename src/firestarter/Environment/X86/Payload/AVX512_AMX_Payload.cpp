@@ -35,11 +35,7 @@
 #define MAX 1024
 #define MAX_ROWS 16
 #define MAX_COLS 64
-#define STRIDE 1
 
-#define NUMBER_RANDOM 4
-#define MAX_BITS 7
-#define MIN_BITS 4
 
 using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
