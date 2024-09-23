@@ -579,7 +579,7 @@ void init_buffer_rand(uintptr_t src1, uintptr_t src2){
   //	   Alternative: Manually parse CPUID
   
   for(int i = 0; i<MAX_ROWS; i++){
-    __bfloat16 random_init = (__bfloat16) rand();
+    __bfloat16 random_init = (__bfloat16) (rand() % 65536); // Limit maximum size as 1/x needs to fit bfloat16
     for(int j = 0; j<MAX_COLS; j++){
       buf1[i*MAX_COLS+j] = (__bfloat16) (random_init);
       if(!(j%2)){
