@@ -37,7 +37,7 @@ public:
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() const override {
-/*    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
                                                           {"RAM_P", 1},
                                                           {"L3_S", 1},
                                                           {"L3_P", 1},
@@ -45,16 +45,6 @@ public:
                                                           {"L2_L", 70},
                                                           {"L1_S", 0},
                                                           {"L1_L", 40},
-                                                          {"REG", 140},
-							  {"AMX", 4}});*/
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 0},
-                                                          {"RAM_P", 0},
-                                                          {"L3_S", 0},
-                                                          {"L3_P", 0},
-                                                          {"L2_S", 0},
-                                                          {"L2_L", 0},
-                                                          {"L1_S", 0},
-                                                          {"L1_L", 0},
                                                           {"REG", 140},
 							  {"AMX", 1}});
   }
