@@ -437,6 +437,12 @@ int main(int argc, const char** argv) {
                            << " TU Dresden, Center for Information Services and High Performance "
                               "Computing"
                            << "\n";
+#ifdef _FIRESTARTER_VERSION_TEMPERED
+  firestarter::log::info() << "*The version and/or year was explicitely set during build and does not "
+                           << "necessarily represent the actual version.\n"
+                           << "This helps maintainers to keep track of versions, e.g., on a cluster."
+                           << "\n";
+#endif
 
   Config cfg{argc, argv};
 
