@@ -4,6 +4,8 @@
 #  -bugprone-narrowing-conversions: too many false positives around
 #      `std::size_t`  vs. `*::difference_type`.
 
+#  -boost-use-ranges: crash of clangd https://github.com/llvm/llvm-project/issues/109037
+
 Checks: >
   -*,
   boost-*,
@@ -19,7 +21,8 @@ Checks: >
   portability-*,
   readability-*,
   -bugprone-narrowing-conversions,
-  -cppcoreguidelines-special-member-functions
+  -cppcoreguidelines-special-member-functions,
+  -boost-use-ranges
   
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
