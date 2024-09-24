@@ -29,22 +29,22 @@ OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorit
                                  firestarter::optimizer::Population& population,
                                  std::string const& optimizationAlgorithm, unsigned individuals,
                                  std::chrono::seconds const& preheat)
-    : _algorithm(std::move(algorithm))
-    , _population(population)
-    , _optimizationAlgorithm(optimizationAlgorithm)
-    , _individuals(individuals)
-    , _preheat(preheat) {
-  pthread_create(&this->workerThread, NULL, reinterpret_cast<void* (*)(void*)>(OptimizerWorker::optimizerThread), this);
+    : Algorithm(std::move(algorithm))
+    , Population(population)
+    , OptimizationAlgorithm(optimizationAlgorithm)
+    , Individuals(individuals)
+    , Preheat(preheat) {
+  pthread_create(&this->WorkerThread, NULL, reinterpret_cast<void* (*)(void*)>(OptimizerWorker::optimizerThread), this);
 }
 
 void OptimizerWorker::kill() {
   // we ignore ESRCH errno if thread already exited
-  pthread_cancel(this->workerThread);
+  pthread_cancel(this->WorkerThread);
 }
 
 void OptimizerWorker::join() {
   // we ignore ESRCH errno if thread already exited
-  pthread_join(this->workerThread, NULL);
+  pthread_join(this->WorkerThread, NULL);
 }
 
 void* OptimizerWorker::optimizerThread(void* optimizerWorker) {
@@ -57,14 +57,14 @@ void* OptimizerWorker::optimizerThread(void* optimizerWorker) {
 #endif
 
   // heat the cpu before attempting to optimize
-  std::this_thread::sleep_for(_this->_preheat);
+  std::this_thread::sleep_for(_this->Preheat);
 
   // For NSGA2 we start with a initial population
-  if (_this->_optimizationAlgorithm == "NSGA2") {
-    _this->_population.generateInitialPopulation(_this->_individuals);
+  if (_this->OptimizationAlgorithm == "NSGA2") {
+    _this->Population.generateInitialPopulation(_this->Individuals);
   }
 
-  _this->_algorithm->evolve(_this->_population);
+  _this->Algorithm->evolve(_this->Population);
 
   return NULL;
 }

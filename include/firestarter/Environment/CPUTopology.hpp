@@ -52,12 +52,12 @@ public:
   unsigned instructionCacheSize() const { return _instructionCacheSize; }
 
   // return the cpu clockrate in Hz
-  virtual unsigned long long clockrate() const { return _clockrate; }
+  virtual uint64_t clockrate() const { return _clockrate; }
   // return the cpu features
   virtual std::list<std::string> const& features() const = 0;
 
   // get a timestamp
-  virtual unsigned long long timestamp() const = 0;
+  virtual uint64_t timestamp() const = 0;
 
   int getPkgIdFromPU(unsigned pu) const;
   int getCoreIdFromPU(unsigned pu) const;
@@ -76,7 +76,7 @@ private:
   std::string _vendor = "";
   std::string _processorName = "";
   unsigned _instructionCacheSize = 0;
-  unsigned long long _clockrate = 0;
+  uint64_t _clockrate = 0;
   hwloc_topology_t topology;
 };
 

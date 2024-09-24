@@ -47,7 +47,6 @@
 
 #include <chrono>
 #include <condition_variable>
-#include <list>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -63,57 +62,57 @@ namespace firestarter {
 
 class Firestarter {
 public:
-  Firestarter(const int argc, const char** argv, std::chrono::seconds const& timeout, unsigned loadPercent,
-              std::chrono::microseconds const& period, unsigned requestedNumThreads, std::string const& cpuBind,
-              bool printFunctionSummary, unsigned functionId, bool listInstructionGroups,
-              std::string const& instructionGroups, unsigned lineCount, bool allowUnavailablePayload,
-              bool dumpRegisters, std::chrono::seconds const& dumpRegistersTimeDelta,
-              std::string const& dumpRegistersOutpath, bool errorDetection, int gpus, unsigned gpuMatrixSize,
-              bool gpuUseFloat, bool gpuUseDouble, bool listMetrics, bool measurement,
-              std::chrono::milliseconds const& startDelta, std::chrono::milliseconds const& stopDelta,
-              std::chrono::milliseconds const& measurementInterval, std::vector<std::string> const& metricPaths,
-              std::vector<std::string> const& stdinMetrics, bool optimize, std::chrono::seconds const& preheat,
-              std::string const& optimizationAlgorithm, std::vector<std::string> const& optimizationMetrics,
-              std::chrono::seconds const& evaluationDuration, unsigned individuals, std::string const& optimizeOutfile,
-              unsigned generations, double nsga2_cr, double nsga2_m);
+  Firestarter(int Argc, const char** Argv, std::chrono::seconds const& Timeout, unsigned LoadPercent,
+              std::chrono::microseconds const& Period, unsigned RequestedNumThreads, std::string const& CpuBind,
+              bool PrintFunctionSummary, unsigned FunctionId, bool ListInstructionGroups,
+              std::string const& InstructionGroups, unsigned LineCount, bool AllowUnavailablePayload,
+              bool DumpRegisters, std::chrono::seconds const& DumpRegistersTimeDelta,
+              std::string const& DumpRegistersOutpath, bool ErrorDetection, int Gpus, unsigned GpuMatrixSize,
+              bool GpuUseFloat, bool GpuUseDouble, bool ListMetrics, bool Measurement,
+              std::chrono::milliseconds const& StartDelta, std::chrono::milliseconds const& StopDelta,
+              std::chrono::milliseconds const& MeasurementInterval, std::vector<std::string> const& MetricPaths,
+              std::vector<std::string> const& StdinMetrics, bool Optimize, std::chrono::seconds const& Preheat,
+              std::string const& OptimizationAlgorithm, std::vector<std::string> const& OptimizationMetrics,
+              std::chrono::seconds const& EvaluationDuration, unsigned Individuals, std::string const& OptimizeOutfile,
+              unsigned Generations, double Nsga2Cr, double Nsga2M);
 
   ~Firestarter();
 
   void mainThread();
 
 private:
-  const int _argc;
-  const char** _argv;
-  const std::chrono::seconds _timeout;
-  const unsigned _loadPercent;
-  std::chrono::microseconds _load;
-  std::chrono::microseconds _period;
-  const bool _dumpRegisters;
-  const std::chrono::seconds _dumpRegistersTimeDelta;
-  const std::string _dumpRegistersOutpath;
-  const bool _errorDetection;
-  const int _gpus;
-  const unsigned _gpuMatrixSize;
-  const bool _gpuUseFloat;
-  const bool _gpuUseDouble;
-  const std::chrono::milliseconds _startDelta;
-  const std::chrono::milliseconds _stopDelta;
-  const bool _measurement;
-  const bool _optimize;
-  const std::chrono::seconds _preheat;
-  const std::string _optimizationAlgorithm;
-  const std::vector<std::string> _optimizationMetrics;
-  const std::chrono::seconds _evaluationDuration;
-  const unsigned _individuals;
-  const std::string _optimizeOutfile;
-  const unsigned _generations;
-  const double _nsga2_cr;
-  const double _nsga2_m;
+  const int Argc;
+  const char** Argv;
+  const std::chrono::seconds Timeout;
+  const unsigned LoadPercent;
+  std::chrono::microseconds Load;
+  std::chrono::microseconds Period;
+  const bool DumpRegisters;
+  const std::chrono::seconds DumpRegistersTimeDelta;
+  const std::string DumpRegistersOutpath;
+  const bool ErrorDetection;
+  const int Gpus;
+  const unsigned GpuMatrixSize;
+  const bool GpuUseFloat;
+  const bool GpuUseDouble;
+  const std::chrono::milliseconds StartDelta;
+  const std::chrono::milliseconds StopDelta;
+  const bool Measurement;
+  const bool Optimize;
+  const std::chrono::seconds Preheat;
+  const std::string OptimizationAlgorithm;
+  const std::vector<std::string> OptimizationMetrics;
+  const std::chrono::seconds EvaluationDuration;
+  const unsigned Individuals;
+  const std::string OptimizeOutfile;
+  const unsigned Generations;
+  const double Nsga2Cr;
+  const double Nsga2M;
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-  environment::x86::X86Environment* _environment = nullptr;
+  environment::x86::X86Environment* Environment = nullptr;
 
-  environment::x86::X86Environment& environment() const { return *_environment; }
+  [[nodiscard]] auto environment() const -> environment::x86::X86Environment& { return *Environment; }
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
@@ -127,14 +126,14 @@ private:
 #endif
 
 #if defined(linux) || defined(__linux__)
-  inline static std::unique_ptr<optimizer::OptimizerWorker> _optimizer;
-  std::shared_ptr<measurement::MeasurementWorker> _measurementWorker;
-  std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
-  firestarter::optimizer::Population _population;
+  inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
+  std::shared_ptr<measurement::MeasurementWorker> MeasurementWorker;
+  std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
+  firestarter::optimizer::Population Population;
 #endif
 
   // LoadThreadWorker.cpp
-  int initLoadWorkers(bool lowLoad, unsigned long long period);
+  auto initLoadWorkers(bool LowLoad, uint64_t Period) -> int;
   void joinLoadWorkers();
   void printThreadErrorReport();
   void printPerformanceReport();
@@ -142,42 +141,43 @@ private:
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
 
   // WatchdogWorker.cpp
-  int watchdogWorker(std::chrono::microseconds period, std::chrono::microseconds load, std::chrono::seconds timeout);
+  auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load, std::chrono::seconds Timeout)
+      -> int;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  int initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta, std::string dumpFilePath);
+  auto initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, std::string DumpFilePath) -> int;
   void joinDumpRegisterWorker();
 #endif
 
   // LoadThreadWorker.cpp
-  void signalLoadWorkers(int comm);
-  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> td);
+  void signalLoadWorkers(int Comm);
+  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> Td);
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> data);
+  static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
 #endif
 
-  static void setLoad(unsigned long long value);
+  static void setLoad(uint64_t Value);
 
-  static void sigalrmHandler(int signum);
-  static void sigtermHandler(int signum);
+  static void sigalrmHandler(int Signum);
+  static void sigtermHandler(int Signum);
 
   // variables to control the termination of the watchdog
-  inline static bool _watchdog_terminate = false;
-  inline static std::condition_variable _watchdogTerminateAlert;
-  inline static std::mutex _watchdogTerminateMutex;
+  inline static bool WatchdogTerminate = false;
+  inline static std::condition_variable WatchdogTerminateAlert;
+  inline static std::mutex WatchdogTerminateMutex;
 
   // variable to control the load of the threads
-  inline static volatile unsigned long long loadVar = LOAD_LOW;
+  inline static volatile uint64_t LoadVar = LOAD_LOW;
 
-  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> loadThreads;
+  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
 
-  std::vector<std::shared_ptr<unsigned long long>> errorCommunication;
+  std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
-  std::thread dumpRegisterWorkerThread;
+  std::thread DumpRegisterWorkerThread;
 #endif
 };
 

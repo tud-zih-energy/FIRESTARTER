@@ -21,63 +21,73 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
-// clang-format off
+// NOLINTBEGIN(modernize-use-using)
 typedef struct {
-  // Either set absolute or accumalative to specify the type of values from the
-  // metric.
-  uint32_t absolute : 1,
-           accumalative : 1,
-           // Set to divide metric values by thread count.
-           divide_by_thread_count : 1,
-           // Set to insert time-value pairs via callback function passed by
-           // register_insert_callback.
-           insert_callback : 1,
-					 // ignore the start and stop delta set by the user
-					 ignore_start_stop_delta : 1,
-           __reserved : 27;
-} metric_type_t;
-// clang-format on
+  uint32_t
+      // metric value is absolute
+      Absolute : 1,
+      // metric value accumulates
+      Accumalative : 1,
+      // Set to divide metric values by thread count.
+      DivideByThreadCount : 1,
+      // Set to insert time-value pairs via callback function passed by
+      // register_insert_callback.
+      InsertCallback : 1,
+      // ignore the start and stop delta set by the user
+      IgnoreStartStopDelta : 1,
+      // Reserved space to round up to 32 bits
+      Reserved : 27;
+} MetricType;
 
 // Define `metric_interface_t metric` inside your shared library to be able to
 // load it during runtime.
 typedef struct {
   // the name of the metric
-  const char* name;
+  const char* Name;
 
   // metric type with bitfield from metric_type_t
-  metric_type_t type;
+  MetricType Type;
 
   // the unit of the metric
-  const char* unit;
+  const char* Unit;
 
-  uint64_t callback_time;
+  uint64_t CallbackTime;
 
   // This function will be called every `callback_time` usecs. Disable by
   // setting `callback_time` to 0.
-  void (*callback)(void);
+  void (*Callback)();
 
   // init the metric.
   // returns EXIT_SUCCESS on success.
-  int32_t (*init)(void);
+  int32_t (*Init)();
 
   // deinit the metric.
   // returns EXIT_SUCCESS on success.
-  int32_t (*fini)(void);
+  int32_t (*Fini)();
 
   // Get a reading of the metric
   // Return EXIT_SUCCESS if we got a new value.
   // Set this function pointer to NULL if METRIC_INSERT_CALLBACK is specified.
-  int32_t (*get_reading)(double* value);
+  int32_t (*GetReading)(double* Value);
 
   // Get error in case return code not being EXIT_SUCCESS
-  const char* (*get_error)(void);
+  const char* (*GetError)();
 
   // If METRIC_INSERT_CALLBACK is set in the type, this function will be passed
   // a callback and the first argument for the callback.
   // Further arguments of callback are the metric name, an unix timestamp (time
   // since epoch) and a metric value.
-  int32_t (*register_insert_callback)(void (*)(void*, const char*, int64_t, double), void*);
+  int32_t (*RegisterInsertCallback)(void (*)(void*, const char*, int64_t, double), void*);
 
-} metric_interface_t;
+} MetricInterface;
+// NOLINTEND(modernize-use-using)
+
+#ifdef __cplusplus
+};
+#endif

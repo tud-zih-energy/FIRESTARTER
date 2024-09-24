@@ -32,33 +32,33 @@ namespace firestarter::optimizer {
 
 class Problem {
 public:
-  Problem()
-      : _fevals(0) {}
-  virtual ~Problem() {}
+  Problem() = default;
+  virtual ~Problem() = default;
 
   // return the fitness for an individual
-  virtual std::map<std::string, firestarter::measurement::Summary> metrics(Individual const& individual) = 0;
+  virtual auto metrics(Individual const& Individual) -> std::map<std::string, firestarter::measurement::Summary> = 0;
 
-  virtual std::vector<double> fitness(std::map<std::string, firestarter::measurement::Summary> const& summaries) = 0;
+  virtual auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries)
+      -> std::vector<double> = 0;
 
   // get the bounds of the problem
-  virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() const = 0;
+  [[nodiscard]] virtual auto getBounds() const -> std::vector<std::tuple<unsigned, unsigned>> = 0;
 
   // get the number of dimensions of the problem
-  std::size_t getDims() const { return this->getBounds().size(); };
+  [[nodiscard]] auto getDims() const -> std::size_t { return this->getBounds().size(); };
 
   // get the number of objectives.
-  virtual std::size_t getNobjs() const = 0;
+  [[nodiscard]] virtual auto getNobjs() const -> std::size_t = 0;
 
   // is the problem multiobjective
-  bool isMO() const { return this->getNobjs() > 1; };
+  [[nodiscard]] auto isMO() const -> bool { return this->getNobjs() > 1; };
 
   // get the number of fitness evaluations
-  unsigned long long getFevals() const { return _fevals; };
+  [[nodiscard]] auto getFevals() const -> uint64_t { return Fevals; };
 
 protected:
   // number of fitness evaluations
-  unsigned long long _fevals;
+  uint64_t Fevals = 0;
 };
 
 } // namespace firestarter::optimizer

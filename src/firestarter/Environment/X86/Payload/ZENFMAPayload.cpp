@@ -43,25 +43,25 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   unsigned bytes = 0;
 
   for (const auto& item : sequence) {
-    auto it = this->instructionFlops.find(item);
+    auto it = this->InstructionFlops.find(item);
 
-    if (it == this->instructionFlops.end()) {
+    if (it == this->InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << item << " undefined in " << name() << ".";
       return EXIT_FAILURE;
     }
 
     flops += it->second;
 
-    it = this->instructionMemory.find(item);
+    it = this->InstructionMemory.find(item);
 
-    if (it != this->instructionMemory.end()) {
+    if (it != this->InstructionMemory.end()) {
       bytes += it->second;
     }
   }
 
-  this->_flops = repetitions * flops;
-  this->_bytes = repetitions * bytes;
-  this->_instructions = repetitions * sequence.size() * 4 + 6;
+  this->Flops = repetitions * flops;
+  this->Bytes = repetitions * bytes;
+  this->Instructions = repetitions * sequence.size() * 4 + 6;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
@@ -79,10 +79,10 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   auto ram_loop_count = getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
 
   CodeHolder code;
-  code.init(this->rt.environment());
+  code.init(this->Rt.environment());
 
-  if (nullptr != this->loadFunction) {
-    this->rt.release(&this->loadFunction);
+  if (nullptr != this->LoadFunction) {
+    this->Rt.release(&this->LoadFunction);
   }
 
   Builder cb(&code);
@@ -108,9 +108,8 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   auto ram_reg = ymm15;
 
   FuncDetail func;
-  func.init(FuncSignatureT<unsigned long long, unsigned long long*, volatile unsigned long long*, unsigned long long>(
-                CallConvId::kCDecl),
-            this->rt.environment());
+  func.init(FuncSignatureT<uint64_t, uint64_t*, volatile uint64_t*, uint64_t>(CallConvId::kCDecl),
+            this->Rt.environment());
 
   FuncFrame frame;
   frame.init(func);
@@ -304,7 +303,7 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.inc(temp_reg); // increment iteration counter
   if (this->getL2SequenceCount(sequence) > 0) {
@@ -318,7 +317,7 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.movq(iter_reg, temp_reg); // store iteration counter
   if (this->getL3SequenceCount(sequence) > 0) {
@@ -332,7 +331,7 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.mov(l1_addr, pointer_reg);
 
@@ -371,7 +370,7 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   // String sb;
   // cb.dump(sb);
 
-  Error err = this->rt.add(&this->loadFunction, &code);
+  Error err = this->Rt.add(&this->LoadFunction, &code);
   if (err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
@@ -398,12 +397,12 @@ int ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
 std::list<std::string> ZENFMAPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
-  transform(this->instructionFlops.begin(), this->instructionFlops.end(), back_inserter(instructions),
+  transform(this->InstructionFlops.begin(), this->InstructionFlops.end(), back_inserter(instructions),
             [](const auto& item) { return item.first; });
 
   return instructions;
 }
 
-void ZENFMAPayload::init(unsigned long long* memoryAddr, unsigned long long bufferSize) {
+void ZENFMAPayload::init(uint64_t* memoryAddr, uint64_t bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }

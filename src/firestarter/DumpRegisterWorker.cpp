@@ -31,10 +31,10 @@
 using namespace firestarter;
 
 namespace {
-static unsigned hammingDistance(unsigned long long x, unsigned long long y) {
+static unsigned hammingDistance(uint64_t x, uint64_t y) {
   unsigned dist = 0;
 
-  for (unsigned long long val = x ^ y; val > 0; val >>= 1) {
+  for (uint64_t val = x ^ y; val > 0; val >>= 1) {
     dist += val & 1;
   }
 
@@ -57,34 +57,34 @@ static std::string registerNameBySize(unsigned registerSize) {
 
 int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta, std::string dumpFilePath) {
 
-  auto data = std::make_unique<DumpRegisterWorkerData>(this->loadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
+  auto data = std::make_unique<DumpRegisterWorkerData>(this->LoadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
 
-  this->dumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(data));
+  this->DumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(data));
 
   return EXIT_SUCCESS;
 }
 
-void Firestarter::joinDumpRegisterWorker() { this->dumpRegisterWorkerThread.join(); }
+void Firestarter::joinDumpRegisterWorker() { this->DumpRegisterWorkerThread.join(); }
 
 void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> data) {
 
   pthread_setname_np(pthread_self(), "DumpRegWorker");
 
-  int registerCount = data->loadWorkerData->config().payload().registerCount();
-  int registerSize = data->loadWorkerData->config().payload().registerSize();
+  int registerCount = data->LoadWorkerDataPtr->config().payload().registerCount();
+  int registerSize = data->LoadWorkerDataPtr->config().payload().registerSize();
   std::string registerPrefix = registerNameBySize(registerSize);
-  auto offset = sizeof(DumpRegisterStruct) / sizeof(unsigned long long);
+  auto offset = sizeof(DumpRegisterStruct) / sizeof(uint64_t);
 
-  auto dumpRegisterStruct = reinterpret_cast<DumpRegisterStruct*>(data->loadWorkerData->addrMem - offset);
+  auto dumpRegisterStruct = reinterpret_cast<DumpRegisterStruct*>(data->LoadWorkerDataPtr->AddrMem - offset);
 
-  auto dumpVar = reinterpret_cast<volatile unsigned long long*>(&dumpRegisterStruct->dumpVar);
+  auto dumpVar = reinterpret_cast<volatile uint64_t*>(&dumpRegisterStruct->DumpVar);
   // memory of simd variables is before the padding
-  volatile unsigned long long* dumpMemAddr = dumpRegisterStruct->padding - registerCount * registerSize;
+  volatile uint64_t* dumpMemAddr = dumpRegisterStruct->Padding - registerCount * registerSize;
 
   // TODO: maybe use aligned_malloc to make memcpy more efficient and don't
   // interrupt the workload as much?
-  unsigned long long* last = reinterpret_cast<unsigned long long*>(malloc(sizeof(unsigned long long) * offset));
-  unsigned long long* current = reinterpret_cast<unsigned long long*>(malloc(sizeof(unsigned long long) * offset));
+  uint64_t* last = reinterpret_cast<uint64_t*>(malloc(sizeof(uint64_t) * offset));
+  uint64_t* current = reinterpret_cast<uint64_t*>(malloc(sizeof(uint64_t) * offset));
 
   if (last == nullptr || current == nullptr) {
     log::error() << "Malloc failed in Firestarter::dumpRegisterWorker";
@@ -92,7 +92,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> dat
   }
 
   std::stringstream dumpFilePath;
-  dumpFilePath << data->dumpFilePath;
+  dumpFilePath << data->DumpFilePath;
 #if defined(__MINGW32__) || defined(__MINGW64__)
   dumpFilePath << "\\";
 #else
@@ -123,7 +123,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> dat
 
   // continue until stop and dump the registers every data->dumpTimeDelta
   // seconds
-  for (; *data->loadWorkerData->addrHigh != LOAD_STOP;) {
+  for (; *data->LoadWorkerDataPtr->AddrHigh != LOAD_STOP;) {
     // signal the thread to dump its largest SIMD registers
     *dumpVar = DumpVariable::Start;
     __asm__ __volatile__("mfence;");
@@ -132,7 +132,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> dat
     }
 
     // copy the register content to minimize the interruption of the load worker
-    std::memcpy(current, (void*)dumpMemAddr, sizeof(unsigned long long) * offset);
+    std::memcpy(current, (void*)dumpMemAddr, sizeof(uint64_t) * offset);
 
     // skip the first output, as we first have to get some valid values for last
     if (!skipFirst) {
@@ -150,7 +150,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> dat
 
         for (auto j = 0; j < registerSize; j++) {
           auto index = registerSize * i + j;
-          auto hd = static_cast<unsigned long long>(hammingDistance(current[index], last[index]));
+          auto hd = static_cast<uint64_t>(hammingDistance(current[index], last[index]));
 
           dumpFile << hd;
           if (j != registerSize - 1) {
@@ -168,9 +168,9 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> dat
       skipFirst = false;
     }
 
-    std::memcpy(last, current, sizeof(unsigned long long) * offset);
+    std::memcpy(last, current, sizeof(uint64_t) * offset);
 
-    std::this_thread::sleep_for(std::chrono::seconds(data->dumpTimeDelta));
+    std::this_thread::sleep_for(std::chrono::seconds(data->DumpTimeDelta));
   }
 
   dumpFile.close();

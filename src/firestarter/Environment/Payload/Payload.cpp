@@ -24,73 +24,76 @@
 
 #include <firestarter/Environment/Payload/Payload.hpp>
 
-using namespace firestarter::environment::payload;
+namespace firestarter::environment::payload {
 
-unsigned Payload::getSequenceStartCount(const std::vector<std::string>& sequence, const std::string start) {
-  unsigned i = 0;
+auto Payload::getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start) -> unsigned {
+  unsigned I = 0;
 
-  for (const auto& item : sequence) {
-    if (0 == item.rfind(start, 0)) {
-      i++;
+  for (const auto& Item : Sequence) {
+    if (0 == Item.rfind(Start, 0)) {
+      I++;
     }
   }
 
-  return i;
+  return I;
 }
 
-std::vector<std::string> Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> const& proportions) {
-  std::vector<std::pair<std::string, unsigned>> prop = proportions;
+auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> const& Proportions)
+    -> std::vector<std::string> {
+  std::vector<std::pair<std::string, unsigned>> Prop = Proportions;
 
-  prop.erase(std::remove_if(prop.begin(), prop.end(), [](auto const& pair) { return pair.second == 0; }), prop.end());
+  Prop.erase(std::remove_if(Prop.begin(), Prop.end(), [](auto const& Pair) { return Pair.second == 0; }), Prop.end());
 
-  std::vector<std::string> sequence = {};
+  std::vector<std::string> Sequence = {};
 
-  if (prop.size() == 0) {
-    return sequence;
+  if (Prop.size() == 0) {
+    return Sequence;
   }
 
-  auto it = prop.begin();
-  auto insertIt = sequence.begin();
+  auto It = Prop.begin();
+  auto InsertIt = Sequence.begin();
 
-  sequence.insert(insertIt, it->second, it->first);
+  Sequence.insert(InsertIt, It->second, It->first);
 
-  for (++it; it != prop.end(); ++it) {
-    for (unsigned i = 0; i < it->second; i++) {
-      insertIt = sequence.begin();
-      std::advance(insertIt, 1 + floor(i * (sequence.size() + it->second - i) / (float)it->second));
-      sequence.insert(insertIt, it->first);
+  for (++It; It != Prop.end(); ++It) {
+    for (unsigned I = 0; I < It->second; I++) {
+      InsertIt = Sequence.begin();
+      std::advance(InsertIt, 1 + std::floor(I * (Sequence.size() + It->second - I) / static_cast<float>(It->second)));
+      Sequence.insert(InsertIt, It->first);
     }
   }
 
-  return sequence;
+  return Sequence;
 }
 
-unsigned Payload::getL2LoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
-                                 const unsigned size, const unsigned threads) {
-  if (this->getL2SequenceCount(sequence) == 0) {
+auto Payload::getL2LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                             const unsigned Size, const unsigned Threads) -> unsigned {
+  if (getL2SequenceCount(Sequence) == 0) {
     return 0;
   }
-  return (
-      0.8 * size / 64 / threads /
-      (this->getL2SequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
+  return static_cast<unsigned>(
+      (0.8 * Size / 64 / Threads /
+       (getL2SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
 }
 
-unsigned Payload::getL3LoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
-                                 const unsigned size, const unsigned threads) {
-  if (this->getL3SequenceCount(sequence) == 0) {
+auto Payload::getL3LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                             const unsigned Size, const unsigned Threads) -> unsigned {
+  if (getL3SequenceCount(Sequence) == 0) {
     return 0;
   }
-  return (
-      0.8 * size / 64 / threads /
-      (this->getL3SequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
+  return static_cast<unsigned>(
+      (0.8 * Size / 64 / Threads /
+       (getL3SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
 }
 
-unsigned Payload::getRAMLoopCount(const std::vector<std::string>& sequence, const unsigned numberOfLines,
-                                  const unsigned size, const unsigned threads) {
-  if (this->getRAMSequenceCount(sequence) == 0) {
+auto Payload::getRAMLoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                              const unsigned Size, const unsigned Threads) -> unsigned {
+  if (getRAMSequenceCount(Sequence) == 0) {
     return 0;
   }
-  return (
-      1.0 * size / 64 / threads /
-      (this->getRAMSequenceCount(sequence) * this->getNumberOfSequenceRepetitions(sequence, numberOfLines / threads)));
+  return static_cast<unsigned>(
+      (1.0 * Size / 64 / Threads /
+       (getRAMSequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
 }
+
+}; // namespace firestarter::environment::payload

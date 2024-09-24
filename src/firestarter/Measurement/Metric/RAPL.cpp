@@ -137,27 +137,27 @@ static int32_t init(void) {
       break;
     }
 
-    unsigned long long reading;
-    unsigned long long max;
+    uint64_t reading;
+    uint64_t max;
     std::string buffer;
     int read;
 
     std::getline(energyReadingStream, buffer);
-    read = std::sscanf(buffer.c_str(), "%llu", &reading);
+    read = std::sscanf(buffer.c_str(), "%lu", &reading);
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << energyUjPath.str() << " do not conform to mask (unsigned long long)";
+      ss << "Contents in file " << energyUjPath.str() << " do not conform to mask (uint64_t)";
       errorString = ss.str();
       break;
     }
 
     std::getline(maxEnergyReadingStream, buffer);
-    read = std::sscanf(buffer.c_str(), "%llu", &max);
+    read = std::sscanf(buffer.c_str(), "%lu", &max);
 
     if (read == 0) {
       std::stringstream ss;
-      ss << "Contents in file " << maxEnergyUjRangePath.str() << " do not conform to mask (unsigned long long)";
+      ss << "Contents in file " << maxEnergyUjRangePath.str() << " do not conform to mask (uint64_t)";
       errorString = ss.str();
       break;
     }
@@ -220,23 +220,23 @@ static const char* get_error(void) {
 
 // this function will be called periodically to make sure we do not miss an
 // overflow of the counter
-static void callback(void) { get_reading(nullptr); }
+static void callback() { get_reading(nullptr); }
 }
 
-metric_interface_t rapl_metric = {
-    .name = "sysfs-powercap-rapl",
-    .type = {.absolute = 0,
-             .accumalative = 1,
-             .divide_by_thread_count = 0,
-             .insert_callback = 0,
-             .ignore_start_stop_delta = 0,
-             .__reserved = 0},
-    .unit = "J",
-    .callback_time = 30000000,
-    .callback = callback,
-    .init = init,
-    .fini = fini,
-    .get_reading = get_reading,
-    .get_error = get_error,
-    .register_insert_callback = nullptr,
+MetricInterface RaplMetric = {
+    .Name = "sysfs-powercap-rapl",
+    .Type = {.Absolute = 0,
+             .Accumalative = 1,
+             .DivideByThreadCount = 0,
+             .InsertCallback = 0,
+             .IgnoreStartStopDelta = 0,
+             .Reserved = 0},
+    .Unit = "J",
+    .CallbackTime = 30000000,
+    .Callback = callback,
+    .Init = init,
+    .Fini = fini,
+    .GetReading = get_reading,
+    .GetError = get_error,
+    .RegisterInsertCallback = nullptr,
 };

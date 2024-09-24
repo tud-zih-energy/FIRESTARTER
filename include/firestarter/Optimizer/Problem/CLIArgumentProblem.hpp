@@ -24,9 +24,9 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <firestarter/Measurement/MeasurementWorker.hpp>
 #include <firestarter/Optimizer/Problem.hpp>
 #include <functional>
-#include <memory>
 #include <thread>
 #include <tuple>
 #include <utility>
@@ -35,103 +35,105 @@ namespace firestarter::optimizer::problem {
 
 class CLIArgumentProblem final : public firestarter::optimizer::Problem {
 public:
-  CLIArgumentProblem(std::function<void(std::vector<std::pair<std::string, unsigned>> const&)>&& changePayloadFunction,
-                     std::shared_ptr<firestarter::measurement::MeasurementWorker> const& measurementWorker,
-                     std::vector<std::string> const& metrics, std::chrono::seconds timeout,
-                     std::chrono::milliseconds startDelta, std::chrono::milliseconds stopDelta,
-                     std::vector<std::string> const& instructionGroups)
-      : _changePayloadFunction(changePayloadFunction)
-      , _measurementWorker(measurementWorker)
-      , _metrics(metrics)
-      , _timeout(timeout)
-      , _startDelta(startDelta)
-      , _stopDelta(stopDelta)
-      , _instructionGroups(instructionGroups) {
-    assert(_metrics.size() != 0);
+  CLIArgumentProblem(std::function<void(std::vector<std::pair<std::string, unsigned>> const&)>&& ChangePayloadFunction,
+                     std::shared_ptr<firestarter::measurement::MeasurementWorker> const& MeasurementWorker,
+                     std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
+                     std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
+                     std::vector<std::string> const& InstructionGroups)
+      : ChangePayloadFunction(ChangePayloadFunction)
+      , MeasurementWorker(MeasurementWorker)
+      , Metrics(Metrics)
+      , Timeout(Timeout)
+      , StartDelta(StartDelta)
+      , StopDelta(StopDelta)
+      , InstructionGroups(InstructionGroups) {
+    assert(Metrics.size() != 0);
   }
 
-  ~CLIArgumentProblem() {}
+  ~CLIArgumentProblem() override = default;
 
   // return all available metrics for the individual
-  std::map<std::string, firestarter::measurement::Summary> metrics(std::vector<unsigned> const& individual) override {
+  auto metrics(std::vector<unsigned> const& Individual)
+      -> std::map<std::string, firestarter::measurement::Summary> override {
     // increment evaluation idx
-    _fevals++;
+    Fevals++;
 
     // change the payload
-    assert(_instructionGroups.size() == individual.size());
-    std::vector<std::pair<std::string, unsigned>> payload = {};
-    auto it1 = _instructionGroups.begin();
-    auto it2 = individual.begin();
-    for (; it1 != _instructionGroups.end(); ++it1, ++it2) {
-      payload.push_back(std::make_pair(*it1, *it2));
+    assert(InstructionGroups.size() == Individual.size());
+    std::vector<std::pair<std::string, unsigned>> Payload = {};
+    auto It1 = InstructionGroups.begin();
+    auto It2 = Individual.begin();
+    for (; It1 != InstructionGroups.end(); ++It1, ++It2) {
+      Payload.emplace_back(*It1, *It2);
     }
-    _changePayloadFunction(payload);
+    ChangePayloadFunction(Payload);
 
     // start the measurement
     // NOTE: starting the measurement must happen after switching to not
     // mess up ipc-estimate metric
-    _measurementWorker->startMeasurement();
+    MeasurementWorker->startMeasurement();
 
     // wait for the measurement to finish
-    std::this_thread::sleep_for(_timeout);
+    std::this_thread::sleep_for(Timeout);
 
     // FIXME: this is an ugly workaround for the ipc-estimate metric
     // changeing the payload triggers a write of the iteration counter of
     // the last payload, which we use to estimate the ipc.
-    _changePayloadFunction(payload);
+    ChangePayloadFunction(Payload);
 
     // return the results
-    return _measurementWorker->getValues(_startDelta, _stopDelta);
+    return MeasurementWorker->getValues(StartDelta, StopDelta);
   }
 
-  std::vector<double> fitness(std::map<std::string, firestarter::measurement::Summary> const& summaries) override {
-    std::vector<double> values = {};
+  auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries)
+      -> std::vector<double> override {
+    std::vector<double> Values = {};
 
-    for (auto const& metricName : _metrics) {
-      auto findName = [metricName](auto const& summary) {
-        auto invertedName = "-" + summary.first;
-        return metricName.compare(summary.first) == 0 || metricName.compare(invertedName) == 0;
+    for (auto const& MetricName : Metrics) {
+      auto FindName = [MetricName](auto const& Summary) {
+        auto InvertedName = "-" + Summary.first;
+        return MetricName.compare(Summary.first) == 0 || MetricName.compare(InvertedName) == 0;
       };
 
-      auto it = std::find_if(summaries.begin(), summaries.end(), findName);
+      auto It = std::find_if(Summaries.begin(), Summaries.end(), FindName);
 
-      if (it == summaries.end()) {
+      if (It == Summaries.end()) {
         continue;
       }
 
       // round to two decimal places after the comma
-      auto value = std::round(it->second.average * 100.0) / 100.0;
+      auto Value = std::round(It->second.Average * 100.0) / 100.0;
 
       // invert metric
-      if (metricName[0] == '-') {
-        value *= -1.0;
+      if (MetricName[0] == '-') {
+        Value *= -1.0;
       }
 
-      values.push_back(value);
+      Values.push_back(Value);
     }
 
-    return values;
+    return Values;
   }
 
   // get the bounds of the problem
-  std::vector<std::tuple<unsigned, unsigned>> getBounds() const override {
-    std::vector<std::tuple<unsigned, unsigned>> vec(_instructionGroups.size(),
+  [[nodiscard]] auto getBounds() const -> std::vector<std::tuple<unsigned, unsigned>> override {
+    std::vector<std::tuple<unsigned, unsigned>> Vec(InstructionGroups.size(),
                                                     std::make_tuple<unsigned, unsigned>(0, 100));
 
-    return vec;
+    return Vec;
   }
 
   // get the number of objectives.
-  std::size_t getNobjs() const override { return _metrics.size(); }
+  [[nodiscard]] auto getNobjs() const -> std::size_t override { return Metrics.size(); }
 
 private:
-  std::function<void(std::vector<std::pair<std::string, unsigned>> const&)> _changePayloadFunction;
-  std::shared_ptr<firestarter::measurement::MeasurementWorker> _measurementWorker;
-  std::vector<std::string> _metrics;
-  std::chrono::seconds _timeout;
-  std::chrono::milliseconds _startDelta;
-  std::chrono::milliseconds _stopDelta;
-  std::vector<std::string> _instructionGroups;
+  std::function<void(std::vector<std::pair<std::string, unsigned>> const&)> ChangePayloadFunction;
+  std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
+  std::vector<std::string> Metrics;
+  std::chrono::seconds Timeout;
+  std::chrono::milliseconds StartDelta;
+  std::chrono::milliseconds StopDelta;
+  std::vector<std::string> InstructionGroups;
 };
 
 } // namespace firestarter::optimizer::problem

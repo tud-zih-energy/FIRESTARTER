@@ -28,6 +28,7 @@
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 #define PAD_SIZE(size, align) align*(int)std::ceil((double)size / (double)align)
 
@@ -49,72 +50,72 @@ namespace firestarter {
 
 class LoadWorkerData {
 public:
-  LoadWorkerData(int id, environment::Environment& environment, volatile unsigned long long* loadVar,
-                 unsigned long long period, bool dumpRegisters, bool errorDetection)
-      : addrHigh(loadVar)
-      , period(period)
-      , dumpRegisters(dumpRegisters)
-      , errorDetection(errorDetection)
-      , _id(id)
-      , _environment(environment)
-      , _config(new environment::platform::RuntimeConfig(environment.selectedConfig())) {
+  LoadWorkerData(int Id, environment::Environment& Environment, volatile uint64_t* LoadVar, uint64_t Period,
+                 bool DumpRegisters, bool ErrorDetection)
+      : AddrHigh(LoadVar)
+      , Period(Period)
+      , DumpRegisters(DumpRegisters)
+      , ErrorDetection(ErrorDetection)
+      , Id(Id)
+      , Environment(Environment)
+      , Config(new environment::platform::RuntimeConfig(Environment.selectedConfig())) {
     // use REGISTER_MAX_NUM cache lines for the dumped registers
     // and another cache line for the control variable.
     // as we are doing aligned moves we only have the option to waste a
     // whole cacheline
-    addrOffset = dumpRegisters ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long) : 0;
+    AddrOffset += DumpRegisters ? sizeof(DumpRegisterStruct) / sizeof(uint64_t) : 0;
 
-    addrOffset += errorDetection ? sizeof(ErrorDetectionStruct) / sizeof(unsigned long long) : 0;
+    AddrOffset += ErrorDetection ? sizeof(ErrorDetectionStruct) / sizeof(uint64_t) : 0;
   }
 
   ~LoadWorkerData() {
-    delete _config;
-    if (addrMem - addrOffset != nullptr) {
-      ALIGNED_FREE(addrMem - addrOffset);
+    delete Config;
+    if (AddrMem - AddrOffset != nullptr) {
+      ALIGNED_FREE(AddrMem - AddrOffset);
     }
   }
 
-  void setErrorCommunication(std::shared_ptr<unsigned long long> communicationLeft,
-                             std::shared_ptr<unsigned long long> communicationRight) {
-    this->communicationLeft = communicationLeft;
-    this->communicationRight = communicationRight;
+  void setErrorCommunication(std::shared_ptr<uint64_t> CommunicationLeft,
+                             std::shared_ptr<uint64_t> CommunicationRight) {
+    this->CommunicationLeft = std::move(CommunicationLeft);
+    this->CommunicationRight = std::move(CommunicationRight);
   }
 
-  int id() const { return _id; }
-  environment::Environment& environment() const { return _environment; }
-  environment::platform::RuntimeConfig& config() const { return *_config; }
+  [[nodiscard]] auto id() const -> int { return Id; }
+  [[nodiscard]] auto environment() const -> environment::Environment& { return Environment; }
+  [[nodiscard]] auto config() const -> environment::platform::RuntimeConfig& { return *Config; }
 
-  const ErrorDetectionStruct* errorDetectionStruct() const {
-    return reinterpret_cast<ErrorDetectionStruct*>(addrMem - addrOffset);
+  [[nodiscard]] auto errorDetectionStruct() const -> const ErrorDetectionStruct* {
+    return reinterpret_cast<ErrorDetectionStruct*>(AddrMem - AddrOffset);
   }
 
-  int comm = THREAD_WAIT;
-  bool ack = false;
-  std::mutex mutex;
-  unsigned long long* addrMem = nullptr;
-  unsigned long long addrOffset;
-  volatile unsigned long long* addrHigh;
-  unsigned long long buffersizeMem;
-  unsigned long long iterations = 0;
+  int Comm = THREAD_WAIT;
+  bool Ack = false;
+  std::mutex Mutex;
+  uint64_t* AddrMem = nullptr;
+  uint64_t AddrOffset = 0;
+  volatile uint64_t* AddrHigh;
+  uint64_t BuffersizeMem{};
+  uint64_t Iterations = 0;
   // save the last iteration count when switching payloads
-  std::atomic<unsigned long long> lastIterations;
-  unsigned long long flops;
-  unsigned long long startTsc;
-  unsigned long long stopTsc;
-  std::atomic<unsigned long long> lastStartTsc;
-  std::atomic<unsigned long long> lastStopTsc;
+  std::atomic<uint64_t> LastIterations{};
+  uint64_t Flops{};
+  uint64_t StartTsc{};
+  uint64_t StopTsc{};
+  std::atomic<uint64_t> LastStartTsc{};
+  std::atomic<uint64_t> LastStopTsc{};
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
-  unsigned long long period;
-  bool dumpRegisters;
-  bool errorDetection;
-  std::shared_ptr<unsigned long long> communicationLeft;
-  std::shared_ptr<unsigned long long> communicationRight;
+  uint64_t Period;
+  bool DumpRegisters;
+  bool ErrorDetection;
+  std::shared_ptr<uint64_t> CommunicationLeft;
+  std::shared_ptr<uint64_t> CommunicationRight;
 
 private:
-  int _id;
-  environment::Environment& _environment;
-  environment::platform::RuntimeConfig* _config;
+  int Id;
+  environment::Environment& Environment;
+  environment::platform::RuntimeConfig* Config;
 };
 
 } // namespace firestarter

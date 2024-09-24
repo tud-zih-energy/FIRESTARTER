@@ -54,21 +54,21 @@ public:
       : Environment(new X86CPUTopology()) {}
 
   ~X86Environment() {
-    for (auto const& config : platformConfigs) {
-      delete config;
+    for (auto const& Config : PlatformConfigs) {
+      delete Config;
     }
-    for (auto const& config : fallbackPlatformConfigs) {
-      delete config;
+    for (auto const& Config : FallbackPlatformConfigs) {
+      delete Config;
     }
   }
 
-  X86CPUTopology const& topology() { return *reinterpret_cast<X86CPUTopology*>(this->_topology); }
+  auto topology() -> X86CPUTopology const& { return *reinterpret_cast<X86CPUTopology*>(this->Topology); }
 
   void evaluateFunctions() override;
-  int selectFunction(unsigned functionId, bool allowUnavailablePayload) override;
-  int selectInstructionGroups(std::string groups) override;
+  auto selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) -> int override;
+  auto selectInstructionGroups(std::string Groups) -> int override;
   void printAvailableInstructionGroups() override;
-  void setLineCount(unsigned lineCount) override;
+  void setLineCount(unsigned LineCount) override;
   void printSelectedCodePathSummary() override;
   void printFunctionSummary() override;
 
@@ -77,16 +77,16 @@ private:
   // of PlatformConfig. Add new PlatformConfig at the bottom to maintain
   // stable IDs.
   const std::list<std::function<platform::X86PlatformConfig*(asmjit::CpuFeatures const&, unsigned, unsigned, unsigned)>>
-      platformConfigsCtor = {REGISTER(KnightsLandingConfig), REGISTER(SkylakeConfig),   REGISTER(SkylakeSPConfig),
+      PlatformConfigsCtor = {REGISTER(KnightsLandingConfig), REGISTER(SkylakeConfig),   REGISTER(SkylakeSPConfig),
                              REGISTER(HaswellConfig),        REGISTER(HaswellEPConfig), REGISTER(SandyBridgeConfig),
                              REGISTER(SandyBridgeEPConfig),  REGISTER(NehalemConfig),   REGISTER(NehalemEPConfig),
                              REGISTER(BulldozerConfig),      REGISTER(NaplesConfig),    REGISTER(RomeConfig)};
 
-  std::list<platform::X86PlatformConfig*> platformConfigs;
+  std::list<platform::X86PlatformConfig*> PlatformConfigs;
 
   // List of fallback PlatformConfig. Add one for each x86 extension.
   const std::list<std::function<platform::X86PlatformConfig*(asmjit::CpuFeatures const&, unsigned, unsigned, unsigned)>>
-      fallbackPlatformConfigsCtor = {
+      FallbackPlatformConfigsCtor = {
           REGISTER(SkylakeSPConfig),   // AVX512
           REGISTER(BulldozerConfig),   // FMA4
           REGISTER(HaswellConfig),     // FMA
@@ -94,7 +94,7 @@ private:
           REGISTER(NehalemConfig)      // SSE2
       };
 
-  std::list<platform::X86PlatformConfig*> fallbackPlatformConfigs;
+  std::list<platform::X86PlatformConfig*> FallbackPlatformConfigs;
 
 #undef REGISTER
 };

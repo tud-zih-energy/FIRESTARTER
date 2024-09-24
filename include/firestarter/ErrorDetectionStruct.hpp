@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <cstdint>
 namespace firestarter {
 
 struct ErrorDetectionStruct {
@@ -28,19 +29,19 @@ struct ErrorDetectionStruct {
   // one ptr (8B)
 
   // the pointer to 16B of communication
-  volatile unsigned long long* communicationLeft;
-  volatile unsigned long long localsLeft[4];
+  volatile uint64_t* CommunicationLeft;
+  volatile uint64_t LocalsLeft[4];
   // if this variable is not 0, an error occured in the comparison with the
   // left thread.
-  volatile unsigned long long errorLeft;
-  volatile unsigned long long paddingLeft[2];
+  volatile uint64_t ErrorLeft;
+  volatile uint64_t PaddingLeft[2];
 
-  volatile unsigned long long* communicationRight;
-  volatile unsigned long long localsRight[4];
+  volatile uint64_t* CommunicationRight;
+  volatile uint64_t LocalsRight[4];
   // if this variable is not 0, an error occured in the comparison with the
   // right thread.
-  volatile unsigned long long errorRight;
-  volatile unsigned long long paddingRight[2];
+  volatile uint64_t ErrorRight;
+  volatile uint64_t PaddingRight[2];
 };
 
 } // namespace firestarter

@@ -23,82 +23,83 @@
 
 #include <chrono>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+#include <firestarter/Measurement/Metric/Perf.h>
+#include <firestarter/Measurement/Metric/RAPL.h>
+#include <firestarter/Measurement/MetricInterface.h>
 #include <firestarter/Measurement/Summary.hpp>
 #include <firestarter/Measurement/TimeValue.hpp>
 #include <map>
 #include <mutex>
 
 extern "C" {
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
-#include <firestarter/Measurement/Metric/Perf.h>
-#include <firestarter/Measurement/Metric/RAPL.h>
-#include <firestarter/Measurement/MetricInterface.h>
 #include <pthread.h>
 }
 
-void insertCallback(void* cls, const char* metricName, int64_t timeSinceEpoch, double value);
+void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, double Value);
 
 namespace firestarter::measurement {
 
 class MeasurementWorker {
 private:
-  pthread_t workerThread;
-  pthread_t stdinThread;
+  pthread_t WorkerThread;
+  pthread_t StdinThread;
 
-  std::vector<metric_interface_t*> metrics = {&rapl_metric, &perf_ipc_metric, &perf_freq_metric, &ipc_estimate_metric};
+  std::vector<MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
 
-  std::mutex values_mutex;
-  std::map<std::string, std::vector<TimeValue>> values = {};
+  std::mutex ValuesMutex;
+  std::map<std::string, std::vector<TimeValue>> Values;
 
-  static int* dataAcquisitionWorker(void* measurementWorker);
+  static auto dataAcquisitionWorker(void* MeasurementWorker) -> int*;
 
-  static int* stdinDataAcquisitionWorker(void* measurementWorker);
+  static auto stdinDataAcquisitionWorker(void* MeasurementWorker) -> int*;
 
-  const metric_interface_t* findMetricByName(std::string metricName);
+  auto findMetricByName(std::string MetricName) -> const MetricInterface*;
 
-  std::chrono::milliseconds updateInterval;
+  std::chrono::milliseconds UpdateInterval;
 
-  std::chrono::high_resolution_clock::time_point startTime;
+  std::chrono::high_resolution_clock::time_point StartTime;
 
   // some metric values have to be devided by this
-  const unsigned long long numThreads;
+  const uint64_t NumThreads;
 
-  std::string availableMetricsString;
+  std::string AvailableMetricsString;
 
 #ifndef FIRESTARTER_LINK_STATIC
   std::vector<void*> _metricDylibs = {};
 #endif
 
-  std::vector<std::string> _stdinMetrics = {};
+  std::vector<std::string> StdinMetrics;
 
 public:
   // creates the worker thread
-  MeasurementWorker(std::chrono::milliseconds updateInterval, unsigned long long numThreads,
-                    std::vector<std::string> const& metricDylibs, std::vector<std::string> const& stdinMetrics);
+  MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
+                    std::vector<std::string> const& MetricDylibs, std::vector<std::string> const& StdinMetrics);
 
   // stops the worker threads
   ~MeasurementWorker();
 
-  std::string const& availableMetrics() const { return this->availableMetricsString; }
+  [[nodiscard]] auto availableMetrics() const -> std::string const& { return this->AvailableMetricsString; }
 
-  std::vector<std::string> const& stdinMetrics() { return _stdinMetrics; }
+  auto stdinMetrics() -> std::vector<std::string> const& { return StdinMetrics; }
 
   // returns a list of metrics
-  std::vector<std::string> metricNames();
+  auto metricNames() -> std::vector<std::string>;
 
   // setup the selected metrics
   // returns a vector with the names of inialized metrics
-  std::vector<std::string> initMetrics(std::vector<std::string> const& metricNames);
+  auto initMetrics(std::vector<std::string> const& MetricNames) -> std::vector<std::string>;
 
   // callback function for metrics
-  void insertCallback(const char* metricName, int64_t timeSinceEpoch, double value);
+  void insertCallback(const char* MetricName, int64_t TimeSinceEpoch, double Value);
 
   // start the measurement
   void startMeasurement();
 
   // get the measurement values begining from measurement start until now.
-  std::map<std::string, Summary> getValues(std::chrono::milliseconds startDelta = std::chrono::milliseconds::zero(),
-                                           std::chrono::milliseconds stopDelta = std::chrono::milliseconds::zero());
+  auto getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
+                 std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero())
+      -> std::map<std::string, Summary>;
 };
 
 } // namespace firestarter::measurement

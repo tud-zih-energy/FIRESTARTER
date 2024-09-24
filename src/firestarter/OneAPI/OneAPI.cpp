@@ -116,7 +116,7 @@ static int round_up(int num_to_round, int multiple) {
 // GPU index. Used to pin this thread to the GPU.
 template <typename T>
 static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
-                        std::atomic<int>& initCount, volatile unsigned long long* loadVar, int matrixSize) {
+                        std::atomic<int>& initCount, volatile uint64_t* loadVar, int matrixSize) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "create_load<T>: Template argument T must be either float or double");
 
@@ -236,7 +236,7 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   }
 }
 
-OneAPI::OneAPI(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
+OneAPI::OneAPI(volatile uint64_t* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
   std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat, useDouble, matrixSize, gpus);
   _initThread = std::move(t);
 
@@ -245,7 +245,7 @@ OneAPI::OneAPI(volatile unsigned long long* loadVar, bool useFloat, bool useDoub
   _waitForInitCv.wait(lk);
 }
 
-void OneAPI::initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
+void OneAPI::initGpus(std::condition_variable& cv, volatile uint64_t* loadVar, bool useFloat, bool useDouble,
                       unsigned matrixSize, int gpus) {
   std::condition_variable waitForInitCv;
   std::mutex waitForInitCvMutex;

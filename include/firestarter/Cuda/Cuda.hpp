@@ -24,25 +24,24 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <vector>
 
 namespace firestarter::cuda {
 
 class Cuda {
 private:
-  std::thread _initThread;
-  std::condition_variable _waitForInitCv;
-  std::mutex _waitForInitCvMutex;
+  std::thread InitThread;
+  std::condition_variable WaitForInitCv;
+  std::mutex WaitForInitCvMutex;
 
-  static void initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
-                       unsigned matrixSize, int gpus);
+  static void initGpus(std::condition_variable& Cv, volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
+                       unsigned MatrixSize, int Gpus);
 
 public:
-  Cuda(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus);
+  Cuda(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
 
   ~Cuda() {
-    if (_initThread.joinable()) {
-      _initThread.join();
+    if (InitThread.joinable()) {
+      InitThread.join();
     }
   }
 };

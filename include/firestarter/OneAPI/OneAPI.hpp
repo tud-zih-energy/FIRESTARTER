@@ -24,25 +24,24 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
-#include <vector>
 
 namespace firestarter::oneapi {
 
 class OneAPI {
 private:
-  std::thread _initThread;
-  std::condition_variable _waitForInitCv;
-  std::mutex _waitForInitCvMutex;
+  std::thread InitThread;
+  std::condition_variable WaitForInitCv;
+  std::mutex WaitForInitCvMutex;
 
-  static void initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
-                       unsigned matrixSize, int gpus);
+  static void initGpus(std::condition_variable& Cv, volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
+                       unsigned MatrixSize, int Gpus);
 
 public:
-  OneAPI(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus);
+  OneAPI(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
 
   ~OneAPI() {
-    if (_initThread.joinable()) {
-      _initThread.join();
+    if (InitThread.joinable()) {
+      InitThread.join();
     }
   }
 };

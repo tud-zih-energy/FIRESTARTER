@@ -23,6 +23,9 @@
 
 #include <firestarter/Measurement/MetricInterface.h>
 
-extern metric_interface_t perf_ipc_metric;
+extern "C" {
 
-extern metric_interface_t perf_freq_metric;
+extern MetricInterface PerfIpcMetric;
+
+extern MetricInterface PerfFreqMetric;
+};

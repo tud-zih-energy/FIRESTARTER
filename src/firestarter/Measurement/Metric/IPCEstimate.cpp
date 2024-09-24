@@ -57,7 +57,7 @@ static int32_t register_insert_callback(void (*c)(void*, const char*, int64_t, d
   return EXIT_SUCCESS;
 }
 
-void ipc_estimate_metric_insert(double value) {
+void ipcEstimateMetricInsert(double Value) {
   if (callback == nullptr || callback_arg == nullptr) {
     return;
   }
@@ -66,23 +66,23 @@ void ipc_estimate_metric_insert(double value) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
           .count();
 
-  callback(callback_arg, "ipc-estimate", t, value);
+  callback(callback_arg, "ipc-estimate", t, Value);
 }
 
-metric_interface_t ipc_estimate_metric = {
-    .name = "ipc-estimate",
-    .type = {.absolute = 1,
-             .accumalative = 0,
-             .divide_by_thread_count = 0,
-             .insert_callback = 1,
-             .ignore_start_stop_delta = 1,
-             .__reserved = 0},
-    .unit = "IPC",
-    .callback_time = 0,
-    .callback = nullptr,
-    .init = init,
-    .fini = fini,
-    .get_reading = nullptr,
-    .get_error = get_error,
-    .register_insert_callback = register_insert_callback,
+MetricInterface IpcEstimateMetric = {
+    .Name = "ipc-estimate",
+    .Type = {.Absolute = 1,
+             .Accumalative = 0,
+             .DivideByThreadCount = 0,
+             .InsertCallback = 1,
+             .IgnoreStartStopDelta = 1,
+             .Reserved = 0},
+    .Unit = "IPC",
+    .CallbackTime = 0,
+    .Callback = nullptr,
+    .Init = init,
+    .Fini = fini,
+    .GetReading = nullptr,
+    .GetError = get_error,
+    .RegisterInsertCallback = register_insert_callback,
 };

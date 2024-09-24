@@ -25,61 +25,61 @@ using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion,
-                                  unsigned instructionCacheSize, std::list<unsigned> const& dataCacheBufferSize,
-                                  unsigned ramBufferSize, unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-                                  bool errorDetection) {
+auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                   unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                   unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                   bool ErrorDetection) -> int {
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
-  auto sequence = this->generateSequence(proportion);
-  auto repetitions = this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
+  auto sequence = this->generateSequence(Proportion);
+  auto repetitions = this->getNumberOfSequenceRepetitions(sequence, NumberOfLines / Thread);
 
   // compute count of flops and memory access for performance report
   unsigned flops = 0;
   unsigned bytes = 0;
 
   for (const auto& item : sequence) {
-    auto it = this->instructionFlops.find(item);
+    auto it = this->InstructionFlops.find(item);
 
-    if (it == this->instructionFlops.end()) {
+    if (it == this->InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << item << " undefined in " << name() << ".";
       return EXIT_FAILURE;
     }
 
     flops += it->second;
 
-    it = this->instructionMemory.find(item);
+    it = this->InstructionMemory.find(item);
 
-    if (it != this->instructionMemory.end()) {
+    if (it != this->InstructionMemory.end()) {
       bytes += it->second;
     }
   }
 
-  this->_flops = repetitions * flops;
-  this->_bytes = repetitions * bytes;
-  this->_instructions = repetitions * sequence.size() * 4 + 6;
+  this->Flops = repetitions * flops;
+  this->Bytes = repetitions * bytes;
+  this->Instructions = repetitions * sequence.size() * 4 + 6;
 
   // calculate the buffer sizes
-  auto l1i_cache_size = instructionCacheSize / thread;
-  auto dataCacheBufferSizeIterator = dataCacheBufferSize.begin();
-  auto l1_size = *dataCacheBufferSizeIterator / thread;
+  auto l1i_cache_size = InstructionCacheSize / Thread;
+  auto dataCacheBufferSizeIterator = DataCacheBufferSize.begin();
+  auto l1_size = *dataCacheBufferSizeIterator / Thread;
   std::advance(dataCacheBufferSizeIterator, 1);
-  auto l2_size = *dataCacheBufferSizeIterator / thread;
+  auto l2_size = *dataCacheBufferSizeIterator / Thread;
   std::advance(dataCacheBufferSizeIterator, 1);
-  auto l3_size = *dataCacheBufferSizeIterator / thread;
-  auto ram_size = ramBufferSize / thread;
+  auto l3_size = *dataCacheBufferSizeIterator / Thread;
+  auto ram_size = RamBufferSize / Thread;
 
   // calculate the reset counters for the buffers
-  auto l2_loop_count = getL2LoopCount(sequence, numberOfLines, l2_size * thread, thread);
-  auto l3_loop_count = getL3LoopCount(sequence, numberOfLines, l3_size * thread, thread);
-  auto ram_loop_count = getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
+  auto l2_loop_count = getL2LoopCount(sequence, NumberOfLines, l2_size * Thread, Thread);
+  auto l3_loop_count = getL3LoopCount(sequence, NumberOfLines, l3_size * Thread, Thread);
+  auto ram_loop_count = getRAMLoopCount(sequence, NumberOfLines, ram_size * Thread, Thread);
 
   CodeHolder code;
-  code.init(this->rt.environment());
+  code.init(this->Rt.environment());
 
-  if (nullptr != this->loadFunction) {
-    this->rt.release(&this->loadFunction);
+  if (nullptr != this->LoadFunction) {
+    this->Rt.release(&this->LoadFunction);
   }
 
   Builder cb(&code);
@@ -108,9 +108,8 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   auto ram_reg = zmm30;
 
   FuncDetail func;
-  func.init(FuncSignatureT<unsigned long long, unsigned long long*, volatile unsigned long long*, unsigned long long>(
-                CallConvId::kCDecl),
-            this->rt.environment());
+  func.init(FuncSignatureT<uint64_t, uint64_t*, volatile uint64_t*, uint64_t>(CallConvId::kCDecl),
+            this->Rt.environment());
 
   FuncFrame frame;
   frame.init(func);
@@ -306,7 +305,7 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   }
 
   cb.movq(temp_reg, iter_reg); // restore iteration counter
-  if (this->getRAMSequenceCount(sequence) > 0) {
+  if (getRAMSequenceCount(sequence) > 0) {
     // reset RAM counter
     auto NoRamReset = cb.newLabel();
 
@@ -317,10 +316,10 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.inc(temp_reg); // increment iteration counter
-  if (this->getL2SequenceCount(sequence) > 0) {
+  if (getL2SequenceCount(sequence) > 0) {
     // reset L2-Cache counter
     auto NoL2Reset = cb.newLabel();
 
@@ -331,10 +330,10 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.movq(iter_reg, temp_reg); // store iteration counter
-  if (this->getL3SequenceCount(sequence) > 0) {
+  if (getL3SequenceCount(sequence) > 0) {
     // reset L3-Cache counter
     auto NoL3Reset = cb.newLabel();
 
@@ -345,11 +344,11 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.mov(l1_addr, pointer_reg);
 
-  if (dumpRegisters) {
+  if (DumpRegisters) {
     auto SkipRegistersDump = cb.newLabel();
 
     cb.test(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
@@ -366,7 +365,7 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
     cb.bind(SkipRegistersDump);
   }
 
-  if (errorDetection) {
+  if (ErrorDetection) {
     this->emitErrorDetectionCode<decltype(iter_reg), Zmm>(cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
   }
 
@@ -384,7 +383,7 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   // String sb;
   // cb.dump(sb);
 
-  Error err = this->rt.add(&this->loadFunction, &code);
+  Error err = this->Rt.add(&this->LoadFunction, &code);
   if (err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
@@ -408,15 +407,15 @@ int AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> 
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AVX512Payload::getAvailableInstructions() const {
-  std::list<std::string> instructions;
+auto AVX512Payload::getAvailableInstructions() const -> std::list<std::string> {
+  std::list<std::string> Instructions;
 
-  transform(this->instructionFlops.begin(), this->instructionFlops.end(), back_inserter(instructions),
+  transform(this->InstructionFlops.begin(), this->InstructionFlops.end(), back_inserter(Instructions),
             [](const auto& item) { return item.first; });
 
-  return instructions;
+  return Instructions;
 }
 
-void AVX512Payload::init(unsigned long long* memoryAddr, unsigned long long bufferSize) {
-  X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
+void AVX512Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize) {
+  X86Payload::init(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }

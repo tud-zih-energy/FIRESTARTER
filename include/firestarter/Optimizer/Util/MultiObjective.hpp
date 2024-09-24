@@ -28,32 +28,31 @@
 
 namespace firestarter::optimizer::util {
 
-bool less_than_f(double a, double b);
+auto lessThanF(double A, double B) -> bool;
 
-bool greater_than_f(double a, double b);
+auto greaterThanF(double A, double B) -> bool;
 
-bool pareto_dominance(const std::vector<double>& obj1, const std::vector<double>& obj2);
+auto paretoDominance(const std::vector<double>& Obj1, const std::vector<double>& Obj2) -> bool;
 
-std::tuple<std::vector<std::vector<std::size_t>>, std::vector<std::vector<std::size_t>>, std::vector<std::size_t>,
-           std::vector<std::size_t>>
-fast_non_dominated_sorting(const std::vector<std::vector<double>>& points);
+auto fastNonDominatedSorting(const std::vector<std::vector<double>>& Points)
+    -> std::tuple<std::vector<std::vector<std::size_t>>, std::vector<std::vector<std::size_t>>,
+                  std::vector<std::size_t>, std::vector<std::size_t>>;
 
-std::vector<double> crowding_distance(const std::vector<std::vector<double>>& non_dom_front);
+auto crowdingDistance(const std::vector<std::vector<double>>& NonDomFront) -> std::vector<double>;
 
-std::vector<double>::size_type
-mo_tournament_selection(std::vector<double>::size_type idx1, std::vector<double>::size_type idx2,
-                        const std::vector<std::vector<double>::size_type>& non_domination_rank,
-                        const std::vector<double>& crowding_d, std::mt19937& mt);
+auto moTournamentSelection(std::vector<double>::size_type Idx1, std::vector<double>::size_type Idx2,
+                           const std::vector<std::vector<double>::size_type>& NonDominationRank,
+                           const std::vector<double>& CrowdingD, std::mt19937& Mt) -> std::vector<double>::size_type;
 
-std::pair<firestarter::optimizer::Individual, firestarter::optimizer::Individual>
-sbx_crossover(const firestarter::optimizer::Individual& parent1, const firestarter::optimizer::Individual& parent2,
-              const double p_cr, std::mt19937& mt);
+auto sbxCrossover(const firestarter::optimizer::Individual& Parent1, const firestarter::optimizer::Individual& Parent2,
+                  double PCr, std::mt19937& Mt)
+    -> std::pair<firestarter::optimizer::Individual, firestarter::optimizer::Individual>;
 
-void polynomial_mutation(firestarter::optimizer::Individual& child,
-                         const std::vector<std::tuple<unsigned, unsigned>>& bounds, const double p_m, std::mt19937& mt);
+void polynomialMutation(firestarter::optimizer::Individual& Child,
+                        const std::vector<std::tuple<unsigned, unsigned>>& Bounds, double PM, std::mt19937& Mt);
 
-std::vector<std::size_t> select_best_N_mo(const std::vector<std::vector<double>>& input_f, std::size_t N);
+auto selectBestNMo(const std::vector<std::vector<double>>& InputF, std::size_t N) -> std::vector<std::size_t>;
 
-std::vector<double> ideal(const std::vector<std::vector<double>>& points);
+auto ideal(const std::vector<std::vector<double>>& Points) -> std::vector<double>;
 
 } // namespace firestarter::optimizer::util

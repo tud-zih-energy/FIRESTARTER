@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <cstdint>
 #include <firestarter/Environment/X86/Payload/AVXPayload.hpp>
 #include <firestarter/Logging/Log.hpp>
 
@@ -43,25 +44,25 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
   unsigned bytes = 0;
 
   for (const auto& item : sequence) {
-    auto it = this->instructionFlops.find(item);
+    auto it = this->InstructionFlops.find(item);
 
-    if (it == this->instructionFlops.end()) {
+    if (it == this->InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << item << " undefined in " << name() << ".";
       return EXIT_FAILURE;
     }
 
     flops += it->second;
 
-    it = this->instructionMemory.find(item);
+    it = this->InstructionMemory.find(item);
 
-    if (it != this->instructionMemory.end()) {
+    if (it != this->InstructionMemory.end()) {
       bytes += it->second;
     }
   }
 
-  this->_flops = repetitions * flops;
-  this->_bytes = repetitions * bytes;
-  this->_instructions = repetitions * sequence.size() * 2 + 4;
+  this->Flops = repetitions * flops;
+  this->Bytes = repetitions * bytes;
+  this->Instructions = repetitions * sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
   auto l1i_cache_size = instructionCacheSize / thread;
@@ -79,10 +80,10 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
   auto ram_loop_count = getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
 
   CodeHolder code;
-  code.init(this->rt.environment());
+  code.init(this->Rt.environment());
 
-  if (nullptr != this->loadFunction) {
-    this->rt.release(&this->loadFunction);
+  if (nullptr != this->LoadFunction) {
+    this->Rt.release(&this->LoadFunction);
   }
 
   Builder cb(&code);
@@ -107,9 +108,8 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
   auto trans_regs = 6;
 
   FuncDetail func;
-  func.init(FuncSignatureT<unsigned long long, unsigned long long*, volatile unsigned long long*, unsigned long long>(
-                CallConvId::kCDecl),
-            this->rt.environment());
+  func.init(FuncSignatureT<uint64_t, uint64_t*, volatile uint64_t*, uint64_t>(CallConvId::kCDecl),
+            this->Rt.environment());
 
   FuncFrame frame;
   frame.init(func);
@@ -244,12 +244,12 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
         L1_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L1_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.vmovapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
         L1_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L2_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l2_addr, 64));
         L2_INCREMENT();
@@ -257,12 +257,12 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
         L2_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L2_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l2_addr, 64));
         cb.vmovapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
         L2_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L3_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         L3_INCREMENT();
@@ -270,17 +270,17 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L3_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         cb.vmovapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
         L3_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "L3_P") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.prefetcht0(ptr(l3_addr));
         L3_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "RAM_L") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(ram_addr, 64));
         RAM_INCREMENT();
@@ -288,24 +288,24 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), Ymm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
         cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "RAM_LS") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l3_addr, 64));
         cb.vmovapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
         RAM_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else if (item == "RAM_P") {
         cb.vaddpd(Ymm(add_dest), Ymm(add_dest), ymmword_ptr(l1_addr, 32));
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
-        this->_instructions++;
+        this->Instructions++;
       } else {
         workerLog::error() << "Instruction group " << item << " not found in " << this->name() << ".";
         return EXIT_FAILURE;
       }
 
       if (shift_regs > 1) {
-        this->_instructions++;
+        this->Instructions++;
         if (left) {
           cb.psrlw(Mm(shift_start + (shift_dst - shift_start + 3) % shift_regs), Mm(shift_dst));
         } else {
@@ -348,7 +348,7 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
     cb.add(ram_addr, Imm(l3_size));
     cb.bind(NoRamReset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   if (this->getL2SequenceCount(sequence) > 0) {
     // reset L2-Cache counter
@@ -361,7 +361,7 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
     cb.add(l2_addr, Imm(l1_size));
     cb.bind(NoL2Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   if (this->getL3SequenceCount(sequence) > 0) {
     // reset L3-Cache counter
@@ -374,7 +374,7 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
     cb.add(l3_addr, Imm(l2_size));
     cb.bind(NoL3Reset);
     // adds always two instruction
-    this->_instructions += 2;
+    this->Instructions += 2;
   }
   cb.inc(iter_reg); // increment iteration counter
   cb.mov(l1_addr, pointer_reg);
@@ -414,7 +414,7 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
   // String sb;
   // cb.dump(sb);
 
-  Error err = this->rt.add(&this->loadFunction, &code);
+  Error err = this->Rt.add(&this->LoadFunction, &code);
   if (err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
@@ -441,12 +441,12 @@ int AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> con
 std::list<std::string> AVXPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
-  transform(this->instructionFlops.begin(), this->instructionFlops.end(), back_inserter(instructions),
+  transform(this->InstructionFlops.begin(), this->InstructionFlops.end(), back_inserter(instructions),
             [](const auto& item) { return item.first; });
 
   return instructions;
 }
 
-void AVXPayload::init(unsigned long long* memoryAddr, unsigned long long bufferSize) {
+void AVXPayload::init(uint64_t* memoryAddr, uint64_t bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }

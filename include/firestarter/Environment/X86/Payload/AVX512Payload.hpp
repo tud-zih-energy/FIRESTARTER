@@ -26,26 +26,28 @@
 namespace firestarter::environment::x86::payload {
 class AVX512Payload final : public X86Payload {
 public:
-  AVX512Payload(asmjit::CpuFeatures const& supportedFeatures)
-      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::kAVX512_F}, "AVX512", 8, 32) {}
+  AVX512Payload() = delete;
 
-  int compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion, unsigned instructionCacheSize,
-                     std::list<unsigned> const& dataCacheBufferSize, unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines, bool dumpRegisters, bool errorDetection) override;
-  std::list<std::string> getAvailableInstructions() const override;
-  void init(unsigned long long* memoryAddr, unsigned long long bufferSize) override;
+  explicit AVX512Payload(asmjit::CpuFeatures const& SupportedFeatures)
+      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::kAVX512_F}, "AVX512", 8, 32) {}
 
-  firestarter::environment::payload::Payload* clone() const override {
+  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
+                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
+                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
+  void init(uint64_t* MemoryAddr, uint64_t BufferSize) override;
+
+  [[nodiscard]] auto clone() const -> firestarter::environment::payload::Payload* override {
     return new AVX512Payload(this->supportedFeatures());
   };
 
 private:
-  const std::map<std::string, unsigned> instructionFlops = {
+  const std::map<std::string, unsigned> InstructionFlops = {
       {"REG", 32},   {"L1_L", 32},  {"L1_BROADCAST", 16}, {"L1_S", 16}, {"L1_LS", 16}, {"L2_L", 32},
       {"L2_S", 16},  {"L2_LS", 16}, {"L3_L", 32},         {"L3_S", 16}, {"L3_LS", 16}, {"L3_P", 16},
       {"RAM_L", 32}, {"RAM_S", 16}, {"RAM_LS", 16},       {"RAM_P", 16}};
 
-  const std::map<std::string, unsigned> instructionMemory = {
+  const std::map<std::string, unsigned> InstructionMemory = {
       {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
 };
 } // namespace firestarter::environment::x86::payload

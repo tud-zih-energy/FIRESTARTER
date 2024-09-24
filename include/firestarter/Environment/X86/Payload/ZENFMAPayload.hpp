@@ -21,29 +21,32 @@
 
 #pragma once
 
+#include <cstdint>
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload final : public X86Payload {
 public:
-  ZENFMAPayload(asmjit::CpuFeatures const& supportedFeatures)
-      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
+  ZENFMAPayload() = delete;
+
+  explicit ZENFMAPayload(asmjit::CpuFeatures const& SupportedFeatures)
+      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
                    "ZENFMA", 4, 16) {}
 
-  int compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion, unsigned instructionCacheSize,
-                     std::list<unsigned> const& dataCacheBufferSize, unsigned ramBufferSize, unsigned thread,
-                     unsigned numberOfLines, bool dumpRegisters, bool errorDetection) override;
-  std::list<std::string> getAvailableInstructions() const override;
-  void init(unsigned long long* memoryAddr, unsigned long long bufferSize) override;
+  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
+                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
+                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
+  void init(uint64_t* MemoryAddr, uint64_t BufferSize) override;
 
-  firestarter::environment::payload::Payload* clone() const override {
+  [[nodiscard]] auto clone() const -> firestarter::environment::payload::Payload* override {
     return new ZENFMAPayload(this->supportedFeatures());
   };
 
 private:
-  const std::map<std::string, unsigned> instructionFlops = {
+  const std::map<std::string, unsigned> InstructionFlops = {
       {"REG", 8}, {"L1_LS", 8}, {"L2_L", 8}, {"L3_L", 8}, {"RAM_L", 8}};
 
-  const std::map<std::string, unsigned> instructionMemory = {{"RAM_L", 64}};
+  const std::map<std::string, unsigned> InstructionMemory = {{"RAM_L", 64}};
 };
 } // namespace firestarter::environment::x86::payload

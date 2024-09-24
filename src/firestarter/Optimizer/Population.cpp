@@ -52,7 +52,7 @@ void Population::generateInitialPopulation(std::size_t populationSize) {
   }
 }
 
-std::size_t Population::size() const { return _x.size(); }
+std::size_t Population::size() const { return X.size(); }
 
 void Population::append(Individual const& ind) {
   assert(this->problem().getDims() == ind.size());
@@ -64,10 +64,10 @@ void Population::append(Individual const& ind) {
   if (optional_metric.has_value()) {
     metrics = optional_metric.value();
   } else {
-    metrics = this->_problem->metrics(ind);
+    metrics = this->ProblemPtr->metrics(ind);
   }
 
-  auto fitness = this->_problem->fitness(metrics);
+  auto fitness = this->ProblemPtr->fitness(metrics);
 
   this->append(ind, fitness);
 
@@ -87,16 +87,16 @@ void Population::append(Individual const& ind, std::vector<double> const& fit) {
   assert(this->problem().getNobjs() == fit.size());
   assert(this->problem().getDims() == ind.size());
 
-  this->_x.push_back(ind);
-  this->_f.push_back(fit);
+  this->X.push_back(ind);
+  this->F.push_back(fit);
 }
 
 void Population::insert(std::size_t idx, Individual const& ind, std::vector<double> const& fit) {
   // assert that population is big enough
-  assert(_x.size() > idx);
+  assert(X.size() > idx);
 
-  _x[idx] = ind;
-  _f[idx] = fit;
+  X[idx] = ind;
+  F[idx] = fit;
 }
 
 Individual Population::getRandomIndividual() {
@@ -111,7 +111,7 @@ Individual Population::getRandomIndividual() {
     auto const lb = std::get<0>(bounds[i]);
     auto const ub = std::get<1>(bounds[i]);
 
-    out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->gen);
+    out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->Gen);
 
     firestarter::log::trace() << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
   }
@@ -127,11 +127,11 @@ std::optional<Individual> Population::bestIndividual() const {
   }
 
   // assert that we have individuals
-  assert(this->_x.size() > 0);
+  assert(this->X.size() > 0);
 
-  auto best = std::max_element(this->_x.begin(), this->_x.end(), [](auto a, auto b) { return a < b; });
+  auto best = std::max_element(this->X.begin(), this->X.end(), [](auto a, auto b) { return a < b; });
 
-  assert(best != this->_x.end());
+  assert(best != this->X.end());
 
   return *best;
 }

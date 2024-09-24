@@ -35,29 +35,29 @@ using namespace firestarter::environment::x86;
 
 X86CPUTopology::X86CPUTopology()
     : CPUTopology("x86_64")
-    , cpuInfo(asmjit::CpuInfo::host())
-    , _vendor(this->cpuInfo.vendor()) {
+    , CpuInfo(asmjit::CpuInfo::host())
+    , Vendor(this->CpuInfo.vendor()) {
 
   std::stringstream ss;
   ss << "Family " << this->familyId() << ", Model " << this->modelId() << ", Stepping " << this->stepping();
-  this->_model = ss.str();
+  this->Model = ss.str();
 
   for (int i = 0; i <= (int)asmjit::CpuFeatures::X86::Id::kMaxValue; i++) {
-    if (!this->cpuInfo.hasFeature(i)) {
+    if (!this->CpuInfo.hasFeature(i)) {
       continue;
     }
 
     asmjit::String sb;
 
-    auto error = asmjit::Formatter::formatFeature(sb, this->cpuInfo.arch(), i);
+    auto error = asmjit::Formatter::formatFeature(sb, this->CpuInfo.arch(), i);
     if (error != asmjit::ErrorCode::kErrorOk) {
       log::warn() << "Formatting cpu features got asmjit error: " << error;
     }
 
-    this->featureList.push_back(std::string(sb.data()));
+    this->FeatureList.push_back(std::string(sb.data()));
   }
 
-  unsigned long long a = 0, b = 0, c = 0, d = 0;
+  uint64_t a = 0, b = 0, c = 0, d = 0;
 
   // check if we have rdtsc
   this->cpuid(&a, &b, &c, &d);
@@ -65,9 +65,9 @@ X86CPUTopology::X86CPUTopology()
     a = 1;
     this->cpuid(&a, &b, &c, &d);
     if ((int)d & (1 << 4)) {
-      this->_hasRdtsc = true;
+      this->HasRdtsc = true;
     } else {
-      this->_hasRdtsc = false;
+      this->HasRdtsc = false;
     }
   }
 
@@ -75,7 +75,7 @@ X86CPUTopology::X86CPUTopology()
   if (this->hasRdtsc()) {
     a = 0, b = 0, c = 0, d = 0;
 
-    this->_hasInvariantRdtsc = true;
+    this->HasInvariantRdtsc = true;
 
     /* TSCs are usable if CPU supports only one frequency in C0 (no
        speedstep/Cool'n'Quite)
@@ -88,7 +88,7 @@ X86CPUTopology::X86CPUTopology()
       this->cpuid(&a, &b, &c, &d);
       /* no Frequency control */
       if ((!(d & (1 << 22))) && (!(c & (1 << 7)))) {
-        this->_hasInvariantRdtsc = true;
+        this->HasInvariantRdtsc = true;
       } else {
         a = 0x80000000;
         this->cpuid(&a, &b, &c, &d);
@@ -97,7 +97,7 @@ X86CPUTopology::X86CPUTopology()
           this->cpuid(&a, &b, &c, &d);
           /* invariant TSC */
           if (d & (1 << 8)) {
-            this->_hasInvariantRdtsc = true;
+            this->HasInvariantRdtsc = true;
           }
         }
       }
@@ -113,17 +113,17 @@ X86CPUTopology::X86CPUTopology()
 
         /* no Frequency control */
         if ((!(d & (1 << 7))) && (!(d & (1 << 1)))) {
-          this->_hasInvariantRdtsc = true;
+          this->HasInvariantRdtsc = true;
         }
         /* invariant TSC */
         if (d & (1 << 8)) {
-          this->_hasInvariantRdtsc = true;
+          this->HasInvariantRdtsc = true;
         }
       }
       /* assuming no frequency control if cpuid does not provide the extended
          function to test for it */
       else {
-        this->_hasInvariantRdtsc = true;
+        this->HasInvariantRdtsc = true;
       }
     }
   }
@@ -133,14 +133,14 @@ X86CPUTopology::X86CPUTopology()
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
 // is available
-unsigned long long X86CPUTopology::clockrate() const {
+uint64_t X86CPUTopology::clockrate() const {
   typedef std::chrono::high_resolution_clock Clock;
   typedef std::chrono::microseconds ticks;
 
-  unsigned long long start1_tsc, start2_tsc, end1_tsc, end2_tsc;
-  unsigned long long time_diff;
-  unsigned long long clock_lower_bound, clock_upper_bound, clock;
-  unsigned long long clockrate = 0;
+  uint64_t start1_tsc, start2_tsc, end1_tsc, end2_tsc;
+  uint64_t time_diff;
+  uint64_t clock_lower_bound, clock_upper_bound, clock;
+  uint64_t clockrate = 0;
   int i, num_measurements = 0, min_measurements;
 
   Clock::time_point start_time, end_time;
@@ -207,11 +207,11 @@ unsigned long long X86CPUTopology::clockrate() const {
   return clockrate;
 }
 
-unsigned long long X86CPUTopology::timestamp() const {
+uint64_t X86CPUTopology::timestamp() const {
 #ifndef _MSC_VER
-  unsigned long long reg_a, reg_d;
+  uint64_t reg_a, reg_d;
 #else
-  unsigned long long i;
+  uint64_t i;
 #endif
 
   if (!this->hasRdtsc()) {
@@ -227,11 +227,9 @@ unsigned long long X86CPUTopology::timestamp() const {
 #endif
 }
 
-void X86CPUTopology::cpuid(unsigned long long* a, unsigned long long* b, unsigned long long* c,
-                           unsigned long long* d) const {
+void X86CPUTopology::cpuid(uint64_t* a, uint64_t* b, uint64_t* c, uint64_t* d) const {
 #ifndef _MSC_VER
-  unsigned long long reg_a, reg_b, reg_c, reg_d;
-
+  uint64_t reg_a, reg_b, reg_c, reg_d;
   __asm__ __volatile__("cpuid;"
                        : "=a"(reg_a), "=b"(reg_b), "=c"(reg_c), "=d"(reg_d)
                        : "a"(*a), "b"(*b), "c"(*c), "d"(*d));

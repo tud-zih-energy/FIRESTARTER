@@ -34,10 +34,10 @@ template <> struct adl_serializer<firestarter::measurement::Summary> {
   static void to_json(json& j, firestarter::measurement::Summary s) {
     j = json::object();
 
-    j["num_timepoints"] = s.num_timepoints;
-    j["duration"] = s.duration.count();
-    j["average"] = s.average;
-    j["stddev"] = s.stddev;
+    j["num_timepoints"] = s.NumTimepoints;
+    j["duration"] = s.Duration.count();
+    j["average"] = s.Average;
+    j["stddev"] = s.Stddev;
   }
 };
 } // namespace nlohmann

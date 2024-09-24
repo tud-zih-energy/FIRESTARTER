@@ -21,79 +21,81 @@
 
 #pragma once
 
-#include <algorithm>
 #include <firestarter/Environment/Payload/Payload.hpp>
 #include <firestarter/Logging/Log.hpp>
 #include <initializer_list>
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace firestarter::environment::platform {
 
 class PlatformConfig {
 private:
-  std::string _name;
-  std::list<unsigned> _threads;
-  payload::Payload* _payload;
+  std::string Name;
+  std::list<unsigned> Threads;
+  payload::Payload* Payload;
 
 protected:
-  unsigned _instructionCacheSize;
-  std::list<unsigned> _dataCacheBufferSize;
-  unsigned _ramBufferSize;
-  unsigned _lines;
+  unsigned InstructionCacheSize;
+  std::list<unsigned> DataCacheBufferSize;
+  unsigned RamBufferSize;
+  unsigned Lines;
 
 public:
-  PlatformConfig(std::string name, std::list<unsigned> threads, unsigned instructionCacheSize,
-                 std::initializer_list<unsigned> dataCacheBufferSize, unsigned ramBufferSize, unsigned lines,
-                 payload::Payload* payload)
-      : _name(name)
-      , _threads(threads)
-      , _payload(payload)
-      , _instructionCacheSize(instructionCacheSize)
-      , _dataCacheBufferSize(dataCacheBufferSize)
-      , _ramBufferSize(ramBufferSize)
-      , _lines(lines) {}
-  virtual ~PlatformConfig() { delete _payload; }
+  PlatformConfig() = delete;
 
-  const std::string& name() const { return _name; }
-  unsigned instructionCacheSize() const { return _instructionCacheSize; }
-  const std::list<unsigned>& dataCacheBufferSize() const { return _dataCacheBufferSize; }
-  unsigned ramBufferSize() const { return _ramBufferSize; }
-  unsigned lines() const { return _lines; }
-  payload::Payload const& payload() const { return *_payload; }
+  PlatformConfig(std::string Name, std::list<unsigned> Threads, unsigned InstructionCacheSize,
+                 std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBufferSize, unsigned Lines,
+                 payload::Payload* Payload)
+      : Name(std::move(Name))
+      , Threads(std::move(Threads))
+      , Payload(Payload)
+      , InstructionCacheSize(InstructionCacheSize)
+      , DataCacheBufferSize(DataCacheBufferSize)
+      , RamBufferSize(RamBufferSize)
+      , Lines(Lines) {}
+  virtual ~PlatformConfig() { delete Payload; }
 
-  std::map<unsigned, std::string> getThreadMap() const {
-    std::map<unsigned, std::string> threadMap;
+  [[nodiscard]] auto name() const -> const std::string& { return Name; }
+  [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }
+  [[nodiscard]] auto dataCacheBufferSize() const -> const std::list<unsigned>& { return DataCacheBufferSize; }
+  [[nodiscard]] auto ramBufferSize() const -> unsigned { return RamBufferSize; }
+  [[nodiscard]] auto lines() const -> unsigned { return Lines; }
+  [[nodiscard]] auto payload() const -> payload::Payload const& { return *Payload; }
 
-    for (auto const& thread : _threads) {
-      std::stringstream functionName;
-      functionName << "FUNC_" << name() << "_" << payload().name() << "_" << thread << "T";
-      threadMap[thread] = functionName.str();
+  [[nodiscard]] auto getThreadMap() const -> std::map<unsigned, std::string> {
+    std::map<unsigned, std::string> ThreadMap;
+
+    for (auto const& Thread : Threads) {
+      std::stringstream FunctionName;
+      FunctionName << "FUNC_" << name() << "_" << payload().name() << "_" << Thread << "T";
+      ThreadMap[Thread] = FunctionName.str();
     }
 
-    return threadMap;
+    return ThreadMap;
   }
 
-  bool isAvailable() const { return payload().isAvailable(); }
+  [[nodiscard]] auto isAvailable() const -> bool { return payload().isAvailable(); }
 
-  virtual bool isDefault() const = 0;
+  [[nodiscard]] virtual auto isDefault() const -> bool = 0;
 
-  virtual std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const = 0;
+  [[nodiscard]] virtual auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> = 0;
 
-  std::string getDefaultPayloadSettingsString() const {
-    std::stringstream ss;
+  [[nodiscard]] auto getDefaultPayloadSettingsString() const -> std::string {
+    std::stringstream Ss;
 
     for (auto const& [name, value] : this->getDefaultPayloadSettings()) {
-      ss << name << ":" << value << ",";
+      Ss << name << ":" << value << ",";
     }
 
-    auto str = ss.str();
-    if (str.size() > 0) {
-      str.pop_back();
+    auto Str = Ss.str();
+    if (Str.size() > 0) {
+      Str.pop_back();
     }
 
-    return str;
+    return Str;
   }
 };
 

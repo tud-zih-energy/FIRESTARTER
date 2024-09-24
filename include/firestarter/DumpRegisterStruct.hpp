@@ -21,20 +21,21 @@
 
 #pragma once
 
+#include <cstdint>
 namespace firestarter {
 
 /* DO NOT CHANGE! the asm load-loop tests if it should dump the current register
  * content */
-enum DumpVariable : unsigned long long { Start = 0, Wait = 1 };
+enum DumpVariable : uint64_t { Start = 0, Wait = 1 };
 
 #define REGISTER_MAX_NUM 32
 
 struct DumpRegisterStruct {
   // REGISTER_MAX_NUM cachelines
-  volatile double registerValues[REGISTER_MAX_NUM * 8];
+  volatile double RegisterValues[REGISTER_MAX_NUM * 8];
   // pad to use a whole cacheline
-  volatile unsigned long long padding[7];
-  volatile DumpVariable dumpVar;
+  volatile uint64_t Padding[7];
+  volatile DumpVariable DumpVar;
 };
 
 #undef REGISTER_MAX_NUM

@@ -29,14 +29,14 @@
 using namespace firestarter::environment::x86;
 
 void X86Environment::evaluateFunctions() {
-  for (auto ctor : this->platformConfigsCtor) {
+  for (auto ctor : this->PlatformConfigsCtor) {
     // add asmjit for model and family detection
-    this->platformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
+    this->PlatformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
                                          this->topology().modelId(), this->topology().numThreadsPerCore()));
   }
 
-  for (auto ctor : this->fallbackPlatformConfigsCtor) {
-    this->fallbackPlatformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
+  for (auto ctor : this->FallbackPlatformConfigsCtor) {
+    this->FallbackPlatformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
                                                  this->topology().modelId(), this->topology().numThreadsPerCore()));
   }
 }
@@ -46,7 +46,7 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
   std::string defaultPayloadName("");
 
   // if functionId is 0 get the default or fallback
-  for (auto config : this->platformConfigs) {
+  for (auto config : this->PlatformConfigs) {
     for (auto const& [thread, functionName] : config->getThreadMap()) {
       // the selected function
       if (id == functionId) {
@@ -58,14 +58,14 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
           }
         }
         // found function
-        this->_selectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
+        this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
             *config, thread, this->topology().instructionCacheSize());
         return EXIT_SUCCESS;
       }
       // default function
       if (0 == functionId && config->isDefault()) {
         if (thread == this->topology().numThreadsPerCore()) {
-          this->_selectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
+          this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
               *config, thread, this->topology().instructionCacheSize());
           return EXIT_SUCCESS;
         } else {
@@ -91,7 +91,7 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
 
     // loop over available implementation and check if they are marked as
     // fallback
-    for (auto config : this->fallbackPlatformConfigs) {
+    for (auto config : this->FallbackPlatformConfigs) {
       if (config->isAvailable()) {
         auto selectedThread = 0;
         auto selectedFunctionName = std::string("");
@@ -105,7 +105,7 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
           selectedThread = config->getThreadMap().begin()->first;
           selectedFunctionName = config->getThreadMap().begin()->second;
         }
-        this->_selectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
+        this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
             *config, selectedThread, this->topology().instructionCacheSize());
         log::warn() << "Using function " << selectedFunctionName << " as fallback.\n"
                     << "You can use the parameter --function to try other "
@@ -200,7 +200,7 @@ void X86Environment::printFunctionSummary() {
 
   unsigned id = 1;
 
-  for (auto const& config : this->platformConfigs) {
+  for (auto const& config : this->PlatformConfigs) {
     for (auto const& [thread, functionName] : config->getThreadMap()) {
       const char* available = config->isAvailable() ? "yes" : "no";
       const char* fmt = "  %4u | %-30s | %-24s | %s";

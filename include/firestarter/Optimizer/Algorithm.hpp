@@ -27,12 +27,12 @@ namespace firestarter::optimizer {
 
 class Algorithm {
 public:
-  Algorithm() {}
-  virtual ~Algorithm() {}
+  Algorithm() = default;
+  virtual ~Algorithm() = default;
 
-  virtual void checkPopulation(Population const& pop, std::size_t populationSize) = 0;
+  virtual void checkPopulation(Population const& Pop, std::size_t PopulationSize) = 0;
 
-  virtual Population evolve(Population& pop) = 0;
+  virtual auto evolve(Population& Pop) -> Population = 0;
 };
 
 } // namespace firestarter::optimizer

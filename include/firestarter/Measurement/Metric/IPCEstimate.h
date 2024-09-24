@@ -23,6 +23,9 @@
 
 #include <firestarter/Measurement/MetricInterface.h>
 
-extern metric_interface_t ipc_estimate_metric;
+extern "C" {
 
-extern void ipc_estimate_metric_insert(double value);
+extern MetricInterface IpcEstimateMetric;
+
+extern void ipcEstimateMetricInsert(double Value);
+};

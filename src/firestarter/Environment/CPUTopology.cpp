@@ -19,20 +19,21 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <array>
 #include <firestarter/Environment/CPUTopology.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <array>
 #include <fstream>
 #include <regex>
+#include <utility>
 
 extern "C" {
 #include <stdio.h>
 }
 
-using namespace firestarter::environment;
+namespace firestarter::environment {
 
-std::ostream& CPUTopology::print(std::ostream& stream) const {
+auto CPUTopology::print(std::ostream& stream) const -> std::ostream& {
   stream << "  system summary:\n"
          << "    number of processors:        " << this->numPackages() << "\n"
          << "    number of cores (total)):    " << this->numCoresTotal() << "\n"
@@ -43,8 +44,8 @@ std::ostream& CPUTopology::print(std::ostream& stream) const {
 
   std::stringstream ss;
 
-  for (auto const& ent : this->features()) {
-    ss << ent << " ";
+  for (auto const& Entry : this->features()) {
+    ss << Entry << " ";
   }
 
   stream << "  processor characteristics:\n"
@@ -56,45 +57,42 @@ std::ostream& CPUTopology::print(std::ostream& stream) const {
          << "    supported features: " << ss.str() << "\n"
          << "    Caches:";
 
-  std::vector<hwloc_obj_type_t> caches = {
+  std::vector<hwloc_obj_type_t> Caches = {
       HWLOC_OBJ_L1CACHE, HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE, HWLOC_OBJ_L2ICACHE,
       HWLOC_OBJ_L3CACHE, HWLOC_OBJ_L3ICACHE, HWLOC_OBJ_L4CACHE, HWLOC_OBJ_L5CACHE,
   };
 
-  std::vector<std::string> cacheStrings = {};
+  std::vector<std::string> CacheStrings = {};
 
-  for (hwloc_obj_type_t const& cache : caches) {
-    int width;
-    char string[128];
-    int shared;
-    hwloc_obj_t cacheObj;
+  for (hwloc_obj_type_t const& Cache : Caches) {
     std::stringstream ss;
 
-    width = hwloc_get_nbobjs_by_type(this->topology, cache);
+    auto Width = hwloc_get_nbobjs_by_type(this->topology, Cache);
 
-    if (width >= 1) {
+    if (Width >= 1) {
       ss << "\n      - ";
 
-      cacheObj = hwloc_get_obj_by_type(this->topology, cache, 0);
-      hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
+      auto* CacheObj = hwloc_get_obj_by_type(this->topology, Cache, 0);
+      std::array<char, 128> String{};
+      hwloc_obj_type_snprintf(String.begin(), sizeof(String), CacheObj, 0);
 
-      switch (cacheObj->attr->cache.type) {
+      switch (CacheObj->attr->cache.type) {
       case HWLOC_OBJ_CACHE_DATA:
-        ss << "Level " << cacheObj->attr->cache.depth << " Data";
+        ss << "Level " << CacheObj->attr->cache.depth << " Data";
         break;
       case HWLOC_OBJ_CACHE_INSTRUCTION:
-        ss << "Level " << cacheObj->attr->cache.depth << " Instruction";
+        ss << "Level " << CacheObj->attr->cache.depth << " Instruction";
         break;
       case HWLOC_OBJ_CACHE_UNIFIED:
       default:
-        ss << "Unified Level " << cacheObj->attr->cache.depth;
+        ss << "Unified Level " << CacheObj->attr->cache.depth;
         break;
       }
 
-      ss << " Cache, " << cacheObj->attr->cache.size / 1024 << " KiB, " << cacheObj->attr->cache.linesize
+      ss << " Cache, " << CacheObj->attr->cache.size / 1024 << " KiB, " << CacheObj->attr->cache.linesize
          << " B Cacheline, ";
 
-      switch (cacheObj->attr->cache.associativity) {
+      switch (CacheObj->attr->cache.associativity) {
       case -1:
         ss << "full";
         break;
@@ -102,16 +100,16 @@ std::ostream& CPUTopology::print(std::ostream& stream) const {
         ss << "unknown";
         break;
       default:
-        ss << cacheObj->attr->cache.associativity << "-way set";
+        ss << CacheObj->attr->cache.associativity << "-way set";
         break;
       }
 
       ss << " associative, ";
 
-      shared = this->numThreads() / width;
+      auto Shared = this->numThreads() / Width;
 
-      if (shared > 1) {
-        ss << "shared among " << shared << " threads.";
+      if (Shared > 1) {
+        ss << "shared among " << Shared << " threads.";
       } else {
         ss << "per thread.";
       }
@@ -124,7 +122,7 @@ std::ostream& CPUTopology::print(std::ostream& stream) const {
 }
 
 CPUTopology::CPUTopology(std::string architecture)
-    : _architecture(architecture) {
+    : _architecture(std::move(architecture)) {
 
   hwloc_topology_init(&this->topology);
 
@@ -413,3 +411,5 @@ unsigned CPUTopology::maxNumThreads() const {
 
   return max;
 }
+
+}; // namespace firestarter::environment

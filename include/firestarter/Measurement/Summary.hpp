@@ -33,14 +33,14 @@ extern "C" {
 namespace firestarter::measurement {
 
 struct Summary {
-  size_t num_timepoints;
-  std::chrono::milliseconds duration;
+  size_t NumTimepoints;
+  std::chrono::milliseconds Duration;
 
-  double average;
-  double stddev;
+  double Average;
+  double Stddev;
 
-  static Summary calculate(std::vector<TimeValue>::iterator begin, std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType, unsigned long long numThreads);
+  static auto calculate(std::vector<TimeValue>::iterator Begin, std::vector<TimeValue>::iterator End,
+                        MetricType MetricType, uint64_t NumThreads) -> Summary;
 };
 
 } // namespace firestarter::measurement

@@ -326,7 +326,7 @@ static CONCAT(FS_ACCEL_PREFIX_LC, randStatus_t)
 // GPU index. Used to pin this thread to the GPU.
 template <typename T>
 static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
-                        std::atomic<int>& initCount, volatile unsigned long long* loadVar, int matrixSize) {
+                        std::atomic<int>& initCount, volatile uint64_t* loadVar, int matrixSize) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "create_load<T>: Template argument T must be either float or double");
 
@@ -515,7 +515,7 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
 #endif
 }
 
-Cuda::Cuda(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
+Cuda::Cuda(volatile uint64_t* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
   std::thread t(Cuda::initGpus, std::ref(_waitForInitCv), loadVar, useFloat, useDouble, matrixSize, gpus);
   _initThread = std::move(t);
 
@@ -524,7 +524,7 @@ Cuda::Cuda(volatile unsigned long long* loadVar, bool useFloat, bool useDouble, 
   _waitForInitCv.wait(lk);
 }
 
-void Cuda::initGpus(std::condition_variable& cv, volatile unsigned long long* loadVar, bool useFloat, bool useDouble,
+void Cuda::initGpus(std::condition_variable& cv, volatile uint64_t* loadVar, bool useFloat, bool useDouble,
                     unsigned matrixSize, int gpus) {
   std::condition_variable waitForInitCv;
   std::mutex waitForInitCvMutex;

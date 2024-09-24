@@ -19,14 +19,14 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <algorithm>
 #include <firestarter/Environment/Environment.hpp>
 #include <firestarter/Logging/Log.hpp>
 
-#include <iterator>
 #include <regex>
 #include <string>
 
-using namespace firestarter::environment;
+namespace firestarter::environment {
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
 
@@ -55,70 +55,70 @@ extern "C" {
     }                                                                                                                  \
   } while (0)
 
-int Environment::cpuSet(unsigned id) {
-  cpu_set_t mask;
+auto Environment::cpuSet(unsigned Id) -> int {
+  cpu_set_t Mask;
 
-  CPU_ZERO(&mask);
-  CPU_SET(id, &mask);
+  CPU_ZERO(&Mask);
+  CPU_SET(Id, &Mask);
 
-  return sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+  return sched_setaffinity(0, sizeof(cpu_set_t), &Mask);
 }
 
-int Environment::cpuAllowed(unsigned id) {
-  cpu_set_t mask;
+auto Environment::cpuAllowed(unsigned Id) -> int {
+  cpu_set_t Mask;
 
-  CPU_ZERO(&mask);
+  CPU_ZERO(&Mask);
 
-  if (!sched_getaffinity(0, sizeof(cpu_set_t), &mask)) {
-    return CPU_ISSET(id, &mask);
+  if (!sched_getaffinity(0, sizeof(cpu_set_t), &Mask)) {
+    return CPU_ISSET(Id, &Mask);
   }
 
   return 0;
 }
 #endif
 
-int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind) {
+auto Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, std::string cpuBind) -> int {
 #if not((defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY))
   (void)cpuBind;
 #endif
 
-  if (requestedNumThreads > 0 && requestedNumThreads > this->topology().numThreads()) {
+  if (RequestedNumThreads > 0 && RequestedNumThreads > this->topology().numThreads()) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  cpu_set_t cpuset;
+  cpu_set_t Cpuset;
 
-  CPU_ZERO(&cpuset);
+  CPU_ZERO(&Cpuset);
 
   if (cpuBind.empty()) {
     // no cpu binding defined
 
     // use all CPUs if not defined otherwise
-    if (requestedNumThreads == 0) {
-      for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
-        if (this->cpuAllowed(i)) {
-          CPU_SET(i, &cpuset);
-          requestedNumThreads++;
+    if (RequestedNumThreads == 0) {
+      for (unsigned I = 0; I < this->topology().maxNumThreads(); I++) {
+        if (this->cpuAllowed(I)) {
+          CPU_SET(I, &Cpuset);
+          RequestedNumThreads++;
         }
       }
     } else {
       // if -n / --threads is set
-      unsigned cpu_count = 0;
-      for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
+      unsigned CpuCount = 0;
+      for (unsigned I = 0; I < this->topology().maxNumThreads(); I++) {
         // skip if cpu is not available
-        if (!this->cpuAllowed(i)) {
+        if (!this->cpuAllowed(I)) {
           continue;
         }
-        ADD_CPU_SET(i, cpuset);
-        cpu_count++;
+        ADD_CPU_SET(I, Cpuset);
+        CpuCount++;
         // we reached the desired amounts of threads
-        if (cpu_count >= requestedNumThreads) {
+        if (CpuCount >= RequestedNumThreads) {
           break;
         }
       }
       // requested to many threads
-      if (cpu_count < requestedNumThreads) {
+      if (CpuCount < RequestedNumThreads) {
         log::error() << "You are requesting more threads than "
                         "there are CPUs available in the given cpuset.\n"
                      << "This can be caused by the taskset tool, cgrous, "
@@ -130,41 +130,42 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string c
     }
   } else {
     // parse CPULIST for binding
-    const std::string delimiter = ",";
-    const std::regex re("^(?:(\\d+)(?:-([1-9]\\d*)(?:\\/([1-9]\\d*))?)?)$");
+    const std::string Delimiter = ",";
+    const std::regex Re(R"(^(?:(\d+)(?:-([1-9]\d*)(?:\/([1-9]\d*))?)?)$)");
 
-    std::stringstream ss(cpuBind);
+    std::stringstream Ss(cpuBind);
 
-    while (ss.good()) {
-      std::string token;
-      std::smatch m;
-      std::getline(ss, token, ',');
+    while (Ss.good()) {
+      std::string Token;
+      std::smatch M;
+      std::getline(Ss, Token, ',');
       ;
 
-      if (std::regex_match(token, m, re)) {
-        unsigned long x, y, s;
+      if (std::regex_match(Token, M, Re)) {
+        unsigned long Y;
+        unsigned long S;
 
-        x = std::stoul(m[1].str());
-        if (m[2].matched) {
-          y = std::stoul(m[2].str());
+        unsigned long X = std::stoul(M[1].str());
+        if (M[2].matched) {
+          Y = std::stoul(M[2].str());
         } else {
-          y = x;
+          Y = X;
         }
-        if (m[3].matched) {
-          s = std::stoul(m[3].str());
+        if (M[3].matched) {
+          S = std::stoul(M[3].str());
         } else {
-          s = 1;
+          S = 1;
         }
-        if (y < x) {
-          log::error() << "y has to be >= x in x-y expressions of CPU list: " << token;
+        if (Y < X) {
+          log::error() << "y has to be >= x in x-y expressions of CPU list: " << Token;
           return EXIT_FAILURE;
         }
-        for (unsigned long i = x; i <= y; i += s) {
-          ADD_CPU_SET(i, cpuset);
-          requestedNumThreads++;
+        for (unsigned long I = X; I <= Y; I += S) {
+          ADD_CPU_SET(I, Cpuset);
+          RequestedNumThreads++;
         }
       } else {
-        log::error() << "Invalid symbols in CPU list: " << token;
+        log::error() << "Invalid symbols in CPU list: " << Token;
         return EXIT_FAILURE;
       }
     }
@@ -175,25 +176,22 @@ int Environment::evaluateCpuAffinity(unsigned requestedNumThreads, std::string c
   }
 #endif
 
-  if (requestedNumThreads == 0) {
+  if (RequestedNumThreads == 0) {
     log::error() << "Found no usable CPUs!";
     return 127;
   }
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  else {
-    for (unsigned i = 0; i < this->topology().maxNumThreads(); i++) {
-      if (CPU_ISSET(i, &cpuset)) {
-        this->cpuBind.push_back(i);
-      }
+  for (unsigned I = 0; I < this->topology().maxNumThreads(); I++) {
+    if (CPU_ISSET(I, &Cpuset)) {
+      this->CpuBind.push_back(I);
     }
   }
+
 #endif
 
-  if (requestedNumThreads > this->topology().maxNumThreads()) {
-    requestedNumThreads = this->topology().maxNumThreads();
-  }
+  RequestedNumThreads = std::min(RequestedNumThreads, this->topology().maxNumThreads());
 
-  this->_requestedNumThreads = requestedNumThreads;
+  this->RequestedNumThreads = RequestedNumThreads;
 
   return EXIT_SUCCESS;
 }
@@ -202,38 +200,40 @@ void Environment::printThreadSummary() {
   log::info() << "\n  using " << this->requestedNumThreads() << " threads";
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  bool printCoreIdInfo = false;
+  bool PrintCoreIdInfo = false;
   size_t i = 0;
 
-  std::vector<unsigned> cpuBind(this->cpuBind);
-  cpuBind.resize(this->requestedNumThreads());
-  for (auto const& bind : cpuBind) {
-    int coreId = this->topology().getCoreIdFromPU(bind);
-    int pkgId = this->topology().getPkgIdFromPU(bind);
+  std::vector<unsigned> CpuBind(this->CpuBind);
+  CpuBind.resize(this->requestedNumThreads());
+  for (auto const& Bind : CpuBind) {
+    int CoreId = this->topology().getCoreIdFromPU(Bind);
+    int PkgId = this->topology().getPkgIdFromPU(Bind);
 
-    if (coreId != -1 && pkgId != -1) {
-      log::info() << "    - Thread " << i << " run on CPU " << bind << ", core " << coreId << " in package: " << pkgId;
-      printCoreIdInfo = true;
+    if (CoreId != -1 && PkgId != -1) {
+      log::info() << "    - Thread " << i << " run on CPU " << Bind << ", core " << CoreId << " in package: " << PkgId;
+      PrintCoreIdInfo = true;
     }
 
     i++;
   }
 
-  if (printCoreIdInfo) {
+  if (PrintCoreIdInfo) {
     log::info() << "  The cores are numbered using the logical_index from hwloc.";
   }
 #endif
 }
 
-int Environment::setCpuAffinity(unsigned thread) {
-  if (thread >= this->requestedNumThreads()) {
+auto Environment::setCpuAffinity(unsigned Thread) -> int {
+  if (Thread >= this->requestedNumThreads()) {
     log::error() << "Trying to set more CPUs than available.";
     return EXIT_FAILURE;
   }
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  this->cpuSet(this->cpuBind.at(thread));
+  this->cpuSet(this->CpuBind.at(Thread));
 #endif
 
   return EXIT_SUCCESS;
 }
+
+}; // namespace firestarter::environment

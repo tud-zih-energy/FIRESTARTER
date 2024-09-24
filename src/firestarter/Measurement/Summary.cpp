@@ -28,73 +28,73 @@ using namespace firestarter::measurement;
 
 // this functions borows a lot of code from
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
-Summary Summary::calculate(std::vector<TimeValue>::iterator begin, std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType, unsigned long long numThreads) {
-  std::vector<TimeValue> values = {};
+auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<TimeValue>::iterator End,
+                        MetricType MetricType, uint64_t NumThreads) -> Summary {
+  std::vector<TimeValue> Values = {};
 
   // TODO: i would really like to make this code a bit more readable, but i
   // could not find a way yet.
-  if (metricType.accumalative) {
+  if (MetricType.Accumalative) {
     TimeValue prev;
 
-    if (begin != end) {
-      prev = *begin++;
-      for (auto it = begin; it != end; ++it) {
+    if (Begin != End) {
+      prev = *Begin++;
+      for (auto it = Begin; it != End; ++it) {
         auto time_diff =
-            1e-6 * (double)std::chrono::duration_cast<std::chrono::microseconds>(it->time - prev.time).count();
-        auto value_diff = it->value - prev.value;
+            1e-6 * (double)std::chrono::duration_cast<std::chrono::microseconds>(it->Time - prev.Time).count();
+        auto value_diff = it->Value - prev.Value;
 
         double value = value_diff / time_diff;
 
-        if (metricType.divide_by_thread_count) {
-          value /= numThreads;
+        if (MetricType.DivideByThreadCount) {
+          value /= NumThreads;
         }
 
-        values.push_back(TimeValue(prev.time, value));
+        Values.emplace_back(prev.Time, value);
         prev = *it;
       }
     }
-  } else if (metricType.absolute) {
-    for (auto it = begin; it != end; ++it) {
-      double value = it->value;
+  } else if (MetricType.Absolute) {
+    for (auto it = Begin; it != End; ++it) {
+      double value = it->Value;
 
-      if (metricType.divide_by_thread_count) {
-        value /= numThreads;
+      if (MetricType.DivideByThreadCount) {
+        value /= NumThreads;
       }
 
-      values.push_back(TimeValue(it->time, value));
+      Values.emplace_back(it->Time, value);
     }
   } else {
     assert(false);
   }
 
-  begin = values.begin();
-  end = values.end();
+  Begin = Values.begin();
+  End = Values.end();
 
-  Summary summary{};
+  Summary SummaryVal{};
 
-  summary.num_timepoints = std::distance(begin, end);
+  SummaryVal.NumTimepoints = std::distance(Begin, End);
 
-  if (summary.num_timepoints > 0) {
+  if (SummaryVal.NumTimepoints > 0) {
 
-    auto last = begin;
-    std::advance(last, summary.num_timepoints - 1);
-    summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(last->time - begin->time);
+    auto last = Begin;
+    std::advance(last, SummaryVal.NumTimepoints - 1);
+    SummaryVal.Duration = std::chrono::duration_cast<std::chrono::milliseconds>(last->Time - Begin->Time);
 
-    auto sum_over_nths = [&begin, end, summary](auto fn) {
+    auto sum_over_nths = [&Begin, End, SummaryVal](auto fn) {
       double acc = 0.0;
-      for (auto it = begin; it != end; ++it) {
-        acc += fn(it->value);
+      for (auto it = Begin; it != End; ++it) {
+        acc += fn(it->Value);
       }
-      return acc / summary.num_timepoints;
+      return acc / SummaryVal.NumTimepoints;
     };
 
-    summary.average = sum_over_nths([](double v) { return v; });
-    summary.stddev = std::sqrt(sum_over_nths([&summary](double v) {
-      double centered = v - summary.average;
+    SummaryVal.Average = sum_over_nths([](double v) { return v; });
+    SummaryVal.Stddev = std::sqrt(sum_over_nths([&SummaryVal](double v) {
+      double centered = v - SummaryVal.Average;
       return centered * centered;
     }));
   }
 
-  return summary;
+  return SummaryVal;
 }

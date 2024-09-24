@@ -28,44 +28,44 @@ namespace firestarter::environment::platform {
 
 class RuntimeConfig {
 private:
-  PlatformConfig const& _platformConfig;
-  std::unique_ptr<payload::Payload> _payload;
-  unsigned _thread;
-  std::vector<std::pair<std::string, unsigned>> _payloadSettings;
-  unsigned _instructionCacheSize;
-  std::list<unsigned> _dataCacheBufferSize;
-  unsigned _ramBufferSize;
-  unsigned _lines;
+  PlatformConfig const& PlatformConfigValue;
+  std::unique_ptr<payload::Payload> Payload;
+  unsigned Thread;
+  std::vector<std::pair<std::string, unsigned>> PayloadSettings;
+  unsigned InstructionCacheSize;
+  std::list<unsigned> DataCacheBufferSize;
+  unsigned RamBufferSize;
+  unsigned Lines;
 
 public:
-  RuntimeConfig(PlatformConfig const& platformConfig, unsigned thread, unsigned detectedInstructionCacheSize)
-      : _platformConfig(platformConfig)
-      , _payload(nullptr)
-      , _thread(thread)
-      , _payloadSettings(platformConfig.getDefaultPayloadSettings())
-      , _instructionCacheSize(platformConfig.instructionCacheSize())
-      , _dataCacheBufferSize(platformConfig.dataCacheBufferSize())
-      , _ramBufferSize(platformConfig.ramBufferSize())
-      , _lines(platformConfig.lines()) {
-    if (detectedInstructionCacheSize != 0) {
-      this->_instructionCacheSize = detectedInstructionCacheSize;
+  RuntimeConfig(PlatformConfig const& PlatformConfigValue, unsigned Thread, unsigned DetectedInstructionCacheSize)
+      : PlatformConfigValue(PlatformConfigValue)
+      , Payload(nullptr)
+      , Thread(Thread)
+      , PayloadSettings(PlatformConfigValue.getDefaultPayloadSettings())
+      , InstructionCacheSize(PlatformConfigValue.instructionCacheSize())
+      , DataCacheBufferSize(PlatformConfigValue.dataCacheBufferSize())
+      , RamBufferSize(PlatformConfigValue.ramBufferSize())
+      , Lines(PlatformConfigValue.lines()) {
+    if (DetectedInstructionCacheSize != 0) {
+      this->InstructionCacheSize = DetectedInstructionCacheSize;
     }
   };
 
-  RuntimeConfig(const RuntimeConfig& c)
-      : _platformConfig(c.platformConfig())
-      , _payload(c.platformConfig().payload().clone())
-      , _thread(c.thread())
-      , _payloadSettings(c.payloadSettings())
-      , _instructionCacheSize(c.instructionCacheSize())
-      , _dataCacheBufferSize(c.dataCacheBufferSize())
-      , _ramBufferSize(c.ramBufferSize())
-      , _lines(c.lines()) {}
+  RuntimeConfig(const RuntimeConfig& Other)
+      : PlatformConfigValue(Other.platformConfig())
+      , Payload(Other.platformConfig().payload().clone())
+      , Thread(Other.thread())
+      , PayloadSettings(Other.payloadSettings())
+      , InstructionCacheSize(Other.instructionCacheSize())
+      , DataCacheBufferSize(Other.dataCacheBufferSize())
+      , RamBufferSize(Other.ramBufferSize())
+      , Lines(Other.lines()) {}
 
-  ~RuntimeConfig() { _payload.reset(); }
+  ~RuntimeConfig() { Payload.reset(); }
 
-  PlatformConfig const& platformConfig() const { return _platformConfig; }
-  payload::Payload& payload() const {
+  [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigValue; }
+  [[nodiscard]] auto payload() const -> payload::Payload& {
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-value"
@@ -74,33 +74,36 @@ public:
 #pragma GCC diagnostic ignored "-Wunused-value"
     assert(("Payload pointer is null. Each thread has to use it's own "
             "RuntimeConfig",
-            _payload != nullptr));
+            Payload != nullptr));
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
-    return *_payload;
+    return *Payload;
   }
-  unsigned thread() const { return _thread; }
-  const std::vector<std::pair<std::string, unsigned>>& payloadSettings() const { return _payloadSettings; }
-  std::vector<std::string> payloadItems() const {
-    std::vector<std::string> items;
-    for (auto const& pair : _payloadSettings) {
-      items.push_back(pair.first);
+  [[nodiscard]] auto thread() const -> unsigned { return Thread; }
+  [[nodiscard]] auto payloadSettings() const -> const std::vector<std::pair<std::string, unsigned>>& {
+    return PayloadSettings;
+  }
+  [[nodiscard]] auto payloadItems() const -> std::vector<std::string> {
+    std::vector<std::string> Items;
+    Items.reserve(PayloadSettings.size());
+    for (auto const& Pair : PayloadSettings) {
+      Items.push_back(Pair.first);
     }
-    return items;
+    return Items;
   }
 
-  unsigned instructionCacheSize() const { return _instructionCacheSize; }
-  const std::list<unsigned>& dataCacheBufferSize() const { return _dataCacheBufferSize; }
-  unsigned ramBufferSize() const { return _ramBufferSize; }
-  unsigned lines() const { return _lines; }
+  [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }
+  [[nodiscard]] auto dataCacheBufferSize() const -> const std::list<unsigned>& { return DataCacheBufferSize; }
+  [[nodiscard]] auto ramBufferSize() const -> unsigned { return RamBufferSize; }
+  [[nodiscard]] auto lines() const -> unsigned { return Lines; }
 
-  void setPayloadSettings(std::vector<std::pair<std::string, unsigned>> const& payloadSettings) {
-    this->_payloadSettings = payloadSettings;
+  void setPayloadSettings(std::vector<std::pair<std::string, unsigned>> const& PayloadSettings) {
+    this->PayloadSettings = PayloadSettings;
   }
 
-  void setLineCount(unsigned lineCount) { this->_lines = lineCount; }
+  void setLineCount(unsigned LineCount) { this->Lines = LineCount; }
 
   void printCodePathSummary() const {
     log::info() << "\n"
@@ -112,10 +115,10 @@ public:
       log::info() << "    - L1i-Cache: " << instructionCacheSize() / thread() << " Bytes";
     }
 
-    unsigned i = 1;
-    for (auto const& bytes : dataCacheBufferSize()) {
-      log::info() << "    - L" << i << "d-Cache: " << bytes / thread() << " Bytes";
-      i++;
+    unsigned I = 1;
+    for (auto const& Bytes : dataCacheBufferSize()) {
+      log::info() << "    - L" << I << "d-Cache: " << Bytes / thread() << " Bytes";
+      I++;
     }
 
     log::info() << "    - Memory: " << ramBufferSize() / thread() << " Bytes";

@@ -29,7 +29,6 @@
 #include <memory>
 #include <optional>
 #include <random>
-#include <tuple>
 #include <vector>
 
 namespace firestarter::optimizer {
@@ -39,60 +38,60 @@ public:
   // Construct a population from a problem.
   Population() = default;
 
-  Population(std::shared_ptr<Problem>&& problem)
-      : _problem(std::move(problem))
-      , gen(rd()) {}
+  explicit Population(std::shared_ptr<Problem>&& ProblemPtr)
+      : ProblemPtr(std::move(ProblemPtr))
+      , Gen(Rd()) {}
 
-  Population(Population& pop)
-      : _problem(pop._problem)
-      , _x(pop._x)
-      , _f(pop._f)
-      , gen(rd()) {}
+  Population(Population& Pop)
+      : ProblemPtr(Pop.ProblemPtr)
+      , X(Pop.X)
+      , F(Pop.F)
+      , Gen(Rd()) {}
 
-  Population& operator=(Population const& pop) {
-    _problem = std::move(pop._problem);
-    _x = pop._x;
-    _f = pop._f;
-    gen = pop.gen;
+  auto operator=(Population const& Pop) -> Population& {
+    ProblemPtr = Pop.ProblemPtr;
+    X = Pop.X;
+    F = Pop.F;
+    Gen = Pop.Gen;
 
     return *this;
   }
 
-  ~Population() {}
+  ~Population() = default;
 
-  void generateInitialPopulation(std::size_t populationSize = 0);
+  void generateInitialPopulation(std::size_t PopulationSize = 0);
 
-  std::size_t size() const;
+  [[nodiscard]] auto size() const -> std::size_t;
 
   // add one individual to the population. fitness will be evaluated.
-  void append(Individual const& ind);
+  void append(Individual const& Ind);
 
-  void insert(std::size_t idx, Individual const& ind, std::vector<double> const& fit);
+  void insert(std::size_t Idx, Individual const& Ind, std::vector<double> const& Fit);
 
   // get a random individual inside bounds of problem
-  Individual getRandomIndividual();
+  auto getRandomIndividual() -> Individual;
 
   // returns the best individual in case of single-objective.
   // return nothing in case of mutli-objective.
-  std::optional<Individual> bestIndividual() const;
+  [[nodiscard]] auto bestIndividual() const -> std::optional<Individual>;
 
-  Problem const& problem() const { return *_problem; }
+  [[nodiscard]] auto problem() const -> Problem const& { return *ProblemPtr; }
 
-  std::vector<Individual> const& x() const { return _x; }
-  std::vector<std::vector<double>> const& f() const { return _f; }
+  [[nodiscard]] auto x() const -> std::vector<Individual> const& { return X; }
+  [[nodiscard]] auto f() const -> std::vector<std::vector<double>> const& { return F; }
 
 private:
   // add one individual to the population with a fitness.
-  void append(Individual const& ind, std::vector<double> const& fit);
+  void append(Individual const& Ind, std::vector<double> const& Fit);
 
   // our problem.
-  std::shared_ptr<Problem> _problem;
+  std::shared_ptr<Problem> ProblemPtr;
 
-  std::vector<Individual> _x;
-  std::vector<std::vector<double>> _f;
+  std::vector<Individual> X;
+  std::vector<std::vector<double>> F;
 
-  std::random_device rd;
-  std::mt19937 gen;
+  std::random_device Rd;
+  std::mt19937 Gen;
 };
 
 } // namespace firestarter::optimizer
