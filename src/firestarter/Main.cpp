@@ -21,6 +21,7 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Tracing/Tracing.hpp>
 
 #include <cxxopts.hpp>
 
@@ -469,7 +470,7 @@ int main(int argc, const char **argv) {
       << "\n";
 
 #ifdef FIRESTARTER_TRACING
-    firestarter::tracing::initialize();
+    firestarter::tracing::initialize(argc, argv);
 #endif
 
   Config cfg{argc, argv};

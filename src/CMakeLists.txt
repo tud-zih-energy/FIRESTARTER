@@ -43,6 +43,11 @@ endif()
 
 if(NOT "${FIRESTARTER_TRACING}" STREQUAL "None")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_TRACING")
+	SET(FIRESTARTER_FILES
+		${FIRESTARTER_FILES}
+		${FIRESTARTER_TRACING_ADDITIONAL_FILES}
+	)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FIRESTARTER_TRACING_CXXFLAGS}")
 endif()
 
 if("${FIRESTARTER_TRACING}" STREQUAL "Logger")
@@ -51,12 +56,69 @@ if("${FIRESTARTER_TRACING}" STREQUAL "Logger")
 		firestarter/Tracing/LogTracing.cpp
 	)
 elseif("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
-	SET(FIRESTARTER_FILES 
-		${FIRESTARTER_FILES}
-		firestarter/Tracing/ScoreP.cpp
-	)
-	#todo find folder
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCOREP_USER_ENABLE ${FIRESTARTER_TRACING_CXXFLAGS}")
+	find_program(SCOREP_CONFIG scorep-config)
+	if(SCOREP_CONFIG)
+		message(STATUS "Found 'scorep-config' at: ${SCOREP_CONFIG}")
+		SET(FIRESTARTER_FILES
+			${FIRESTARTER_FILES}
+			firestarter/Tracing/ScoreP.cpp
+			${FIRESTARTER_TRACING_ADDITIONAL_FILES}
+		)
+		SET(SCOREP_CONFIG_FLAGS "--nocompiler" "--user" "--nopomp" "--thread=pthread")
+		if ("${FIRESTARTER_LINK_STATIC}")
+			SET(SCOREP_CONFIG_FLAGS "--nocompiler" "--user" "--nopomp" "--thread=pthread" "--static")
+		endif()
+		execute_process(
+			COMMAND ${SCOREP_CONFIG} --cppflags
+			OUTPUT_VARIABLE SCOREP_CPP_FLAGS
+			ERROR_VARIABLE PROGRAM_ERROR
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+		if (PROGRAM_ERROR)
+			message(FATAL_ERROR "Error when calling scorep-config: ${PROGRAM_ERROR}")
+		endif()
+
+		execute_process(
+			COMMAND ${SCOREP_CONFIG} --adapter-init ${SCOREP_CONFIG_FLAGS}
+			OUTPUT_VARIABLE SCOREP_ADAPTER_INIT_CONTENT
+			ERROR_VARIABLE PROGRAM_ERROR
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+		if (PROGRAM_ERROR)
+			message(FATAL_ERROR "Error when calling scorep-config: ${PROGRAM_ERROR}")
+		endif()
+
+		file(WRITE ${CMAKE_BINARY_DIR}/.scorep_init.c "${SCOREP_ADAPTER_INIT_CONTENT}\n")
+                SET(FIRESTARTER_FILES   
+                        ${FIRESTARTER_FILES}
+                        ${CMAKE_BINARY_DIR}/.scorep_init.c
+                )
+
+		execute_process(
+			COMMAND ${SCOREP_CONFIG} --ldflags "--nocompiler" "--user" "--nopomp"
+			OUTPUT_VARIABLE SCOREP_LD_FLAGS
+			ERROR_VARIABLE PROGRAM_ERROR
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+		if (PROGRAM_ERROR)
+			message(FATAL_ERROR "Error when calling scorep-config: ${PROGRAM_ERROR}")
+		endif()
+
+		execute_process(
+            COMMAND ${SCOREP_CONFIG} --libs ${SCOREP_CONFIG_FLAGS}
+			OUTPUT_VARIABLE SCOREP_LIBS
+            ERROR_VARIABLE PROGRAM_ERROR
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+		if (PROGRAM_ERROR)
+			message(FATAL_ERROR "Error when calling scorep-config: ${PROGRAM_ERROR}")
+		endif()
+
+		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSCOREP_USER_ENABLE ${SCOREP_CPP_FLAGS}")
+		SET(FIRESTARTER_TRACING_LDFLAGS "${FIRESTARTER_TRACING_LDFLAGS} ${SCOREP_LD_FLAGS} ${SCOREP_LIBS}")
+	else()
+		message(FATAL_ERROR "You want to compile with Score-P support, but scorep-config could not be found in PATH")
+	endif()
 elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
 	SET(FIRESTARTER_FILES 
 		${FIRESTARTER_FILES}
@@ -72,10 +134,6 @@ elseif("${FIRESTARTER_TRACING}" STREQUAL "Caliper")
 	#todo find folder
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FIRESTARTER_TRACING_CXXFLAGS}")
 endif()
-
-
-SET(FIRESTARTER_LINK_LIBRARIES
-	)
 
 if (FIRESTARTER_THREAD_AFFINITY)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
@@ -264,13 +322,9 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		nlohmann_json::nlohmann_json
 		)
 endif()
-if("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
-	#todo link scorep
-	target_link_libraries("${FIRESTARTER_BUILD_TYPE}"
-	"${FIRESTARTER_TRACING_LDFLAGS}"
-	)
-elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
-	#todo link vt user
+
+if(NOT "${FIRESTARTER_TRACING}" STREQUAL "None")
+	string(STRIP "${FIRESTARTER_TRACING_LDFLAGS}" FIRESTARTER_TRACING_LDFLAGS)
 	target_link_libraries("${FIRESTARTER_BUILD_TYPE}"
 		"${FIRESTARTER_TRACING_LDFLAGS}"
 		)

@@ -23,9 +23,10 @@
 
 #include <firestarter/Tracing/Tracing.hpp>
 
-void firestarter::tracing::rinitialize(int argc, const char **argv){
+void firestarter::tracing::initialize(int argc, const char **argv){
 
 }
+
 void firestarter::tracing::regionBegin(char const* region_name) {
     SCOREP_USER_REGION_BY_NAME_BEGIN(region_name,
                                      SCOREP_USER_REGION_TYPE_COMMON);

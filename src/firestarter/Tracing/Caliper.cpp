@@ -24,7 +24,7 @@
 #include <adiak.hpp>
 #include <caliper/cali.h>
 
-void firestarter::tracing::rinitialize(int argc, const char **argv){
+void firestarter::tracing::initialize(int argc, const char **argv){
   // Single adiak call to collect default adiak values
   adiak::init(NULL);
   adiak::uid();

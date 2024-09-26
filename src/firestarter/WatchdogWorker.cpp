@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include <firestarter/Firestarter.hpp>
+#include <firestarter/Tracing/Tracing.hpp>
 
 #include <cerrno>
 #include <csignal>
@@ -138,6 +139,12 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       Firestarter::_watchdogTerminateAlert.wait_for(
           lk, timeout, []() { return Firestarter::_watchdog_terminate; });
     }
+#ifdef FIRESTARTER_TRACING
+    if (Firestarter::loadVar == LOAD_LOW)
+      firestarter::tracing::regionEnd("WD_LOW");
+    if (Firestarter::loadVar == LOAD_HIGH)
+      firestarter::tracing::regionEnd("WD_HIGH");
+#endif
 
     this->setLoad(LOAD_STOP);
 

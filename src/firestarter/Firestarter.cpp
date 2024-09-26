@@ -21,6 +21,7 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Tracing/Tracing.hpp>
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/History.hpp>
@@ -456,6 +457,13 @@ void Firestarter::sigalrmHandler(int signum) { (void)signum; }
 
 void Firestarter::sigtermHandler(int signum) {
   (void)signum;
+
+#ifdef FIRESTARTER_TRACING
+    if (Firestarter::loadVar == LOAD_LOW)
+      firestarter::tracing::regionEnd("WD_LOW");
+    if (Firestarter::loadVar == LOAD_HIGH)
+      firestarter::tracing::regionEnd("WD_HIGH");
+#endif
 
   Firestarter::setLoad(LOAD_STOP);
   // exit loop

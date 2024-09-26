@@ -60,8 +60,10 @@ endif()
 set(FIRESTARTER_TRACING "None" CACHE STRING "FIRESTARTER_TRACING can be any of None, Logger, ScoreP, or VampirTrace.")
 set_property(CACHE FIRESTARTER_TRACING PROPERTY STRINGS None Logger ScoreP VampirTrace)
 
-option(FIRESTARTER_TRACING_CXX_FLAGS "FIRESTARTER_TRACING_CXX_FLAGS should add include paths for the selected tracing infrastructure." "${FIRESTARTER_TRACING_CXX_FLAGS}")
-option(FIRESTARTER_TRACING_LD_FLAGS "FIRESTARTER_TRACING_LD_FLAGS should set linker flags for the selected tracing infrastructure." "${FIRESTARTER_TRACING_CXX_FLAGS}")
+set(FIRESTARTER_TRACING_CXX_FLAGS "" CACHE STRING "FIRESTARTER_TRACING_CXX_FLAGS should add include paths for the selected tracing infrastructure.")
+set(FIRESTARTER_TRACING_LD_FLAGS "" CACHE STRING "FIRESTARTER_TRACING_LD_FLAGS should set linker flags for the selected tracing infrastructure.")
+set(FIRESTARTER_TRACING_ADDITIONAL_FILES "" CACHE STRING "FIRESTARTER_TRACING_ADDITIONAL_FILES can be used to add files to the compilation process that are needed for tracing.")
+
 
 set(FIRESTARTER_BUILD_TYPE "FIRESTARTER" CACHE STRING "FIRESTARTER_BUILD_TYPE can be any of FIRESTARTER, FIRESTARTER_CUDA, FIRESTARTER_ONEAPI, or FIRESTARTER_HIP.")
 set_property(CACHE FIRESTARTER_BUILD_TYPE PROPERTY STRINGS FIRESTARTER FIRESTARTER_CUDA FIRESTARTER_ONEAPI)
