@@ -119,20 +119,13 @@ elseif("${FIRESTARTER_TRACING}" STREQUAL "ScoreP")
 	else()
 		message(FATAL_ERROR "You want to compile with Score-P support, but scorep-config could not be found in PATH")
 	endif()
-elseif("${FIRESTARTER_TRACING}" STREQUAL "VampirTrace")
-	SET(FIRESTARTER_FILES 
-		${FIRESTARTER_FILES}
-		firestarter/Tracing/VampirTrace.cpp
-	)
-	#todo find folder
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVTRACE ${FIRESTARTER_TRACING_CXXFLAGS}")
+
 elseif("${FIRESTARTER_TRACING}" STREQUAL "Caliper")
 	SET(FIRESTARTER_FILES 
 		${FIRESTARTER_FILES}
 		firestarter/Tracing/Caliper.cpp
 	)
-	#todo find folder
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FIRESTARTER_TRACING_CXXFLAGS}")
+	#todo add extra code
 endif()
 
 if (FIRESTARTER_THREAD_AFFINITY)
