@@ -57,7 +57,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	endif()
 endif()
 
-set(FIRESTARTER_TRACING "None" CACHE STRING "FIRESTARTER_TRACING can be any of None, Logger, or ScoreP.")
+set(FIRESTARTER_TRACING "None" CACHE STRING "FIRESTARTER_TRACING can be any of None, Logger, or ScoreP. This feature is currently under development and static linking might not work.")
 set_property(CACHE FIRESTARTER_TRACING PROPERTY STRINGS None Logger ScoreP VampirTrace)
 
 set(FIRESTARTER_TRACING_CXX_FLAGS "" CACHE STRING "FIRESTARTER_TRACING_CXX_FLAGS should add include paths for the selected tracing infrastructure.")
