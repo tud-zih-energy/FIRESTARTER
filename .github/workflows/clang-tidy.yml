@@ -9,11 +9,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # Ideally we would want to run the clang-tidy for every kind of build.
+    # This would make shure that we will check all platform dependent code parts.
+    # Here we only test the standard linux build.
     - uses: ZedThree/clang-tidy-review@v0.14.0
       id: review
       with:
         split_workflow: true
         config_file: '.clang-tidy'
+        cmake_command: 'cmake . && make -j2'
 
     - uses: ZedThree/clang-tidy-review/upload@v0.14.0
       id: upload-review
