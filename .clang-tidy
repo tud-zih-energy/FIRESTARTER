@@ -6,6 +6,13 @@
 
 #  -boost-use-ranges: crash of clangd https://github.com/llvm/llvm-project/issues/109037
 
+#  -readability-identifier-length length of at least 3 does not make sense for some variables
+
+#  -cppcoreguidelines-avoid-magic-numbers
+#  -readability-magic-numbers currently we have too may numbers in this code
+
+#  -bugprone-easily-swappable-parameters we are not using strong typedefs
+
 Checks: >
   -*,
   boost-*,
@@ -22,7 +29,11 @@ Checks: >
   readability-*,
   -bugprone-narrowing-conversions,
   -cppcoreguidelines-special-member-functions,
-  -boost-use-ranges
+  -boost-use-ranges,
+  -readability-identifier-length,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -bugprone-easily-swappable-parameters
   
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
