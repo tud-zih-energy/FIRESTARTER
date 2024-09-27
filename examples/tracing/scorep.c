@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "../../include/firestarter/Tracing/FIRESTARTER_External_Tracing.h"
+#include "../../include/firestarter/Tracing/FIRESTARTER_Tracing.h"
 #include <scorep/SCOREP_User.h>
 
 void firestarter_tracing_initialize(int argc, const char **argv) {

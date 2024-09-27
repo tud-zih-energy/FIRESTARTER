@@ -2,6 +2,8 @@
 
 Since these will be mostly shared libraries, we probably will only be able to use them with a dynamic build of FIRESTARTER
 
+You should be able to add the external libraries also to a static build by using the flags `FIRESTARTER_TRACING_*` for `cmake`. There you probably would include an archive. But this was not tested yet.
+
 ## Example 1: Score-P
 
 - Needs Score-P: https://www.vi-hps.org/projects/score-p
