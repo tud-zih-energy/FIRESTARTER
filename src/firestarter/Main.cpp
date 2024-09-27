@@ -22,6 +22,10 @@
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
+
 #include <cxxopts.hpp>
 
 #include <string>
@@ -474,6 +478,8 @@ int main(int argc, const char **argv) {
       << "This helps maintainers to keep track of versions, e.g., on a cluster."
       << "\n";
 #endif
+
+    firestarter_tracing_initialize(argc, argv);
 
   Config cfg{argc, argv};
 

@@ -73,6 +73,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	endif()
 endif()
 
+set(FIRESTARTER_TRACING "None" CACHE STRING "FIRESTARTER_TRACING can be any of None, Logger, or ScoreP. This feature is currently under development and static linking might not work.")
+set_property(CACHE FIRESTARTER_TRACING PROPERTY STRINGS None Logger ScoreP External)
+
+set(FIRESTARTER_TRACING_CXX_FLAGS "" CACHE STRING "FIRESTARTER_TRACING_CXX_FLAGS should add include paths for the selected tracing infrastructure.")
+set(FIRESTARTER_TRACING_LD_FLAGS "" CACHE STRING "FIRESTARTER_TRACING_LD_FLAGS should set linker flags for the selected tracing infrastructure.")
+set(FIRESTARTER_TRACING_ADDITIONAL_FILES "" CACHE STRING "FIRESTARTER_TRACING_ADDITIONAL_FILES can be used to add files to the compilation process that are needed for tracing.")
+
+
 set(FIRESTARTER_BUILD_TYPE "FIRESTARTER" CACHE STRING "FIRESTARTER_BUILD_TYPE can be any of FIRESTARTER, FIRESTARTER_CUDA, FIRESTARTER_ONEAPI, or FIRESTARTER_HIP.")
 set_property(CACHE FIRESTARTER_BUILD_TYPE PROPERTY STRINGS FIRESTARTER FIRESTARTER_CUDA FIRESTARTER_ONEAPI)
 if (${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
