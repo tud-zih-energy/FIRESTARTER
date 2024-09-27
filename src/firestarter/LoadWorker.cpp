@@ -22,7 +22,10 @@
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/Tracing/Tracing.hpp>
+
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
 
 #if defined(linux) || defined(__linux__)
 extern "C" {
@@ -30,12 +33,6 @@ extern "C" {
 }
 #endif
 
-#ifdef ENABLE_VTRACING
-#include <vt_user.h>
-#endif
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
-#endif
 
 #include <cmath>
 #include <cstdlib>
@@ -352,24 +349,19 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       for (;;) {
         // call high load function
 
-#ifdef FIRESTARTER_TRACING
-        tracing::regionBegin("High");
-#endif
+        firestarter_tracing_region_begin("High");
+
         td->iterations = td->config().payload().highLoadFunction(
             td->addrMem, td->addrHigh, td->iterations);
 
-#ifdef FIRESTARTER_TRACING
-        tracing::regionEnd("High");
-        tracing::regionBegin("Low");
-#endif
+        firestarter_tracing_region_end("High");
+        firestarter_tracing_region_begin("Low");
 
         // call low load function
         td->config().payload().lowLoadFunction(td->addrHigh, td->period);
 
-#ifdef FIRESTARTER_TRACING
-        tracing::regionEnd("Low");
-#endif
-
+        firestarter_tracing_region_end("Low");
+        
         // terminate if master signals end of run and record stop timestamp
         if (*td->addrHigh == LOAD_STOP) {
           td->stopTsc = td->environment().topology().timestamp();

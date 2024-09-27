@@ -19,19 +19,14 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+#pragma once
 
 #ifdef FIRESTARTER_TRACING
-void firestarter_tracing_initialize(int argc, const char **argv){
-
-}
-void firestarter_tracing_region_begin(char const* region_name) {
-    firestarter::log::trace() << "Start " << region_name;
-}
-
-void firestarter_tracing_region_end(char const* region_name) {
-    firestarter::log::trace() << "End " << region_name;
-}
+void firestarter_tracing_initialize(int argc, const char **argv);
+void firestarter_tracing_region_begin(char const* region_name);
+void firestarter_tracing_region_end(char const* region_name);
+#else
+#define firestarter_tracing_initialize(argc, argv) {}
+#define firestarter_tracing_region_begin(region_name) {}
+#define firestarter_tracing_region_end(region_name) {}
 #endif

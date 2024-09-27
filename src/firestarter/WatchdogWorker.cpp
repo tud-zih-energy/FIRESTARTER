@@ -20,7 +20,10 @@
  *****************************************************************************/
 
 #include <firestarter/Firestarter.hpp>
-#include <firestarter/Tracing/Tracing.hpp>
+
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
 
 #include <cerrno>
 #include <csignal>
@@ -72,9 +75,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec load_nsec = load - load_reduction;
 
       // wait for time to be ellapsed with high load
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionBegin("WD_HIGH");
-#endif
+      firestarter_tracing_region_begin("WD_HIGH");
 
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
@@ -86,9 +87,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionEnd("WD_HIGH");
-#endif
+      firestarter_tracing_region_end("WD_HIGH");
 
       // signal low load
       this->setLoad(LOAD_LOW);
@@ -98,9 +97,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
 
       // wait for time to be ellapsed with low load
 
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionBegin("WD_LOW");
-#endif
+      firestarter_tracing_region_begin("WD_LOW");
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -111,9 +108,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionEnd("WD_LOW");
-#endif
+      firestarter_tracing_region_end("WD_LOW");
       // increment elapsed time
       time += period;
 
@@ -139,12 +134,10 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       Firestarter::_watchdogTerminateAlert.wait_for(
           lk, timeout, []() { return Firestarter::_watchdog_terminate; });
     }
-#ifdef FIRESTARTER_TRACING
     if (Firestarter::loadVar == LOAD_LOW)
-      firestarter::tracing::regionEnd("WD_LOW");
+      firestarter_tracing_region_end("WD_LOW");
     if (Firestarter::loadVar == LOAD_HIGH)
-      firestarter::tracing::regionEnd("WD_HIGH");
-#endif
+      firestarter_tracing_region_end("WD_HIGH");
 
     this->setLoad(LOAD_STOP);
 

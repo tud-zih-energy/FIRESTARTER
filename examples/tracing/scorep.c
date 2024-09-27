@@ -19,19 +19,17 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "../../include/firestarter/Tracing/FIRESTARTER_External_Tracing.h"
+#include <scorep/SCOREP_User.h>
 
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
-
-#ifdef FIRESTARTER_TRACING
-void firestarter_tracing_initialize(int argc, const char **argv){
-
+void firestarter_tracing_initialize(int argc, const char **argv) {
 }
+
 void firestarter_tracing_region_begin(char const* region_name) {
-    firestarter::log::trace() << "Start " << region_name;
+    SCOREP_USER_REGION_BY_NAME_BEGIN(region_name,
+                                     SCOREP_USER_REGION_TYPE_COMMON);
 }
 
 void firestarter_tracing_region_end(char const* region_name) {
-    firestarter::log::trace() << "End " << region_name;
+    SCOREP_USER_REGION_BY_NAME_END(region_name);
 }
-#endif

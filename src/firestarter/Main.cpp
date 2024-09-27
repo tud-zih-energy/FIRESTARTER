@@ -21,7 +21,10 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/Tracing/Tracing.hpp>
+
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
 
 #include <cxxopts.hpp>
 
@@ -469,9 +472,7 @@ int main(int argc, const char **argv) {
          "Computing"
       << "\n";
 
-#ifdef FIRESTARTER_TRACING
-    firestarter::tracing::initialize(argc, argv);
-#endif
+    firestarter_tracing_initialize(argc, argv);
 
   Config cfg{argc, argv};
 

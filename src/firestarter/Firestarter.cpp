@@ -21,7 +21,11 @@
 
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
-#include <firestarter/Tracing/Tracing.hpp>
+
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
+
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
 #include <firestarter/Optimizer/History.hpp>
@@ -326,9 +330,9 @@ Firestarter::~Firestarter() {
 }
 
 void Firestarter::mainThread() {
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionBegin("Main-Thread");
-#endif
+
+  firestarter_tracing_region_begin("Main-Thread");
+  
   this->environment().printThreadSummary();
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
@@ -356,9 +360,7 @@ void Firestarter::mainThread() {
     int returnCode;
     if (EXIT_SUCCESS != (returnCode = this->initDumpRegisterWorker(
                              _dumpRegistersTimeDelta, _dumpRegistersOutpath))) {
-#ifdef FIRESTARTER_TRACING
-      firestarter::tracing::regionEnd("Main-Thread");
-#endif
+      firestarter_tracing_region_end("Main-Thread");
       std::exit(returnCode);
     }
   }
@@ -370,9 +372,7 @@ void Firestarter::mainThread() {
 #if defined(linux) || defined(__linux__)
   // check if optimization is selected
   if (_optimize) {
-#ifdef FIRESTARTER_TRACING
-    firestarter::tracing::regionBegin("Main-Thread-Optimize");
-#endif
+    firestarter_tracing_region_begin("Main-Thread-Optimize");
     auto startTime = optimizer::History::getTime();
 
     Firestarter::_optimizer = std::make_unique<optimizer::OptimizerWorker>(
@@ -391,12 +391,9 @@ void Firestarter::mainThread() {
     firestarter::optimizer::History::printBest(_optimizationMetrics,
                                                payloadItems);
 
-#ifdef FIRESTARTER_TRACING
-    firestarter::tracing::regionEnd("Main-Thread-Optimize");
-#endif
-#ifdef FIRESTARTER_TRACING
-    firestarter::tracing::regionEnd("Main-Thread");
-#endif
+
+    firestarter_tracing_region_end("Main-Thread-Optimize");
+    firestarter_tracing_region_end("Main-Thread");
 
     // stop all the load threads
     std::raise(SIGTERM);
@@ -433,9 +430,7 @@ void Firestarter::mainThread() {
     this->printThreadErrorReport();
   }
 
-#ifdef FIRESTARTER_TRACING
-  firestarter::tracing::regionEnd("Main-Thread");
-#endif
+  firestarter_tracing_region_end("Main-Thread");
 }
 
 void Firestarter::setLoad(unsigned long long value) {
@@ -458,12 +453,10 @@ void Firestarter::sigalrmHandler(int signum) { (void)signum; }
 void Firestarter::sigtermHandler(int signum) {
   (void)signum;
 
-#ifdef FIRESTARTER_TRACING
     if (Firestarter::loadVar == LOAD_LOW)
-      firestarter::tracing::regionEnd("WD_LOW");
+      firestarter_tracing_region_end("WD_LOW");
     if (Firestarter::loadVar == LOAD_HIGH)
-      firestarter::tracing::regionEnd("WD_HIGH");
-#endif
+      firestarter_tracing_region_end("WD_HIGH");
 
   Firestarter::setLoad(LOAD_STOP);
   // exit loop
