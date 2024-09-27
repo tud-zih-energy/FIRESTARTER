@@ -13,6 +13,7 @@ jobs:
       id: review
       with:
         split_workflow: true
+        config_file: '${{ github.workspace }}/.clang-tidy'
 
     - uses: ZedThree/clang-tidy-review/upload@v0.14.0
       id: upload-review
