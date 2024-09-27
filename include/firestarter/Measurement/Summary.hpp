@@ -21,14 +21,11 @@
 
 #pragma once
 
+#include "MetricInterface.h"
+#include "TimeValue.hpp"
 #include <chrono>
-#include <firestarter/Measurement/TimeValue.hpp>
 #include <nlohmann/json.hpp>
 #include <vector>
-
-extern "C" {
-#include <firestarter/Measurement/MetricInterface.h>
-}
 
 namespace firestarter::measurement {
 

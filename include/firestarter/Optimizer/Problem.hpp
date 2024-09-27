@@ -21,9 +21,9 @@
 
 #pragma once
 
+#include "../Measurement/Summary.hpp"
+#include "Individual.hpp"
 #include <cstring>
-#include <firestarter/Measurement/Summary.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
 #include <map>
 #include <tuple>
 #include <vector>

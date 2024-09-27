@@ -21,17 +21,17 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "../Payload/SSE2Payload.hpp"
+#include "X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class NehalemEPConfig final : public X86PlatformConfig {
 public:
-  NehalemEPConfig(asmjit::CpuFeatures const& supportedFeatures, unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0, {32768, 262144, 2097152}, 104857600, 1536, family,
-                          model, threads, new payload::SSE2Payload(supportedFeatures)) {}
+  NehalemEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+      : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0, {32768, 262144, 2097152}, 104857600, 1536, Family,
+                          Model, Threads, std::make_unique<payload::SSE2Payload>(SupportedFeatures)) {}
 
-  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const override {
+  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
   }
 };

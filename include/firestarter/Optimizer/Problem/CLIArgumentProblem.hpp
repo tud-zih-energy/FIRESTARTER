@@ -21,11 +21,9 @@
 
 #pragma once
 
+#include "../../Measurement/MeasurementWorker.hpp"
+#include "../Problem.hpp"
 #include <cassert>
-#include <chrono>
-#include <cmath>
-#include <firestarter/Measurement/MeasurementWorker.hpp>
-#include <firestarter/Optimizer/Problem.hpp>
 #include <functional>
 #include <thread>
 #include <tuple>

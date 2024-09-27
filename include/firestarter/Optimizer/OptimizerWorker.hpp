@@ -19,9 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "Algorithm.hpp"
+#include "Population.hpp"
 #include <chrono>
-#include <firestarter/Optimizer/Algorithm.hpp>
-#include <firestarter/Optimizer/Population.hpp>
 #include <memory>
 
 extern "C" {

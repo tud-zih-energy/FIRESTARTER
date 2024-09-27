@@ -21,13 +21,13 @@
 
 #pragma once
 
+#include "../../../Constants.hpp"          // IWYU pragma: keep
+#include "../../../DumpRegisterStruct.hpp" // IWYU pragma: keep
+#include "../../../Logging/Log.hpp"        // IWYU pragma: keep
+#include "../../Payload/Payload.hpp"
 #include <asmjit/x86.h>
-
 #include <cstdint>
-#include <firestarter/DumpRegisterWorkerData.hpp>
-#include <firestarter/Environment/Payload/Payload.hpp>
-#include <firestarter/LoadWorkerData.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include <map> // IWYU pragma: keep
 #include <utility>
 
 #define INIT_BLOCKSIZE 1024

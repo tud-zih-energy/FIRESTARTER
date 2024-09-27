@@ -21,17 +21,17 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "../Payload/FMAPayload.hpp"
+#include "X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class RomeConfig final : public X86PlatformConfig {
 public:
-  RomeConfig(asmjit::CpuFeatures const& supportedFeatures, unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0, {32768, 524288, 2097152}, 104857600, 1536, family, model,
-                          threads, new payload::FMAPayload(supportedFeatures)) {}
+  RomeConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0, {32768, 524288, 2097152}, 104857600, 1536, Family, Model,
+                          Threads, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
 
-  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const override {
+  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 10}, {"L3_L", 25}, {"L2_L", 91}, {"L1_2LS_256", 72}, {"L1_LS_256", 82}, {"REG", 75}});
   }

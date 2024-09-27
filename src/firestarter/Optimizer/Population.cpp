@@ -20,11 +20,11 @@
  *****************************************************************************/
 
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Population.hpp>
 
 #include <algorithm>
 #include <cassert>
-#include <stdexcept>
 
 using namespace firestarter::optimizer;
 

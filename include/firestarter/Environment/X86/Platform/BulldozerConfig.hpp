@@ -21,17 +21,17 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/FMA4Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "../Payload/FMA4Payload.hpp"
+#include "X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class BulldozerConfig final : public X86PlatformConfig {
 public:
-  BulldozerConfig(asmjit::CpuFeatures const& supportedFeatures, unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0, {16384, 1048576, 786432}, 104857600, 1536, family,
-                          model, threads, new payload::FMA4Payload(supportedFeatures)) {}
+  BulldozerConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+      : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0, {16384, 1048576, 786432}, 104857600, 1536, Family,
+                          Model, Threads, std::make_unique<payload::FMA4Payload>(SupportedFeatures)) {}
 
-  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const override {
+  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}});
   }

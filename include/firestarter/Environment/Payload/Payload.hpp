@@ -22,6 +22,7 @@
 #pragma once
 
 #include <list>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -101,7 +102,7 @@ public:
   [[nodiscard]] virtual auto highLoadFunction(uint64_t* AddrMem, volatile uint64_t* AddrHigh, uint64_t Iterations)
       -> uint64_t = 0;
 
-  [[nodiscard]] virtual auto clone() const -> Payload* = 0;
+  [[nodiscard]] virtual auto clone() const -> std::unique_ptr<Payload> = 0;
 };
 
 } // namespace firestarter::environment::payload

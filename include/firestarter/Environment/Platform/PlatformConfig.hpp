@@ -21,8 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Environment/Payload/Payload.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "../Payload/Payload.hpp"
 #include <initializer_list>
 #include <map>
 #include <sstream>
@@ -35,7 +34,7 @@ class PlatformConfig {
 private:
   std::string Name;
   std::list<unsigned> Threads;
-  payload::Payload* Payload;
+  std::unique_ptr<payload::Payload> Payload;
 
 protected:
   unsigned InstructionCacheSize;
@@ -48,15 +47,15 @@ public:
 
   PlatformConfig(std::string Name, std::list<unsigned> Threads, unsigned InstructionCacheSize,
                  std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBufferSize, unsigned Lines,
-                 payload::Payload* Payload)
+                 std::unique_ptr<payload::Payload>&& Payload)
       : Name(std::move(Name))
       , Threads(std::move(Threads))
-      , Payload(Payload)
+      , Payload(std::move(Payload))
       , InstructionCacheSize(InstructionCacheSize)
       , DataCacheBufferSize(DataCacheBufferSize)
       , RamBufferSize(RamBufferSize)
       , Lines(Lines) {}
-  virtual ~PlatformConfig() { delete Payload; }
+  virtual ~PlatformConfig() = default;
 
   [[nodiscard]] auto name() const -> const std::string& { return Name; }
   [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }

@@ -33,7 +33,7 @@ struct TimeValue {
       , Value(Value){};
 
   std::chrono::high_resolution_clock::time_point Time;
-  double Value;
+  double Value{};
 };
 
 } // namespace firestarter::measurement

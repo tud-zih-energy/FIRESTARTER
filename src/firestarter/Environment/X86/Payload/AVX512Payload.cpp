@@ -103,7 +103,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   auto shift_reg32 = std::vector<Gp>({edi, esi, edx});
   auto nr_shift_regs = 3;
   auto mul_regs = 3;
-  auto add_regs = 24;
+  auto add_regs = 22;
   auto alt_dst_regs = 5;
   auto ram_reg = zmm30;
 
@@ -123,7 +123,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   }
   // make all other used registers dirty except RAX
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg, l3_count_reg, ram_count_reg, temp_reg,
-                     offset_reg, addrHigh_reg, iter_reg, ram_addr);
+                     temp_reg2, offset_reg, addrHigh_reg, iter_reg, ram_addr);
   for (const auto& reg : shift_reg) {
     frame.addDirtyRegs(reg);
   }
@@ -190,7 +190,6 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   bool left = false;
   auto add_dest = add_start + 1;
   auto mov_dst = trans_start;
-  auto mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
 
 #define L1_INCREMENT()                                                                                                 \
@@ -291,10 +290,6 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
       }
       if (mov_dst > trans_end) {
         mov_dst = trans_start;
-      }
-      mov_src++;
-      if (mov_src > trans_end) {
-        mov_src = trans_start;
       }
       shift_pos++;
       if (shift_pos == nr_shift_regs) {

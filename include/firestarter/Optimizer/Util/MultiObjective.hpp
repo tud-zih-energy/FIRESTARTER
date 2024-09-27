@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Optimizer/Individual.hpp>
+#include "../Individual.hpp"
 #include <random>
 #include <utility>
 #include <vector>

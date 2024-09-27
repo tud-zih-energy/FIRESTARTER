@@ -21,14 +21,14 @@
 
 #pragma once
 
+#include "../Json/Summary.hpp" // IWYU pragma: keep
+#include "../Logging/Log.hpp"
+#include "../Measurement/Summary.hpp"
+#include "Individual.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <ctime>
-#include <firestarter/Json/Summary.hpp>
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Measurement/Summary.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
 #include <fstream>
 #include <iomanip>
 #include <nlohmann/json.hpp>
@@ -88,129 +88,129 @@ public:
 
     // print the best 20 individuals for each metric in a format
     // where the user can give it to --run-instruction-groups directly
-    std::map<std::string, std::size_t> columnWidth;
+    std::map<std::string, std::size_t> ColumnWidth;
 
-    for (auto const& metric : OptimizationMetrics) {
-      columnWidth[metric] = (std::max)(metric.size(), MinColumnWidth);
-      firestarter::log::trace() << metric << ": " << columnWidth[metric];
+    for (auto const& Metric : OptimizationMetrics) {
+      ColumnWidth[Metric] = (std::max)(Metric.size(), MinColumnWidth);
+      firestarter::log::trace() << Metric << ": " << ColumnWidth[Metric];
     }
 
-    for (auto const& metric : OptimizationMetrics) {
+    for (auto const& Metric : OptimizationMetrics) {
       using SummaryMap = std::map<std::string, firestarter::measurement::Summary>;
-      auto compareIndividual = [&metric](SummaryMap const& mapA, SummaryMap const& mapB) {
-        auto summaryA = mapA.find(metric);
-        auto summaryB = mapB.find(metric);
+      auto CompareIndividual = [&Metric](SummaryMap const& MapA, SummaryMap const& MapB) {
+        auto SummaryA = MapA.find(Metric);
+        auto SummaryB = MapB.find(Metric);
 
-        if (summaryA == mapA.end() || summaryB == mapB.end()) {
-          summaryA = mapA.find(metric.substr(1));
-          summaryB = mapB.find(metric.substr(1));
-          assert(summaryA != mapA.end());
-          assert(summaryB != mapB.end());
-          return summaryA->second.Average < summaryB->second.Average;
+        if (SummaryA == MapA.end() || SummaryB == MapB.end()) {
+          SummaryA = MapA.find(Metric.substr(1));
+          SummaryB = MapB.find(Metric.substr(1));
+          assert(SummaryA != MapA.end());
+          assert(SummaryB != MapB.end());
+          return SummaryA->second.Average < SummaryB->second.Average;
         }
 
-        assert(summaryA != mapA.end());
-        assert(summaryB != mapB.end());
-        return summaryA->second.Average > summaryB->second.Average;
+        assert(SummaryA != MapA.end());
+        assert(SummaryB != MapB.end());
+        return SummaryA->second.Average > SummaryB->second.Average;
       };
 
-      auto perm = sortPermutation(F, compareIndividual);
+      auto Perm = sortPermutation(F, CompareIndividual);
 
-      auto formatIndividual = [&PayloadItems](std::vector<unsigned> const& individual) {
-        std::string result = "";
-        assert(PayloadItems.size() == individual.size());
+      auto FormatIndividual = [&PayloadItems](std::vector<unsigned> const& Individual) {
+        std::string Result;
+        assert(PayloadItems.size() == Individual.size());
 
-        for (std::size_t i = 0; i < individual.size(); ++i) {
+        for (std::size_t I = 0; I < Individual.size(); ++I) {
           // skip zero values
-          if (individual[i] == 0) {
+          if (Individual[I] == 0) {
             continue;
           }
 
-          if (result.size() != 0) {
-            result += ",";
+          if (Result.size() != 0) {
+            Result += ",";
           }
-          result += PayloadItems[i] + ":" + std::to_string(individual[i]);
+          Result += PayloadItems[I] + ":" + std::to_string(Individual[I]);
         }
 
-        return result;
+        return Result;
       };
 
-      auto begin = perm.begin();
-      auto end = perm.end();
+      auto Begin = Perm.begin();
+      auto End = Perm.end();
 
       // stop printing at a max of MaxElementPrintCount
-      if (std::distance(begin, end) > MaxElementPrintCount) {
-        end = perm.begin();
-        std::advance(end, MaxElementPrintCount);
+      if (std::distance(Begin, End) > MaxElementPrintCount) {
+        End = Perm.begin();
+        std::advance(End, MaxElementPrintCount);
       }
 
       // print each of the best elements
-      std::size_t max = 0;
-      for (auto it = begin; it != end; ++it) {
-        max = (std::max)(max, formatIndividual(X[*it]).size());
+      std::size_t Max = 0;
+      for (auto It = Begin; It != End; ++It) {
+        Max = (std::max)(Max, FormatIndividual(X[*It]).size());
       }
 
-      std::stringstream firstLine;
-      std::stringstream secondLine;
-      std::string ind = "INDIVIDUAL";
+      std::stringstream FirstLine;
+      std::stringstream SecondLine;
+      std::string Ind = "INDIVIDUAL";
 
-      firstLine << "  " << ind;
-      padding(firstLine, max, ind.size(), ' ');
+      FirstLine << "  " << Ind;
+      padding(FirstLine, Max, Ind.size(), ' ');
 
-      secondLine << "  ";
-      padding(secondLine, (std::max)(max, ind.size()), 0, '-');
+      SecondLine << "  ";
+      padding(SecondLine, (std::max)(Max, Ind.size()), 0, '-');
 
-      for (auto const& metric : OptimizationMetrics) {
-        auto width = columnWidth[metric];
+      for (auto const& Metric : OptimizationMetrics) {
+        auto Width = ColumnWidth[Metric];
 
-        firstLine << " | ";
-        secondLine << "---";
+        FirstLine << " | ";
+        SecondLine << "---";
 
-        firstLine << metric;
-        padding(firstLine, width, metric.size(), ' ');
-        padding(secondLine, width, 0, '-');
+        FirstLine << Metric;
+        padding(FirstLine, Width, Metric.size(), ' ');
+        padding(SecondLine, Width, 0, '-');
       }
 
-      std::stringstream ss;
+      std::stringstream Ss;
 
-      ss << "\n Best individuals sorted by metric " << metric << " "
-         << ((metric[0] == '-') ? "ascending" : "descending") << ":\n"
-         << firstLine.str() << "\n"
-         << secondLine.str() << "\n";
+      Ss << "\n Best individuals sorted by metric " << Metric << " "
+         << ((Metric[0] == '-') ? "ascending" : "descending") << ":\n"
+         << FirstLine.str() << "\n"
+         << SecondLine.str() << "\n";
 
       // print INDIVIDUAL | metric 1 | metric 2 | ... | metric N
-      for (auto it = begin; it != end; ++it) {
-        auto const fitness = F[*it];
-        auto const ind = formatIndividual(X[*it]);
+      for (auto It = Begin; It != End; ++It) {
+        auto const& Fitness = F[*It];
+        auto const Ind = FormatIndividual(X[*It]);
 
-        ss << "  " << ind;
-        padding(ss, max, ind.size(), ' ');
+        Ss << "  " << Ind;
+        padding(Ss, Max, Ind.size(), ' ');
 
-        for (auto const& metric : OptimizationMetrics) {
-          auto width = columnWidth[metric];
-          std::string value;
+        for (auto const& Metric : OptimizationMetrics) {
+          auto Width = ColumnWidth[Metric];
+          std::string Value;
 
-          auto fitnessOfMetric = fitness.find(metric);
-          auto invertedMetric = metric.substr(1);
-          auto fitnessOfInvertedMetric = fitness.find(invertedMetric);
+          auto FitnessOfMetric = Fitness.find(Metric);
+          auto InvertedMetric = Metric.substr(1);
+          auto FitnessOfInvertedMetric = Fitness.find(InvertedMetric);
 
-          if (fitnessOfMetric != fitness.end()) {
-            value = std::to_string(fitnessOfMetric->second.Average);
-          } else if (fitnessOfInvertedMetric != fitness.end()) {
-            value = std::to_string(fitnessOfInvertedMetric->second.Average);
+          if (FitnessOfMetric != Fitness.end()) {
+            Value = std::to_string(FitnessOfMetric->second.Average);
+          } else if (FitnessOfInvertedMetric != Fitness.end()) {
+            Value = std::to_string(FitnessOfInvertedMetric->second.Average);
           } else {
             assert(false);
           }
 
-          ss << " | " << value;
-          padding(ss, width, value.size(), ' ');
+          Ss << " | " << Value;
+          padding(Ss, Width, Value.size(), ' ');
         }
-        ss << "\n";
+        Ss << "\n";
       }
 
-      ss << "\n";
+      Ss << "\n";
 
-      firestarter::log::info() << ss.str();
+      firestarter::log::info() << Ss.str();
     }
 
     firestarter::log::info() << "To run FIRESTARTER with the best individual of a given metric "

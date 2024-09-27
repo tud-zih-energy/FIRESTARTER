@@ -21,9 +21,9 @@
 
 #pragma once
 
+#include "LoadWorkerData.hpp"
+#include "Logging/Log.hpp"
 #include <chrono>
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/LoadWorkerData.hpp>
 #include <utility>
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
@@ -32,6 +32,8 @@ namespace firestarter {
 
 class DumpRegisterWorkerData {
 public:
+  DumpRegisterWorkerData() = delete;
+
   DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr, std::chrono::seconds DumpTimeDelta,
                          const std::string& DumpFilePath)
       : LoadWorkerDataPtr(std::move(LoadWorkerDataPtr))

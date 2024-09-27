@@ -21,17 +21,17 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "../Payload/FMAPayload.hpp"
+#include "X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class HaswellEPConfig final : public X86PlatformConfig {
 public:
-  HaswellEPConfig(asmjit::CpuFeatures const& supportedFeatures, unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0, {32768, 262144, 2621440}, 104857600, 1536, family,
-                          model, threads, new payload::FMAPayload(supportedFeatures)) {}
+  HaswellEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0, {32768, 262144, 2621440}, 104857600, 1536, Family,
+                          Model, Threads, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
 
-  std::vector<std::pair<std::string, unsigned>> getDefaultPayloadSettings() const override {
+  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(
         {{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}});
   }

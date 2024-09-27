@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
+#include "X86Payload.hpp"
 
 namespace firestarter::environment::x86::payload {
 
@@ -39,8 +39,8 @@ public:
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
   void init(uint64_t* MemoryAddr, uint64_t BufferSize) override;
 
-  [[nodiscard]] auto clone() const -> firestarter::environment::payload::Payload* override {
-    return new FMA4Payload(this->supportedFeatures());
+  [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
+    return std::make_unique<FMA4Payload>(this->supportedFeatures());
   };
 
 private:

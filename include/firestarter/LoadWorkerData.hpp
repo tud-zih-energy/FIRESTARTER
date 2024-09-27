@@ -21,11 +21,11 @@
 
 #pragma once
 
+#include "Constants.hpp"
+#include "DumpRegisterStruct.hpp"
+#include "Environment/Environment.hpp"
+#include "ErrorDetectionStruct.hpp"
 #include <atomic>
-#include <firestarter/Constants.hpp>
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/Environment/Environment.hpp>
-#include <firestarter/ErrorDetectionStruct.hpp>
 #include <memory>
 #include <mutex>
 #include <utility>

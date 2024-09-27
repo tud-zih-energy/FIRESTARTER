@@ -23,7 +23,7 @@
 
 #include <asmjit/asmjit.h>
 
-#include <firestarter/Environment/CPUTopology.hpp>
+#include "../CPUTopology.hpp"
 
 namespace firestarter::environment::x86 {
 
@@ -36,9 +36,6 @@ public:
   [[nodiscard]] auto features() const -> std::list<std::string> const& override { return this->FeatureList; }
   [[nodiscard]] auto featuresAsmjit() const -> const asmjit::CpuFeatures& { return this->CpuInfo.features(); }
 
-  [[nodiscard]] auto vendor() const -> std::string const& override { return this->Vendor; }
-  [[nodiscard]] auto model() const -> std::string const& override { return this->Model; }
-
   [[nodiscard]] auto clockrate() const -> uint64_t override;
 
   [[nodiscard]] auto timestamp() const -> uint64_t override;
@@ -50,15 +47,13 @@ public:
 private:
   [[nodiscard]] auto hasRdtsc() const -> bool { return this->HasRdtsc; }
   [[nodiscard]] auto hasInvariantRdtsc() const -> bool { return this->HasInvariantRdtsc; }
-  void cpuid(uint64_t* A, uint64_t* B, uint64_t* C, uint64_t* D) const;
+  static void cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx);
 
   asmjit::CpuInfo CpuInfo;
   std::list<std::string> FeatureList;
 
   bool HasRdtsc;
   bool HasInvariantRdtsc;
-  std::string Vendor;
-  std::string Model;
 };
 
 inline auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream& {

@@ -19,8 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <firestarter/Logging/Log.hpp>
 #include <firestarter/Measurement/MeasurementWorker.hpp>
 
+#include <iostream>
 #include <queue>
 #include <thread>
 

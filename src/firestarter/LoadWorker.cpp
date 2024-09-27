@@ -22,6 +22,7 @@
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <iomanip>
 
 #if defined(linux) || defined(__linux__)
 extern "C" {
@@ -95,7 +96,7 @@ int Firestarter::initLoadWorkers(bool lowLoad, uint64_t period) {
 
     if (i == 0) {
       // only show error for all worker threads except first.
-      firestarter::logging::FirstWorkerThreadFilter<firestarter::logging::record>::setFirstThread(t.get_id());
+      firestarter::logging::FirstWorkerThreadFilter<firestarter::logging::Record>::setFirstThread(t.get_id());
     }
 
     this->LoadThreads.push_back(std::make_pair(std::move(t), td));
@@ -383,6 +384,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
       break;
     case THREAD_STOP:
     default:
+      firestarter::log::debug() << "ERR" << '\n';
       return;
     }
   }

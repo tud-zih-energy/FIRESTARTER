@@ -21,14 +21,13 @@
 
 #pragma once
 
+#include "Metric/IPCEstimate.h"
+#include "Metric/Perf.h"
+#include "Metric/RAPL.h"
+#include "MetricInterface.h"
+#include "Summary.hpp"
+#include "TimeValue.hpp"
 #include <chrono>
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
-#include <firestarter/Measurement/Metric/Perf.h>
-#include <firestarter/Measurement/Metric/RAPL.h>
-#include <firestarter/Measurement/MetricInterface.h>
-#include <firestarter/Measurement/Summary.hpp>
-#include <firestarter/Measurement/TimeValue.hpp>
 #include <map>
 #include <mutex>
 

@@ -21,34 +21,39 @@
 
 #pragma once
 
-#include <firestarter/Environment/Platform/PlatformConfig.hpp>
-#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
+#include "../../Platform/PlatformConfig.hpp"
+#include "../Payload/X86Payload.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector> // IWYU pragma: keep
 
 namespace firestarter::environment::x86::platform {
 
 class X86PlatformConfig : public environment::platform::PlatformConfig {
 private:
-  unsigned _family;
-  std::list<unsigned> _models;
-  unsigned _currentFamily;
-  unsigned _currentModel;
-  unsigned _currentThreads;
+  unsigned Family;
+  std::list<unsigned> Models;
+  unsigned CurrentFamily;
+  unsigned CurrentModel;
+  unsigned CurrentThreads;
 
 public:
-  X86PlatformConfig(std::string name, unsigned family, std::initializer_list<unsigned> models,
-                    std::initializer_list<unsigned> threads, unsigned instructionCacheSize,
-                    std::initializer_list<unsigned> dataCacheBufferSize, unsigned ramBuffersize, unsigned lines,
-                    unsigned currentFamily, unsigned currentModel, unsigned currentThreads,
-                    payload::X86Payload* payload)
-      : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize, ramBuffersize, lines, payload)
-      , _family(family)
-      , _models(models)
-      , _currentFamily(currentFamily)
-      , _currentModel(currentModel)
-      , _currentThreads(currentThreads) {}
+  X86PlatformConfig(std::string Name, unsigned Family, std::initializer_list<unsigned> Models,
+                    std::initializer_list<unsigned> Threads, unsigned InstructionCacheSize,
+                    std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBuffersize, unsigned Lines,
+                    unsigned CurrentFamily, unsigned CurrentModel, unsigned CurrentThreads,
+                    std::unique_ptr<payload::X86Payload>&& Payload)
+      : PlatformConfig(std::move(Name), Threads, InstructionCacheSize, DataCacheBufferSize, RamBuffersize, Lines,
+                       std::move(Payload))
+      , Family(Family)
+      , Models(Models)
+      , CurrentFamily(CurrentFamily)
+      , CurrentModel(CurrentModel)
+      , CurrentThreads(CurrentThreads) {}
 
-  bool isDefault() const override {
-    return _family == _currentFamily && (std::find(_models.begin(), _models.end(), _currentModel) != _models.end()) &&
+  [[nodiscard]] auto isDefault() const -> bool override {
+    return Family == CurrentFamily && (std::find(Models.begin(), Models.end(), CurrentModel) != Models.end()) &&
            isAvailable();
   }
 };

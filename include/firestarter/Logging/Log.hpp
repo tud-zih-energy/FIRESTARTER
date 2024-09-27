@@ -21,9 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Logging/FirstWorkerThreadFilter.hpp>
-#include <iomanip>
-#include <ios>
+#include "FirstWorkerThreadFilter.hpp"
 #include <iostream>
 #include <nitro/log/attribute/message.hpp>
 #include <nitro/log/attribute/severity.hpp>
@@ -42,61 +40,61 @@ namespace logging {
 
 class StdOut {
 public:
-  void sink(nitro::log::severity_level severity, const std::string& formatted_record) {
-    switch (severity) {
+  static void sink(nitro::log::severity_level Severity, const std::string& FormattedRecord) {
+    switch (Severity) {
     case nitro::log::severity_level::warn:
     case nitro::log::severity_level::error:
     case nitro::log::severity_level::fatal:
-      std::cerr << formatted_record << std::endl << std::flush;
+      std::cerr << FormattedRecord << '\n' << std::flush;
       break;
     default:
-      std::cout << formatted_record << std::endl << std::flush;
+      std::cout << FormattedRecord << '\n' << std::flush;
       break;
     }
   }
 };
 
-using record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute,
+using Record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute,
                                   nitro::log::timestamp_attribute, nitro::log::std_thread_id_attribute>;
 
-template <typename Record> class formater {
+template <typename Record> class Formater {
 public:
-  std::string format(Record& r) {
-    std::stringstream s;
+  auto format(Record& R) -> std::string {
+    std::stringstream S;
 
-    switch (r.severity()) {
+    switch (R.severity()) {
     case nitro::log::severity_level::warn:
-      s << "Warning: ";
+      S << "Warning: ";
       break;
     case nitro::log::severity_level::error:
-      s << "Error: ";
+      S << "Error: ";
       break;
     case nitro::log::severity_level::fatal:
-      s << "Fatal: ";
+      S << "Fatal: ";
       break;
     case nitro::log::severity_level::trace:
-      s << "Debug: ";
+      S << "Debug: ";
       break;
     default:
       break;
     }
 
-    s << r.message();
+    S << R.message();
 
-    return s.str();
+    return S.str();
   }
 };
 
-template <typename Record> using filter = nitro::log::filter::severity_filter<Record>;
+template <typename Record> using Filter = nitro::log::filter::severity_filter<Record>;
 
 template <typename Record>
-using workerFilter = nitro::log::filter::and_filter<filter<Record>, FirstWorkerThreadFilter<Record>>;
+using WorkerFilter = nitro::log::filter::and_filter<Filter<Record>, FirstWorkerThreadFilter<Record>>;
 
 } // namespace logging
 
-using log = nitro::log::logger<logging::record, logging::formater, firestarter::logging::StdOut, logging::filter>;
+using log = nitro::log::logger<logging::Record, logging::Formater, firestarter::logging::StdOut, logging::Filter>;
 
 using workerLog =
-    nitro::log::logger<logging::record, logging::formater, firestarter::logging::StdOut, logging::workerFilter>;
+    nitro::log::logger<logging::Record, logging::Formater, firestarter::logging::StdOut, logging::WorkerFilter>;
 
 } // namespace firestarter

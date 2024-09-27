@@ -22,27 +22,27 @@
 #pragma once
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-#include <firestarter/Cuda/Cuda.hpp>
+#include "Cuda/Cuda.hpp"
 #endif
 
 #ifdef FIRESTARTER_BUILD_ONEAPI
-#include <firestarter/OneAPI/OneAPI.hpp>
+#include "OneAPI/OneAPI.hpp"
 #endif
 
-#include <firestarter/Constants.hpp>
+#include "Constants.hpp"
 
 #if defined(linux) || defined(__linux__)
-#include <firestarter/Measurement/MeasurementWorker.hpp>
-#include <firestarter/Optimizer/Algorithm.hpp>
-#include <firestarter/Optimizer/OptimizerWorker.hpp>
-#include <firestarter/Optimizer/Population.hpp>
+#include "Measurement/MeasurementWorker.hpp"
+#include "Optimizer/Algorithm.hpp"
+#include "Optimizer/OptimizerWorker.hpp"
+#include "Optimizer/Population.hpp"
 #endif
 
-#include <firestarter/DumpRegisterWorkerData.hpp>
-#include <firestarter/LoadWorkerData.hpp>
+#include "DumpRegisterWorkerData.hpp"
+#include "LoadWorkerData.hpp"
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-#include <firestarter/Environment/X86/X86Environment.hpp>
+#include "Environment/X86/X86Environment.hpp"
 #endif
 
 #include <chrono>

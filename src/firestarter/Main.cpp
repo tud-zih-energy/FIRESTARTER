@@ -263,13 +263,13 @@ Config::Config(int argc, const char** argv) {
     auto options = parser.parse(argc, argv);
 
     if (options.count("quiet")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::warn);
+      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::warn);
     } else if (options.count("report")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::debug);
+      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::debug);
     } else if (options.count("debug")) {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::trace);
+      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::trace);
     } else {
-      firestarter::logging::filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
+      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::info);
     }
 
     if (options.count("version")) {

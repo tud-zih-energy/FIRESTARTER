@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <nitro/log/log.hpp>
 #include <nitro/log/severity.hpp>
 #include <thread>
 
@@ -33,8 +32,8 @@ public:
 
   static void setFirstThread(std::thread::id NewFirstThread) { FirstThread = NewFirstThread; }
 
-  auto filter(Record& r) const -> bool {
-    return r.std_thread_id() == FirstThread || r.severity() >= nitro::log::severity_level::error;
+  auto filter(Record& R) const -> bool {
+    return R.std_thread_id() == FirstThread || R.severity() >= nitro::log::severity_level::error;
   }
 
 private:

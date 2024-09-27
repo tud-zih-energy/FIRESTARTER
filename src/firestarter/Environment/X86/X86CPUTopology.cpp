@@ -31,99 +31,101 @@
 #pragma intrinsic(__rdtsc)
 #endif
 
-using namespace firestarter::environment::x86;
+namespace firestarter::environment::x86 {
 
 X86CPUTopology::X86CPUTopology()
     : CPUTopology("x86_64")
-    , CpuInfo(asmjit::CpuInfo::host())
-    , Vendor(this->CpuInfo.vendor()) {
+    , CpuInfo(asmjit::CpuInfo::host()) {
 
-  std::stringstream ss;
-  ss << "Family " << this->familyId() << ", Model " << this->modelId() << ", Stepping " << this->stepping();
-  this->Model = ss.str();
+  Vendor = CpuInfo.vendor();
 
-  for (int i = 0; i <= (int)asmjit::CpuFeatures::X86::Id::kMaxValue; i++) {
-    if (!this->CpuInfo.hasFeature(i)) {
+  {
+    std::stringstream Ss;
+    Ss << "Family " << familyId() << ", Model " << modelId() << ", Stepping " << stepping();
+    Model = Ss.str();
+  }
+
+  for (auto FeatureId = 0; FeatureId <= asmjit::CpuFeatures::X86::Id::kMaxValue; FeatureId++) {
+    if (!CpuInfo.hasFeature(FeatureId)) {
       continue;
     }
 
-    asmjit::String sb;
+    asmjit::String Sb;
 
-    auto error = asmjit::Formatter::formatFeature(sb, this->CpuInfo.arch(), i);
-    if (error != asmjit::ErrorCode::kErrorOk) {
-      log::warn() << "Formatting cpu features got asmjit error: " << error;
+    auto Error = asmjit::Formatter::formatFeature(Sb, CpuInfo.arch(), FeatureId);
+    if (Error != asmjit::ErrorCode::kErrorOk) {
+      log::warn() << "Formatting cpu features got asmjit error: " << Error;
     }
 
-    this->FeatureList.push_back(std::string(sb.data()));
+    FeatureList.emplace_back(Sb.data());
   }
 
-  uint64_t a = 0, b = 0, c = 0, d = 0;
+  uint64_t Rax = 0;
+  uint64_t Rbx = 0;
+  uint64_t Rcx = 0;
+  uint64_t Rdx = 0;
 
   // check if we have rdtsc
-  this->cpuid(&a, &b, &c, &d);
-  if (a >= 1) {
-    a = 1;
-    this->cpuid(&a, &b, &c, &d);
-    if ((int)d & (1 << 4)) {
-      this->HasRdtsc = true;
-    } else {
-      this->HasRdtsc = false;
-    }
+  cpuid(&Rax, &Rbx, &Rcx, &Rdx);
+  if (Rax >= 1) {
+    Rax = 1;
+    cpuid(&Rax, &Rbx, &Rcx, &Rdx);
+    HasRdtsc = (Rdx & (1 << 4)) != 0;
   }
 
   // check if we have invarant rdtsc
-  if (this->hasRdtsc()) {
-    a = 0, b = 0, c = 0, d = 0;
+  if (hasRdtsc()) {
+    Rax = 0, Rbx = 0, Rcx = 0, Rdx = 0;
 
-    this->HasInvariantRdtsc = true;
+    HasInvariantRdtsc = true;
 
     /* TSCs are usable if CPU supports only one frequency in C0 (no
        speedstep/Cool'n'Quite)
        or if multiple frequencies are available and the constant/invariant TSC
        feature flag is set */
 
-    if (0 == this->vendor().compare("INTEL")) {
+    if ("INTEL" == vendor()) {
       /*check if Powermanagement and invariant TSC are supported*/
-      a = 1;
-      this->cpuid(&a, &b, &c, &d);
+      Rax = 1;
+      cpuid(&Rax, &Rbx, &Rcx, &Rdx);
       /* no Frequency control */
-      if ((!(d & (1 << 22))) && (!(c & (1 << 7)))) {
-        this->HasInvariantRdtsc = true;
+      if ((!(Rdx & (1 << 22))) && (!(Rcx & (1 << 7)))) {
+        HasInvariantRdtsc = true;
       } else {
-        a = 0x80000000;
-        this->cpuid(&a, &b, &c, &d);
-        if (a >= 0x80000007) {
-          a = 0x80000007;
-          this->cpuid(&a, &b, &c, &d);
+        Rax = 0x80000000;
+        cpuid(&Rax, &Rbx, &Rcx, &Rdx);
+        if (Rax >= 0x80000007) {
+          Rax = 0x80000007;
+          cpuid(&Rax, &Rbx, &Rcx, &Rdx);
           /* invariant TSC */
-          if (d & (1 << 8)) {
-            this->HasInvariantRdtsc = true;
+          if (Rdx & (1 << 8)) {
+            HasInvariantRdtsc = true;
           }
         }
       }
     }
 
-    if (0 == this->vendor().compare("AMD")) {
+    if ("AMD" == vendor()) {
       /*check if Powermanagement and invariant TSC are supported*/
-      a = 0x80000000;
-      this->cpuid(&a, &b, &c, &d);
-      if (a >= 0x80000007) {
-        a = 0x80000007;
-        this->cpuid(&a, &b, &c, &d);
+      Rax = 0x80000000;
+      cpuid(&Rax, &Rbx, &Rcx, &Rdx);
+      if (Rax >= 0x80000007) {
+        Rax = 0x80000007;
+        cpuid(&Rax, &Rbx, &Rcx, &Rdx);
 
         /* no Frequency control */
-        if ((!(d & (1 << 7))) && (!(d & (1 << 1)))) {
-          this->HasInvariantRdtsc = true;
+        if ((!(Rdx & (1 << 7))) && (!(Rdx & (1 << 1)))) {
+          HasInvariantRdtsc = true;
         }
         /* invariant TSC */
-        if (d & (1 << 8)) {
-          this->HasInvariantRdtsc = true;
+        if (Rdx & (1 << 8)) {
+          HasInvariantRdtsc = true;
         }
       }
       /* assuming no frequency control if cpuid does not provide the extended
          function to test for it */
       else {
-        this->HasInvariantRdtsc = true;
+        HasInvariantRdtsc = true;
       }
     }
   }
@@ -133,118 +135,122 @@ X86CPUTopology::X86CPUTopology()
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
 // is available
-uint64_t X86CPUTopology::clockrate() const {
-  typedef std::chrono::high_resolution_clock Clock;
-  typedef std::chrono::microseconds ticks;
+auto X86CPUTopology::clockrate() const -> uint64_t {
+  using ClockT = std::chrono::high_resolution_clock;
+  using TicksT = std::chrono::microseconds;
 
-  uint64_t start1_tsc, start2_tsc, end1_tsc, end2_tsc;
-  uint64_t time_diff;
-  uint64_t clock_lower_bound, clock_upper_bound, clock;
-  uint64_t clockrate = 0;
-  int i, num_measurements = 0, min_measurements;
+  uint64_t TimeDiff = 0;
+  uint64_t Clockrate = 0;
+  int NumMeasurements = 0;
+  int MinMeasurements = 0;
 
-  Clock::time_point start_time, end_time;
+  ClockT::time_point StartTime;
+  ClockT::time_point EndTime;
 
 #if not(defined(__APPLE__) || defined(_WIN32))
-  auto governor = this->scalingGovernor();
+  auto governor = scalingGovernor();
   if (governor.empty()) {
     return CPUTopology::clockrate();
   }
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
-  if (!this->hasInvariantRdtsc() && governor.compare("performance") && governor.compare("powersave")) {
+  if (!hasInvariantRdtsc() && governor.compare("performance") && governor.compare("powersave")) {
     return CPUTopology::clockrate();
   }
 
-  min_measurements = 5;
+  MinMeasurements = 5;
 #else
   min_measurements = 20;
 #endif
 
-  i = 3;
+  int I = 3;
 
   do {
+    uint64_t End1Tsc = 0;
+    uint64_t End2Tsc = 0;
+
     // start timestamp
-    start1_tsc = this->timestamp();
-    start_time = Clock::now();
-    start2_tsc = this->timestamp();
+    uint64_t Start1Tsc = timestamp();
+    StartTime = ClockT::now();
+    uint64_t Start2Tsc = timestamp();
 
     // waiting
     do {
-      end1_tsc = this->timestamp();
-    } while (end1_tsc < start2_tsc + 1000000 * i); /* busy waiting */
+      End1Tsc = timestamp();
+    } while (End1Tsc < Start2Tsc + 1000000 * I); /* busy waiting */
 
     // end timestamp
     do {
-      end1_tsc = this->timestamp();
-      end_time = Clock::now();
-      end2_tsc = this->timestamp();
+      End1Tsc = timestamp();
+      EndTime = ClockT::now();
+      End2Tsc = timestamp();
 
-      time_diff = std::chrono::duration_cast<ticks>(end_time - start_time).count();
-    } while (0 == time_diff);
+      TimeDiff = std::chrono::duration_cast<TicksT>(EndTime - StartTime).count();
+    } while (0 == TimeDiff);
 
-    clock_lower_bound = (((end1_tsc - start2_tsc) * 1000000) / (time_diff));
-    clock_upper_bound = (((end2_tsc - start1_tsc) * 1000000) / (time_diff));
+    uint64_t ClockLowerBound = (((End1Tsc - Start2Tsc) * 1000000) / (TimeDiff));
+    uint64_t ClockUpperBound = (((End2Tsc - Start1Tsc) * 1000000) / (TimeDiff));
 
     // if both values differ significantly, the measurement could have been
     // interrupted between 2 rdtsc's
-    if (((double)clock_lower_bound > (((double)clock_upper_bound) * 0.999)) && ((time_diff) > 2000)) {
-      num_measurements++;
-      clock = (clock_lower_bound + clock_upper_bound) / 2;
-      if (clockrate == 0)
-        clockrate = clock;
+    if ((static_cast<double>(ClockLowerBound) > ((static_cast<double>(ClockUpperBound)) * 0.999)) &&
+        ((TimeDiff) > 2000)) {
+      NumMeasurements++;
+      uint64_t Clock = (ClockLowerBound + ClockUpperBound) / 2;
+      bool ClockrateUpdateCondition = Clockrate == 0 ||
 #ifndef _WIN32
-      else if (clock < clockrate)
-        clockrate = clock;
+                                      Clock < Clockrate;
 #else
-      else if (clock > clockrate)
-        clockrate = clock;
+                                      Clock > Clockrate;
 #endif
+      if (ClockrateUpdateCondition) {
+        Clockrate = Clock;
+      }
     }
-    i += 2;
-  } while (((time_diff) < 10000) || (num_measurements < min_measurements));
+    I += 2;
+  } while (((TimeDiff) < 10000) || (NumMeasurements < MinMeasurements));
 
-  return clockrate;
+  return Clockrate;
 }
 
-uint64_t X86CPUTopology::timestamp() const {
-#ifndef _MSC_VER
-  uint64_t reg_a, reg_d;
-#else
-  uint64_t i;
-#endif
-
-  if (!this->hasRdtsc()) {
+auto X86CPUTopology::timestamp() const -> uint64_t {
+  if (!hasRdtsc()) {
     return 0;
   }
 
 #ifndef _MSC_VER
-  __asm__ __volatile__("rdtsc;" : "=a"(reg_a), "=d"(reg_d));
-  return (reg_d << 32) | (reg_a & 0xffffffffULL);
+  uint64_t Rax = 0;
+  uint64_t Rdx = 0;
+  __asm__ __volatile__("rdtsc;" : "=a"(Rax), "=d"(Rdx));
+  return (Rdx << 32) | (Rax & 0xffffffffULL);
 #else
-  i = __rdtsc();
-  return i;
+  return __rdtsc();
 #endif
 }
 
-void X86CPUTopology::cpuid(uint64_t* a, uint64_t* b, uint64_t* c, uint64_t* d) const {
+void X86CPUTopology::cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx) {
 #ifndef _MSC_VER
-  uint64_t reg_a, reg_b, reg_c, reg_d;
+  uint64_t RaxOut = 0;
+  uint64_t RbxOut = 0;
+  uint64_t RcxOut = 0;
+  uint64_t RdxOut = 0;
   __asm__ __volatile__("cpuid;"
-                       : "=a"(reg_a), "=b"(reg_b), "=c"(reg_c), "=d"(reg_d)
-                       : "a"(*a), "b"(*b), "c"(*c), "d"(*d));
-  *a = reg_a;
-  *b = reg_b;
-  *c = reg_c;
-  *d = reg_d;
+                       : "=a"(RaxOut), "=b"(RbxOut), "=c"(RcxOut), "=d"(RdxOut)
+                       : "a"(*Rax), "b"(*Rbx), "c"(*Rcx), "d"(*Rdx));
+  *Rax = RaxOut;
+  *Rbx = RbxOut;
+  *Rcx = RcxOut;
+  *Rdx = RdxOut;
 #else
   std::array<int, 4> cpuid;
 
-  __cpuidex(cpuid.data(), *a, *c);
+  __cpuidex(cpuid.data(), *Rax, *Rcx);
 
-  *a = cpuid[0];
-  *b = cpuid[1];
-  *c = cpuid[2];
-  *d = cpuid[3];
+  *Rax = cpuid[0];
+  *Rbx = cpuid[1];
+  *Rcx = cpuid[2];
+  *Rdx = cpuid[3];
 #endif
 }
+
+} // namespace firestarter::environment::x86

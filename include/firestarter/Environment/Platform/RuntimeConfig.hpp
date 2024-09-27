@@ -21,8 +21,9 @@
 
 #pragma once
 
+#include "../../Logging/Log.hpp"
+#include "../Platform/PlatformConfig.hpp"
 #include <cassert>
-#include <firestarter/Environment/Platform/PlatformConfig.hpp>
 
 namespace firestarter::environment::platform {
 
@@ -62,7 +63,7 @@ public:
       , RamBufferSize(Other.ramBufferSize())
       , Lines(Other.lines()) {}
 
-  ~RuntimeConfig() { Payload.reset(); }
+  ~RuntimeConfig() = default;
 
   [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigValue; }
   [[nodiscard]] auto payload() const -> payload::Payload& {

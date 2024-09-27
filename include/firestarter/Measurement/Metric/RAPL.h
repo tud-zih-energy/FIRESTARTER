@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Measurement/MetricInterface.h>
+#include "../MetricInterface.h"
 
 extern "C" {
 

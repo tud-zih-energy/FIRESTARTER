@@ -34,50 +34,52 @@ namespace firestarter::environment {
 
 class CPUTopology {
 public:
-  CPUTopology(std::string architecture);
+  explicit CPUTopology(std::string Architecture);
   virtual ~CPUTopology();
 
-  unsigned numThreads() const { return _numThreadsPerCore * _numCoresTotal; }
-  unsigned maxNumThreads() const;
-  unsigned numThreadsPerCore() const { return _numThreadsPerCore; }
-  unsigned numCoresTotal() const { return _numCoresTotal; }
-  unsigned numPackages() const { return _numPackages; }
+  [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
+  [[nodiscard]] auto maxNumThreads() const -> unsigned;
+  [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
+  [[nodiscard]] auto numCoresTotal() const -> unsigned { return NumCoresTotal; }
+  [[nodiscard]] auto numPackages() const -> unsigned { return NumPackages; }
 
-  std::string const& architecture() const { return _architecture; }
-  virtual std::string const& vendor() const { return _vendor; }
-  virtual std::string const& processorName() const { return _processorName; }
-  virtual std::string const& model() const = 0;
+  [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
+  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
+  [[nodiscard]] virtual auto processorName() const -> std::string const& { return ProcessorName; }
+  [[nodiscard]] virtual auto model() const -> std::string const& { return Model; }
 
   // get the size of the L1i-cache in bytes
-  unsigned instructionCacheSize() const { return _instructionCacheSize; }
+  [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }
 
   // return the cpu clockrate in Hz
-  virtual uint64_t clockrate() const { return _clockrate; }
+  [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
   // return the cpu features
-  virtual std::list<std::string> const& features() const = 0;
+  [[nodiscard]] virtual auto features() const -> std::list<std::string> const& = 0;
 
   // get a timestamp
-  virtual uint64_t timestamp() const = 0;
+  [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
 
-  int getPkgIdFromPU(unsigned pu) const;
-  int getCoreIdFromPU(unsigned pu) const;
+  [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> int;
+  [[nodiscard]] auto getCoreIdFromPU(unsigned Pu) const -> int;
 
 protected:
-  std::string scalingGovernor() const;
-  std::ostream& print(std::ostream& stream) const;
+  [[nodiscard]] static auto scalingGovernor() -> std::string;
+  [[nodiscard]] auto print(std::ostream& Stream) const -> std::ostream&;
+
+  std::string Vendor;
+  std::string Model;
 
 private:
-  static std::stringstream getFileAsStream(std::string const& filePath);
+  [[nodiscard]] static auto getFileAsStream(std::string const& FilePath) -> std::stringstream;
 
-  unsigned _numThreadsPerCore;
-  unsigned _numCoresTotal;
-  unsigned _numPackages;
-  std::string _architecture;
-  std::string _vendor = "";
-  std::string _processorName = "";
-  unsigned _instructionCacheSize = 0;
-  uint64_t _clockrate = 0;
-  hwloc_topology_t topology;
+  unsigned NumThreadsPerCore;
+  unsigned NumCoresTotal;
+  unsigned NumPackages;
+  std::string Architecture;
+  std::string ProcessorName;
+  unsigned InstructionCacheSize = 0;
+  uint64_t Clockrate = 0;
+  hwloc_topology_t Topology;
 };
 
 } // namespace firestarter::environment

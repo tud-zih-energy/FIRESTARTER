@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <cassert>
 #include <chrono>
 #include <thread>
 #include <type_traits>

@@ -26,50 +26,50 @@
 #include <cstdio>
 #include <regex>
 
-using namespace firestarter::environment::x86;
+namespace firestarter::environment::x86 {
 
 void X86Environment::evaluateFunctions() {
-  for (auto ctor : this->PlatformConfigsCtor) {
+  for (const auto& Ctor : PlatformConfigsCtor) {
     // add asmjit for model and family detection
-    this->PlatformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
-                                         this->topology().modelId(), this->topology().numThreadsPerCore()));
+    PlatformConfigs.emplace_back(
+        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId(), topology().numThreadsPerCore()));
   }
 
-  for (auto ctor : this->FallbackPlatformConfigsCtor) {
-    this->FallbackPlatformConfigs.push_back(ctor(this->topology().featuresAsmjit(), this->topology().familyId(),
-                                                 this->topology().modelId(), this->topology().numThreadsPerCore()));
+  for (const auto& Ctor : FallbackPlatformConfigsCtor) {
+    FallbackPlatformConfigs.emplace_back(
+        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId(), topology().numThreadsPerCore()));
   }
 }
 
-int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePayload) {
+auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) -> int {
   unsigned id = 1;
   std::string defaultPayloadName("");
 
   // if functionId is 0 get the default or fallback
-  for (auto config : this->PlatformConfigs) {
-    for (auto const& [thread, functionName] : config->getThreadMap()) {
+  for (const auto& Config : PlatformConfigs) {
+    for (auto const& [thread, functionName] : Config->getThreadMap()) {
       // the selected function
-      if (id == functionId) {
-        if (!config->isAvailable()) {
-          log::error() << "Function " << functionId << " (\"" << functionName << "\") requires "
-                       << config->payload().name() << ", which is not supported by the processor.";
-          if (!allowUnavailablePayload) {
+      if (id == FunctionId) {
+        if (!Config->isAvailable()) {
+          log::error() << "Function " << FunctionId << " (\"" << functionName << "\") requires "
+                       << Config->payload().name() << ", which is not supported by the processor.";
+          if (!AllowUnavailablePayload) {
             return EXIT_FAILURE;
           }
         }
         // found function
-        this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
-            *config, thread, this->topology().instructionCacheSize());
+        SelectedConfig =
+            new ::firestarter::environment::platform::RuntimeConfig(*Config, thread, topology().instructionCacheSize());
         return EXIT_SUCCESS;
       }
       // default function
-      if (0 == functionId && config->isDefault()) {
-        if (thread == this->topology().numThreadsPerCore()) {
-          this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
-              *config, thread, this->topology().instructionCacheSize());
+      if (0 == FunctionId && Config->isDefault()) {
+        if (thread == topology().numThreadsPerCore()) {
+          SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, thread,
+                                                                                   topology().instructionCacheSize());
           return EXIT_SUCCESS;
         } else {
-          defaultPayloadName = config->payload().name();
+          defaultPayloadName = Config->payload().name();
         }
       }
       id++;
@@ -78,35 +78,35 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
 
   // no default found
   // use fallback
-  if (0 == functionId) {
+  if (0 == FunctionId) {
     if (!defaultPayloadName.empty()) {
       // default payload available, but number of threads per core is not
       // supported
-      log::warn() << "No " << defaultPayloadName << " code path for " << this->topology().numThreadsPerCore()
+      log::warn() << "No " << defaultPayloadName << " code path for " << topology().numThreadsPerCore()
                   << " threads per core!";
     }
-    log::warn() << this->topology().vendor() << " " << this->topology().model()
+    log::warn() << topology().vendor() << " " << topology().model()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
 
     // loop over available implementation and check if they are marked as
     // fallback
-    for (auto config : this->FallbackPlatformConfigs) {
-      if (config->isAvailable()) {
+    for (const auto& Config : FallbackPlatformConfigs) {
+      if (Config->isAvailable()) {
         auto selectedThread = 0;
         auto selectedFunctionName = std::string("");
-        for (auto const& [thread, functionName] : config->getThreadMap()) {
-          if (thread == this->topology().numThreadsPerCore()) {
+        for (auto const& [thread, functionName] : Config->getThreadMap()) {
+          if (thread == topology().numThreadsPerCore()) {
             selectedThread = thread;
             selectedFunctionName = functionName;
           }
         }
         if (selectedThread == 0) {
-          selectedThread = config->getThreadMap().begin()->first;
-          selectedFunctionName = config->getThreadMap().begin()->second;
+          selectedThread = Config->getThreadMap().begin()->first;
+          selectedFunctionName = Config->getThreadMap().begin()->second;
         }
-        this->SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(
-            *config, selectedThread, this->topology().instructionCacheSize());
+        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, selectedThread,
+                                                                                 topology().instructionCacheSize());
         log::warn() << "Using function " << selectedFunctionName << " as fallback.\n"
                     << "You can use the parameter --function to try other "
                        "functions.";
@@ -120,14 +120,14 @@ int X86Environment::selectFunction(unsigned functionId, bool allowUnavailablePay
     return EXIT_FAILURE;
   }
 
-  log::error() << "unknown function id: " << functionId << ", see --avail for available ids";
+  log::error() << "unknown function id: " << FunctionId << ", see --avail for available ids";
   return EXIT_FAILURE;
 }
 
 int X86Environment::selectInstructionGroups(std::string groups) {
   const std::string delimiter = ",";
   const std::regex re("^(\\w+):(\\d+)$");
-  const auto availableInstructionGroups = this->selectedConfig().platformConfig().payload().getAvailableInstructions();
+  const auto availableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
 
   std::stringstream ss(groups);
   std::vector<std::pair<std::string, unsigned>> payloadSettings = {};
@@ -161,7 +161,7 @@ int X86Environment::selectInstructionGroups(std::string groups) {
     }
   }
 
-  this->selectedConfig().setPayloadSettings(payloadSettings);
+  selectedConfig().setPayloadSettings(payloadSettings);
 
   log::info() << "  Running custom instruction group: " << groups;
 
@@ -171,7 +171,7 @@ int X86Environment::selectInstructionGroups(std::string groups) {
 void X86Environment::printAvailableInstructionGroups() {
   std::stringstream ss;
 
-  for (auto const& item : this->selectedConfig().platformConfig().payload().getAvailableInstructions()) {
+  for (auto const& item : selectedConfig().platformConfig().payload().getAvailableInstructions()) {
     ss << item << ",";
   }
 
@@ -180,14 +180,14 @@ void X86Environment::printAvailableInstructionGroups() {
     s.pop_back();
   }
 
-  log::info() << " available instruction-groups for payload "
-              << this->selectedConfig().platformConfig().payload().name() << ":\n"
+  log::info() << " available instruction-groups for payload " << selectedConfig().platformConfig().payload().name()
+              << ":\n"
               << "  " << s;
 }
 
-void X86Environment::setLineCount(unsigned lineCount) { this->selectedConfig().setLineCount(lineCount); }
+void X86Environment::setLineCount(unsigned lineCount) { selectedConfig().setLineCount(lineCount); }
 
-void X86Environment::printSelectedCodePathSummary() { this->selectedConfig().printCodePathSummary(); }
+void X86Environment::printSelectedCodePathSummary() { selectedConfig().printCodePathSummary(); }
 
 void X86Environment::printFunctionSummary() {
   log::info() << " available load-functions:\n"
@@ -200,7 +200,7 @@ void X86Environment::printFunctionSummary() {
 
   unsigned id = 1;
 
-  for (auto const& config : this->PlatformConfigs) {
+  for (auto const& config : PlatformConfigs) {
     for (auto const& [thread, functionName] : config->getThreadMap()) {
       const char* available = config->isAvailable() ? "yes" : "no";
       const char* fmt = "  %4u | %-30s | %-24s | %s";
@@ -214,3 +214,5 @@ void X86Environment::printFunctionSummary() {
     }
   }
 }
+
+} // namespace firestarter::environment::x86

@@ -22,10 +22,9 @@
 #ifndef FIRESTARTER_OPTIMIZER_POPULATION_HPP
 #define FIRESTARTER_OPTIMIZER_POPULATION_HPP
 
+#include "Individual.hpp"
+#include "Problem.hpp"
 #include <cstring>
-#include <firestarter/Optimizer/History.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
-#include <firestarter/Optimizer/Problem.hpp>
 #include <memory>
 #include <optional>
 #include <random>

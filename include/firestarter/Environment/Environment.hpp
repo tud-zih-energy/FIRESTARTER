@@ -21,11 +21,10 @@
 
 #pragma once
 
+#include "CPUTopology.hpp"
+#include "Platform/RuntimeConfig.hpp"
 #include <cassert>
 #include <cstdint>
-#include <firestarter/Environment/CPUTopology.hpp>
-#include <firestarter/Environment/Platform/PlatformConfig.hpp>
-#include <firestarter/Environment/Platform/RuntimeConfig.hpp>
 #include <vector>
 
 namespace firestarter::environment {
@@ -33,13 +32,9 @@ namespace firestarter::environment {
 class Environment {
 public:
   Environment() = delete;
-  explicit Environment(CPUTopology* Topology)
-      : Topology(Topology) {}
-  virtual ~Environment() {
-    delete this->Topology;
-
-    delete SelectedConfig;
-  }
+  explicit Environment(std::unique_ptr<CPUTopology>&& Topology)
+      : Topology(std::move(Topology)) {}
+  virtual ~Environment() { delete SelectedConfig; }
 
   auto evaluateCpuAffinity(unsigned RequestedNumThreads, std::string CpuBind) -> int;
   auto setCpuAffinity(unsigned Thread) -> int;
@@ -77,7 +72,7 @@ public:
 
 protected:
   platform::RuntimeConfig* SelectedConfig = nullptr;
-  CPUTopology* Topology = nullptr;
+  std::unique_ptr<CPUTopology> Topology;
 
 private:
   uint64_t RequestedNumThreads = 0;
