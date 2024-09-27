@@ -9,7 +9,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: '0'
+        submodules: 'true'
 
     # Ideally we would want to run the clang-tidy for every kind of build.
     # This would make shure that we will check all platform dependent code parts.
