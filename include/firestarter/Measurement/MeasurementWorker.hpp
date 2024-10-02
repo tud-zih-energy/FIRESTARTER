@@ -44,7 +44,7 @@ private:
   pthread_t WorkerThread;
   pthread_t StdinThread;
 
-  std::vector<MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
+  std::vector<const MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
 
   std::mutex ValuesMutex;
   std::map<std::string, std::vector<TimeValue>> Values;
@@ -65,7 +65,7 @@ private:
   std::string AvailableMetricsString;
 
 #ifndef FIRESTARTER_LINK_STATIC
-  std::vector<void*> _metricDylibs = {};
+  std::vector<void*> MetricDylibs;
 #endif
 
   std::vector<std::string> StdinMetrics;

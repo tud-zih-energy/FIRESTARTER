@@ -35,9 +35,9 @@ public:
   auto evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population override;
 
 private:
-  unsigned Gen;
-  double Cr;
-  double M;
+  const unsigned Gen;
+  const double Cr;
+  const double M;
 };
 
 } // namespace firestarter::optimizer::algorithm

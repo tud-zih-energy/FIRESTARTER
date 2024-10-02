@@ -66,15 +66,14 @@ public:
               std::chrono::microseconds const& Period, unsigned RequestedNumThreads, std::string const& CpuBind,
               bool PrintFunctionSummary, unsigned FunctionId, bool ListInstructionGroups,
               std::string const& InstructionGroups, unsigned LineCount, bool AllowUnavailablePayload,
-              bool DumpRegisters, std::chrono::seconds const& DumpRegistersTimeDelta,
-              std::string const& DumpRegistersOutpath, bool ErrorDetection, int Gpus, unsigned GpuMatrixSize,
-              bool GpuUseFloat, bool GpuUseDouble, bool ListMetrics, bool Measurement,
-              std::chrono::milliseconds const& StartDelta, std::chrono::milliseconds const& StopDelta,
-              std::chrono::milliseconds const& MeasurementInterval, std::vector<std::string> const& MetricPaths,
-              std::vector<std::string> const& StdinMetrics, bool Optimize, std::chrono::seconds const& Preheat,
-              std::string const& OptimizationAlgorithm, std::vector<std::string> const& OptimizationMetrics,
-              std::chrono::seconds const& EvaluationDuration, unsigned Individuals, std::string const& OptimizeOutfile,
-              unsigned Generations, double Nsga2Cr, double Nsga2M);
+              bool DumpRegisters, std::chrono::seconds const& DumpRegistersTimeDelta, std::string DumpRegistersOutpath,
+              bool ErrorDetection, int Gpus, unsigned GpuMatrixSize, bool GpuUseFloat, bool GpuUseDouble,
+              bool ListMetrics, bool Measurement, std::chrono::milliseconds const& StartDelta,
+              std::chrono::milliseconds const& StopDelta, std::chrono::milliseconds const& MeasurementInterval,
+              std::vector<std::string> const& MetricPaths, std::vector<std::string> const& StdinMetrics, bool Optimize,
+              std::chrono::seconds const& Preheat, std::string const& OptimizationAlgorithm,
+              std::vector<std::string> const& OptimizationMetrics, std::chrono::seconds const& EvaluationDuration,
+              unsigned Individuals, std::string OptimizeOutfile, unsigned Generations, double Nsga2Cr, double Nsga2M);
 
   ~Firestarter();
 
@@ -141,12 +140,12 @@ private:
   void signalWork() { signalLoadWorkers(THREAD_WORK); };
 
   // WatchdogWorker.cpp
-  auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load, std::chrono::seconds Timeout)
-      -> int;
+  static auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
+                             std::chrono::seconds Timeout) -> int;
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  auto initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, std::string DumpFilePath) -> int;
+  auto initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) -> int;
   void joinDumpRegisterWorker();
 #endif
 

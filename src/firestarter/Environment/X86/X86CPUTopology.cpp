@@ -148,13 +148,13 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
   ClockT::time_point EndTime;
 
 #if not(defined(__APPLE__) || defined(_WIN32))
-  auto governor = scalingGovernor();
-  if (governor.empty()) {
+  auto Governor = scalingGovernor();
+  if (Governor.empty()) {
     return CPUTopology::clockrate();
   }
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
-  if (!hasInvariantRdtsc() && governor.compare("performance") && governor.compare("powersave")) {
+  if (!hasInvariantRdtsc() && Governor.compare("performance") && Governor.compare("powersave")) {
     return CPUTopology::clockrate();
   }
 

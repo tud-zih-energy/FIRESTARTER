@@ -21,10 +21,7 @@
 
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Measurement/MeasurementWorker.hpp>
-
-#include <iostream>
 #include <queue>
-#include <thread>
 
 #ifndef FIRESTARTER_LINK_STATIC
 extern "C" {
@@ -32,99 +29,99 @@ extern "C" {
 }
 #endif
 
-void insertCallback(void* cls, const char* metricName, int64_t timeSinceEpoch, double value) {
-  static_cast<firestarter::measurement::MeasurementWorker*>(cls)->insertCallback(metricName, timeSinceEpoch, value);
+void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, double Value) {
+  static_cast<firestarter::measurement::MeasurementWorker*>(Cls)->insertCallback(MetricName, TimeSinceEpoch, Value);
 }
 
-using namespace firestarter::measurement;
+namespace firestarter::measurement {
 
-MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval, uint64_t numThreads,
-                                     std::vector<std::string> const& metricDylibs,
-                                     std::vector<std::string> const& stdinMetrics)
-    : UpdateInterval(updateInterval)
-    , NumThreads(numThreads) {
+MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
+                                     std::vector<std::string> const& MetricDylibs,
+                                     std::vector<std::string> const& StdinMetrics)
+    : UpdateInterval(UpdateInterval)
+    , NumThreads(NumThreads) {
 
 #ifndef FIRESTARTER_LINK_STATIC
   // open dylibs and find metric symbol.
   // create an entry in _metricDylibs with handle from dlopen and
   // metric_interface_t structure. add this structe as a pointer to metrics.
-  for (auto const& dylib : metricDylibs) {
-    void* handle;
-    const char* filename = dylib.c_str();
+  for (auto const& Dylib : MetricDylibs) {
+    void* Handle = nullptr;
+    const char* Filename = Dylib.c_str();
 
-    handle = dlopen(dylib.c_str(), RTLD_NOW | RTLD_LOCAL);
+    Handle = dlopen(Dylib.c_str(), RTLD_NOW | RTLD_LOCAL);
 
-    if (!handle) {
-      firestarter::log::error() << filename << ": " << dlerror();
+    if (!Handle) {
+      firestarter::log::error() << Filename << ": " << dlerror();
       continue;
     }
 
     // clear existing error
     dlerror();
 
-    metric_interface_t* metric = nullptr;
+    MetricInterface* Metric = nullptr;
 
-    metric = (metric_interface_t*)dlsym(handle, "metric");
+    Metric = static_cast<MetricInterface*>(dlsym(Handle, "metric"));
 
-    char* error;
-    if ((error = dlerror()) != NULL) {
-      firestarter::log::error() << filename << ": " << error;
-      dlclose(handle);
+    char* Error = nullptr;
+    if ((Error = dlerror()) != nullptr) {
+      firestarter::log::error() << Filename << ": " << Error;
+      dlclose(Handle);
       continue;
     }
 
-    if (this->findMetricByName(metric->name) != nullptr) {
-      firestarter::log::error() << "A metric named \"" << metric->name << "\" is already loaded.";
-      dlclose(handle);
+    if (this->findMetricByName(Metric->Name) != nullptr) {
+      firestarter::log::error() << "A metric named \"" << Metric->Name << "\" is already loaded.";
+      dlclose(Handle);
       continue;
     }
 
     // lets push our metric object and the handle
-    this->_metricDylibs.push_back(handle);
-    this->metrics.push_back(metric);
+    this->MetricDylibs.push_back(Handle);
+    this->Metrics.push_back(Metric);
   }
 #else
-  (void)metricDylibs;
+  (void)MetricDylibs;
 #endif
 
   // setup metric objects for metric names passed from stdin.
-  for (auto const& name : stdinMetrics) {
-    if (this->findMetricByName(name) != nullptr) {
-      firestarter::log::error() << "A metric named \"" << name << "\" is already loaded.";
+  for (auto const& Name : StdinMetrics) {
+    if (this->findMetricByName(Name) != nullptr) {
+      firestarter::log::error() << "A metric named \"" << Name << "\" is already loaded.";
       continue;
     }
 
-    this->StdinMetrics.push_back(name);
+    this->StdinMetrics.push_back(Name);
   }
 
-  std::stringstream ss;
-  unsigned maxLength = 0;
-  std::map<std::string, bool> available;
+  std::stringstream Ss;
+  unsigned MaxLength = 0;
+  std::map<std::string, bool> Available;
 
-  for (auto const& metric : this->Metrics) {
-    std::string name(metric->Name);
-    maxLength = maxLength < name.size() ? name.size() : maxLength;
-    int returnCode = metric->Init();
-    metric->Fini();
-    available[name] = returnCode == EXIT_SUCCESS ? true : false;
+  for (auto const& Metric : this->Metrics) {
+    std::string Name(Metric->Name);
+    MaxLength = MaxLength < Name.size() ? Name.size() : MaxLength;
+    auto ReturnCode = Metric->Init();
+    Metric->Fini();
+    Available[Name] = ReturnCode == EXIT_SUCCESS;
   }
 
-  unsigned padding = maxLength > 6 ? maxLength - 6 : 0;
-  ss << "  METRIC" << std::string(padding + 1, ' ') << "| available\n";
-  ss << "  " << std::string(padding + 7, '-') << "-----------\n";
-  for (auto const& [key, value] : available) {
-    ss << "  " << key << std::string(padding + 7 - key.size(), ' ') << "| ";
-    ss << (value ? "yes" : "no") << "\n";
+  unsigned Padding = MaxLength > 6 ? MaxLength - 6 : 0;
+  Ss << "  METRIC" << std::string(Padding + 1, ' ') << "| available\n";
+  Ss << "  " << std::string(Padding + 7, '-') << "-----------\n";
+  for (auto const& [key, value] : Available) {
+    Ss << "  " << key << std::string(Padding + 7 - key.size(), ' ') << "| ";
+    Ss << (value ? "yes" : "no") << "\n";
   }
 
-  this->AvailableMetricsString = ss.str();
+  this->AvailableMetricsString = Ss.str();
 
-  pthread_create(&this->WorkerThread, NULL,
+  pthread_create(&this->WorkerThread, nullptr,
                  reinterpret_cast<void* (*)(void*)>(MeasurementWorker::dataAcquisitionWorker), this);
 
   // create a worker for getting metric values from stdin
   if (this->StdinMetrics.size() > 0) {
-    pthread_create(&this->StdinThread, NULL,
+    pthread_create(&this->StdinThread, nullptr,
                    reinterpret_cast<void* (*)(void*)>(MeasurementWorker::stdinDataAcquisitionWorker), this);
   }
 }
@@ -132,39 +129,39 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds updateInterval, u
 MeasurementWorker::~MeasurementWorker() {
   pthread_cancel(this->WorkerThread);
 
-  pthread_join(this->WorkerThread, NULL);
+  pthread_join(this->WorkerThread, nullptr);
 
   if (this->StdinMetrics.size() > 0) {
     pthread_cancel(this->StdinThread);
 
-    pthread_join(this->StdinThread, NULL);
+    pthread_join(this->StdinThread, nullptr);
   }
 
   for (auto const& [key, value] : this->Values) {
-    auto metric = this->findMetricByName(key);
-    if (metric == nullptr) {
+    const auto* Metric = this->findMetricByName(key);
+    if (Metric == nullptr) {
       continue;
     }
 
-    metric->Fini();
+    Metric->Fini();
   }
 
 #ifndef FIRESTARTER_LINK_STATIC
-  for (auto handle : this->_metricDylibs) {
-    dlclose(handle);
+  for (auto* Handle : this->MetricDylibs) {
+    dlclose(Handle);
   }
 #endif
 }
 
-std::vector<std::string> MeasurementWorker::metricNames() {
-  std::vector<std::string> metrics;
-  std::transform(this->Metrics.begin(), this->Metrics.end(), std::back_inserter(metrics),
-                 [](auto& metric) -> std::string { return std::string(metric->Name); });
-  for (auto const& name : this->StdinMetrics) {
-    metrics.push_back(name);
+auto MeasurementWorker::metricNames() -> std::vector<std::string> {
+  std::vector<std::string> Metrics;
+  std::transform(this->Metrics.begin(), this->Metrics.end(), std::back_inserter(Metrics),
+                 [](auto& Metric) -> std::string { return std::string(Metric->Name); });
+  for (auto const& Name : this->StdinMetrics) {
+    Metrics.push_back(Name);
   }
 
-  return metrics;
+  return Metrics;
 }
 
 auto MeasurementWorker::findMetricByName(std::string MetricName) -> const MetricInterface* {
@@ -184,49 +181,49 @@ auto MeasurementWorker::findMetricByName(std::string MetricName) -> const Metric
 auto MeasurementWorker::initMetrics(std::vector<std::string> const& MetricNames) -> std::vector<std::string> {
   this->ValuesMutex.lock();
 
-  std::vector<std::string> initialized = {};
+  std::vector<std::string> Initialized = {};
 
   // try to find each metric and initialize it
-  for (auto const& metricName : MetricNames) {
+  for (auto const& MetricName : MetricNames) {
     // init values map with empty vector
-    auto name_equal = [metricName](auto const& pair) { return metricName.compare(pair.first) == 0; };
-    auto pair = std::find_if(this->Values.begin(), this->Values.end(), name_equal);
-    if (pair != this->Values.end()) {
-      pair->second.clear();
+    auto NameEqual = [MetricName](auto const& Pair) { return MetricName.compare(Pair.first) == 0; };
+    auto Pair = std::find_if(this->Values.begin(), this->Values.end(), NameEqual);
+    if (Pair != this->Values.end()) {
+      Pair->second.clear();
     } else {
-      auto metric = this->findMetricByName(metricName);
-      if (metric != nullptr) {
-        int returnValue = metric->Init();
-        if (returnValue != EXIT_SUCCESS) {
-          log::error() << "Metric " << metric->Name << ": " << metric->GetError();
+      const auto* Metric = this->findMetricByName(MetricName);
+      if (Metric != nullptr) {
+        int ReturnValue = Metric->Init();
+        if (ReturnValue != EXIT_SUCCESS) {
+          log::error() << "Metric " << Metric->Name << ": " << Metric->GetError();
           continue;
         }
       }
-      this->Values[metricName] = std::vector<TimeValue>();
-      if (metric != nullptr) {
-        if (metric->Type.InsertCallback) {
-          metric->RegisterInsertCallback(::insertCallback, this);
+      this->Values[MetricName] = std::vector<TimeValue>();
+      if (Metric != nullptr) {
+        if (Metric->Type.InsertCallback) {
+          Metric->RegisterInsertCallback(::insertCallback, this);
         }
       }
-      initialized.push_back(metricName);
+      Initialized.push_back(MetricName);
     }
   }
 
   this->ValuesMutex.unlock();
 
-  return initialized;
+  return Initialized;
 }
 
-void MeasurementWorker::insertCallback(const char* metricName, int64_t timeSinceEpoch, double value) {
+void MeasurementWorker::insertCallback(const char* MetricName, int64_t TimeSinceEpoch, double Value) {
   this->ValuesMutex.lock();
 
   using Duration = std::chrono::duration<int64_t, std::nano>;
-  auto time = std::chrono::time_point<std::chrono::high_resolution_clock, Duration>(Duration(timeSinceEpoch));
-  auto name_equal = [metricName](auto const& pair) { return std::string(metricName).compare(pair.first) == 0; };
-  auto pair = std::find_if(this->Values.begin(), this->Values.end(), name_equal);
+  auto Time = std::chrono::time_point<std::chrono::high_resolution_clock, Duration>(Duration(TimeSinceEpoch));
+  auto NameEqual = [MetricName](auto const& Pair) { return std::string(MetricName).compare(Pair.first) == 0; };
+  auto Pair = std::find_if(this->Values.begin(), this->Values.end(), NameEqual);
 
-  if (pair != this->Values.end()) {
-    pair->second.push_back(TimeValue(time, value));
+  if (Pair != this->Values.end()) {
+    Pair->second.emplace_back(Time, Value);
   }
 
   this->ValuesMutex.unlock();
@@ -234,171 +231,173 @@ void MeasurementWorker::insertCallback(const char* metricName, int64_t timeSince
 
 void MeasurementWorker::startMeasurement() { this->StartTime = std::chrono::high_resolution_clock::now(); }
 
-std::map<std::string, Summary> MeasurementWorker::getValues(std::chrono::milliseconds startDelta,
-                                                            std::chrono::milliseconds stopDelta) {
-  std::map<std::string, Summary> measurment = {};
+auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta)
+    -> std::map<std::string, Summary> {
+  std::map<std::string, Summary> Measurment = {};
 
   this->ValuesMutex.lock();
 
   for (auto& [key, values] : this->Values) {
-    auto startTime = this->StartTime;
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto metric = this->findMetricByName(key);
+    auto StartTime = this->StartTime;
+    auto EndTime = std::chrono::high_resolution_clock::now();
+    const auto* Metric = this->findMetricByName(key);
 
-    MetricType type;
-    std::memset(&type, 0, sizeof(type));
-    if (metric == nullptr) {
-      type.Absolute = 1;
+    MetricType Type;
+    std::memset(&Type, 0, sizeof(Type));
+    if (Metric == nullptr) {
+      Type.Absolute = 1;
 
-      startTime += startDelta;
-      endTime -= stopDelta;
+      StartTime += StartDelta;
+      EndTime -= StopDelta;
     } else {
-      std::memcpy(&type, &metric->Type, sizeof(type));
+      std::memcpy(&Type, &Metric->Type, sizeof(Type));
 
-      if (metric->Type.IgnoreStartStopDelta == 0) {
-        startTime += startDelta;
-        endTime -= stopDelta;
+      if (Metric->Type.IgnoreStartStopDelta == 0) {
+        StartTime += StartDelta;
+        EndTime -= StopDelta;
       }
     }
 
-    decltype(values) croppedValues(values.size());
+    decltype(values) CroppedValues(values.size());
 
-    auto findAll = [startTime, endTime](auto const& tv) { return startTime <= tv.Time && tv.Time <= endTime; };
-    auto it = std::copy_if(values.begin(), values.end(), croppedValues.begin(), findAll);
-    croppedValues.resize(std::distance(croppedValues.begin(), it));
+    auto FindAll = [StartTime, EndTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= EndTime; };
+    auto It = std::copy_if(values.begin(), values.end(), CroppedValues.begin(), FindAll);
+    CroppedValues.resize(std::distance(CroppedValues.begin(), It));
 
-    Summary sum = Summary::calculate(croppedValues.begin(), croppedValues.end(), type, this->NumThreads);
+    Summary Sum = Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, this->NumThreads);
 
-    measurment[key] = sum;
+    Measurment[key] = Sum;
   }
 
   this->ValuesMutex.unlock();
 
-  return measurment;
+  return Measurment;
 }
 
-int* MeasurementWorker::dataAcquisitionWorker(void* measurementWorker) {
+auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> int* {
 
-  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
-  auto _this = reinterpret_cast<MeasurementWorker*>(measurementWorker);
+  auto* This = reinterpret_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "DataAcquisition");
 #endif
 
-  using clock = std::chrono::high_resolution_clock;
+  using Clock = std::chrono::high_resolution_clock;
 
-  using callbackTuple =
+  using CallbackTuple =
       std::tuple<void (*)(void), std::chrono::microseconds, std::chrono::high_resolution_clock::time_point>;
-  auto callbackTupleComparator = [](callbackTuple left, callbackTuple right) {
-    return std::get<2>(left) > std::get<2>(right);
+  auto CallbackTupleComparator = [](CallbackTuple Left, CallbackTuple Right) {
+    return std::get<2>(Left) > std::get<2>(Right);
   };
 
   // this datastructure holds a tuple of our callback, the callback frequency
   // and the next timepoint. it will be sorted, so the pop function will give
   // back the next callback
-  std::priority_queue<callbackTuple, std::vector<callbackTuple>, decltype(callbackTupleComparator)> callbackQueue(
-      callbackTupleComparator);
+  std::priority_queue<CallbackTuple, std::vector<CallbackTuple>, decltype(CallbackTupleComparator)> CallbackQueue(
+      CallbackTupleComparator);
 
-  _this->ValuesMutex.lock();
+  This->ValuesMutex.lock();
 
-  for (auto const& [key, value] : _this->Values) {
-    auto metric_interface = _this->findMetricByName(key);
+  for (auto const& [key, value] : This->Values) {
+    const auto* MetricInterface = This->findMetricByName(key);
 
-    if (metric_interface == nullptr) {
+    if (MetricInterface == nullptr) {
       continue;
     }
 
-    auto callbackTime = std::chrono::microseconds(metric_interface->CallbackTime);
-    if (callbackTime.count() == 0) {
+    auto CallbackTime = std::chrono::microseconds(MetricInterface->CallbackTime);
+    if (CallbackTime.count() == 0) {
       continue;
     }
 
-    auto currentTime = clock::now();
+    auto CurrentTime = Clock::now();
 
-    callbackQueue.push(std::make_tuple(metric_interface->Callback, callbackTime, currentTime));
+    CallbackQueue.emplace(MetricInterface->Callback, CallbackTime, CurrentTime);
   }
 
-  _this->ValuesMutex.unlock();
+  This->ValuesMutex.unlock();
 
-  auto nextFetch = clock::now() + _this->UpdateInterval;
+  auto NextFetch = Clock::now() + This->UpdateInterval;
 
   for (;;) {
-    auto now = clock::now();
+    auto Now = Clock::now();
 
-    if (nextFetch <= now) {
-      _this->ValuesMutex.lock();
+    if (NextFetch <= Now) {
+      This->ValuesMutex.lock();
 
-      for (auto& [metricName, values] : _this->Values) {
-        auto metric_interface = _this->findMetricByName(metricName);
+      for (auto& [metricName, values] : This->Values) {
+        const auto* MetricInterface = This->findMetricByName(metricName);
 
-        if (metric_interface == nullptr) {
+        if (MetricInterface == nullptr) {
           continue;
         }
 
-        double value;
+        double Value = NAN;
 
-        if (!metric_interface->Type.InsertCallback && metric_interface->GetReading != nullptr) {
-          if (EXIT_SUCCESS == metric_interface->GetReading(&value)) {
-            auto tv = TimeValue(std::chrono::high_resolution_clock::now(), value);
-            values.push_back(tv);
+        if (!MetricInterface->Type.InsertCallback && MetricInterface->GetReading != nullptr) {
+          if (EXIT_SUCCESS == MetricInterface->GetReading(&Value)) {
+            auto Tv = TimeValue(std::chrono::high_resolution_clock::now(), Value);
+            values.push_back(Tv);
           }
         }
       }
 
-      _this->ValuesMutex.unlock();
+      This->ValuesMutex.unlock();
 
-      nextFetch = now + _this->UpdateInterval;
+      NextFetch = Now + This->UpdateInterval;
     }
 
-    auto nextWake = nextFetch;
+    auto NextWake = NextFetch;
 
-    if (!callbackQueue.empty()) {
-      auto [callbackFunction, callbackTime, nextCallback] = callbackQueue.top();
+    if (!CallbackQueue.empty()) {
+      auto [callbackFunction, callbackTime, nextCallback] = CallbackQueue.top();
 
-      if (nextCallback <= now) {
+      if (nextCallback <= Now) {
         // remove the elment from the queue
-        callbackQueue.pop();
+        CallbackQueue.pop();
 
         // call our callback
         callbackFunction();
 
         // add it with the updated callback time to the queue again
-        nextCallback = now + callbackTime;
-        callbackQueue.push(std::make_tuple(callbackFunction, callbackTime, nextCallback));
+        nextCallback = Now + callbackTime;
+        CallbackQueue.emplace(callbackFunction, callbackTime, nextCallback);
       }
 
-      nextWake = nextCallback < nextWake ? nextCallback : nextWake;
+      NextWake = nextCallback < NextWake ? nextCallback : NextWake;
     }
 
-    std::this_thread::sleep_for(nextWake - clock::now());
+    std::this_thread::sleep_for(NextWake - Clock::now());
   }
 }
 
-int* MeasurementWorker::stdinDataAcquisitionWorker(void* measurementWorker) {
+auto MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) -> int* {
 
-  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
-  auto _this = reinterpret_cast<MeasurementWorker*>(measurementWorker);
+  auto* This = reinterpret_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "StdinDataAcquis");
 #endif
 
-  for (std::string line; std::getline(std::cin, line);) {
-    int64_t time;
-    double value;
-    char name[128];
-    if (std::sscanf(line.c_str(), "%127s %ld %lf", name, &time, &value) == 3) {
-      auto name_equal = [name](auto const& allowedName) { return allowedName.compare(std::string(name)) == 0; };
-      auto item = std::find_if(_this->stdinMetrics().begin(), _this->stdinMetrics().end(), name_equal);
+  for (std::string Line; std::getline(std::cin, Line);) {
+    int64_t Time = 0;
+    double Value = NAN;
+    char Name[128];
+    if (std::sscanf(Line.c_str(), "%127s %ld %lf", Name, &Time, &Value) == 3) {
+      auto NameEqual = [Name](auto const& AllowedName) { return AllowedName.compare(std::string(Name)) == 0; };
+      auto Item = std::find_if(This->stdinMetrics().begin(), This->stdinMetrics().end(), NameEqual);
       // metric name is allowed
-      if (item != _this->stdinMetrics().end()) {
-        _this->insertCallback(name, time, value);
+      if (Item != This->stdinMetrics().end()) {
+        This->insertCallback(Name, Time, Value);
       }
     }
   }
 
-  return NULL;
+  return nullptr;
 }
+
+} // namespace firestarter::measurement

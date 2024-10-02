@@ -23,9 +23,14 @@
 
 #include "../MetricInterface.h"
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
-extern MetricInterface PerfIpcMetric;
+extern const MetricInterface PerfIpcMetric;
 
-extern MetricInterface PerfFreqMetric;
+extern const MetricInterface PerfFreqMetric;
+
+#ifdef __cplusplus
 };
+#endif

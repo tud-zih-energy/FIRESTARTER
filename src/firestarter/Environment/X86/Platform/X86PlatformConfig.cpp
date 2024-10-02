@@ -21,5 +21,5 @@
 
 // This file exists to get an entry in the compile commands database. Clangd will interpolate the include directories
 // for header files based on the source file with the best matching score. This file should be the best score for the
-// included header. Therefore the we should not see any errors in this file for missing includes. For more infomation
+// included header. Therefore we should not see any errors in this file for missing includes. For more infomation
 // look in the LLVM code base: clang/lib/Tooling/InterpolatingCompilationDatabase.cpp

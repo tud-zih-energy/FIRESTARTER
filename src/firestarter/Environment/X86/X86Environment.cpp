@@ -42,14 +42,14 @@ void X86Environment::evaluateFunctions() {
 }
 
 auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) -> int {
-  unsigned id = 1;
-  std::string defaultPayloadName("");
+  unsigned Id = 1;
+  std::string DefaultPayloadName;
 
   // if functionId is 0 get the default or fallback
   for (const auto& Config : PlatformConfigs) {
     for (auto const& [thread, functionName] : Config->getThreadMap()) {
       // the selected function
-      if (id == FunctionId) {
+      if (Id == FunctionId) {
         if (!Config->isAvailable()) {
           log::error() << "Function " << FunctionId << " (\"" << functionName << "\") requires "
                        << Config->payload().name() << ", which is not supported by the processor.";
@@ -68,21 +68,20 @@ auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
           SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, thread,
                                                                                    topology().instructionCacheSize());
           return EXIT_SUCCESS;
-        } else {
-          defaultPayloadName = Config->payload().name();
         }
+        DefaultPayloadName = Config->payload().name();
       }
-      id++;
+      Id++;
     }
   }
 
   // no default found
   // use fallback
   if (0 == FunctionId) {
-    if (!defaultPayloadName.empty()) {
+    if (!DefaultPayloadName.empty()) {
       // default payload available, but number of threads per core is not
       // supported
-      log::warn() << "No " << defaultPayloadName << " code path for " << topology().numThreadsPerCore()
+      log::warn() << "No " << DefaultPayloadName << " code path for " << topology().numThreadsPerCore()
                   << " threads per core!";
     }
     log::warn() << topology().vendor() << " " << topology().model()
@@ -93,21 +92,21 @@ auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     // fallback
     for (const auto& Config : FallbackPlatformConfigs) {
       if (Config->isAvailable()) {
-        auto selectedThread = 0;
-        auto selectedFunctionName = std::string("");
-        for (auto const& [thread, functionName] : Config->getThreadMap()) {
-          if (thread == topology().numThreadsPerCore()) {
-            selectedThread = thread;
-            selectedFunctionName = functionName;
+        auto SelectedThread = 0;
+        auto SelectedFunctionName = std::string("");
+        for (auto const& [Thread, FunctionName] : Config->getThreadMap()) {
+          if (Thread == topology().numThreadsPerCore()) {
+            SelectedThread = Thread;
+            SelectedFunctionName = FunctionName;
           }
         }
-        if (selectedThread == 0) {
-          selectedThread = Config->getThreadMap().begin()->first;
-          selectedFunctionName = Config->getThreadMap().begin()->second;
+        if (SelectedThread == 0) {
+          SelectedThread = Config->getThreadMap().begin()->first;
+          SelectedFunctionName = Config->getThreadMap().begin()->second;
         }
-        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, selectedThread,
+        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, SelectedThread,
                                                                                  topology().instructionCacheSize());
-        log::warn() << "Using function " << selectedFunctionName << " as fallback.\n"
+        log::warn() << "Using function " << SelectedFunctionName << " as fallback.\n"
                     << "You can use the parameter --function to try other "
                        "functions.";
         return EXIT_SUCCESS;
@@ -124,68 +123,68 @@ auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
   return EXIT_FAILURE;
 }
 
-int X86Environment::selectInstructionGroups(std::string groups) {
-  const std::string delimiter = ",";
-  const std::regex re("^(\\w+):(\\d+)$");
-  const auto availableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
+auto X86Environment::selectInstructionGroups(std::string Groups) -> int {
+  const std::string Delimiter = ",";
+  const std::regex Re("^(\\w+):(\\d+)$");
+  const auto AvailableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
 
-  std::stringstream ss(groups);
-  std::vector<std::pair<std::string, unsigned>> payloadSettings = {};
+  std::stringstream Ss(Groups);
+  std::vector<std::pair<std::string, unsigned>> PayloadSettings = {};
 
-  while (ss.good()) {
-    std::string token;
-    std::smatch m;
-    std::getline(ss, token, ',');
+  while (Ss.good()) {
+    std::string Token;
+    std::smatch M;
+    std::getline(Ss, Token, ',');
 
-    if (std::regex_match(token, m, re)) {
-      if (std::find(availableInstructionGroups.begin(), availableInstructionGroups.end(), m[1].str()) ==
-          availableInstructionGroups.end()) {
-        log::error() << "Invalid instruction-group: " << m[1].str()
+    if (std::regex_match(Token, M, Re)) {
+      if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==
+          AvailableInstructionGroups.end()) {
+        log::error() << "Invalid instruction-group: " << M[1].str()
                      << "\n       --run-instruction-groups format: multiple INST:VAL "
                         "pairs comma-seperated";
         return EXIT_FAILURE;
       }
-      int num = std::stoul(m[2].str());
-      if (num == 0) {
+      int Num = std::stoul(M[2].str());
+      if (Num == 0) {
         log::error() << "instruction-group VAL may not contain number 0"
                      << "\n       --run-instruction-groups format: multiple INST:VAL "
                         "pairs comma-seperated";
         return EXIT_FAILURE;
       }
-      payloadSettings.push_back(std::make_pair(m[1].str(), num));
+      PayloadSettings.emplace_back(M[1].str(), Num);
     } else {
-      log::error() << "Invalid symbols in instruction-group: " << token
+      log::error() << "Invalid symbols in instruction-group: " << Token
                    << "\n       --run-instruction-groups format: multiple INST:VAL "
                       "pairs comma-seperated";
       return EXIT_FAILURE;
     }
   }
 
-  selectedConfig().setPayloadSettings(payloadSettings);
+  selectedConfig().setPayloadSettings(PayloadSettings);
 
-  log::info() << "  Running custom instruction group: " << groups;
+  log::info() << "  Running custom instruction group: " << Groups;
 
   return EXIT_SUCCESS;
 }
 
 void X86Environment::printAvailableInstructionGroups() {
-  std::stringstream ss;
+  std::stringstream Ss;
 
-  for (auto const& item : selectedConfig().platformConfig().payload().getAvailableInstructions()) {
-    ss << item << ",";
+  for (auto const& Item : selectedConfig().platformConfig().payload().getAvailableInstructions()) {
+    Ss << Item << ",";
   }
 
-  auto s = ss.str();
-  if (s.size() > 0) {
-    s.pop_back();
+  auto S = Ss.str();
+  if (S.size() > 0) {
+    S.pop_back();
   }
 
   log::info() << " available instruction-groups for payload " << selectedConfig().platformConfig().payload().name()
               << ":\n"
-              << "  " << s;
+              << "  " << S;
 }
 
-void X86Environment::setLineCount(unsigned lineCount) { selectedConfig().setLineCount(lineCount); }
+void X86Environment::setLineCount(unsigned LineCount) { selectedConfig().setLineCount(LineCount); }
 
 void X86Environment::printSelectedCodePathSummary() { selectedConfig().printCodePathSummary(); }
 
@@ -198,19 +197,19 @@ void X86Environment::printFunctionSummary() {
                  "-------------------------------------------------------------"
                  "-----------------------------";
 
-  unsigned id = 1;
+  unsigned Id = 1;
 
-  for (auto const& config : PlatformConfigs) {
-    for (auto const& [thread, functionName] : config->getThreadMap()) {
-      const char* available = config->isAvailable() ? "yes" : "no";
-      const char* fmt = "  %4u | %-30s | %-24s | %s";
-      int sz = std::snprintf(nullptr, 0, fmt, id, functionName.c_str(), available,
-                             config->getDefaultPayloadSettingsString().c_str());
-      std::vector<char> buf(sz + 1);
-      std::snprintf(&buf[0], buf.size(), fmt, id, functionName.c_str(), available,
-                    config->getDefaultPayloadSettingsString().c_str());
-      log::info() << std::string(&buf[0]);
-      id++;
+  for (auto const& Config : PlatformConfigs) {
+    for (auto const& [thread, functionName] : Config->getThreadMap()) {
+      const char* Available = Config->isAvailable() ? "yes" : "no";
+      const char* Fmt = "  %4u | %-30s | %-24s | %s";
+      int Sz = std::snprintf(nullptr, 0, Fmt, Id, functionName.c_str(), Available,
+                             Config->getDefaultPayloadSettingsString().c_str());
+      std::vector<char> Buf(Sz + 1);
+      std::snprintf(Buf.data(), Buf.size(), Fmt, Id, functionName.c_str(), Available,
+                    Config->getDefaultPayloadSettingsString().c_str());
+      log::info() << std::string(Buf.data());
+      Id++;
     }
   }
 }

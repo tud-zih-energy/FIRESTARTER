@@ -28,48 +28,48 @@ extern "C" {
 #include <firestarter/Measurement/MetricInterface.h>
 }
 
-static std::string errorString = "";
+static std::string ErrorString;
 
-static void (*callback)(void*, const char*, int64_t, double) = nullptr;
-static void* callback_arg = nullptr;
+static void (*Callback)(void*, const char*, int64_t, double) = nullptr;
+static void* CallbackArg = nullptr;
 
-static int32_t fini(void) {
-  callback = nullptr;
-  callback_arg = nullptr;
-
-  return EXIT_SUCCESS;
-}
-
-static int32_t init(void) {
-  errorString = "";
+static auto fini() -> int32_t {
+  Callback = nullptr;
+  CallbackArg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
-static const char* get_error(void) {
-  const char* errorCString = errorString.c_str();
-  return errorCString;
+static auto init() -> int32_t {
+  ErrorString = "";
+
+  return EXIT_SUCCESS;
 }
 
-static int32_t register_insert_callback(void (*c)(void*, const char*, int64_t, double), void* arg) {
-  callback = c;
-  callback_arg = arg;
+static auto getError() -> const char* {
+  const char* ErrorCString = ErrorString.c_str();
+  return ErrorCString;
+}
+
+static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t {
+  Callback = C;
+  CallbackArg = Arg;
   return EXIT_SUCCESS;
 }
 
 void ipcEstimateMetricInsert(double Value) {
-  if (callback == nullptr || callback_arg == nullptr) {
+  if (Callback == nullptr || CallbackArg == nullptr) {
     return;
   }
 
-  int64_t t =
+  int64_t T =
       std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
           .count();
 
-  callback(callback_arg, "ipc-estimate", t, Value);
+  Callback(CallbackArg, "ipc-estimate", T, Value);
 }
 
-MetricInterface IpcEstimateMetric = {
+const MetricInterface IpcEstimateMetric = {
     .Name = "ipc-estimate",
     .Type = {.Absolute = 1,
              .Accumalative = 0,
@@ -83,6 +83,6 @@ MetricInterface IpcEstimateMetric = {
     .Init = init,
     .Fini = fini,
     .GetReading = nullptr,
-    .GetError = get_error,
-    .RegisterInsertCallback = register_insert_callback,
+    .GetError = getError,
+    .RegisterInsertCallback = registerInsertCallback,
 };

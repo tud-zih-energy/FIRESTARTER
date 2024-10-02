@@ -20,423 +20,420 @@
  *****************************************************************************/
 
 #include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
-#include <firestarter/Logging/Log.hpp>
 
-#include <iterator>
-#include <utility>
+namespace firestarter::environment::x86::payload {
 
-using namespace firestarter::environment::x86::payload;
-using namespace asmjit;
-using namespace asmjit::x86;
+auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                 unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                 unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                 bool ErrorDetection) -> int {
+  using namespace asmjit;
+  using namespace asmjit::x86;
 
-int SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& proportion,
-                                unsigned instructionCacheSize, std::list<unsigned> const& dataCacheBufferSize,
-                                unsigned ramBufferSize, unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-                                bool errorDetection) {
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
-  auto sequence = this->generateSequence(proportion);
-  auto repetitions = this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
+  auto Sequence = generateSequence(Proportion);
+  auto Repetitions = getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Thread);
 
   // compute count of flops and memory access for performance report
-  unsigned flops = 0;
-  unsigned bytes = 0;
+  Flops = 0;
+  Bytes = 0;
 
-  for (const auto& item : sequence) {
-    auto it = this->InstructionFlops.find(item);
+  for (const auto& Item : Sequence) {
+    auto It = InstructionFlops.find(Item);
 
-    if (it == this->InstructionFlops.end()) {
-      workerLog::error() << "Instruction group " << item << " undefined in " << name() << ".";
+    if (It == InstructionFlops.end()) {
+      workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
       return EXIT_FAILURE;
     }
 
-    flops += it->second;
+    Flops += It->second;
 
-    it = this->InstructionMemory.find(item);
+    It = InstructionMemory.find(Item);
 
-    if (it != this->InstructionMemory.end()) {
-      bytes += it->second;
+    if (It != InstructionMemory.end()) {
+      Bytes += It->second;
     }
   }
 
-  this->Flops = repetitions * flops;
-  this->Bytes = repetitions * bytes;
-  this->Instructions = repetitions * sequence.size() * 2 + 4;
+  Flops *= Repetitions;
+  Bytes *= Repetitions;
+  Instructions = Repetitions * Sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
-  auto l1i_cache_size = instructionCacheSize / thread;
-  auto dataCacheBufferSizeIterator = dataCacheBufferSize.begin();
-  auto l1_size = *dataCacheBufferSizeIterator / thread;
-  std::advance(dataCacheBufferSizeIterator, 1);
-  auto l2_size = *dataCacheBufferSizeIterator / thread;
-  std::advance(dataCacheBufferSizeIterator, 1);
-  auto l3_size = *dataCacheBufferSizeIterator / thread;
-  auto ram_size = ramBufferSize / thread;
+  const auto L1iCacheSize = InstructionCacheSize / Thread;
+  auto DataCacheBufferSizeIterator = DataCacheBufferSize.begin();
+  const auto L1Size = *DataCacheBufferSizeIterator / Thread;
+  std::advance(DataCacheBufferSizeIterator, 1);
+  const auto L2Size = *DataCacheBufferSizeIterator / Thread;
+  std::advance(DataCacheBufferSizeIterator, 1);
+  const auto L3Size = *DataCacheBufferSizeIterator / Thread;
+  const auto RamSize = RamBufferSize / Thread;
 
   // calculate the reset counters for the buffers
-  auto l2_loop_count = getL2LoopCount(sequence, numberOfLines, l2_size * thread, thread);
-  auto l3_loop_count = getL3LoopCount(sequence, numberOfLines, l3_size * thread, thread);
-  auto ram_loop_count = getRAMLoopCount(sequence, numberOfLines, ram_size * thread, thread);
+  const auto L2LoopCount = getL2LoopCount(Sequence, NumberOfLines, L2Size * Thread, Thread);
+  const auto L3LoopCount = getL3LoopCount(Sequence, NumberOfLines, L3Size * Thread, Thread);
+  const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
-  CodeHolder code;
-  code.init(this->Rt.environment());
+  CodeHolder Code;
+  Code.init(Rt.environment());
 
-  if (nullptr != this->LoadFunction) {
-    this->Rt.release(&this->LoadFunction);
+  if (nullptr != LoadFunction) {
+    Rt.release(&LoadFunction);
   }
 
-  Builder cb(&code);
-  cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
+  Builder Cb(&Code);
+  Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
                           asmjit::DiagnosticOptions::kValidateIntermediate);
 
-  auto pointer_reg = rax;
-  auto l1_addr = rbx;
-  auto l2_addr = rcx;
-  auto l3_addr = rdx;
-  auto ram_addr = rdi;
-  auto l2_count_reg = r8;
-  auto l3_count_reg = r9;
-  auto ram_count_reg = r10;
-  auto temp_reg = r11;
-  auto temp_reg2 = rbp;
-  auto offset_reg = r12;
-  auto addrHigh_reg = r13;
-  auto iter_reg = r14;
-  auto mov_regs = 0;
-  auto add_regs = 14;
-  auto trans_regs = 2;
+  const auto PointerReg = rax;
+  const auto L1Addr = rbx;
+  const auto L2Addr = rcx;
+  const auto L3Addr = rdx;
+  const auto RamAddr = rdi;
+  const auto L2CountReg = r8;
+  const auto L3CountReg = r9;
+  const auto RamCountReg = r10;
+  const auto TempReg = r11;
+  const auto TempReg2 = rbp;
+  const auto OffsetReg = r12;
+  const auto AddrHighReg = r13;
+  const auto IterReg = r14;
+  const auto MovRegs = 0;
+  const auto AddRegs = 14;
+  const auto TransRegs = 2;
 
-  FuncDetail func;
-  func.init(FuncSignatureT<uint64_t, uint64_t>(CallConvId::kCDecl), this->Rt.environment());
+  FuncDetail Func;
+  Func.init(FuncSignatureT<uint64_t, uint64_t>(CallConvId::kCDecl), Rt.environment());
 
-  FuncFrame frame;
-  frame.init(func);
+  FuncFrame Frame;
+  Frame.init(Func);
 
   // make xmm registers dirty
-  for (int i = 0; i < 16; i++) {
-    frame.addDirtyRegs(Xmm(i));
+  for (int I = 0; I < 16; I++) {
+    Frame.addDirtyRegs(Xmm(I));
   }
   // make mmx registers dirty
-  for (int i = 0; i < 8; i++) {
-    frame.addDirtyRegs(Mm(i));
+  for (int I = 0; I < 8; I++) {
+    Frame.addDirtyRegs(Mm(I));
   }
   // make all other used registers dirty except RAX
-  frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg, l3_count_reg, ram_count_reg, temp_reg,
-                     temp_reg2, offset_reg, addrHigh_reg, iter_reg);
+  Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
+                     AddrHighReg, IterReg);
 
-  FuncArgsAssignment args(&func);
-  args.assignAll(pointer_reg, addrHigh_reg, iter_reg);
-  args.updateFuncFrame(frame);
-  frame.finalize();
+  FuncArgsAssignment Args(&Func);
+  Args.assignAll(PointerReg, AddrHighReg, IterReg);
+  Args.updateFuncFrame(Frame);
+  Frame.finalize();
 
-  cb.emitProlog(frame);
-  cb.emitArgsAssignment(frame, args);
+  Cb.emitProlog(Frame);
+  Cb.emitArgsAssignment(Frame, Args);
 
   // stop right away if low load is selected
-  auto FunctionExit = cb.newLabel();
+  auto FunctionExit = Cb.newLabel();
 
-  cb.mov(temp_reg, ptr_64(addrHigh_reg));
-  cb.test(temp_reg, temp_reg);
-  cb.jz(FunctionExit);
+  Cb.mov(TempReg, ptr_64(AddrHighReg));
+  Cb.test(TempReg, TempReg);
+  Cb.jz(FunctionExit);
 
-  cb.mov(offset_reg,
+  Cb.mov(OffsetReg,
          Imm(64)); // increment after each cache/memory access
 
   // Initialize SSE-Registers for Addition
-  auto add_start = 0;
-  auto add_end = add_regs - 1;
-  auto trans_start = add_regs;
-  auto trans_end = add_regs + trans_regs - 1;
-  if (add_regs > 0) {
-    for (int i = add_start; i <= add_end; i++) {
-      cb.movapd(Xmm(i), xmmword_ptr(pointer_reg, 32 * i));
+  const auto AddStart = 0;
+  const auto AddEnd = AddRegs - 1;
+  const auto TransStart = AddRegs;
+  const auto TransEnd = AddRegs + TransRegs - 1;
+  if (AddRegs > 0) {
+    for (int I = AddStart; I <= AddEnd; I++) {
+      Cb.movapd(Xmm(I), xmmword_ptr(PointerReg, 32 * I));
     }
   }
 
   // Initialize MMX-Registers for shift operations
-  auto mov_start = 0;
-  auto mov_end = mov_regs - 1;
-  if (mov_regs > 0) {
-    cb.mov(temp_reg, Imm(0x5555555555555555));
-    cb.movq(Mm(mov_start), temp_reg);
-    for (int i = mov_start + 1; i <= mov_end; i++) {
-      cb.movq(Mm(i), Mm(mov_start));
+  const auto MovStart = 0;
+  const auto MovEnd = MovRegs - 1;
+  if (MovRegs > 0) {
+    Cb.mov(TempReg, Imm(0x5555555555555555));
+    Cb.movq(Mm(MovStart), TempReg);
+    for (int I = MovStart + 1; I <= MovEnd; I++) {
+      Cb.movq(Mm(I), Mm(MovStart));
     }
   }
 
   // Initialize SSE-Registers for Transfer-Operations
-  if (trans_regs > 0) {
-    if (trans_start % 2 == 0) {
-      cb.mov(temp_reg, Imm(0x0F0F0F0F0F0F0F0F));
+  if (TransRegs > 0) {
+    if (TransStart % 2 == 0) {
+      Cb.mov(TempReg, Imm(0x0F0F0F0F0F0F0F0F));
     } else {
-      cb.mov(temp_reg, Imm(0xF0F0F0F0F0F0F0F0));
+      Cb.mov(TempReg, Imm(0xF0F0F0F0F0F0F0F0));
     }
-    cb.pinsrq(Xmm(trans_start), temp_reg, Imm(0));
-    cb.pinsrq(Xmm(trans_start), temp_reg, Imm(1));
-    for (int i = trans_start + 1; i <= trans_end; i++) {
-      if (i % 2 == 0) {
-        cb.shr(temp_reg, Imm(4));
+    Cb.pinsrq(Xmm(TransStart), TempReg, Imm(0));
+    Cb.pinsrq(Xmm(TransStart), TempReg, Imm(1));
+    for (int I = TransStart + 1; I <= TransEnd; I++) {
+      if (I % 2 == 0) {
+        Cb.shr(TempReg, Imm(4));
       } else {
-        cb.shl(temp_reg, Imm(4));
+        Cb.shl(TempReg, Imm(4));
       }
-      cb.pinsrq(Xmm(i), temp_reg, Imm(0));
-      cb.pinsrq(Xmm(i), temp_reg, Imm(1));
+      Cb.pinsrq(Xmm(I), TempReg, Imm(0));
+      Cb.pinsrq(Xmm(I), TempReg, Imm(1));
     }
   }
 
-  cb.mov(l1_addr, pointer_reg); // address for L1-buffer
-  cb.mov(l2_addr, pointer_reg);
-  cb.add(l2_addr, Imm(l1_size)); // address for L2-buffer
-  cb.mov(l3_addr, pointer_reg);
-  cb.add(l3_addr, Imm(l2_size)); // address for L3-buffer
-  cb.mov(ram_addr, pointer_reg);
-  cb.add(ram_addr, Imm(l3_size)); // address for RAM-buffer
-  cb.mov(l2_count_reg, Imm(l2_loop_count));
-  workerLog::trace() << "reset counter for L2-buffer with " << l2_loop_count << " cache line accesses per loop ("
-                     << l2_size / 1024 << ") KiB";
-  cb.mov(l3_count_reg, Imm(l3_loop_count));
-  workerLog::trace() << "reset counter for L3-buffer with " << l3_loop_count << " cache line accesses per loop ("
-                     << l3_size / 1024 << ") KiB";
-  cb.mov(ram_count_reg, Imm(ram_loop_count));
-  workerLog::trace() << "reset counter for RAM-buffer with " << ram_loop_count << " cache line accesses per loop ("
-                     << ram_size / 1024 << ") KiB";
+  Cb.mov(L1Addr, PointerReg); // address for L1-buffer
+  Cb.mov(L2Addr, PointerReg);
+  Cb.add(L2Addr, Imm(L1Size)); // address for L2-buffer
+  Cb.mov(L3Addr, PointerReg);
+  Cb.add(L3Addr, Imm(L2Size)); // address for L3-buffer
+  Cb.mov(RamAddr, PointerReg);
+  Cb.add(RamAddr, Imm(L3Size)); // address for RAM-buffer
+  Cb.mov(L2CountReg, Imm(L2LoopCount));
+  workerLog::trace() << "reset counter for L2-buffer with " << L2LoopCount << " cache line accesses per loop ("
+                     << L2Size / 1024 << ") KiB";
+  Cb.mov(L3CountReg, Imm(L3LoopCount));
+  workerLog::trace() << "reset counter for L3-buffer with " << L3LoopCount << " cache line accesses per loop ("
+                     << L3Size / 1024 << ") KiB";
+  Cb.mov(RamCountReg, Imm(RamLoopCount));
+  workerLog::trace() << "reset counter for RAM-buffer with " << RamLoopCount << " cache line accesses per loop ("
+                     << RamSize / 1024 << ") KiB";
 
-  cb.align(AlignMode::kCode, 64);
+  Cb.align(AlignMode::kCode, 64);
 
-  auto Loop = cb.newLabel();
-  cb.bind(Loop);
+  auto Loop = Cb.newLabel();
+  Cb.bind(Loop);
 
-  auto movq_dst = mov_start;
-  auto add_dest = add_start + 1;
-  auto mov_dst = trans_start;
-  auto mov_src = mov_dst + 1;
-  unsigned l1_offset = 0;
+  auto MovqDest = MovStart;
+  auto AddDest = AddStart + 1;
+  auto MovDest = TransStart;
+  auto MovSrc = MovDest + 1;
+  unsigned L1Offset = 0;
 
-#define L1_INCREMENT()                                                                                                 \
-  l1_offset += 64;                                                                                                     \
-  if (l1_offset < l1_size * 0.5) {                                                                                     \
-    cb.add(l1_addr, offset_reg);                                                                                       \
-  } else {                                                                                                             \
-    l1_offset = 0;                                                                                                     \
-    cb.mov(l1_addr, pointer_reg);                                                                                      \
-  }
+  const auto L1Increment = [&Cb, &L1Offset, &L1Size, &L1Addr, &OffsetReg, &PointerReg]() {
+    L1Offset += 64;
+    if (L1Offset < L1Size * 0.5) {
+      Cb.add(L1Addr, OffsetReg);
+    } else {
+      L1Offset = 0;
+      Cb.mov(L1Addr, PointerReg);
+    }
+  };
+  const auto L2Increment = [&Cb, &L2Addr, &OffsetReg]() { Cb.add(L2Addr, OffsetReg); };
+  const auto L3Increment = [&Cb, &L3Addr, &OffsetReg]() { Cb.add(L3Addr, OffsetReg); };
+  const auto RamIncrement = [&Cb, &RamAddr, &OffsetReg]() { Cb.add(RamAddr, OffsetReg); };
 
-#define L2_INCREMENT() cb.add(l2_addr, offset_reg);
-
-#define L3_INCREMENT() cb.add(l3_addr, offset_reg)
-
-#define RAM_INCREMENT() cb.add(ram_addr, offset_reg)
-
-  for (unsigned count = 0; count < repetitions; count++) {
-    for (const auto& item : sequence) {
-      if (item == "REG") {
-        cb.addpd(Xmm(add_dest), Xmm(add_start + (add_dest - add_start + add_regs + 1) % add_regs));
-        cb.movdqa(Xmm(mov_dst), Xmm(mov_src));
-      } else if (item == "L1_L") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
-        L1_INCREMENT();
-      } else if (item == "L1_S") {
-        cb.addpd(Xmm(add_dest), Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.movapd(xmmword_ptr(l1_addr, 32), Xmm(add_dest));
-        L1_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L1_LS") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
-        cb.movapd(xmmword_ptr(l1_addr, 64), Xmm(add_dest));
-        L1_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L2_L") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
-        L2_INCREMENT();
-      } else if (item == "L2_S") {
-        cb.addpd(Xmm(add_dest), Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.movapd(xmmword_ptr(l2_addr, 64), Xmm(add_dest));
-        L2_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L2_LS") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l2_addr, 64));
-        cb.movapd(xmmword_ptr(l2_addr, 96), Xmm(add_dest));
-        L2_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L3_L") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
-        L3_INCREMENT();
-      } else if (item == "L3_S") {
-        cb.addpd(Xmm(add_dest), Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
-        L3_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L3_LS") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
-        cb.movapd(xmmword_ptr(l3_addr, 96), Xmm(add_dest));
-        L3_INCREMENT();
-        this->Instructions++;
-      } else if (item == "L3_P") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
-        cb.prefetcht0(ptr(l3_addr));
-        L3_INCREMENT();
-        this->Instructions++;
-      } else if (item == "RAM_L") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(ram_addr, 64));
-        RAM_INCREMENT();
-      } else if (item == "RAM_S") {
-        cb.addpd(Xmm(add_dest), Xmm(add_start + (add_dest - add_start + add_regs - 1) % add_regs));
-        cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
-        RAM_INCREMENT();
-        this->Instructions++;
-      } else if (item == "RAM_LS") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l3_addr, 64));
-        cb.movapd(xmmword_ptr(ram_addr, 64), Xmm(add_dest));
-        RAM_INCREMENT();
-        this->Instructions++;
-      } else if (item == "RAM_P") {
-        cb.addpd(Xmm(add_dest), xmmword_ptr(l1_addr, 32));
-        cb.prefetcht2(ptr(ram_addr));
-        RAM_INCREMENT();
-        this->Instructions++;
+  for (unsigned Count = 0; Count < Repetitions; Count++) {
+    for (const auto& Item : Sequence) {
+      if (Item == "REG") {
+        Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
+        Cb.movdqa(Xmm(MovDest), Xmm(MovSrc));
+      } else if (Item == "L1_L") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
+        L1Increment();
+      } else if (Item == "L1_S") {
+        Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
+        Cb.movapd(xmmword_ptr(L1Addr, 32), Xmm(AddDest));
+        L1Increment();
+        Instructions++;
+      } else if (Item == "L1_LS") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
+        Cb.movapd(xmmword_ptr(L1Addr, 64), Xmm(AddDest));
+        L1Increment();
+        Instructions++;
+      } else if (Item == "L2_L") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L2Addr, 64));
+        L2Increment();
+      } else if (Item == "L2_S") {
+        Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
+        Cb.movapd(xmmword_ptr(L2Addr, 64), Xmm(AddDest));
+        L2Increment();
+        Instructions++;
+      } else if (Item == "L2_LS") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L2Addr, 64));
+        Cb.movapd(xmmword_ptr(L2Addr, 96), Xmm(AddDest));
+        L2Increment();
+        Instructions++;
+      } else if (Item == "L3_L") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
+        L3Increment();
+      } else if (Item == "L3_S") {
+        Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
+        Cb.movapd(xmmword_ptr(L3Addr, 96), Xmm(AddDest));
+        L3Increment();
+        Instructions++;
+      } else if (Item == "L3_LS") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
+        Cb.movapd(xmmword_ptr(L3Addr, 96), Xmm(AddDest));
+        L3Increment();
+        Instructions++;
+      } else if (Item == "L3_P") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
+        Cb.prefetcht0(ptr(L3Addr));
+        L3Increment();
+        Instructions++;
+      } else if (Item == "RAM_L") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(RamAddr, 64));
+        RamIncrement();
+      } else if (Item == "RAM_S") {
+        Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
+        Cb.movapd(xmmword_ptr(RamAddr, 64), Xmm(AddDest));
+        RamIncrement();
+        Instructions++;
+      } else if (Item == "RAM_LS") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
+        Cb.movapd(xmmword_ptr(RamAddr, 64), Xmm(AddDest));
+        RamIncrement();
+        Instructions++;
+      } else if (Item == "RAM_P") {
+        Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
+        Cb.prefetcht2(ptr(RamAddr));
+        RamIncrement();
+        Instructions++;
       } else {
-        workerLog::error() << "Instruction group " << item << " not found in " << this->name() << ".";
+        workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
         return EXIT_FAILURE;
       }
 
-      if (mov_regs > 0) {
-        this->Instructions++;
-        cb.movq(Mm(mov_start + (movq_dst - mov_start + mov_regs - 1) % mov_regs), Mm(movq_dst));
+      if (MovRegs > 0) {
+        Instructions++;
+        Cb.movq(Mm(MovStart + ((MovqDest - MovStart + MovRegs - 1) % MovRegs)), Mm(MovqDest));
       }
 
-      add_dest++;
-      if (add_dest > add_end) {
+      AddDest++;
+      if (AddDest > AddEnd) {
         // DO NOT REMOVE the + 1. It serves for the good of ymm0. If it was to
         // be overriden, the values in the other registers would rise up to inf.
-        add_dest = add_start + 1;
+        AddDest = AddStart + 1;
       }
-      mov_dst++;
-      if (mov_dst > trans_end) {
-        mov_dst = trans_start;
+      MovDest++;
+      if (MovDest > TransEnd) {
+        MovDest = TransStart;
       }
-      mov_src++;
-      if (mov_src > trans_end) {
-        mov_src = trans_start;
+      MovSrc++;
+      if (MovSrc > TransEnd) {
+        MovSrc = TransStart;
       }
-      if (mov_regs > 0) {
-        movq_dst++;
-        if (movq_dst > mov_end) {
-          movq_dst = mov_start;
+      if (MovRegs > 0) {
+        MovqDest++;
+        if (MovqDest > MovEnd) {
+          MovqDest = MovStart;
         }
       }
     }
   }
 
-  if (this->getRAMSequenceCount(sequence) > 0) {
+  if (getRAMSequenceCount(Sequence) > 0) {
     // reset RAM counter
-    auto NoRamReset = cb.newLabel();
+    auto NoRamReset = Cb.newLabel();
 
-    cb.sub(ram_count_reg, Imm(1));
-    cb.jnz(NoRamReset);
-    cb.mov(ram_count_reg, Imm(ram_loop_count));
-    cb.mov(ram_addr, pointer_reg);
-    cb.add(ram_addr, Imm(l3_size));
-    cb.bind(NoRamReset);
+    Cb.sub(RamCountReg, Imm(1));
+    Cb.jnz(NoRamReset);
+    Cb.mov(RamCountReg, Imm(RamLoopCount));
+    Cb.mov(RamAddr, PointerReg);
+    Cb.add(RamAddr, Imm(L3Size));
+    Cb.bind(NoRamReset);
     // adds always two instruction
-    this->Instructions += 2;
+    Instructions += 2;
   }
-  if (this->getL2SequenceCount(sequence) > 0) {
+  if (getL2SequenceCount(Sequence) > 0) {
     // reset L2-Cache counter
-    auto NoL2Reset = cb.newLabel();
+    auto NoL2Reset = Cb.newLabel();
 
-    cb.sub(l2_count_reg, Imm(1));
-    cb.jnz(NoL2Reset);
-    cb.mov(l2_count_reg, Imm(l2_loop_count));
-    cb.mov(l2_addr, pointer_reg);
-    cb.add(l2_addr, Imm(l1_size));
-    cb.bind(NoL2Reset);
+    Cb.sub(L2CountReg, Imm(1));
+    Cb.jnz(NoL2Reset);
+    Cb.mov(L2CountReg, Imm(L2LoopCount));
+    Cb.mov(L2Addr, PointerReg);
+    Cb.add(L2Addr, Imm(L1Size));
+    Cb.bind(NoL2Reset);
     // adds always two instruction
-    this->Instructions += 2;
+    Instructions += 2;
   }
-  if (this->getL3SequenceCount(sequence) > 0) {
+  if (getL3SequenceCount(Sequence) > 0) {
     // reset L3-Cache counter
-    auto NoL3Reset = cb.newLabel();
+    auto NoL3Reset = Cb.newLabel();
 
-    cb.sub(l3_count_reg, Imm(1));
-    cb.jnz(NoL3Reset);
-    cb.mov(l3_count_reg, Imm(l3_loop_count));
-    cb.mov(l3_addr, pointer_reg);
-    cb.add(l3_addr, Imm(l2_size));
-    cb.bind(NoL3Reset);
+    Cb.sub(L3CountReg, Imm(1));
+    Cb.jnz(NoL3Reset);
+    Cb.mov(L3CountReg, Imm(L3LoopCount));
+    Cb.mov(L3Addr, PointerReg);
+    Cb.add(L3Addr, Imm(L2Size));
+    Cb.bind(NoL3Reset);
     // adds always two instruction
-    this->Instructions += 2;
+    Instructions += 2;
   }
-  cb.inc(iter_reg); // increment iteration counter
-  cb.mov(l1_addr, pointer_reg);
+  Cb.inc(IterReg); // increment iteration counter
+  Cb.mov(L1Addr, PointerReg);
 
-  if (dumpRegisters) {
-    auto SkipRegistersDump = cb.newLabel();
+  if (DumpRegisters) {
+    auto SkipRegistersDump = Cb.newLabel();
 
-    cb.test(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
-    cb.jnz(SkipRegistersDump);
+    Cb.test(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
+    Cb.jnz(SkipRegistersDump);
 
     // dump all the xmm register
-    for (int i = 0; i < (int)this->registerCount(); i++) {
-      cb.movapd(xmmword_ptr(pointer_reg, -64 - this->registerSize() * 8 * (i + 1)), Xmm(i));
+    for (unsigned I = 0; I < registerCount(); I++) {
+      Cb.movapd(xmmword_ptr(PointerReg, -64 - (registerSize() * 8 * (I + 1))), Xmm(I));
     }
 
     // set read flag
-    cb.mov(ptr_64(pointer_reg, -8), Imm(firestarter::DumpVariable::Wait));
+    Cb.mov(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
 
-    cb.bind(SkipRegistersDump);
+    Cb.bind(SkipRegistersDump);
   }
 
-  if (errorDetection) {
-    this->emitErrorDetectionCode<decltype(iter_reg), Xmm>(cb, iter_reg, addrHigh_reg, pointer_reg, temp_reg, temp_reg2);
+  if (ErrorDetection) {
+    emitErrorDetectionCode<decltype(IterReg), Xmm>(Cb, IterReg, AddrHighReg, PointerReg, TempReg, TempReg2);
   }
 
-  cb.test(ptr_64(addrHigh_reg), Imm(LOAD_HIGH));
-  cb.jnz(Loop);
+  Cb.test(ptr_64(AddrHighReg), Imm(LOAD_HIGH));
+  Cb.jnz(Loop);
 
-  cb.bind(FunctionExit);
+  Cb.bind(FunctionExit);
 
-  cb.mov(rax, iter_reg); // restore iteration counter
+  Cb.mov(rax, IterReg); // restore iteration counter
 
-  cb.emitEpilog(frame);
+  Cb.emitEpilog(Frame);
 
-  cb.finalize();
+  Cb.finalize();
 
   // String sb;
   // cb.dump(sb);
 
-  Error err = this->Rt.add(&this->LoadFunction, &code);
-  if (err) {
+  Error Err = Rt.add(&LoadFunction, &Code);
+  if (Err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;
   }
 
   // skip if we could not determine cache size
-  if (l1i_cache_size != 0) {
-    auto loopSize = code.labelOffset(FunctionExit) - code.labelOffset(Loop);
-    auto instructionCachePercentage = 100 * loopSize / l1i_cache_size;
+  if (L1iCacheSize != 0) {
+    auto LoopSize = Code.labelOffset(FunctionExit) - Code.labelOffset(Loop);
+    auto InstructionCachePercentage = 100 * LoopSize / L1iCacheSize;
 
-    if (loopSize > l1i_cache_size) {
+    if (LoopSize > L1iCacheSize) {
       workerLog::warn() << "Work-loop is bigger than the L1i-Cache.";
     }
 
-    workerLog::trace() << "Using " << loopSize << " of " << l1i_cache_size << " Bytes (" << instructionCachePercentage
+    workerLog::trace() << "Using " << LoopSize << " of " << L1iCacheSize << " Bytes (" << InstructionCachePercentage
                        << "%) from the L1i-Cache for the work-loop.";
-    workerLog::trace() << "Sequence size: " << sequence.size();
-    workerLog::trace() << "Repetition count: " << repetitions;
+    workerLog::trace() << "Sequence size: " << Sequence.size();
+    workerLog::trace() << "Repetition count: " << Repetitions;
   }
 
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> SSE2Payload::getAvailableInstructions() const {
-  std::list<std::string> instructions;
+auto SSE2Payload::getAvailableInstructions() const -> std::list<std::string> {
+  std::list<std::string> Instructions;
 
-  transform(this->InstructionFlops.begin(), this->InstructionFlops.end(), back_inserter(instructions),
-            [](const auto& item) { return item.first; });
+  transform(InstructionFlops.begin(), InstructionFlops.end(), back_inserter(Instructions),
+            [](const auto& Item) { return Item.first; });
 
-  return instructions;
+  return Instructions;
 }
 
-void SSE2Payload::init(uint64_t* memoryAddr, uint64_t bufferSize) {
-  X86Payload::init(memoryAddr, bufferSize, 1.654738925401e-10, 1.654738925401e-15);
+void SSE2Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize) {
+  X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
+
+} // namespace firestarter::environment::x86::payload

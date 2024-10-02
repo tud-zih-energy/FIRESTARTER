@@ -28,10 +28,10 @@
 #include <SCOREP_User.h>
 #endif
 
-using namespace firestarter;
+namespace firestarter {
 
-int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::microseconds load,
-                                std::chrono::seconds timeout) {
+auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
+                                 std::chrono::seconds Timeout) -> int {
 
   using clock = std::chrono::high_resolution_clock;
   using nsec = std::chrono::nanoseconds;
@@ -39,38 +39,38 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
   using sec = std::chrono::seconds;
 
   // calculate idle time to be the rest of the period
-  auto idle = period - load;
+  auto Idle = Period - Load;
 
   // elapsed time
-  nsec time(0);
+  nsec Time(0);
 
   // do no enter the loop if we do not have to set the load level periodically,
   // at 0 or 100 load.
-  if (period > usec::zero()) {
+  if (Period > usec::zero()) {
     // this first time is critical as the period will be alligend from this
     // point
-    std::chrono::time_point<clock> startTime = clock::now();
+    std::chrono::time_point<clock> StartTime = clock::now();
 
     // this loop will set the load level periodically.
     for (;;) {
-      std::chrono::time_point<clock> currentTime = clock::now();
+      std::chrono::time_point<clock> CurrentTime = clock::now();
 
       // get the time already advanced in the current timeslice
       // this can happen if a load function does not terminates just on time
-      nsec advance =
-          std::chrono::duration_cast<nsec>(currentTime - startTime) % std::chrono::duration_cast<nsec>(period);
+      nsec Advance =
+          std::chrono::duration_cast<nsec>(CurrentTime - StartTime) % std::chrono::duration_cast<nsec>(Period);
 
       // subtract the advaned time from our timeslice by spilting it based on
       // the load level
-      nsec load_reduction =
-          (std::chrono::duration_cast<nsec>(load).count() * advance) / std::chrono::duration_cast<nsec>(period).count();
-      nsec idle_reduction = advance - load_reduction;
+      nsec LoadReduction =
+          (std::chrono::duration_cast<nsec>(Load).count() * Advance) / std::chrono::duration_cast<nsec>(Period).count();
+      nsec IdleReduction = Advance - LoadReduction;
 
       // signal high load level
-      this->setLoad(LOAD_HIGH);
+      setLoad(LOAD_HIGH);
 
       // calculate values for nanosleep
-      nsec load_nsec = load - load_reduction;
+      nsec LoadNsec = Load - LoadReduction;
 
       // wait for time to be ellapsed with high load
 #ifdef ENABLE_VTRACING
@@ -80,11 +80,11 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
       {
-        std::unique_lock<std::mutex> lk(this->WatchdogTerminateMutex);
+        std::unique_lock<std::mutex> Lk(WatchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
-        this->WatchdogTerminateAlert.wait_for(lk, load_nsec, [this]() { return this->WatchdogTerminate; });
+        WatchdogTerminateAlert.wait_for(Lk, LoadNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
-        if (this->WatchdogTerminate) {
+        if (WatchdogTerminate) {
           return EXIT_SUCCESS;
         }
       }
@@ -96,10 +96,10 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
 #endif
 
       // signal low load
-      this->setLoad(LOAD_LOW);
+      setLoad(LOAD_LOW);
 
       // calculate values for nanosleep
-      nsec idle_nsec = idle - idle_reduction;
+      nsec IdleNsec = Idle - IdleReduction;
 
       // wait for time to be ellapsed with low load
 #ifdef ENABLE_VTRACING
@@ -109,11 +109,11 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
       SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
       {
-        std::unique_lock<std::mutex> lk(this->WatchdogTerminateMutex);
+        std::unique_lock<std::mutex> Lk(WatchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
-        this->WatchdogTerminateAlert.wait_for(lk, idle_nsec, [this]() { return this->WatchdogTerminate; });
+        WatchdogTerminateAlert.wait_for(Lk, IdleNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
-        if (this->WatchdogTerminate) {
+        if (WatchdogTerminate) {
           return EXIT_SUCCESS;
         }
       }
@@ -125,13 +125,13 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
 #endif
 
       // increment elapsed time
-      time += period;
+      Time += Period;
 
       // exit when termination signal is received or timeout is reached
       {
-        std::lock_guard<std::mutex> lk(this->WatchdogTerminateMutex);
-        if (this->WatchdogTerminate || (timeout > sec::zero() && (time > timeout))) {
-          this->setLoad(LOAD_STOP);
+        std::lock_guard<std::mutex> Lk(WatchdogTerminateMutex);
+        if (WatchdogTerminate || (Timeout > sec::zero() && (Time > Timeout))) {
+          setLoad(LOAD_STOP);
 
           return EXIT_SUCCESS;
         }
@@ -141,17 +141,19 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period, std::chrono::m
 
   // if timeout is set, sleep for this time and stop execution.
   // else return and wait for sigterm handler to request threads to stop.
-  if (timeout > sec::zero()) {
+  if (Timeout > sec::zero()) {
     {
-      std::unique_lock<std::mutex> lk(Firestarter::WatchdogTerminateMutex);
+      std::unique_lock<std::mutex> Lk(Firestarter::WatchdogTerminateMutex);
       // abort waiting if we get the interrupt signal
-      Firestarter::WatchdogTerminateAlert.wait_for(lk, timeout, []() { return Firestarter::WatchdogTerminate; });
+      Firestarter::WatchdogTerminateAlert.wait_for(Lk, Timeout, []() { return WatchdogTerminate; });
     }
 
-    this->setLoad(LOAD_STOP);
+    setLoad(LOAD_STOP);
 
     return EXIT_SUCCESS;
   }
 
   return EXIT_SUCCESS;
 }
+
+} // namespace firestarter

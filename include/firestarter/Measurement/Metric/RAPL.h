@@ -23,7 +23,12 @@
 
 #include "../MetricInterface.h"
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
-extern MetricInterface RaplMetric;
+extern const MetricInterface RaplMetric;
+
+#ifdef __cplusplus
 };
+#endif

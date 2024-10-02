@@ -31,66 +31,67 @@ extern "C" {
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#define PERF_EVENT_PARANOID "/proc/sys/kernel/perf_event_paranoid"
+static const std::string PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
 
-struct read_format {
-  uint64_t nr;
+struct ReadFormat {
+  uint64_t Nr;
   struct {
-    uint64_t value;
-    uint64_t id;
-  } values[2];
+    uint64_t Value;
+    uint64_t Id;
+  } Values[2];
 };
 
-static std::string errorString = "";
+static std::string ErrorString;
 
-static int cpu_cycles_fd = -1;
-static int instructions_fd = -1;
-static uint64_t cpu_cycles_id;
-static uint64_t instructions_id;
-static bool init_done = false;
-static int32_t init_value;
+static int CpuCyclesFd = -1;
+static int InstructionsFd = -1;
+static uint64_t CpuCyclesId;
+static uint64_t InstructionsId;
+static bool InitDone = false;
+static int32_t InitValue;
 
-static struct read_format last;
+static struct ReadFormat Last;
 
-static long perf_event_open(struct perf_event_attr* hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags) {
-  return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
+static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
+    -> long {
+  return syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags);
 }
 
-static int32_t fini(void) {
-  if (!(cpu_cycles_fd < 0)) {
-    close(cpu_cycles_fd);
-    cpu_cycles_fd = -1;
+static auto fini() -> int32_t {
+  if (!(CpuCyclesFd < 0)) {
+    close(CpuCyclesFd);
+    CpuCyclesFd = -1;
   }
-  if (!(instructions_fd < 0)) {
-    close(instructions_fd);
-    instructions_fd = -1;
+  if (!(InstructionsFd < 0)) {
+    close(InstructionsFd);
+    InstructionsFd = -1;
   }
-  init_done = false;
+  InitDone = false;
   return EXIT_SUCCESS;
 }
 
-static int32_t init(void) {
-  if (init_done) {
-    return init_value;
+static auto init() -> int32_t {
+  if (InitDone) {
+    return InitValue;
   }
 
-  if (access(PERF_EVENT_PARANOID, F_OK) == -1) {
+  if (access(PerfEventParanoidFile.c_str(), F_OK) == -1) {
     // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     // The official way of knowing if perf_event_open() support is enabled
     // is checking for the existence of the file
     // /proc/sys/kernel/perf_event_paranoid.
-    errorString = "syscall perf_event_open not supported or file " PERF_EVENT_PARANOID " does not exist";
-    init_value = EXIT_FAILURE;
-    init_done = true;
+    ErrorString = "syscall perf_event_open not supported or file " + PerfEventParanoidFile + " does not exist";
+    InitValue = EXIT_FAILURE;
+    InitDone = true;
     return EXIT_FAILURE;
   }
 
-  struct perf_event_attr cpu_cycles_attr;
-  std::memset(&cpu_cycles_attr, 0, sizeof(struct perf_event_attr));
-  cpu_cycles_attr.type = PERF_TYPE_HARDWARE;
-  cpu_cycles_attr.size = sizeof(struct perf_event_attr);
-  cpu_cycles_attr.config = PERF_COUNT_HW_CPU_CYCLES;
-  cpu_cycles_attr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  struct perf_event_attr CpuCyclesAttr {};
+  std::memset(&CpuCyclesAttr, 0, sizeof(struct perf_event_attr));
+  CpuCyclesAttr.type = PERF_TYPE_HARDWARE;
+  CpuCyclesAttr.size = sizeof(struct perf_event_attr);
+  CpuCyclesAttr.config = PERF_COUNT_HW_CPU_CYCLES;
+  CpuCyclesAttr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
   // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
   //     inherit
   // The inherit bit specifies that this counter should count
@@ -110,28 +111,28 @@ static int32_t init(void) {
   // changed the check
   // - if (attr->inherit && (attr->read_format & PERF_FORMAT_GROUP))
   // + if (attr->inherit && (attr->sample_type & PERF_SAMPLE_READ))
-  cpu_cycles_attr.inherit = 1;
-  cpu_cycles_attr.exclude_kernel = 1;
-  cpu_cycles_attr.exclude_hv = 1;
+  CpuCyclesAttr.inherit = 1;
+  CpuCyclesAttr.exclude_kernel = 1;
+  CpuCyclesAttr.exclude_hv = 1;
 
-  if ((cpu_cycles_fd = perf_event_open(&cpu_cycles_attr,
-                                       // pid == 0 and cpu == -1
-                                       // This measures the calling process/thread on any CPU.
-                                       0, -1,
-                                       // The group_fd argument allows event groups to be created.  An event
-                                       // group has one event which is the group leader.  The leader is
-                                       // created first, with group_fd = -1.  The rest of the group members
-                                       // are created with subsequent perf_event_open() calls with group_fd
-                                       // being set to the file descriptor of the group leader.
-                                       -1, 0)) < 0) {
+  if ((CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
+                                   // pid == 0 and cpu == -1
+                                   // This measures the calling process/thread on any CPU.
+                                   0, -1,
+                                   // The group_fd argument allows event groups to be created.  An event
+                                   // group has one event which is the group leader.  The leader is
+                                   // created first, with group_fd = -1.  The rest of the group members
+                                   // are created with subsequent perf_event_open() calls with group_fd
+                                   // being set to the file descriptor of the group leader.
+                                   -1, 0)) < 0) {
     fini();
-    errorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
-    init_value = EXIT_FAILURE;
-    init_done = true;
+    ErrorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
+    InitValue = EXIT_FAILURE;
+    InitDone = true;
     return EXIT_FAILURE;
   }
 
-  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_ID, &cpu_cycles_id);
+  ioctl(CpuCyclesFd, PERF_EVENT_IOC_ID, &CpuCyclesId);
 
   struct perf_event_attr instructions_attr;
   std::memset(&instructions_attr, 0, sizeof(struct perf_event_attr));
@@ -143,94 +144,94 @@ static int32_t init(void) {
   instructions_attr.exclude_kernel = 1;
   instructions_attr.exclude_hv = 1;
 
-  if ((instructions_fd = perf_event_open(&instructions_attr,
-                                         // pid == 0 and cpu == -1
-                                         // This measures the calling process/thread on any CPU.
-                                         0, -1,
-                                         // The group_fd argument allows event groups to be created.  An event
-                                         // group has one event which is the group leader.  The leader is
-                                         // created first, with group_fd = -1.  The rest of the group members
-                                         // are created with subsequent perf_event_open() calls with group_fd
-                                         // being set to the file descriptor of the group leader.
-                                         cpu_cycles_fd, 0)) < 0) {
+  if ((InstructionsFd = perfEventOpen(&instructions_attr,
+                                      // pid == 0 and cpu == -1
+                                      // This measures the calling process/thread on any CPU.
+                                      0, -1,
+                                      // The group_fd argument allows event groups to be created.  An event
+                                      // group has one event which is the group leader.  The leader is
+                                      // created first, with group_fd = -1.  The rest of the group members
+                                      // are created with subsequent perf_event_open() calls with group_fd
+                                      // being set to the file descriptor of the group leader.
+                                      CpuCyclesFd, 0)) < 0) {
     fini();
-    errorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
-    init_value = EXIT_FAILURE;
-    init_done = true;
+    ErrorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
+    InitValue = EXIT_FAILURE;
+    InitDone = true;
     return EXIT_FAILURE;
   }
 
-  ioctl(instructions_fd, PERF_EVENT_IOC_ID, &instructions_id);
+  ioctl(InstructionsFd, PERF_EVENT_IOC_ID, &InstructionsId);
 
-  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-  ioctl(cpu_cycles_fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+  ioctl(CpuCyclesFd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+  ioctl(CpuCyclesFd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 
-  if (0 == read(cpu_cycles_fd, &last, sizeof(last))) {
+  if (0 == read(CpuCyclesFd, &Last, sizeof(Last))) {
     fini();
-    errorString = "group read failed in init";
-    init_value = EXIT_FAILURE;
-    init_done = true;
+    ErrorString = "group read failed in init";
+    InitValue = EXIT_FAILURE;
+    InitDone = true;
     return EXIT_FAILURE;
   }
 
-  init_value = EXIT_SUCCESS;
-  init_done = true;
+  InitValue = EXIT_SUCCESS;
+  InitDone = true;
   return EXIT_SUCCESS;
 }
 
-static uint64_t value_from_id(struct read_format* values, uint64_t id) {
-  for (decltype(values->nr) i = 0; i < values->nr; ++i) {
-    if (id == values->values[i].id) {
-      return values->values[i].value;
+static auto valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t {
+  for (decltype(Values->Nr) I = 0; I < Values->Nr; ++I) {
+    if (Id == Values->Values[I].Id) {
+      return Values->Values[I].Value;
     }
   }
 
   return 0;
 }
 
-static int32_t get_reading(double* ipc_value, double* freq_value) {
+static auto getReading(double* IpcValue, double* FreqValue) -> int32_t {
 
-  if (cpu_cycles_fd < 0 || instructions_fd < 0) {
+  if (CpuCyclesFd < 0 || InstructionsFd < 0) {
     fini();
     return EXIT_FAILURE;
   }
 
-  struct read_format read_values;
+  struct ReadFormat ReadValues {};
 
-  if (0 == read(cpu_cycles_fd, &read_values, sizeof(read_values))) {
+  if (0 == read(CpuCyclesFd, &ReadValues, sizeof(ReadValues))) {
     fini();
-    errorString = "group read failed";
+    ErrorString = "group read failed";
     return EXIT_FAILURE;
   }
 
-  if (ipc_value != nullptr) {
-    uint64_t diff[2];
-    diff[0] = value_from_id(&read_values, instructions_id) - value_from_id(&last, instructions_id);
-    diff[1] = value_from_id(&read_values, cpu_cycles_id) - value_from_id(&last, cpu_cycles_id);
+  if (IpcValue != nullptr) {
+    uint64_t Diff[2];
+    Diff[0] = valueFromId(&ReadValues, InstructionsId) - valueFromId(&Last, InstructionsId);
+    Diff[1] = valueFromId(&ReadValues, CpuCyclesId) - valueFromId(&Last, CpuCyclesId);
 
-    std::memcpy(&last, &read_values, sizeof(last));
+    std::memcpy(&Last, &ReadValues, sizeof(Last));
 
-    *ipc_value = (double)diff[0] / (double)diff[1];
+    *IpcValue = (double)Diff[0] / (double)Diff[1];
   }
 
-  if (freq_value != nullptr) {
-    *freq_value = (double)value_from_id(&read_values, cpu_cycles_id) / 1e9;
+  if (FreqValue != nullptr) {
+    *FreqValue = (double)valueFromId(&ReadValues, CpuCyclesId) / 1e9;
   }
 
   return EXIT_SUCCESS;
 }
 
-static int32_t get_reading_ipc(double* value) { return get_reading(value, nullptr); }
+static auto getReadingIpc(double* Value) -> int32_t { return getReading(Value, nullptr); }
 
-static int32_t get_reading_freq(double* value) { return get_reading(nullptr, value); }
+static auto getReadingFreq(double* Value) -> int32_t { return getReading(nullptr, Value); }
 
-static const char* get_error(void) {
-  const char* errorCString = errorString.c_str();
-  return errorCString;
+static auto getError() -> const char* {
+  const char* ErrorCString = ErrorString.c_str();
+  return ErrorCString;
 }
 }
 
-MetricInterface PerfIpcMetric = {
+const MetricInterface PerfIpcMetric = {
     .Name = "perf-ipc",
     .Type = {.Absolute = 1,
              .Accumalative = 0,
@@ -243,12 +244,12 @@ MetricInterface PerfIpcMetric = {
     .Callback = nullptr,
     .Init = init,
     .Fini = fini,
-    .GetReading = get_reading_ipc,
-    .GetError = get_error,
+    .GetReading = getReadingIpc,
+    .GetError = getError,
     .RegisterInsertCallback = nullptr,
 };
 
-MetricInterface PerfFreqMetric = {
+const MetricInterface PerfFreqMetric = {
     .Name = "perf-freq",
     .Type = {.Absolute = 0,
              .Accumalative = 1,
@@ -261,7 +262,7 @@ MetricInterface PerfFreqMetric = {
     .Callback = nullptr,
     .Init = init,
     .Fini = fini,
-    .GetReading = get_reading_freq,
-    .GetError = get_error,
+    .GetReading = getReadingFreq,
+    .GetError = getError,
     .RegisterInsertCallback = nullptr,
 };

@@ -23,9 +23,14 @@
 
 #include "../MetricInterface.h"
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
-extern MetricInterface IpcEstimateMetric;
+extern const MetricInterface IpcEstimateMetric;
 
 extern void ipcEstimateMetricInsert(double Value);
+
+#ifdef __cplusplus
 };
+#endif

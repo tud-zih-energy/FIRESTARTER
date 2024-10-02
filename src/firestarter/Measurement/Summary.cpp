@@ -24,7 +24,7 @@
 #include <cassert>
 #include <cmath>
 
-using namespace firestarter::measurement;
+namespace firestarter::measurement {
 
 // this functions borows a lot of code from
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
@@ -35,34 +35,34 @@ auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<Time
   // TODO: i would really like to make this code a bit more readable, but i
   // could not find a way yet.
   if (MetricType.Accumalative) {
-    TimeValue prev;
+    TimeValue Prev;
 
     if (Begin != End) {
-      prev = *Begin++;
-      for (auto it = Begin; it != End; ++it) {
-        auto time_diff =
-            1e-6 * (double)std::chrono::duration_cast<std::chrono::microseconds>(it->Time - prev.Time).count();
-        auto value_diff = it->Value - prev.Value;
+      Prev = *Begin++;
+      for (auto It = Begin; It != End; ++It) {
+        auto TimeDiff = 1e-6 * static_cast<double>(
+                                   std::chrono::duration_cast<std::chrono::microseconds>(It->Time - Prev.Time).count());
+        auto ValueDiff = It->Value - Prev.Value;
 
-        double value = value_diff / time_diff;
+        double Value = ValueDiff / TimeDiff;
 
         if (MetricType.DivideByThreadCount) {
-          value /= NumThreads;
+          Value /= NumThreads;
         }
 
-        Values.emplace_back(prev.Time, value);
-        prev = *it;
+        Values.emplace_back(Prev.Time, Value);
+        Prev = *It;
       }
     }
   } else if (MetricType.Absolute) {
-    for (auto it = Begin; it != End; ++it) {
-      double value = it->Value;
+    for (auto It = Begin; It != End; ++It) {
+      double Value = It->Value;
 
       if (MetricType.DivideByThreadCount) {
-        value /= NumThreads;
+        Value /= NumThreads;
       }
 
-      Values.emplace_back(it->Time, value);
+      Values.emplace_back(It->Time, Value);
     }
   } else {
     assert(false);
@@ -77,24 +77,26 @@ auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<Time
 
   if (SummaryVal.NumTimepoints > 0) {
 
-    auto last = Begin;
-    std::advance(last, SummaryVal.NumTimepoints - 1);
-    SummaryVal.Duration = std::chrono::duration_cast<std::chrono::milliseconds>(last->Time - Begin->Time);
+    auto Last = Begin;
+    std::advance(Last, SummaryVal.NumTimepoints - 1);
+    SummaryVal.Duration = std::chrono::duration_cast<std::chrono::milliseconds>(Last->Time - Begin->Time);
 
-    auto sum_over_nths = [&Begin, End, SummaryVal](auto fn) {
-      double acc = 0.0;
-      for (auto it = Begin; it != End; ++it) {
-        acc += fn(it->Value);
+    auto SumOverNths = [&Begin, End, SummaryVal](auto Fn) {
+      double Acc = 0.0;
+      for (auto It = Begin; It != End; ++It) {
+        Acc += Fn(It->Value);
       }
-      return acc / SummaryVal.NumTimepoints;
+      return Acc / SummaryVal.NumTimepoints;
     };
 
-    SummaryVal.Average = sum_over_nths([](double v) { return v; });
-    SummaryVal.Stddev = std::sqrt(sum_over_nths([&SummaryVal](double v) {
-      double centered = v - SummaryVal.Average;
-      return centered * centered;
+    SummaryVal.Average = SumOverNths([](double V) { return V; });
+    SummaryVal.Stddev = std::sqrt(SumOverNths([&SummaryVal](double V) {
+      double Centered = V - SummaryVal.Average;
+      return Centered * Centered;
     }));
   }
 
   return SummaryVal;
 }
+
+} // namespace firestarter::measurement
