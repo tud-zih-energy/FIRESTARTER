@@ -67,7 +67,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       nsec IdleReduction = Advance - LoadReduction;
 
       // signal high load level
-      setLoad(LOAD_HIGH);
+      setLoad(LoadThreadWorkType::LoadHigh);
 
       // calculate values for nanosleep
       nsec LoadNsec = Load - LoadReduction;
@@ -96,7 +96,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
 #endif
 
       // signal low load
-      setLoad(LOAD_LOW);
+      setLoad(LoadThreadWorkType::LoadLow);
 
       // calculate values for nanosleep
       nsec IdleNsec = Idle - IdleReduction;
@@ -131,7 +131,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       {
         std::lock_guard<std::mutex> Lk(WatchdogTerminateMutex);
         if (WatchdogTerminate || (Timeout > sec::zero() && (Time > Timeout))) {
-          setLoad(LOAD_STOP);
+          setLoad(LoadThreadWorkType::LoadStop);
 
           return EXIT_SUCCESS;
         }
@@ -148,7 +148,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       Firestarter::WatchdogTerminateAlert.wait_for(Lk, Timeout, []() { return WatchdogTerminate; });
     }
 
-    setLoad(LOAD_STOP);
+    setLoad(LoadThreadWorkType::LoadStop);
 
     return EXIT_SUCCESS;
   }

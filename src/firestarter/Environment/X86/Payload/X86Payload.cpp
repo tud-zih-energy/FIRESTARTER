@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
 #include <cassert>
 #include <chrono>
 #include <thread>
@@ -32,8 +33,8 @@
 
 namespace firestarter::environment::x86::payload {
 
-void X86Payload::lowLoadFunction(volatile uint64_t* AddrHigh, uint64_t Period) {
-  int Nap = Period / 100;
+void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) {
+  auto Nap = Period / 100;
 
 #ifndef _MSC_VER
   __asm__ __volatile__("mfence;"
@@ -46,7 +47,7 @@ void X86Payload::lowLoadFunction(volatile uint64_t* AddrHigh, uint64_t Period) {
 #endif
 
   // while signal low load
-  while (*AddrHigh == LOAD_LOW) {
+  while (LoadVar == LoadThreadWorkType::LoadLow) {
 #ifndef _MSC_VER
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::
@@ -81,8 +82,9 @@ void X86Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize, double FirstVal
   }
 }
 
-auto X86Payload::highLoadFunction(uint64_t* AddrMem, volatile uint64_t* AddrHigh, uint64_t Iterations) -> uint64_t {
-  return this->LoadFunction(AddrMem, AddrHigh, Iterations);
+auto X86Payload::highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& AddrHigh, uint64_t Iterations)
+    -> uint64_t {
+  return this->LoadFunction(AddrMem, &AddrHigh, Iterations);
 }
 
 }; // namespace firestarter::environment::x86::payload

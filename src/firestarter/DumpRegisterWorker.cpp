@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
 #ifdef FIRESTARTER_DEBUG_FEATURES
 
 #include <firestarter/Firestarter.hpp>
@@ -77,7 +78,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
 
   auto* DumpRegisterStruct = reinterpret_cast<struct DumpRegisterStruct*>(Data->LoadWorkerDataPtr->AddrMem - Offset);
 
-  auto* DumpVar = reinterpret_cast<volatile uint64_t*>(&DumpRegisterStruct->DumpVar);
+  auto& DumpVar = DumpRegisterStruct->DumpVar;
   // memory of simd variables is before the padding
   auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStruct->Padding) -
                       (static_cast<size_t>(RegisterCount * RegisterSize));
@@ -124,11 +125,11 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
 
   // continue until stop and dump the registers every data->dumpTimeDelta
   // seconds
-  for (; *Data->LoadWorkerDataPtr->AddrHigh != LOAD_STOP;) {
+  for (; Data->LoadWorkerDataPtr->LoadVar != LoadThreadWorkType::LoadStop;) {
     // signal the thread to dump its largest SIMD registers
-    *DumpVar = DumpVariable::Start;
+    DumpVar = DumpVariable::Start;
     __asm__ __volatile__("mfence;");
-    while (*DumpVar == DumpVariable::Start) {
+    while (DumpVar == DumpVariable::Start) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 

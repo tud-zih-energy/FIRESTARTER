@@ -46,7 +46,7 @@ protected:
   //  asmjit::CodeHolder code;
   asmjit::JitRuntime Rt;
   // typedef int (*LoadFunction)(firestarter::ThreadData *);
-  using LoadFunctionType = uint64_t (*)(uint64_t*, volatile uint64_t*, uint64_t);
+  using LoadFunctionType = uint64_t (*)(uint64_t*, volatile LoadThreadWorkType*, uint64_t);
   LoadFunctionType LoadFunction = nullptr;
 
   [[nodiscard]] auto supportedFeatures() const -> asmjit::CpuFeatures const& { return this->SupportedFeatures; }
@@ -362,7 +362,7 @@ protected:
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 32), asmjit::Imm(1));
 
       // stop the execution after some time
-      Cb.mov(asmjit::x86::ptr_64(AddrHighReg), asmjit::Imm(LOAD_STOP));
+      Cb.mov(asmjit::x86::ptr_64(AddrHighReg), asmjit::Imm(LoadThreadWorkType::LoadStop));
       Cb.mfence();
 
       Cb.bind(L7);
@@ -446,9 +446,10 @@ public:
 #pragma clang diagnostic pop
 #endif
   // use cpuid and usleep as low load
-  void lowLoadFunction(volatile uint64_t* AddrHigh, uint64_t Period) override;
+  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) override;
 
-  auto highLoadFunction(uint64_t* AddrMem, volatile uint64_t* AddrHigh, uint64_t Iterations) -> uint64_t override;
+  auto highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
+      -> uint64_t override;
 };
 
 } // namespace firestarter::environment::x86::payload

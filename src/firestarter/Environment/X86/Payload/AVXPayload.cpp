@@ -104,7 +104,8 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   const auto TransRegs = 6;
 
   FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, uint64_t*, volatile uint64_t*, uint64_t>(CallConvId::kCDecl), Rt.environment());
+  Func.init(FuncSignatureT<uint64_t, uint64_t*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+            Rt.environment());
 
   FuncFrame Frame;
   Frame.init(Func);
@@ -393,7 +394,7 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
     emitErrorDetectionCode<decltype(IterReg), Ymm>(Cb, IterReg, AddrHighReg, PointerReg, TempReg, TempReg2);
   }
 
-  Cb.test(ptr_64(AddrHighReg), Imm(LOAD_HIGH));
+  Cb.test(ptr_64(AddrHighReg), Imm(LoadThreadWorkType::LoadHigh));
   Cb.jnz(Loop);
 
   Cb.bind(FunctionExit);

@@ -50,9 +50,9 @@ namespace firestarter {
 
 class LoadWorkerData {
 public:
-  LoadWorkerData(int Id, environment::Environment& Environment, volatile uint64_t* LoadVar, uint64_t Period,
+  LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar, uint64_t Period,
                  bool DumpRegisters, bool ErrorDetection)
-      : AddrHigh(LoadVar)
+      : LoadVar(LoadVar)
       , Period(Period)
       , DumpRegisters(DumpRegisters)
       , ErrorDetection(ErrorDetection)
@@ -89,12 +89,12 @@ public:
     return reinterpret_cast<ErrorDetectionStruct*>(AddrMem - AddrOffset);
   }
 
-  int Comm = THREAD_WAIT;
+  LoadThreadState State = LoadThreadState::ThreadWait;
   bool Ack = false;
   std::mutex Mutex;
   uint64_t* AddrMem = nullptr;
   uint64_t AddrOffset = 0;
-  volatile uint64_t* AddrHigh;
+  volatile LoadThreadWorkType& LoadVar;
   uint64_t BuffersizeMem{};
   uint64_t Iterations = 0;
   // save the last iteration count when switching payloads

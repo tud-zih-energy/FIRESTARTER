@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
 #include <algorithm>
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
@@ -56,7 +57,7 @@ auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
-  LoadVar = LowLoad ? LOAD_LOW : LOAD_HIGH;
+  LoadVar = LowLoad ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
 
   auto NumThreads = environment().requestedNumThreads();
 
@@ -74,7 +75,7 @@ auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
   }
 
   for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, environment(), &LoadVar, Period, DumpRegisters, ErrorDetection);
+    auto Td = std::make_shared<LoadWorkerData>(I, environment(), LoadVar, Period, DumpRegisters, ErrorDetection);
 
     if (ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
@@ -103,12 +104,12 @@ auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
     LoadThreads.emplace_back(std::move(T), Td);
   }
 
-  signalLoadWorkers(THREAD_INIT);
+  signalLoadWorkers(LoadThreadState::ThreadInit);
 
   return EXIT_SUCCESS;
 }
 
-void Firestarter::signalLoadWorkers(int Comm) {
+void Firestarter::signalLoadWorkers(LoadThreadState State) {
   bool Ack = false;
 
   // start the work
@@ -121,7 +122,7 @@ void Firestarter::signalLoadWorkers(int Comm) {
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
-    Td->Comm = Comm;
+    Td->State = State;
     Td->Mutex.unlock();
   }
 
@@ -241,7 +242,7 @@ void Firestarter::printPerformanceReport() {
 
 void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 
-  int Old = THREAD_WAIT;
+  auto OldState = LoadThreadState::ThreadWait;
 
 #if defined(linux) || defined(__linux__)
   pthread_setname_np(pthread_self(), "LoadWorker");
@@ -249,11 +250,11 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 
   for (;;) {
     Td->Mutex.lock();
-    int Comm = Td->Comm;
+    auto CurState = Td->State;
     Td->Mutex.unlock();
 
-    if (Comm != Old) {
-      Old = Comm;
+    if (CurState != OldState) {
+      OldState = CurState;
 
       Td->Mutex.lock();
       Td->Ack = true;
@@ -263,9 +264,9 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
       continue;
     }
 
-    switch (Comm) {
+    switch (CurState) {
     // allocate and initialize memory
-    case THREAD_INIT:
+    case LoadThreadState::ThreadInit:
       // set affinity
       Td->environment().setCpuAffinity(Td->id());
 
@@ -310,7 +311,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 
       break;
     // perform stress test
-    case THREAD_WORK:
+    case LoadThreadState::ThreadWork:
       // record threads start timestamp
       Td->StartTsc = Td->environment().topology().timestamp();
 
@@ -323,7 +324,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->Iterations = Td->config().payload().highLoadFunction(Td->AddrMem, Td->AddrHigh, Td->Iterations);
+        Td->Iterations = Td->config().payload().highLoadFunction(Td->AddrMem, Td->LoadVar, Td->Iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING
@@ -334,7 +335,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
         SCOREP_USER_REGION_BY_NAME_END("HIGH");
         SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->config().payload().lowLoadFunction(Td->AddrHigh, Td->Period);
+        Td->config().payload().lowLoadFunction(Td->LoadVar, Td->Period);
 #ifdef ENABLE_VTRACING
         VT_USER_END("LOW_LOAD_FUNC");
 #endif
@@ -343,20 +344,20 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 #endif
 
         // terminate if master signals end of run and record stop timestamp
-        if (*Td->AddrHigh == LOAD_STOP) {
+        if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
           Td->StopTsc = Td->environment().topology().timestamp();
 
           return;
         }
 
-        if (*Td->AddrHigh == LOAD_SWITCH) {
+        if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
           Td->StopTsc = Td->environment().topology().timestamp();
 
           break;
         }
       }
       break;
-    case THREAD_SWITCH:
+    case LoadThreadState::ThreadSwitch:
       // compile payload
       Td->config().payload().compilePayload(Td->config().payloadSettings(), Td->config().instructionCacheSize(),
                                             Td->config().dataCacheBufferSize(), Td->config().ramBufferSize(),
@@ -372,12 +373,8 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
       Td->LastStopTsc = Td->StopTsc;
       Td->Iterations = 0;
       break;
-    case THREAD_WAIT:
+    case LoadThreadState::ThreadWait:
       break;
-    case THREAD_STOP:
-    default:
-      firestarter::log::debug() << "ERR" << '\n';
-      return;
     }
   }
 }

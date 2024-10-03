@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/Constants.hpp"
 #include <list>
 #include <memory>
 #include <string>
@@ -90,7 +91,7 @@ public:
 
   [[nodiscard]] virtual auto isAvailable() const -> bool = 0;
 
-  virtual void lowLoadFunction(volatile uint64_t* AddrHigh, uint64_t Period) = 0;
+  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) = 0;
 
   [[nodiscard]] virtual auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
                                             unsigned InstructionCacheSize,
@@ -99,8 +100,8 @@ public:
                                             bool ErrorDetection) -> int = 0;
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
   virtual void init(uint64_t* MemoryAddr, uint64_t BufferSize) = 0;
-  [[nodiscard]] virtual auto highLoadFunction(uint64_t* AddrMem, volatile uint64_t* AddrHigh, uint64_t Iterations)
-      -> uint64_t = 0;
+  [[nodiscard]] virtual auto highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& LoadVar,
+                                              uint64_t Iterations) -> uint64_t = 0;
 
   [[nodiscard]] virtual auto clone() const -> std::unique_ptr<Payload> = 0;
 };

@@ -62,6 +62,8 @@ namespace firestarter {
 
 class Firestarter {
 public:
+  Firestarter() = delete;
+
   Firestarter(int Argc, const char** Argv, std::chrono::seconds const& Timeout, unsigned LoadPercent,
               std::chrono::microseconds const& Period, unsigned RequestedNumThreads, std::string const& CpuBind,
               bool PrintFunctionSummary, unsigned FunctionId, bool ListInstructionGroups,
@@ -137,7 +139,7 @@ private:
   void printThreadErrorReport();
   void printPerformanceReport();
 
-  void signalWork() { signalLoadWorkers(THREAD_WORK); };
+  void signalWork() { signalLoadWorkers(LoadThreadState::ThreadWork); };
 
   // WatchdogWorker.cpp
   static auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
@@ -150,7 +152,7 @@ private:
 #endif
 
   // LoadThreadWorker.cpp
-  void signalLoadWorkers(int Comm);
+  void signalLoadWorkers(LoadThreadState State);
   static void loadThreadWorker(std::shared_ptr<LoadWorkerData> Td);
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
@@ -158,7 +160,7 @@ private:
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
 #endif
 
-  static void setLoad(uint64_t Value);
+  static void setLoad(LoadThreadWorkType Value);
 
   static void sigalrmHandler(int Signum);
   static void sigtermHandler(int Signum);
@@ -169,7 +171,7 @@ private:
   inline static std::mutex WatchdogTerminateMutex;
 
   // variable to control the load of the threads
-  inline static volatile uint64_t LoadVar = LOAD_LOW;
+  inline static volatile LoadThreadWorkType LoadVar = LoadThreadWorkType::LoadLow;
 
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
 

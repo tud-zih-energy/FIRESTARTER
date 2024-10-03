@@ -38,7 +38,7 @@ public:
                      std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
                      std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
                      std::vector<std::string> const& InstructionGroups)
-      : ChangePayloadFunction(ChangePayloadFunction)
+      : ChangePayloadFunction(std::move(ChangePayloadFunction))
       , MeasurementWorker(MeasurementWorker)
       , Metrics(Metrics)
       , Timeout(Timeout)

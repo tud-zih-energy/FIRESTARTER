@@ -204,11 +204,11 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
           for (auto const& Thread : LoadThreads) {
             auto Td = Thread.second;
 
-            Td->Comm = THREAD_SWITCH;
+            Td->State = LoadThreadState::ThreadSwitch;
             Td->Mutex.unlock();
           }
 
-          LoadVar = LOAD_SWITCH;
+          LoadVar = LoadThreadWorkType::LoadSwitch;
 
           for (auto const& Thread : LoadThreads) {
             auto Td = Thread.second;
@@ -225,7 +225,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
             Td->Mutex.unlock();
           }
 
-          LoadVar = LOAD_HIGH;
+          LoadVar = LoadThreadWorkType::LoadHigh;
 
           signalWork();
 
@@ -241,7 +241,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 
           for (auto const& Thread : LoadThreads) {
             auto Td = Thread.second;
-            ipcEstimateMetricInsert((double)Td->LastIterations *
+            ipcEstimateMetricInsert(static_cast<double>(Td->LastIterations) *
                                     static_cast<double>(LoadThreads.front().second->config().payload().instructions()) /
                                     static_cast<double>(StopTimestamp - StartTimestamp));
           }
@@ -383,7 +383,7 @@ void Firestarter::mainThread() {
   }
 }
 
-void Firestarter::setLoad(uint64_t Value) {
+void Firestarter::setLoad(LoadThreadWorkType Value) {
   // signal load change to workers
   Firestarter::LoadVar = Value;
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
@@ -402,7 +402,7 @@ void Firestarter::sigalrmHandler(int Signum) { (void)Signum; }
 void Firestarter::sigtermHandler(int Signum) {
   (void)Signum;
 
-  Firestarter::setLoad(LOAD_STOP);
+  Firestarter::setLoad(LoadThreadWorkType::LoadStop);
   // exit loop
   // used in case of 0 < load < 100
   // or interrupt sleep for timeout

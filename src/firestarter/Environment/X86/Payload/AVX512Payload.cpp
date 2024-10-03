@@ -361,7 +361,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
     emitErrorDetectionCode<decltype(IterReg), Zmm>(Cb, IterReg, AddrHighReg, PointerReg, TempReg, TempReg2);
   }
 
-  Cb.test(ptr_64(AddrHighReg), Imm(LOAD_HIGH));
+  Cb.test(ptr_64(AddrHighReg), Imm(LoadThreadWorkType::LoadHigh));
   Cb.jnz(Loop);
 
   Cb.bind(FunctionExit);
