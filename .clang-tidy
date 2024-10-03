@@ -13,6 +13,8 @@
 
 #  -bugprone-easily-swappable-parameters we are not using strong typedefs
 
+#  -readability-function-cognitive-complexity allow big functions
+
 Checks: >
   -*,
   boost-*,
@@ -33,7 +35,8 @@ Checks: >
   -readability-identifier-length,
   -cppcoreguidelines-avoid-magic-numbers,
   -readability-magic-numbers,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -readability-function-cognitive-complexity
   
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
