@@ -99,7 +99,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto OffsetReg = r12;
   const auto AddrHighReg = r13;
   const auto IterReg = r14;
-  const auto MovRegs = 0;
+  constexpr const auto MovRegs = 0;
   const auto AddRegs = 14;
   const auto TransRegs = 2;
 
@@ -295,7 +295,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         return EXIT_FAILURE;
       }
 
-      if (MovRegs > 0) {
+      if constexpr (MovRegs > 0) {
         Instructions++;
         Cb.movq(Mm(MovStart + ((MovqDest - MovStart + MovRegs - 1) % MovRegs)), Mm(MovqDest));
       }
