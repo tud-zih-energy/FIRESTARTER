@@ -35,7 +35,7 @@ public:
                       std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
                       unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
-  void init(uint64_t* MemoryAddr, uint64_t BufferSize) override;
+  void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
     return std::make_unique<AVXPayload>(this->supportedFeatures());

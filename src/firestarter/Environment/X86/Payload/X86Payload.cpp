@@ -68,23 +68,23 @@ void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t 
   }
 }
 
-void X86Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
+void X86Payload::init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
   uint64_t i = 0;
 
   for (; i < INIT_BLOCKSIZE; i++) {
-    reinterpret_cast<double*>(MemoryAddr)[i] = 0.25 + static_cast<double>(i) * 8.0 * FirstValue;
+    MemoryAddr[i] = 0.25 + static_cast<double>(i) * 8.0 * FirstValue;
   }
   for (; i <= BufferSize - INIT_BLOCKSIZE; i += INIT_BLOCKSIZE) {
     std::memcpy(MemoryAddr + i, MemoryAddr + i - INIT_BLOCKSIZE, sizeof(uint64_t) * INIT_BLOCKSIZE);
   }
   for (; i < BufferSize; i++) {
-    reinterpret_cast<double*>(MemoryAddr)[i] = 0.25 + static_cast<double>(i) * 8.0 * LastValue;
+    MemoryAddr[i] = 0.25 + static_cast<double>(i) * 8.0 * LastValue;
   }
 }
 
-auto X86Payload::highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& AddrHigh, uint64_t Iterations)
+auto X86Payload::highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
     -> uint64_t {
-  return this->LoadFunction(AddrMem, &AddrHigh, Iterations);
+  return this->LoadFunction(AddrMem, &LoadVar, Iterations);
 }
 
 }; // namespace firestarter::environment::x86::payload

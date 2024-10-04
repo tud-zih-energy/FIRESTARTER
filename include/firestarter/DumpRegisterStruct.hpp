@@ -29,16 +29,19 @@ namespace firestarter {
  * content */
 // NOLINTBEGIN(performance-enum-size)
 // Define the variable with the size of a cache line
-enum class DumpVariable : CacheLineType { Start = 0, Wait = 1 };
+enum class DumpVariable : EightBytesType { Start = 0, Wait = 1 };
 // NOLINTEND(performance-enum-size)
 
-#define REGISTER_MAX_NUM 32
+// The maximal number of SIMD registers. This is currently 32 for zmm registers.
+constexpr const auto RegisterMaxNum = 32;
+/// The maximal number of doubles in SIMD registers. This is currently 8 for zmm registers.
+constexpr const auto RegisterMaxSize = 8;
 
+// REGISTER_MAX_NUM cachelines
 struct DumpRegisterStruct {
-  // REGISTER_MAX_NUM cachelines
-  volatile double RegisterValues[REGISTER_MAX_NUM * 8];
+  volatile double RegisterValues[RegisterMaxNum * RegisterMaxSize];
   // pad to use a whole cacheline
-  volatile CacheLineType Padding[7];
+  volatile EightBytesType Padding[7];
   volatile DumpVariable DumpVar;
 };
 

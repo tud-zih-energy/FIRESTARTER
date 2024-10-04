@@ -108,7 +108,8 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   const auto RamReg = zmm30;
 
   FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, uint64_t*, volatile uint64_t*, uint64_t>(CallConvId::kCDecl), Rt.environment());
+  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+            Rt.environment());
 
   FuncFrame Frame;
   Frame.init(Func);
@@ -341,20 +342,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   Cb.mov(L1Addr, PointerReg);
 
   if (DumpRegisters) {
-    auto SkipRegistersDump = Cb.newLabel();
-
-    Cb.test(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-    Cb.jnz(SkipRegistersDump);
-
-    // dump all the ymm register
-    for (unsigned I = 0; I < registerCount(); I++) {
-      Cb.vmovapd(zmmword_ptr(PointerReg, -64 - (registerSize() * 8 * (I + 1))), Zmm(I));
-    }
-
-    // set read flag
-    Cb.mov(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-
-    Cb.bind(SkipRegistersDump);
+    emitDumpRegisterCode<Zmm>(Cb, PointerReg, zmmword_ptr);
   }
 
   if (ErrorDetection) {
@@ -408,7 +396,7 @@ auto AVX512Payload::getAvailableInstructions() const -> std::list<std::string> {
   return Instructions;
 }
 
-void AVX512Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize) {
+void AVX512Payload::init(double* MemoryAddr, uint64_t BufferSize) {
   X86Payload::init(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 

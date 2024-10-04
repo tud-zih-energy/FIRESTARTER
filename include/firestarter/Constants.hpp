@@ -23,14 +23,14 @@
 
 #include <cstdint>
 
-using CacheLineType = uint64_t;
+using EightBytesType = uint64_t;
 
-// We want the type to be the size of a cache line. Disable warnings for bigger enum size than needed.
+// We want enum to have the size of 8B. Disable the warnings for bigger enum size than needed.
 // NOLINTBEGIN(performance-enum-size)
 
-enum class LoadThreadState : CacheLineType { ThreadWait = 1, ThreadWork = 2, ThreadInit = 3, ThreadSwitch = 4 };
+enum class LoadThreadState : EightBytesType { ThreadWait = 1, ThreadWork = 2, ThreadInit = 3, ThreadSwitch = 4 };
 
-enum class LoadThreadWorkType : CacheLineType {
+enum class LoadThreadWorkType : EightBytesType {
   /* DO NOT CHANGE! the asm load-loop tests if load-variable is == 0 */
   LoadLow = 0,
   /* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */

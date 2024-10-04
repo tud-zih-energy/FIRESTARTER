@@ -104,7 +104,7 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   const auto TransRegs = 6;
 
   FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, uint64_t*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
             Rt.environment());
 
   FuncFrame Frame;
@@ -374,20 +374,7 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   Cb.mov(L1Addr, PointerReg);
 
   if (DumpRegisters) {
-    auto SkipRegistersDump = Cb.newLabel();
-
-    Cb.test(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-    Cb.jnz(SkipRegistersDump);
-
-    // dump all the ymm register
-    for (unsigned I = 0; I < registerCount(); I++) {
-      Cb.vmovapd(ymmword_ptr(PointerReg, -64 - (registerSize() * 8 * (I + 1))), Ymm(I));
-    }
-
-    // set read flag
-    Cb.mov(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-
-    Cb.bind(SkipRegistersDump);
+    emitDumpRegisterCode<Ymm>(Cb, PointerReg, ymmword_ptr);
   }
 
   if (ErrorDetection) {
@@ -441,7 +428,7 @@ auto AVXPayload::getAvailableInstructions() const -> std::list<std::string> {
   return Instructions;
 }
 
-void AVXPayload::init(uint64_t* MemoryAddr, uint64_t BufferSize) {
+void AVXPayload::init(double* MemoryAddr, uint64_t BufferSize) {
   X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
 

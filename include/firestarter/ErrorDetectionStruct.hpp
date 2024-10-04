@@ -25,23 +25,20 @@
 namespace firestarter {
 
 struct ErrorDetectionStruct {
+  struct OneSide {
+    // the pointer to 16B of communication
+    volatile uint64_t* Communication;
+    volatile uint64_t Locals[4];
+    // if this variable is not 0, an error occured in the comparison with the
+    // left thread.
+    volatile uint64_t Error;
+    volatile uint64_t Padding[2];
+  };
+
   // we have two cache lines (64B) containing each two 16B local variable and
   // one ptr (8B)
-
-  // the pointer to 16B of communication
-  volatile uint64_t* CommunicationLeft;
-  volatile uint64_t LocalsLeft[4];
-  // if this variable is not 0, an error occured in the comparison with the
-  // left thread.
-  volatile uint64_t ErrorLeft;
-  volatile uint64_t PaddingLeft[2];
-
-  volatile uint64_t* CommunicationRight;
-  volatile uint64_t LocalsRight[4];
-  // if this variable is not 0, an error occured in the comparison with the
-  // right thread.
-  volatile uint64_t ErrorRight;
-  volatile uint64_t PaddingRight[2];
+  OneSide Left;
+  OneSide Right;
 };
 
 } // namespace firestarter

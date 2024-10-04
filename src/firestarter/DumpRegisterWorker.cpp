@@ -19,7 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Constants.hpp"
 #ifdef FIRESTARTER_DEBUG_FEATURES
 
 #include <firestarter/Firestarter.hpp>
@@ -57,10 +56,12 @@ auto registerNameBySize(unsigned RegisterSize) -> std::string {
 namespace firestarter {
 
 auto Firestarter::initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) -> int {
-
+  // Create the data for the worker thread. The thread will dump the register contents periodically and calculate the
+  // hamming distance between dumps.
   auto Data = std::make_unique<DumpRegisterWorkerData>(this->LoadThreads.begin()->second, DumpTimeDelta, DumpFilePath);
 
-  this->DumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(Data));
+  // Spawn the thread.
+  DumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(Data));
 
   return EXIT_SUCCESS;
 }
@@ -71,27 +72,18 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
 
   pthread_setname_np(pthread_self(), "DumpRegWorker");
 
-  auto RegisterCount = Data->LoadWorkerDataPtr->config().payload().registerCount();
-  auto RegisterSize = Data->LoadWorkerDataPtr->config().payload().registerSize();
-  std::string RegisterPrefix = registerNameBySize(RegisterSize);
-  auto Offset = sizeof(DumpRegisterStruct) / sizeof(uint64_t);
+  const auto RegisterCount = Data->LoadWorkerDataPtr->config().payload().registerCount();
+  const auto RegisterSize = Data->LoadWorkerDataPtr->config().payload().registerSize();
+  const auto Offset = RegisterCount * RegisterSize;
+  const std::string RegisterPrefix = registerNameBySize(RegisterSize);
 
-  auto* DumpRegisterStruct = reinterpret_cast<struct DumpRegisterStruct*>(Data->LoadWorkerDataPtr->AddrMem - Offset);
-
-  auto& DumpVar = DumpRegisterStruct->DumpVar;
+  auto& DumpRegisterStructRef = Data->LoadWorkerDataPtr->Memory->ExtraVars.Drs;
+  auto& DumpVar = DumpRegisterStructRef.DumpVar;
   // memory of simd variables is before the padding
-  auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStruct->Padding) -
-                      (static_cast<size_t>(RegisterCount * RegisterSize));
+  const auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStructRef.Padding) - Offset;
 
-  // TODO(marenz): maybe use aligned_malloc to make memcpy more efficient and don't
-  // interrupt the workload as much?
-  auto* Last = reinterpret_cast<uint64_t*>(malloc(sizeof(uint64_t) * Offset));
-  auto* Current = reinterpret_cast<uint64_t*>(malloc(sizeof(uint64_t) * Offset));
-
-  if (Last == nullptr || Current == nullptr) {
-    log::error() << "Malloc failed in Firestarter::dumpRegisterWorker";
-    exit(ENOMEM);
-  }
+  // allocate continous memory that fits the register contents
+  auto Last = std::vector<uint64_t>(Offset);
 
   std::stringstream DumpFilePath;
   DumpFilePath << Data->DumpFilePath;
@@ -133,8 +125,9 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    auto Current = std::vector<uint64_t>(Offset);
     // copy the register content to minimize the interruption of the load worker
-    std::memcpy(Current, (void*)DumpMemAddr, sizeof(uint64_t) * Offset);
+    std::memcpy(Current.data(), (void*)DumpMemAddr, Current.size() * sizeof(decltype(Current)::value_type));
 
     // skip the first output, as we first have to get some valid values for last
     if (!SkipFirst) {
@@ -170,15 +163,12 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
       SkipFirst = false;
     }
 
-    std::memcpy(Last, Current, sizeof(uint64_t) * Offset);
+    Last = std::move(Current);
 
     std::this_thread::sleep_for(std::chrono::seconds(Data->DumpTimeDelta));
   }
 
   DumpFile.close();
-
-  free(Last);
-  free(Current);
 }
 
 } // namespace firestarter

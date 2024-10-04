@@ -19,7 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Constants.hpp"
 #include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
@@ -105,7 +104,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto TransRegs = 2;
 
   FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, uint64_t*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
             Rt.environment());
 
   FuncFrame Frame;
@@ -367,20 +366,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   Cb.mov(L1Addr, PointerReg);
 
   if (DumpRegisters) {
-    auto SkipRegistersDump = Cb.newLabel();
-
-    Cb.test(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-    Cb.jnz(SkipRegistersDump);
-
-    // dump all the xmm register
-    for (unsigned I = 0; I < registerCount(); I++) {
-      Cb.movapd(xmmword_ptr(PointerReg, -64 - (registerSize() * 8 * (I + 1))), Xmm(I));
-    }
-
-    // set read flag
-    Cb.mov(ptr_64(PointerReg, -8), Imm(firestarter::DumpVariable::Wait));
-
-    Cb.bind(SkipRegistersDump);
+    emitDumpRegisterCode<Xmm>(Cb, PointerReg, xmmword_ptr);
   }
 
   if (ErrorDetection) {
@@ -434,7 +420,7 @@ auto SSE2Payload::getAvailableInstructions() const -> std::list<std::string> {
   return Instructions;
 }
 
-void SSE2Payload::init(uint64_t* MemoryAddr, uint64_t BufferSize) {
+void SSE2Payload::init(double* MemoryAddr, uint64_t BufferSize) {
   X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
 

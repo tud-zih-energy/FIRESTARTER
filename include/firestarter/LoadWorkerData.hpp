@@ -48,6 +48,39 @@
 
 namespace firestarter {
 
+/// This struct holds the data for optional FIRESTARTER functionalities.
+struct ExtraLoadWorkerVariables {
+  /// The data for the dump registers functionality.
+  DumpRegisterStruct Drs;
+  /// The data for the error detections functionality.
+  ErrorDetectionStruct Eds;
+};
+
+/// This struct is used to allocate the memory for the high-load routine.
+struct LoadWorkerMemory {
+  /// The extra variables that are before the memory used for the calculation in the high-load routine. They are used
+  /// for features where further communication between the high-load routine is needed e.g., for error detection or
+  /// dumping registers.
+  ExtraLoadWorkerVariables ExtraVars;
+
+  /// A placeholder to extract the address of the memory region with dynamic size which is used for the calculation in
+  /// the high-load routine. Do not write or read to this type directly.
+  EightBytesType DoNotUseAddrMem;
+
+  /// This padding makes shure that we are aligned to a cache line. The allocated memory will most probably reach beyond
+  /// this array.
+  EightBytesType DoNotUsePadding[7];
+
+public:
+  /// Get the pointer to the start of the memory use for computations.
+  /// \returns the pointer to the memory.
+  [[nodiscard]] auto getMemoryAddress() -> auto{ return reinterpret_cast<double*>(&DoNotUseAddrMem); }
+
+  /// Get the offset to the memory which is used by the high-load functions
+  /// \returns the offset to the memory
+  [[nodiscard]] constexpr static auto getMemoryOffset() -> auto{ return offsetof(LoadWorkerMemory, DoNotUseAddrMem); }
+};
+
 class LoadWorkerData {
 public:
   LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar, uint64_t Period,
@@ -58,20 +91,12 @@ public:
       , ErrorDetection(ErrorDetection)
       , Id(Id)
       , Environment(Environment)
-      , Config(new environment::platform::RuntimeConfig(Environment.selectedConfig())) {
-    // use REGISTER_MAX_NUM cache lines for the dumped registers
-    // and another cache line for the control variable.
-    // as we are doing aligned moves we only have the option to waste a
-    // whole cacheline
-    AddrOffset += DumpRegisters ? sizeof(DumpRegisterStruct) / sizeof(uint64_t) : 0;
-
-    AddrOffset += ErrorDetection ? sizeof(ErrorDetectionStruct) / sizeof(uint64_t) : 0;
-  }
+      , Config(new environment::platform::RuntimeConfig(Environment.selectedConfig())) {}
 
   ~LoadWorkerData() {
     delete Config;
-    if (AddrMem - AddrOffset != nullptr) {
-      ALIGNED_FREE(AddrMem - AddrOffset);
+    if (Memory != nullptr) {
+      ALIGNED_FREE(Memory);
     }
   }
 
@@ -85,15 +110,26 @@ public:
   [[nodiscard]] auto environment() const -> environment::Environment& { return Environment; }
   [[nodiscard]] auto config() const -> environment::platform::RuntimeConfig& { return *Config; }
 
-  [[nodiscard]] auto errorDetectionStruct() const -> const ErrorDetectionStruct* {
-    return reinterpret_cast<ErrorDetectionStruct*>(AddrMem - AddrOffset);
+  /// Access the DumpRegisterStruct. Asserts when dumping registers is not enabled.
+  /// \returns a reference to the DumpRegisterStruct
+  [[nodiscard]] auto dumpRegisterStruct() const -> DumpRegisterStruct& {
+    assert(DumpRegisters && "Tried to access DumpRegisterStruct, but dumping registers is not enabled.");
+    return Memory->ExtraVars.Drs;
+  }
+
+  /// Access the ErrorDetectionStruct. Asserts when error detections is not enabled.
+  /// \returns a reference to the ErrorDetectionStruct
+  [[nodiscard]] auto errorDetectionStruct() const -> ErrorDetectionStruct& {
+    assert(ErrorDetection && "Tried to access ErrorDetectionStruct, but error detection is not enabled.");
+    return Memory->ExtraVars.Eds;
   }
 
   LoadThreadState State = LoadThreadState::ThreadWait;
   bool Ack = false;
   std::mutex Mutex;
-  uint64_t* AddrMem = nullptr;
-  uint64_t AddrOffset = 0;
+
+  LoadWorkerMemory* Memory = nullptr;
+
   volatile LoadThreadWorkType& LoadVar;
   uint64_t BuffersizeMem{};
   uint64_t Iterations = 0;

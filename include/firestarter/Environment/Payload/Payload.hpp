@@ -41,9 +41,9 @@ protected:
   unsigned Bytes = 0;
   // number of instructions in load loop
   unsigned Instructions = 0;
-  // size of used simd registers in bytes
+  /// The size of the SIMD registers in units of doubles (8B)
   unsigned RegisterSize = 0;
-  // number of used simd registers
+  /// The number of SIMD registers used by the payload
   unsigned RegisterCount = 0;
 
   [[nodiscard]] static auto generateSequence(const std::vector<std::pair<std::string, unsigned>>& Proportion)
@@ -86,7 +86,9 @@ public:
   [[nodiscard]] auto flops() const -> unsigned { return Flops; }
   [[nodiscard]] auto bytes() const -> unsigned { return Bytes; }
   [[nodiscard]] auto instructions() const -> unsigned { return Instructions; }
+  /// The size of the SIMD registers in units of doubles (8B)
   [[nodiscard]] auto registerSize() const -> unsigned { return RegisterSize; }
+  /// The number of SIMD registers used by the payload
   [[nodiscard]] auto registerCount() const -> unsigned { return RegisterCount; }
 
   [[nodiscard]] virtual auto isAvailable() const -> bool = 0;
@@ -99,8 +101,8 @@ public:
                                             unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
                                             bool ErrorDetection) -> int = 0;
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
-  virtual void init(uint64_t* MemoryAddr, uint64_t BufferSize) = 0;
-  [[nodiscard]] virtual auto highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& LoadVar,
+  virtual void init(double* MemoryAddr, uint64_t BufferSize) = 0;
+  [[nodiscard]] virtual auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar,
                                               uint64_t Iterations) -> uint64_t = 0;
 
   [[nodiscard]] virtual auto clone() const -> std::unique_ptr<Payload> = 0;

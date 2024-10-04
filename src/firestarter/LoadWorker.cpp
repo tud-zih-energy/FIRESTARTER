@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/Constants.hpp"
+#include "firestarter/LoadWorkerData.hpp"
 #include <algorithm>
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
@@ -42,8 +43,7 @@
 #include <thread>
 
 namespace {
-auto AlignedFreeDeleter = [](void* P) { ALIGNED_FREE(P); };
-
+const auto AlignedFreeDeleter = [](void* P) { ALIGNED_FREE(P); };
 }
 
 namespace firestarter {
@@ -155,12 +155,12 @@ void Firestarter::printThreadErrorReport() {
     std::vector<bool> Errors(MaxSize, false);
 
     for (decltype(MaxSize) I = 0; I < MaxSize; I++) {
-      const auto* ErrorDetectionStructPtr = LoadThreads[I].second->errorDetectionStruct();
+      const auto& ErrorDetectionStructPtr = LoadThreads[I].second->errorDetectionStruct();
 
-      if (ErrorDetectionStructPtr->ErrorLeft) {
+      if (ErrorDetectionStructPtr.Left.Error) {
         Errors[(I + MaxSize - 1) % MaxSize] = true;
       }
-      if (ErrorDetectionStructPtr->ErrorRight) {
+      if (ErrorDetectionStructPtr.Right.Error) {
         Errors[I] = true;
       }
     }
@@ -279,35 +279,34 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
       // for them.
-      Td->AddrMem =
-          reinterpret_cast<uint64_t*>(ALIGNED_MALLOC((Td->BuffersizeMem + Td->AddrOffset) * sizeof(uint64_t), 64)) +
-          Td->AddrOffset;
+      Td->Memory = reinterpret_cast<LoadWorkerMemory*>(
+          ALIGNED_MALLOC((Td->BuffersizeMem * sizeof(uint64_t) + sizeof(ExtraLoadWorkerVariables)), 64));
 
       // exit application on error
-      if (Td->AddrMem - Td->AddrOffset == nullptr) {
+      if (Td->Memory == nullptr) {
         workerLog::error() << "Could not allocate memory for CPU load thread " << Td->id() << "\n";
         exit(ENOMEM);
       }
 
       if (Td->DumpRegisters) {
-        reinterpret_cast<DumpRegisterStruct*>(Td->AddrMem - Td->AddrOffset)->DumpVar = DumpVariable::Wait;
+        Td->dumpRegisterStruct().DumpVar = DumpVariable::Wait;
       }
 
       if (Td->ErrorDetection) {
-        auto* ErrorDetectionStructPtr = reinterpret_cast<ErrorDetectionStruct*>(Td->AddrMem - Td->AddrOffset);
+        auto& ErrorDetectionStructRef = Td->errorDetectionStruct();
 
-        std::memset(ErrorDetectionStructPtr, 0, sizeof(ErrorDetectionStruct));
+        std::memset(&ErrorDetectionStructRef, 0, sizeof(ErrorDetectionStruct));
 
         // distribute left and right communication pointers
-        ErrorDetectionStructPtr->CommunicationLeft = Td->CommunicationLeft.get();
-        ErrorDetectionStructPtr->CommunicationRight = Td->CommunicationRight.get();
+        ErrorDetectionStructRef.Left.Communication = Td->CommunicationLeft.get();
+        ErrorDetectionStructRef.Right.Communication = Td->CommunicationRight.get();
 
         // do first touch memset 0 for the communication pointers
-        std::memset((void*)ErrorDetectionStructPtr->CommunicationLeft, 0, sizeof(uint64_t) * 2);
+        std::memset((void*)ErrorDetectionStructRef.Left.Communication, 0, sizeof(uint64_t) * 2);
       }
 
       // call init function
-      Td->config().payload().init(Td->AddrMem, Td->BuffersizeMem);
+      Td->config().payload().init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
 
       break;
     // perform stress test
@@ -324,7 +323,8 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->Iterations = Td->config().payload().highLoadFunction(Td->AddrMem, Td->LoadVar, Td->Iterations);
+        Td->Iterations =
+            Td->config().payload().highLoadFunction(Td->Memory->getMemoryAddress(), Td->LoadVar, Td->Iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING
@@ -365,7 +365,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
                                             Td->ErrorDetection);
 
       // call init function
-      Td->config().payload().init(Td->AddrMem, Td->BuffersizeMem);
+      Td->config().payload().init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
 
       // save old iteration count
       Td->LastIterations = Td->Iterations;

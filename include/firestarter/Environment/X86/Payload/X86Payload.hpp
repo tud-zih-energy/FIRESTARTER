@@ -23,7 +23,8 @@
 
 #include "../../../Constants.hpp"          // IWYU pragma: keep
 #include "../../../DumpRegisterStruct.hpp" // IWYU pragma: keep
-#include "../../../Logging/Log.hpp"        // IWYU pragma: keep
+#include "../../../LoadWorkerData.hpp"
+#include "../../../Logging/Log.hpp" // IWYU pragma: keep
 #include "../../Payload/Payload.hpp"
 #include <asmjit/x86.h>
 #include <cassert>
@@ -46,10 +47,44 @@ protected:
   //  asmjit::CodeHolder code;
   asmjit::JitRuntime Rt;
   // typedef int (*LoadFunction)(firestarter::ThreadData *);
-  using LoadFunctionType = uint64_t (*)(uint64_t*, volatile LoadThreadWorkType*, uint64_t);
+  using LoadFunctionType = uint64_t (*)(double*, volatile LoadThreadWorkType*, uint64_t);
   LoadFunctionType LoadFunction = nullptr;
 
   [[nodiscard]] auto supportedFeatures() const -> asmjit::CpuFeatures const& { return this->SupportedFeatures; }
+
+  /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
+  /// \arg Vec the type of the vector register used.
+  /// \arg Cb The asmjit code builder that is used to emit the assembler code.
+  /// \arg PointerReg the register containing the pointer into memory in LoadWorkerMemory that is used in the high-load
+  /// routine.
+  /// \arg VecPtr The function that is used to create a ptr to the vector register
+  template <class Vec>
+  void emitDumpRegisterCode(asmjit::x86::Builder& Cb, const asmjit::x86::Gpq& PointerReg,
+                            asmjit::x86::Mem (*VecPtr)(const asmjit::x86::Gp&, int32_t)) {
+    constexpr const auto DumpRegisterStructRegisterValuesTopOffset =
+        -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+        static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Drs.Padding));
+    constexpr const auto DumpRegisterStructDumpVariableOffset =
+        -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+        static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Drs.DumpVar));
+
+    auto SkipRegistersDump = Cb.newLabel();
+
+    Cb.test(ptr_64(PointerReg, DumpRegisterStructDumpVariableOffset), asmjit::Imm(firestarter::DumpVariable::Wait));
+    Cb.jnz(SkipRegistersDump);
+
+    // dump all the vector registers register
+    for (unsigned I = 0; I < registerCount(); I++) {
+      Cb.vmovapd(VecPtr(PointerReg,
+                        DumpRegisterStructRegisterValuesTopOffset - static_cast<int32_t>(registerSize() * 8 * (I + 1))),
+                 Vec(I));
+    }
+
+    // set read flag
+    Cb.mov(ptr_64(PointerReg, DumpRegisterStructDumpVariableOffset), asmjit::Imm(firestarter::DumpVariable::Wait));
+
+    Cb.bind(SkipRegistersDump);
+  }
 
   // add MM regs to dirty regs
   // zmm31 is used for backup if VectorReg is of type asmjit::x86::Zmm
@@ -73,42 +108,42 @@ protected:
       assert((IterReg == asmjit::x86::mm0, "iter_reg must be mm0"));
     }
 
-    assert((IterReg != TempReg, "iter_reg must be != temp_reg"));
-    assert((TempReg != TempReg2, "temp_reg must be != temp_reg2"));
-    assert((TempReg != AddrHighReg, "temp_reg must be != addrHigh_reg"));
-    assert((TempReg != PointerReg, "temp_reg must be != pointer_reg"));
+    assert(IterReg != TempReg && "iter_reg must be != temp_reg");
+    assert(TempReg != TempReg2 && "temp_reg must be != temp_reg2");
+    assert(TempReg != AddrHighReg && "temp_reg must be != addrHigh_reg");
+    assert(TempReg != PointerReg && "temp_reg must be != pointer_reg");
 
-    assert((IterReg != asmjit::x86::r8, "iter_reg must be != r8"));
-    assert((IterReg != asmjit::x86::r9, "iter_reg must be != r9"));
-    assert((IterReg != asmjit::x86::rax, "iter_reg must be != rax"));
-    assert((IterReg != asmjit::x86::rbx, "iter_reg must be != rbx"));
-    assert((IterReg != asmjit::x86::rcx, "iter_reg must be != rcx"));
-    assert((IterReg != asmjit::x86::rdx, "iter_reg must be != rdx"));
+    assert(IterReg != asmjit::x86::r8 && "iter_reg must be != r8");
+    assert(IterReg != asmjit::x86::r9 && "iter_reg must be != r9");
+    assert(IterReg != asmjit::x86::rax && "iter_reg must be != rax");
+    assert(IterReg != asmjit::x86::rbx && "iter_reg must be != rbx");
+    assert(IterReg != asmjit::x86::rcx && "iter_reg must be != rcx");
+    assert(IterReg != asmjit::x86::rdx && "iter_reg must be != rdx");
 
-    assert((TempReg != asmjit::x86::r8, "temp_reg must be != r8"));
-    assert((TempReg != asmjit::x86::r9, "temp_reg must be != r9"));
-    assert((TempReg != asmjit::x86::rax, "temp_reg must be != rax"));
-    assert((TempReg != asmjit::x86::rbx, "temp_reg must be != rbx"));
-    assert((TempReg != asmjit::x86::rcx, "temp_reg must be != rcx"));
-    assert((TempReg != asmjit::x86::rdx, "temp_reg must be != rdx"));
+    assert(TempReg != asmjit::x86::r8 && "temp_reg must be != r8");
+    assert(TempReg != asmjit::x86::r9 && "temp_reg must be != r9");
+    assert(TempReg != asmjit::x86::rax && "temp_reg must be != rax");
+    assert(TempReg != asmjit::x86::rbx && "temp_reg must be != rbx");
+    assert(TempReg != asmjit::x86::rcx && "temp_reg must be != rcx");
+    assert(TempReg != asmjit::x86::rdx && "temp_reg must be != rdx");
 
-    assert((TempReg2 != asmjit::x86::r8, "temp_reg2 must be != r8"));
-    assert((TempReg2 != asmjit::x86::r9, "temp_reg2 must be != r9"));
-    assert((TempReg2 != asmjit::x86::rax, "temp_reg2 must be != rax"));
-    assert((TempReg2 != asmjit::x86::rbx, "temp_reg2 must be != rbx"));
-    assert((TempReg2 != asmjit::x86::rcx, "temp_reg2 must be != rcx"));
-    assert((TempReg2 != asmjit::x86::rdx, "temp_reg2 must be != rdx"));
+    assert(TempReg2 != asmjit::x86::r8 && "temp_reg2 must be != r8");
+    assert(TempReg2 != asmjit::x86::r9 && "temp_reg2 must be != r9");
+    assert(TempReg2 != asmjit::x86::rax && "temp_reg2 must be != rax");
+    assert(TempReg2 != asmjit::x86::rbx && "temp_reg2 must be != rbx");
+    assert(TempReg2 != asmjit::x86::rcx && "temp_reg2 must be != rcx");
+    assert(TempReg2 != asmjit::x86::rdx && "temp_reg2 must be != rdx");
 
-    assert((AddrHighReg != asmjit::x86::r8, "addrHigh_reg must be != r8"));
-    assert((AddrHighReg != asmjit::x86::r9, "addrHigh_reg must be != r9"));
-    assert((AddrHighReg != asmjit::x86::rax, "addrHigh_reg must be != rax"));
-    assert((AddrHighReg != asmjit::x86::rbx, "addrHigh_reg must be != rbx"));
-    assert((AddrHighReg != asmjit::x86::rcx, "addrHigh_reg must be != rcx"));
-    assert((AddrHighReg != asmjit::x86::rdx, "addrHigh_reg must be != rdx"));
+    assert(AddrHighReg != asmjit::x86::r8 && "addrHigh_reg must be != r8");
+    assert(AddrHighReg != asmjit::x86::r9 && "addrHigh_reg must be != r9");
+    assert(AddrHighReg != asmjit::x86::rax && "addrHigh_reg must be != rax");
+    assert(AddrHighReg != asmjit::x86::rbx && "addrHigh_reg must be != rbx");
+    assert(AddrHighReg != asmjit::x86::rcx && "addrHigh_reg must be != rcx");
+    assert(AddrHighReg != asmjit::x86::rdx && "addrHigh_reg must be != rdx");
 
     auto SkipErrorDetection = Cb.newLabel();
 
-    if constexpr (std::is_same<asmjit::x86::Mm, IterRegT>::value) {
+    if constexpr (std::is_same_v<asmjit::x86::Mm, IterRegT>) {
       Cb.movq(TempReg, IterReg);
     } else {
       Cb.mov(TempReg, IterReg);
@@ -273,16 +308,28 @@ protected:
     // This sychronization and communication works even if the threads run at
     // different (changing) speed, with just one "lock cmpxchg16b" Brought to you
     // by a few hours of headache for two people.
-    auto Communication = [&](auto Offset) {
+    auto Communication = [&](const int32_t ErrorDetetectionStructOffset) {
+      const auto CommunicationOffset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Communication));
+      const auto Local0Offset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Locals[0]));
+      const auto Local1Offset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Locals[1]));
+      const auto Local2Offset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Locals[2]));
+      const auto Local3Offset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Locals[3]));
+      const auto ErrorOffset =
+          ErrorDetetectionStructOffset + static_cast<int32_t>(offsetof(ErrorDetectionStruct::OneSide, Error));
+
       // communication
-      Cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(TempReg2, Offset));
+      Cb.mov(asmjit::x86::r8, asmjit::x86::ptr_64(TempReg2, CommunicationOffset));
 
       // temp data
       Cb.mov(asmjit::x86::r9, TempReg2);
-      Cb.add(asmjit::x86::r9, asmjit::Imm(Offset + 8));
 
-      Cb.mov(asmjit::x86::rdx, asmjit::x86::ptr_64(asmjit::x86::r9, 0));
-      Cb.mov(asmjit::x86::rax, asmjit::x86::ptr_64(asmjit::x86::r9, 8));
+      Cb.mov(asmjit::x86::rdx, asmjit::x86::ptr_64(asmjit::x86::r9, Local0Offset));
+      Cb.mov(asmjit::x86::rax, asmjit::x86::ptr_64(asmjit::x86::r9, Local1Offset));
 
       auto L0 = Cb.newLabel();
       Cb.bind(L0);
@@ -293,10 +340,10 @@ protected:
       auto L1 = Cb.newLabel();
       Cb.jnz(L1);
 
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 0), asmjit::x86::rcx);
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 8), asmjit::x86::rbx);
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local0Offset), asmjit::x86::rcx);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local1Offset), asmjit::x86::rbx);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::Imm(0));
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::Imm(0));
 
       Cb.mov(asmjit::x86::rax, asmjit::Imm(2));
 
@@ -310,8 +357,8 @@ protected:
       auto L2 = Cb.newLabel();
       Cb.jle(L2);
 
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 0), asmjit::x86::rcx);
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 8), asmjit::x86::rbx);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local0Offset), asmjit::x86::rcx);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local1Offset), asmjit::x86::rbx);
 
       Cb.jmp(L0);
 
@@ -319,13 +366,13 @@ protected:
 
       auto L3 = Cb.newLabel();
 
-      Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
+      Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::Imm(0));
       Cb.jne(L3);
-      Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+      Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::Imm(0));
       Cb.jne(L3);
 
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::x86::rdx);
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::x86::rax);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::x86::rdx);
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::x86::rax);
 
       Cb.bind(L3);
 
@@ -348,8 +395,8 @@ protected:
 
       Cb.bind(L5);
 
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 16), asmjit::Imm(0));
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 24), asmjit::Imm(0));
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::Imm(0));
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::Imm(0));
 
       Cb.bind(L6);
 
@@ -359,7 +406,7 @@ protected:
       Cb.jne(L7);
 
       // write the error flag
-      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, 32), asmjit::Imm(1));
+      Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, ErrorOffset), asmjit::Imm(1));
 
       // stop the execution after some time
       Cb.mov(asmjit::x86::ptr_64(AddrHighReg), asmjit::Imm(LoadThreadWorkType::LoadStop));
@@ -371,6 +418,13 @@ protected:
       Cb.jmp(L9);
     };
 
+    constexpr const auto ErrorDetectionStructCommunicationLeftOffset =
+        -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+        static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Eds.Left.Communication));
+    constexpr const auto ErrorDetectionStructCommunicationRightOffset =
+        -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+        static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Eds.Right.Communication));
+
     // left communication
     // move hash
     Cb.mov(asmjit::x86::rbx, TempReg);
@@ -381,7 +435,7 @@ protected:
       Cb.mov(asmjit::x86::rcx, IterReg);
     }
 
-    Communication(-128);
+    Communication(ErrorDetectionStructCommunicationLeftOffset);
 
     // right communication
     // move hash
@@ -393,7 +447,7 @@ protected:
       Cb.mov(asmjit::x86::rcx, IterReg);
     }
 
-    Communication(-64);
+    Communication(ErrorDetectionStructCommunicationRightOffset);
 
     // restore r8, r9, rax, rbx, rcx and rdx
     if constexpr (std::is_same_v<asmjit::x86::Mm, IterRegT>) {
@@ -440,7 +494,7 @@ public:
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
-  void init(uint64_t* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
+  void init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -448,7 +502,7 @@ public:
   // use cpuid and usleep as low load
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) override;
 
-  auto highLoadFunction(uint64_t* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
+  auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
       -> uint64_t override;
 };
 
