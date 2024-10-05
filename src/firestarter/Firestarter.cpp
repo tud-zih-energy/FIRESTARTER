@@ -189,59 +189,25 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
           using Clock = std::chrono::high_resolution_clock;
           auto Start = Clock::now();
 
-          for (auto& Thread : LoadThreads) {
-            auto Td = Thread.second;
-
-            Td->config().setPayloadSettings(Setting);
-          }
-
-          for (auto const& Thread : LoadThreads) {
-            auto Td = Thread.second;
-
-            Td->Mutex.lock();
-          }
-
-          for (auto const& Thread : LoadThreads) {
-            auto Td = Thread.second;
-
-            Td->State = LoadThreadState::ThreadSwitch;
-            Td->Mutex.unlock();
-          }
-
-          LoadVar = LoadThreadWorkType::LoadSwitch;
-
-          for (auto const& Thread : LoadThreads) {
-            auto Td = Thread.second;
-            bool Ack = false;
-
-            do {
-              Td->Mutex.lock();
-              Ack = Td->Ack;
-              Td->Mutex.unlock();
-            } while (!Ack);
-
-            Td->Mutex.lock();
-            Td->Ack = false;
-            Td->Mutex.unlock();
-          }
+          signalSwitch(Setting);
 
           LoadVar = LoadThreadWorkType::LoadHigh;
 
           signalWork();
 
-          uint64_t StartTimestamp = 0xffffffffffffffff;
+          uint64_t StartTimestamp = std::numeric_limits<uint64_t>::max();
           uint64_t StopTimestamp = 0;
 
           for (auto const& Thread : LoadThreads) {
             auto Td = Thread.second;
 
-            StartTimestamp = std::min<uint64_t>(StartTimestamp, Td->LastStartTsc);
-            StopTimestamp = std::max<uint64_t>(StopTimestamp, Td->LastStopTsc);
+            StartTimestamp = std::min<uint64_t>(StartTimestamp, Td->LastRun.StartTsc);
+            StopTimestamp = std::max<uint64_t>(StopTimestamp, Td->LastRun.StopTsc);
           }
 
           for (auto const& Thread : LoadThreads) {
             auto Td = Thread.second;
-            ipcEstimateMetricInsert(static_cast<double>(Td->LastIterations) *
+            ipcEstimateMetricInsert(static_cast<double>(Td->LastRun.Iterations) *
                                     static_cast<double>(LoadThreads.front().second->config().payload().instructions()) /
                                     static_cast<double>(StopTimestamp - StartTimestamp));
           }

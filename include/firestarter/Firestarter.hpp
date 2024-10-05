@@ -139,7 +139,37 @@ private:
   void printThreadErrorReport();
   void printPerformanceReport();
 
+  /// Set the load workers to the ThreadInit state.
+  void signalInit() { signalLoadWorkers(LoadThreadState::ThreadInit); }
+
+  /// Set the load workers to the ThreadWork state.
   void signalWork() { signalLoadWorkers(LoadThreadState::ThreadWork); };
+
+  /// Set the load workers to the ThreadWork state.
+  /// \arg Setting The new setting to switch to.
+  void signalSwitch(std::vector<std::pair<std::string, unsigned>> const& Setting) {
+    struct SwitchLoad {
+      static void func() { LoadVar = LoadThreadWorkType::LoadSwitch; };
+    };
+
+    for (auto& Thread : LoadThreads) {
+      auto Td = Thread.second;
+
+      Td->config().setPayloadSettings(Setting);
+    }
+
+    signalLoadWorkers(LoadThreadState::ThreadSwitch, SwitchLoad::func);
+  };
+
+  /// Execute a state change in the load worker threads. This should happen at the same time in all threads. First the
+  /// mutex in all threads are locked an then the state is updated and we wait until we get an acknowledgement from the
+  /// threads.
+  /// \arg State The new state of the threads.
+  /// \arg Function An optional function that will be executed after the state in all threads has been updated and
+  /// before we wait for the acknowledgement of the thread.
+  void signalLoadWorkers(LoadThreadState State, void (*Function)() = nullptr);
+
+  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> Td);
 
   // WatchdogWorker.cpp
   static auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
@@ -149,15 +179,9 @@ private:
   // DumpRegisterWorker.cpp
   auto initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) -> int;
   void joinDumpRegisterWorker();
-#endif
-
-  // LoadThreadWorker.cpp
-  void signalLoadWorkers(LoadThreadState State);
-  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> Td);
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  // DumpRegisterWorker.cpp
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
+
+  std::thread DumpRegisterWorkerThread;
 #endif
 
   static void setLoad(LoadThreadWorkType Value);
@@ -176,10 +200,6 @@ private:
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
 
   std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  std::thread DumpRegisterWorkerThread;
-#endif
 };
 
 } // namespace firestarter

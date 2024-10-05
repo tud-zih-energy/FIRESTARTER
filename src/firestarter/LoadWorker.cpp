@@ -22,10 +22,12 @@
 #include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/LoadWorkerData.hpp"
+#include <cstdint>
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 #include <iomanip>
+#include <limits>
 
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/Metric/IPCEstimate.h>
@@ -105,16 +107,17 @@ auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
   return EXIT_SUCCESS;
 }
 
-void Firestarter::signalLoadWorkers(LoadThreadState State) {
+void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function)()) {
   bool Ack = false;
 
-  // start the work
+  // aquire the lock on all threads
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
     Td->Mutex.lock();
   }
 
+  // switch the state on all threads
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
@@ -122,6 +125,13 @@ void Firestarter::signalLoadWorkers(LoadThreadState State) {
     Td->Mutex.unlock();
   }
 
+  // Execute a function after the state in the threads has been updated. This may be required to terminate an inner
+  // loop.
+  if (Function) {
+    Function();
+  }
+
+  // wait for all threads to finish
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
@@ -172,7 +182,7 @@ void Firestarter::printThreadErrorReport() {
 
 void Firestarter::printPerformanceReport() {
   // performance report
-  uint64_t StartTimestamp = 0xffffffffffffffff;
+  uint64_t StartTimestamp = std::numeric_limits<uint64_t>::max();
   uint64_t StopTimestamp = 0;
 
   uint64_t Iterations = 0;
@@ -182,13 +192,13 @@ void Firestarter::printPerformanceReport() {
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
-    log::debug() << "Thread " << Td->id() << ": " << Td->Iterations
-                 << " iterations, tsc_delta: " << Td->StopTsc - Td->StartTsc;
+    log::debug() << "Thread " << Td->id() << ": " << Td->LastRun.Iterations
+                 << " iterations, tsc_delta: " << Td->LastRun.StopTsc - Td->LastRun.StartTsc;
 
-    StartTimestamp = std::min(StartTimestamp, Td->StartTsc);
-    StopTimestamp = std::max(StopTimestamp, Td->StopTsc);
+    StartTimestamp = std::min(StartTimestamp, Td->LastRun.StartTsc.load());
+    StopTimestamp = std::max(StopTimestamp, Td->LastRun.StopTsc.load());
 
-    Iterations += Td->Iterations;
+    Iterations += Td->LastRun.Iterations.load();
   }
 
   double Runtime =
@@ -204,7 +214,7 @@ void Firestarter::printPerformanceReport() {
   if (Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
-      ipcEstimateMetricInsert(static_cast<double>(Td->Iterations) *
+      ipcEstimateMetricInsert(static_cast<double>(Td->LastRun.Iterations) *
                               static_cast<double>(LoadThreads.front().second->config().payload().instructions()) /
                               static_cast<double>(StopTimestamp - StartTimestamp));
     }
@@ -306,8 +316,9 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
       break;
     // perform stress test
     case LoadThreadState::ThreadWork:
+      Td->CurrentRun.Iterations = 0;
       // record threads start timestamp
-      Td->StartTsc = Td->environment().topology().timestamp();
+      Td->CurrentRun.StartTsc = Td->environment().topology().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -318,8 +329,8 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->Iterations =
-            Td->config().payload().highLoadFunction(Td->Memory->getMemoryAddress(), Td->LoadVar, Td->Iterations);
+        Td->CurrentRun.Iterations = Td->config().payload().highLoadFunction(Td->Memory->getMemoryAddress(), Td->LoadVar,
+                                                                            Td->CurrentRun.Iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING
@@ -340,13 +351,15 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 
         // terminate if master signals end of run and record stop timestamp
         if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
-          Td->StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->LastRun = Td->CurrentRun;
 
           return;
         }
 
         if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
-          Td->StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->LastRun = Td->CurrentRun;
 
           break;
         }
@@ -361,12 +374,6 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 
       // call init function
       Td->config().payload().init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
-
-      // save old iteration count
-      Td->LastIterations = Td->Iterations;
-      Td->LastStartTsc = Td->StartTsc;
-      Td->LastStopTsc = Td->StopTsc;
-      Td->Iterations = 0;
       break;
     case LoadThreadState::ThreadWait:
       break;

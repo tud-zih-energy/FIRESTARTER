@@ -93,6 +93,19 @@ public:
 
 class LoadWorkerData {
 public:
+  struct Metrics {
+    std::atomic<uint64_t> Iterations{};
+    std::atomic<uint64_t> StartTsc{};
+    std::atomic<uint64_t> StopTsc{};
+
+    auto operator=(const Metrics& Other) -> Metrics& {
+      Iterations.store(Other.Iterations.load());
+      StartTsc.store(Other.StartTsc.load());
+      StopTsc.store(Other.StopTsc.load());
+      return *this;
+    }
+  };
+
   LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar, uint64_t Period,
                  bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
@@ -137,14 +150,13 @@ public:
 
   volatile LoadThreadWorkType& LoadVar;
   uint64_t BuffersizeMem{};
-  uint64_t Iterations = 0;
-  // save the last iteration count when switching payloads
-  std::atomic<uint64_t> LastIterations{};
-  uint64_t Flops{};
-  uint64_t StartTsc{};
-  uint64_t StopTsc{};
-  std::atomic<uint64_t> LastStartTsc{};
-  std::atomic<uint64_t> LastStopTsc{};
+
+  /// The collected metrics from the current execution of the LoadThreadState::ThreadWork state. Do not read from it.
+  Metrics CurrentRun;
+
+  /// The collected metrics from the last execution of the LoadThreadState::ThreadWork state.
+  Metrics LastRun;
+
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
   uint64_t Period;
