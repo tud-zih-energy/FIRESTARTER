@@ -160,7 +160,7 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
 
   MinMeasurements = 5;
 #else
-  min_measurements = 20;
+  MinMeasurements = 20;
 #endif
 
   int I = 3;
@@ -170,9 +170,9 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
     uint64_t End2Tsc = 0;
 
     // start timestamp
-    uint64_t Start1Tsc = timestamp();
+    const uint64_t Start1Tsc = timestamp();
     StartTime = ClockT::now();
-    uint64_t Start2Tsc = timestamp();
+    const uint64_t Start2Tsc = timestamp();
 
     // waiting
     do {
@@ -188,20 +188,20 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
       TimeDiff = std::chrono::duration_cast<TicksT>(EndTime - StartTime).count();
     } while (0 == TimeDiff);
 
-    uint64_t ClockLowerBound = (((End1Tsc - Start2Tsc) * 1000000) / (TimeDiff));
-    uint64_t ClockUpperBound = (((End2Tsc - Start1Tsc) * 1000000) / (TimeDiff));
+    const uint64_t ClockLowerBound = (((End1Tsc - Start2Tsc) * 1000000) / (TimeDiff));
+    const uint64_t ClockUpperBound = (((End2Tsc - Start1Tsc) * 1000000) / (TimeDiff));
 
     // if both values differ significantly, the measurement could have been
     // interrupted between 2 rdtsc's
     if ((static_cast<double>(ClockLowerBound) > ((static_cast<double>(ClockUpperBound)) * 0.999)) &&
         ((TimeDiff) > 2000)) {
       NumMeasurements++;
-      uint64_t Clock = (ClockLowerBound + ClockUpperBound) / 2;
-      bool ClockrateUpdateCondition = Clockrate == 0 ||
+      const uint64_t Clock = (ClockLowerBound + ClockUpperBound) / 2;
+      const bool ClockrateUpdateCondition = Clockrate == 0 ||
 #ifndef _WIN32
-                                      Clock < Clockrate;
+                                            Clock < Clockrate;
 #else
-                                      Clock > Clockrate;
+                                            Clock > Clockrate;
 #endif
       if (ClockrateUpdateCondition) {
         Clockrate = Clock;
@@ -219,8 +219,10 @@ auto X86CPUTopology::timestamp() const -> uint64_t {
   }
 
 #ifndef _MSC_VER
+  // NOLINTBEGIN(misc-const-correctness)
   uint64_t Rax = 0;
   uint64_t Rdx = 0;
+  // NOLINTEND(misc-const-correctness)
   __asm__ __volatile__("rdtsc;" : "=a"(Rax), "=d"(Rdx));
   return (Rdx << 32) | (Rax & 0xffffffffULL);
 #else
@@ -230,10 +232,12 @@ auto X86CPUTopology::timestamp() const -> uint64_t {
 
 void X86CPUTopology::cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx) {
 #ifndef _MSC_VER
+  // NOLINTBEGIN(misc-const-correctness)
   uint64_t RaxOut = 0;
   uint64_t RbxOut = 0;
   uint64_t RcxOut = 0;
   uint64_t RdxOut = 0;
+  // NOLINTEND(misc-const-correctness)
   __asm__ __volatile__("cpuid;"
                        : "=a"(RaxOut), "=b"(RbxOut), "=c"(RcxOut), "=d"(RdxOut)
                        : "a"(*Rax), "b"(*Rbx), "c"(*Rcx), "d"(*Rdx));

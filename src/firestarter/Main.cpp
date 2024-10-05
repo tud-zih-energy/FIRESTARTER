@@ -450,7 +450,7 @@ auto main(int argc, const char** argv) -> int {
                            << "\n";
 #endif
 
-  Config Cfg{argc, argv};
+  Config const Cfg{argc, argv};
 
   try {
     firestarter::Firestarter Firestarter(

@@ -190,8 +190,8 @@ void Environment::printThreadSummary() {
   std::vector<unsigned> CpuBind(this->CpuBind);
   CpuBind.resize(requestedNumThreads());
   for (auto const& Bind : CpuBind) {
-    int CoreId = topology().getCoreIdFromPU(Bind);
-    int PkgId = topology().getPkgIdFromPU(Bind);
+    const auto CoreId = topology().getCoreIdFromPU(Bind);
+    const auto PkgId = topology().getPkgIdFromPU(Bind);
 
     if (CoreId != -1 && PkgId != -1) {
       log::info() << "    - Thread " << I << " run on CPU " << Bind << ", core " << CoreId << " in package: " << PkgId;

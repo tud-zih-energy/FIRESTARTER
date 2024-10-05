@@ -124,7 +124,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
 }
 
 void X86Environment::selectInstructionGroups(std::string Groups) {
-  const std::string Delimiter = ",";
+  const auto Delimiter = ',';
   const std::regex Re("^(\\w+):(\\d+)$");
   const auto AvailableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
 
@@ -134,7 +134,7 @@ void X86Environment::selectInstructionGroups(std::string Groups) {
   while (Ss.good()) {
     std::string Token;
     std::smatch M;
-    std::getline(Ss, Token, ',');
+    std::getline(Ss, Token, Delimiter);
 
     if (std::regex_match(Token, M, Re)) {
       if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==

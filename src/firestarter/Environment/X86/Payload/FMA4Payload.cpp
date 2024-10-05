@@ -161,7 +161,7 @@ auto FMA4Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   auto TransStart = AddRegs + MulRegs;
   auto TransEnd = AddRegs + MulRegs + AltDestRegs - 1;
   for (int I = AddStart; I <= TransEnd; I++) {
-    Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + I * 32));
+    Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
   Cb.mov(L1Addr, PointerReg); // address for L1-buffer
   Cb.mov(L2Addr, PointerReg);
@@ -363,7 +363,7 @@ auto FMA4Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   // String sb;
   // cb.dump(sb);
 
-  Error Err = Rt.add(&LoadFunction, &Code);
+  const auto Err = Rt.add(&LoadFunction, &Code);
   if (Err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;

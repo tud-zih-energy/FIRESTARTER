@@ -363,7 +363,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   // String sb;
   // cb.dump(sb);
 
-  Error Err = Rt.add(&LoadFunction, &Code);
+  const auto Err = Rt.add(&LoadFunction, &Code);
   if (Err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;

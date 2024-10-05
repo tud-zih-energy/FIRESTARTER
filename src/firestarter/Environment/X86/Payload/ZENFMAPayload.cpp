@@ -157,7 +157,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   auto AddRegsStart = 2;
   auto AddRegsEnd = AddRegsStart + NbAddRegs - 1;
   for (int I = AddRegsStart; I <= AddRegsEnd; I++) {
-    Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + I * 32));
+    Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
 
   // Initialize xmm14 for shift operation
@@ -352,7 +352,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   // String sb;
   // cb.dump(sb);
 
-  Error Err = Rt.add(&LoadFunction, &Code);
+  const auto Err = Rt.add(&LoadFunction, &Code);
   if (Err) {
     workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
     return EXIT_FAILURE;

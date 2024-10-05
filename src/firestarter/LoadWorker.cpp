@@ -102,8 +102,6 @@ void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period
 }
 
 void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function)()) {
-  bool Ack = false;
-
   // aquire the lock on all threads
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
@@ -129,11 +127,12 @@ void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
-    do {
+    // Wait until we receive the acknowledge
+    for (bool Ack = false; !Ack;) {
       Td->Communication.Mutex.lock();
       Ack = Td->Communication.Ack;
       Td->Communication.Mutex.unlock();
-    } while (!Ack);
+    }
 
     Td->Communication.Mutex.lock();
     Td->Communication.Ack = false;
@@ -195,12 +194,12 @@ void Firestarter::printPerformanceReport() {
     Iterations += Td->LastRun.Iterations.load();
   }
 
-  double Runtime =
+  double const Runtime =
       static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(environment().topology().clockrate());
-  double GFlops = static_cast<double>(LoadThreads.front().second->config().payload().flops()) * 0.000000001 *
-                  static_cast<double>(Iterations) / Runtime;
-  double Bandwidth = static_cast<double>(LoadThreads.front().second->config().payload().bytes()) * 0.000000001 *
-                     static_cast<double>(Iterations) / Runtime;
+  double const GFlops = static_cast<double>(LoadThreads.front().second->config().payload().flops()) * 0.000000001 *
+                        static_cast<double>(Iterations) / Runtime;
+  double const Bandwidth = static_cast<double>(LoadThreads.front().second->config().payload().bytes()) * 0.000000001 *
+                           static_cast<double>(Iterations) / Runtime;
 
   // insert values for ipc-estimate metric
   // if we are on linux
@@ -240,7 +239,7 @@ void Firestarter::printPerformanceReport() {
                << "  executed on an unsupported architecture!";
 }
 
-void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
+void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 
   auto OldState = LoadThreadState::ThreadWait;
 

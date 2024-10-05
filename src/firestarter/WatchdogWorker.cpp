@@ -49,28 +49,28 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
   if (Period > usec::zero()) {
     // this first time is critical as the period will be alligend from this
     // point
-    std::chrono::time_point<clock> StartTime = clock::now();
+    const auto StartTime = clock::now();
 
     // this loop will set the load level periodically.
     for (;;) {
-      std::chrono::time_point<clock> CurrentTime = clock::now();
+      const auto CurrentTime = clock::now();
 
       // get the time already advanced in the current timeslice
       // this can happen if a load function does not terminates just on time
-      nsec Advance =
+      const auto Advance =
           std::chrono::duration_cast<nsec>(CurrentTime - StartTime) % std::chrono::duration_cast<nsec>(Period);
 
       // subtract the advaned time from our timeslice by spilting it based on
       // the load level
-      nsec LoadReduction =
+      const auto LoadReduction =
           (std::chrono::duration_cast<nsec>(Load).count() * Advance) / std::chrono::duration_cast<nsec>(Period).count();
-      nsec IdleReduction = Advance - LoadReduction;
+      const auto IdleReduction = Advance - LoadReduction;
 
       // signal high load level
       setLoad(LoadThreadWorkType::LoadHigh);
 
       // calculate values for nanosleep
-      nsec LoadNsec = Load - LoadReduction;
+      const auto LoadNsec = Load - LoadReduction;
 
       // wait for time to be ellapsed with high load
 #ifdef ENABLE_VTRACING
@@ -99,7 +99,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       setLoad(LoadThreadWorkType::LoadLow);
 
       // calculate values for nanosleep
-      nsec IdleNsec = Idle - IdleReduction;
+      const auto IdleNsec = Idle - IdleReduction;
 
       // wait for time to be ellapsed with low load
 #ifdef ENABLE_VTRACING
@@ -129,7 +129,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
 
       // exit when termination signal is received or timeout is reached
       {
-        std::lock_guard<std::mutex> Lk(WatchdogTerminateMutex);
+        const std::lock_guard<std::mutex> Lk(WatchdogTerminateMutex);
         if (WatchdogTerminate || (Timeout > sec::zero() && (Time > Timeout))) {
           setLoad(LoadThreadWorkType::LoadStop);
 

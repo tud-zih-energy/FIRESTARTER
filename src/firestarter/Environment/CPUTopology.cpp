@@ -53,12 +53,10 @@ auto CPUTopology::print(std::ostream& Stream) const -> std::ostream& {
          << "    supported features: " << Ss.str() << "\n"
          << "    Caches:";
 
-  std::vector<hwloc_obj_type_t> Caches = {
+  const std::vector<hwloc_obj_type_t> Caches = {
       HWLOC_OBJ_L1CACHE, HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE, HWLOC_OBJ_L2ICACHE,
       HWLOC_OBJ_L3CACHE, HWLOC_OBJ_L3ICACHE, HWLOC_OBJ_L4CACHE, HWLOC_OBJ_L5CACHE,
   };
-
-  std::vector<std::string> CacheStrings = {};
 
   for (hwloc_obj_type_t const& Cache : Caches) {
     std::stringstream Ss;
@@ -128,7 +126,7 @@ CPUTopology::CPUTopology(std::string Architecture)
   hwloc_topology_load(Topology);
 
   // check for hybrid processor
-  int NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
+  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
 
   switch (NrCpukinds) {
   case -1:
@@ -300,7 +298,7 @@ CPUTopology::CPUTopology(std::string Architecture)
 #endif
 
   // get L1i-Cache size
-  int Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_L1ICACHE);
+  const auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_L1ICACHE);
 
   if (Width >= 1) {
     hwloc_obj_t CacheObj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_L1ICACHE, 0);
@@ -370,7 +368,7 @@ auto CPUTopology::maxNumThreads() const -> unsigned {
   unsigned Max = 0;
 
   // There might be more then one kind of cores
-  int NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
+  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
 
   // fallback in case this did not work ... can happen on some platforms
   // already printed a warning earlier
@@ -395,7 +393,7 @@ auto CPUTopology::maxNumThreads() const -> unsigned {
 
   // Find CPUs per kind
   for (int KindIndex = 0; KindIndex < NrCpukinds; KindIndex++) {
-    int Result = hwloc_cpukinds_get_info(Topology, KindIndex, Bitmap, nullptr, nullptr, nullptr, 0);
+    const auto Result = hwloc_cpukinds_get_info(Topology, KindIndex, Bitmap, nullptr, nullptr, nullptr, 0);
     if (Result) {
       log::warn() << "Could not get information for CPU kind " << KindIndex;
     }

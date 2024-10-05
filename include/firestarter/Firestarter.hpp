@@ -169,7 +169,7 @@ private:
   /// before we wait for the acknowledgement of the thread.
   void signalLoadWorkers(LoadThreadState State, void (*Function)() = nullptr);
 
-  static void loadThreadWorker(std::shared_ptr<LoadWorkerData> Td);
+  static void loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td);
 
   // WatchdogWorker.cpp
   static auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
