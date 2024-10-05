@@ -500,7 +500,7 @@ public:
 #pragma clang diagnostic pop
 #endif
   // use cpuid and usleep as low load
-  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) override;
+  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) override;
 
   auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
       -> uint64_t override;

@@ -241,7 +241,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  if (EXIT_SUCCESS != (ReturnCode = initLoadWorkers((LoadPercent == 0), Period.count()))) {
+  if (EXIT_SUCCESS != (ReturnCode = initLoadWorkers((LoadPercent == 0), Period))) {
     std::exit(ReturnCode);
   }
 

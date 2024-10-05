@@ -134,7 +134,7 @@ private:
 #endif
 
   // LoadThreadWorker.cpp
-  auto initLoadWorkers(bool LowLoad, uint64_t Period) -> int;
+  auto initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) -> int;
   void joinLoadWorkers();
   void printThreadErrorReport();
   void printPerformanceReport();

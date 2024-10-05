@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include <chrono>
 #include <list>
 #include <memory>
 #include <string>
@@ -93,7 +94,7 @@ public:
 
   [[nodiscard]] virtual auto isAvailable() const -> bool = 0;
 
-  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) = 0;
+  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) = 0;
 
   [[nodiscard]] virtual auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
                                             unsigned InstructionCacheSize,

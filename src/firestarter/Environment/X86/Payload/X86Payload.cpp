@@ -33,7 +33,7 @@
 
 namespace firestarter::environment::x86::payload {
 
-void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t Period) {
+void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
   auto Nap = Period / 100;
 
 #ifndef _MSC_VER
@@ -56,7 +56,7 @@ void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t 
     _mm_mfence();
     __cpuid(Cpuid.data(), 0);
 #endif
-    std::this_thread::sleep_for(std::chrono::microseconds(Nap));
+    std::this_thread::sleep_for(Nap);
 #ifndef _MSC_VER
     __asm__ __volatile__("mfence;"
                          "cpuid;" ::

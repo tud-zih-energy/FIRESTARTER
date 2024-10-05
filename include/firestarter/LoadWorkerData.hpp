@@ -106,8 +106,8 @@ public:
     }
   };
 
-  LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar, uint64_t Period,
-                 bool DumpRegisters, bool ErrorDetection)
+  LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
+                 std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
       , Period(Period)
       , DumpRegisters(DumpRegisters)
@@ -152,6 +152,7 @@ public:
     std::mutex Mutex;
   } Communication;
 
+  /// The memory which is used by the load worker.
   LoadWorkerMemory::UniquePtr Memory = {nullptr, nullptr};
 
   volatile LoadThreadWorkType& LoadVar;
@@ -165,7 +166,7 @@ public:
 
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
-  uint64_t Period;
+  std::chrono::microseconds Period;
   bool DumpRegisters;
   bool ErrorDetection;
   std::shared_ptr<uint64_t> CommunicationLeft;

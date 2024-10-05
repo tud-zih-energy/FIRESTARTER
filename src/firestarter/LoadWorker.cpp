@@ -46,7 +46,7 @@
 
 namespace firestarter {
 
-auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
+auto Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) -> int {
   auto ReturnCode = environment().setCpuAffinity(0);
 
   if (EXIT_SUCCESS != ReturnCode) {
