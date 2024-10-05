@@ -33,7 +33,7 @@
 #include <type_traits>
 #include <utility>
 
-#define INIT_BLOCKSIZE 1024
+constexpr const auto InitBlocksize = 1024;
 
 namespace firestarter::environment::x86::payload {
 

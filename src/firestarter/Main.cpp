@@ -116,7 +116,7 @@ void printWarranty() {
 void printHelp(cxxopts::Options const& Parser, std::string const& Section) {
   std::vector<std::pair<std::string, std::string>> Options(Config::OptionsMap.size());
 
-  if (Section.size() == 0) {
+  if (Section.empty()) {
     std::copy(Config::OptionsMap.begin(), Config::OptionsMap.end(), Options.begin());
   } else {
     auto FindSection = [&](std::pair<std::string, std::string> const& Pair) { return Pair.first == Section; };
@@ -267,26 +267,26 @@ Config::Config(int Argc, const char** Argv) {
   try {
     auto Options = Parser.parse(Argc, Argv);
 
-    if (Options.count("quiet")) {
+    if (static_cast<bool>(Options.count("quiet"))) {
       firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::warn);
-    } else if (Options.count("report")) {
+    } else if (static_cast<bool>(Options.count("report"))) {
       firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::debug);
-    } else if (Options.count("debug")) {
+    } else if (static_cast<bool>(Options.count("debug"))) {
       firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::trace);
     } else {
       firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::info);
     }
 
-    if (Options.count("version")) {
+    if (static_cast<bool>(Options.count("version"))) {
       std::exit(EXIT_SUCCESS);
     }
 
-    if (Options.count("copyright")) {
+    if (static_cast<bool>(Options.count("copyright"))) {
       printCopyright();
       std::exit(EXIT_SUCCESS);
     }
 
-    if (Options.count("warranty")) {
+    if (static_cast<bool>(Options.count("warranty"))) {
       printWarranty();
       std::exit(EXIT_SUCCESS);
     }
@@ -296,12 +296,12 @@ Config::Config(int Argc, const char** Argv) {
                              << "This is free software, and you are welcome to redistribute it\n"
                              << "under certain conditions; run `" << ExecutableName << " -c` for details.\n";
 
-    if (Options.count("help")) {
+    if (static_cast<bool>(Options.count("help"))) {
       auto Section = Options["help"].as<std::string>();
 
       // section not found
       auto FindSection = [&](std::pair<std::string, std::string> const& Pair) { return Pair.first == Section; };
-      if (std::find_if(OptionsMap.begin(), OptionsMap.end(), FindSection) == OptionsMap.end() && Section.size() != 0) {
+      if (std::find_if(OptionsMap.begin(), OptionsMap.end(), FindSection) == OptionsMap.end() && !Section.empty()) {
         throw std::invalid_argument("Section \"" + Section + "\" not found in help.");
       }
 
@@ -317,15 +317,15 @@ Config::Config(int Argc, const char** Argv) {
       throw std::invalid_argument("Option -l/--load may not be above 100.");
     }
 
-    ErrorDetection = Options.count("error-detection");
+    ErrorDetection = static_cast<bool>(Options.count("error-detection"));
     if (ErrorDetection && LoadPercent != 100) {
       throw std::invalid_argument("Option --error-detection may only be used "
                                   "with -l/--load equal 100.");
     }
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
-    AllowUnavailablePayload = Options.count("allow-unavailable-payload");
-    DumpRegisters = Options.count("dump-registers");
+    AllowUnavailablePayload = static_cast<bool>(Options.count("allow-unavailable-payload"));
+    DumpRegisters = static_cast<bool>(Options.count("dump-registers"));
     if (DumpRegisters) {
       DumpRegistersTimeDelta = std::chrono::seconds(Options["dump-registers"].as<unsigned>());
       if (Timeout != std::chrono::microseconds::zero() && LoadPercent != 100) {
@@ -367,13 +367,13 @@ Config::Config(int Argc, const char** Argv) {
     Gpus = Options["gpus"].as<int>();
 #endif
 
-    PrintFunctionSummary = Options.count("avail");
+    PrintFunctionSummary = static_cast<bool>(Options.count("avail"));
 
     FunctionId = Options["function"].as<unsigned>();
 
-    ListInstructionGroups = Options.count("list-instruction-groups");
+    ListInstructionGroups = static_cast<bool>(Options.count("list-instruction-groups"));
     InstructionGroups = Options["run-instruction-groups"].as<std::string>();
-    if (Options.count("set-line-count")) {
+    if (static_cast<bool>(Options.count("set-line-count"))) {
       LineCount = Options["set-line-count"].as<unsigned>();
     }
 
@@ -384,13 +384,14 @@ Config::Config(int Argc, const char** Argv) {
 #ifndef FIRESTARTER_LINK_STATIC
     MetricPaths = Options["metric-path"].as<std::vector<std::string>>();
 #endif
-    if (Options.count("metric-from-stdin")) {
+    if (static_cast<bool>(Options.count("metric-from-stdin"))) {
       StdinMetrics = Options["metric-from-stdin"].as<std::vector<std::string>>();
     }
-    Measurement = Options.count("measurement");
-    ListMetrics = Options.count("list-metrics");
+    Measurement = static_cast<bool>(Options.count("measurement"));
+    ListMetrics = static_cast<bool>(Options.count("list-metrics"));
+    Optimize = static_cast<bool>(Options.count("optimize"));
 
-    if ((Optimize = Options.count("optimize"))) {
+    if (Optimize) {
       if (ErrorDetection) {
         throw std::invalid_argument("Options --error-detection and --optimize "
                                     "cannot be used together.");
@@ -400,7 +401,7 @@ Config::Config(int Argc, const char** Argv) {
       }
       Preheat = std::chrono::seconds(Options["preheat"].as<unsigned>());
       OptimizationAlgorithm = Options["optimize"].as<std::string>();
-      if (Options.count("optimization-metric")) {
+      if (static_cast<bool>(Options.count("optimization-metric"))) {
         OptimizationMetrics = Options["optimization-metric"].as<std::vector<std::string>>();
       }
       if (LoadPercent != 100) {
@@ -414,7 +415,7 @@ Config::Config(int Argc, const char** Argv) {
       // this will deactivate the watchdog worker
       Timeout = std::chrono::seconds::zero();
       Individuals = Options["individuals"].as<unsigned>();
-      if (Options.count("optimize-outfile")) {
+      if (static_cast<bool>(Options.count("optimize-outfile"))) {
         OptimizeOutfile = Options["optimize-outfile"].as<std::string>();
       }
       Generations = Options["generations"].as<unsigned>();

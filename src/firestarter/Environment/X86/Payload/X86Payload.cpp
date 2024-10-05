@@ -71,11 +71,11 @@ void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, uint64_t 
 void X86Payload::init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
   uint64_t i = 0;
 
-  for (; i < INIT_BLOCKSIZE; i++) {
+  for (; i < InitBlocksize; i++) {
     MemoryAddr[i] = 0.25 + static_cast<double>(i) * 8.0 * FirstValue;
   }
-  for (; i <= BufferSize - INIT_BLOCKSIZE; i += INIT_BLOCKSIZE) {
-    std::memcpy(MemoryAddr + i, MemoryAddr + i - INIT_BLOCKSIZE, sizeof(uint64_t) * INIT_BLOCKSIZE);
+  for (; i <= BufferSize - InitBlocksize; i += InitBlocksize) {
+    std::memcpy(MemoryAddr + i, MemoryAddr + i - InitBlocksize, sizeof(uint64_t) * InitBlocksize);
   }
   for (; i < BufferSize; i++) {
     MemoryAddr[i] = 0.25 + static_cast<double>(i) * 8.0 * LastValue;

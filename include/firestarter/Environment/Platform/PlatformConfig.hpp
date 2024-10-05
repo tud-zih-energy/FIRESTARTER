@@ -90,7 +90,7 @@ public:
     }
 
     auto Str = Ss.str();
-    if (Str.size() > 0) {
+    if (!Str.empty()) {
       Str.pop_back();
     }
 

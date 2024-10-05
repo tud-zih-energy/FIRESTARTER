@@ -60,7 +60,7 @@ protected:
 
   [[nodiscard]] static auto getNumberOfSequenceRepetitions(const std::vector<std::string>& Sequence,
                                                            const unsigned NumberOfLines) -> unsigned {
-    if (Sequence.size() == 0) {
+    if (Sequence.empty()) {
       return 0;
     }
     return NumberOfLines / Sequence.size();

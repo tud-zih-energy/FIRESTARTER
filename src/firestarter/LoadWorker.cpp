@@ -19,9 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/LoadWorkerData.hpp"
-#include <algorithm>
 #include <firestarter/ErrorDetectionStruct.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
@@ -42,10 +42,6 @@
 #include <cstdlib>
 #include <thread>
 
-namespace {
-const auto AlignedFreeDeleter = [](void* P) { ALIGNED_FREE(P); };
-}
-
 namespace firestarter {
 
 auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
@@ -65,9 +61,9 @@ auto Firestarter::initLoadWorkers(bool LowLoad, uint64_t Period) -> int {
   // communication pointers and add these to the threaddata
   if (ErrorDetection) {
     for (uint64_t I = 0; I < NumThreads; I++) {
-      auto* CommPtr = reinterpret_cast<uint64_t*>(ALIGNED_MALLOC(2 * sizeof(uint64_t), 64));
+      auto* CommPtr = static_cast<uint64_t*>(AlignedAlloc::malloc(2 * sizeof(uint64_t)));
       assert(CommPtr);
-      ErrorCommunication.push_back(std::shared_ptr<uint64_t>(CommPtr, AlignedFreeDeleter));
+      ErrorCommunication.emplace_back(std::shared_ptr<uint64_t>(CommPtr, AlignedAlloc::free));
       log::debug() << "Threads " << (I + NumThreads - 1) % NumThreads << " and " << I << " commPtr = 0x"
                    << std::setfill('0') << std::setw(sizeof(uint64_t) * 2) << std::hex
                    << reinterpret_cast<uint64_t>(CommPtr);
@@ -279,8 +275,7 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
       // for them.
-      Td->Memory = reinterpret_cast<LoadWorkerMemory*>(
-          ALIGNED_MALLOC((Td->BuffersizeMem * sizeof(uint64_t) + sizeof(ExtraLoadWorkerVariables)), 64));
+      Td->Memory = LoadWorkerMemory::allocate(Td->BuffersizeMem * sizeof(uint64_t));
 
       // exit application on error
       if (Td->Memory == nullptr) {

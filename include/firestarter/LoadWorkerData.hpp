@@ -21,47 +21,45 @@
 
 #pragma once
 
+#include "AlignedAlloc.hpp"
 #include "Constants.hpp"
 #include "DumpRegisterStruct.hpp"
 #include "Environment/Environment.hpp"
 #include "ErrorDetectionStruct.hpp"
 #include <atomic>
+#include <cmath>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <utility>
 
-#define PAD_SIZE(size, align) align*(int)std::ceil((double)size / (double)align)
-
-#if defined(__APPLE__)
-#define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE free
-#elif defined(__MINGW64__)
-#define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _mm_free
-#elif defined(_MSC_VER)
-#define ALIGNED_MALLOC(size, align) _aligned_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _aligned_free
-#else
-#define ALIGNED_MALLOC(size, align) std::aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE std::free
-#endif
-
 namespace firestarter {
-
-/// This struct holds the data for optional FIRESTARTER functionalities.
-struct ExtraLoadWorkerVariables {
-  /// The data for the dump registers functionality.
-  DumpRegisterStruct Drs;
-  /// The data for the error detections functionality.
-  ErrorDetectionStruct Eds;
-};
 
 /// This struct is used to allocate the memory for the high-load routine.
 struct LoadWorkerMemory {
+private:
+  LoadWorkerMemory() = default;
+  ~LoadWorkerMemory() = default;
+
+  /// Function to deallocate the memory for this struct to be used with unique_ptr.
+  /// \arg Ptr The pointer to the memory
+  static void deallocate(void* Ptr) {
+    static_cast<LoadWorkerMemory*>(Ptr)->~LoadWorkerMemory();
+    AlignedAlloc::free(Ptr);
+  }
+
+public:
+  using UniquePtr = std::unique_ptr<LoadWorkerMemory, void (*)(void*)>;
+
   /// The extra variables that are before the memory used for the calculation in the high-load routine. They are used
-  /// for features where further communication between the high-load routine is needed e.g., for error detection or
-  /// dumping registers.
-  ExtraLoadWorkerVariables ExtraVars;
+  /// for optional FIRESTARTER features where further communication between the high-load routine is needed e.g., for
+  /// error detection or dumping registers.
+  struct ExtraLoadWorkerVariables {
+    /// The data for the dump registers functionality.
+    DumpRegisterStruct Drs;
+    /// The data for the error detections functionality.
+    ErrorDetectionStruct Eds;
+  } ExtraVars;
 
   /// A placeholder to extract the address of the memory region with dynamic size which is used for the calculation in
   /// the high-load routine. Do not write or read to this type directly.
@@ -71,7 +69,6 @@ struct LoadWorkerMemory {
   /// this array.
   EightBytesType DoNotUsePadding[7];
 
-public:
   /// Get the pointer to the start of the memory use for computations.
   /// \returns the pointer to the memory.
   [[nodiscard]] auto getMemoryAddress() -> auto{ return reinterpret_cast<double*>(&DoNotUseAddrMem); }
@@ -79,6 +76,19 @@ public:
   /// Get the offset to the memory which is used by the high-load functions
   /// \returns the offset to the memory
   [[nodiscard]] constexpr static auto getMemoryOffset() -> auto{ return offsetof(LoadWorkerMemory, DoNotUseAddrMem); }
+
+  /// Allocate the memory for the high-load thread on 64B cache line boundaries and return a unique_ptr.
+  /// \arg Bytes The number of bytes allocated for the array whoose start address is returned by the getMemoryAddress
+  /// function.
+  /// \returns A unique_ptr to the memory for the high-load thread.
+  [[nodiscard]] static auto allocate(const std::size_t Bytes) -> UniquePtr {
+    // Allocate the memory for the ExtraLoadWorkerVariables (which are 64B aligned) and the data for the high-load
+    // routine which may not be 64B aligned.
+    static_assert(sizeof(ExtraLoadWorkerVariables) % 64 == 0,
+                  "ExtraLoadWorkerVariables is not a size of 64B i.e., a cacheline.");
+    auto* Ptr = AlignedAlloc::malloc(Bytes + sizeof(ExtraLoadWorkerVariables));
+    return {static_cast<LoadWorkerMemory*>(Ptr), deallocate};
+  }
 };
 
 class LoadWorkerData {
@@ -93,12 +103,7 @@ public:
       , Environment(Environment)
       , Config(new environment::platform::RuntimeConfig(Environment.selectedConfig())) {}
 
-  ~LoadWorkerData() {
-    delete Config;
-    if (Memory != nullptr) {
-      ALIGNED_FREE(Memory);
-    }
-  }
+  ~LoadWorkerData() { delete Config; }
 
   void setErrorCommunication(std::shared_ptr<uint64_t> CommunicationLeft,
                              std::shared_ptr<uint64_t> CommunicationRight) {
@@ -128,7 +133,7 @@ public:
   bool Ack = false;
   std::mutex Mutex;
 
-  LoadWorkerMemory* Memory = nullptr;
+  LoadWorkerMemory::UniquePtr Memory = {nullptr, nullptr};
 
   volatile LoadThreadWorkType& LoadVar;
   uint64_t BuffersizeMem{};
