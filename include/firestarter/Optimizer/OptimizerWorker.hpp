@@ -38,9 +38,9 @@ public:
 
   ~OptimizerWorker() = default;
 
-  void join();
+  void join() const;
 
-  void kill();
+  void kill() const;
 
 private:
   static auto optimizerThread(void* OptimizerWorker) -> void*;

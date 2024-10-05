@@ -25,8 +25,7 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-
+#include <cstdint>
 // NOLINTBEGIN(modernize-use-using)
 typedef struct {
   uint32_t

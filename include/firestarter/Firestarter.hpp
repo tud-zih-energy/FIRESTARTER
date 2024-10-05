@@ -86,7 +86,7 @@ private:
   const char** Argv;
   const std::chrono::seconds Timeout;
   const unsigned LoadPercent;
-  std::chrono::microseconds Load;
+  std::chrono::microseconds Load{};
   std::chrono::microseconds Period;
   const bool DumpRegisters;
   const std::chrono::seconds DumpRegistersTimeDelta;

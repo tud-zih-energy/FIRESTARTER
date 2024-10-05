@@ -33,7 +33,7 @@ private:
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
 
-  static void initGpus(std::condition_variable& Cv, volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
+  static void initGpus(std::condition_variable& Cv, const volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
                        unsigned MatrixSize, int Gpus);
 
 public:

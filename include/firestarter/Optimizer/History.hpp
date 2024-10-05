@@ -73,7 +73,7 @@ public:
 
   static auto find(std::vector<unsigned> const& Individual)
       -> std::optional<std::map<std::string, firestarter::measurement::Summary>> {
-    auto FindEqual = [Individual](auto const& ind) { return ind == Individual; };
+    auto FindEqual = [&Individual](auto const& Ind) { return Ind == Individual; };
     auto Ind = std::find_if(X.begin(), X.end(), FindEqual);
     if (Ind == X.end()) {
       return {};
@@ -126,7 +126,7 @@ public:
             continue;
           }
 
-          if (Result.size() != 0) {
+          if (!Result.empty()) {
             Result += ",";
           }
           Result += PayloadItems[I] + ":" + std::to_string(Individual[I]);

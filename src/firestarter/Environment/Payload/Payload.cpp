@@ -46,7 +46,7 @@ auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> con
 
   std::vector<std::string> Sequence = {};
 
-  if (Prop.size() == 0) {
+  if (Prop.empty()) {
     return Sequence;
   }
 

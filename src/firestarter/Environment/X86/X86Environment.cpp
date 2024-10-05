@@ -175,7 +175,7 @@ void X86Environment::printAvailableInstructionGroups() {
   }
 
   auto S = Ss.str();
-  if (S.size() > 0) {
+  if (!S.empty()) {
     S.pop_back();
   }
 

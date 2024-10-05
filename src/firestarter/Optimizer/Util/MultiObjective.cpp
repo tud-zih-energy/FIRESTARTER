@@ -166,7 +166,7 @@ auto fastNonDominatedSorting(const std::vector<std::vector<double>>& Points)
   auto DomCountCopy(DomCount);
   auto CurrentFront = NonDomFronts[0];
   std::vector<std::vector<std::size_t>>::size_type FrontCounter(0U);
-  while (CurrentFront.size() != 0U) {
+  while (!CurrentFront.empty()) {
     std::vector<std::size_t> NextFront;
     for (const auto& P : CurrentFront) {
       for (const auto& Q : DomList[P]) {
@@ -179,7 +179,7 @@ auto fastNonDominatedSorting(const std::vector<std::vector<double>>& Points)
     }
     ++FrontCounter;
     CurrentFront = NextFront;
-    if (CurrentFront.size() != 0U) {
+    if (!CurrentFront.empty()) {
       NonDomFronts.push_back(CurrentFront);
     }
   }
@@ -366,7 +366,7 @@ auto selectBestNMo(const std::vector<std::vector<double>>& InputF, std::size_t N
   if (N == 0U) { // corner case
     return {};
   }
-  if (InputF.size() == 0U) { // corner case
+  if (InputF.empty()) { // corner case
     return {};
   }
   if (InputF.size() == 1U) { // corner case
@@ -435,7 +435,7 @@ auto selectBestNMo(const std::vector<std::vector<double>>& InputF, std::size_t N
  */
 auto ideal(const std::vector<std::vector<double>>& Points) -> std::vector<double> {
   // Corner case
-  if (Points.size() == 0U) {
+  if (Points.empty()) {
     return {};
   }
 

@@ -134,17 +134,17 @@ static auto init() -> int32_t {
 
   ioctl(CpuCyclesFd, PERF_EVENT_IOC_ID, &CpuCyclesId);
 
-  struct perf_event_attr instructions_attr;
-  std::memset(&instructions_attr, 0, sizeof(struct perf_event_attr));
-  instructions_attr.type = PERF_TYPE_HARDWARE;
-  instructions_attr.size = sizeof(struct perf_event_attr);
-  instructions_attr.config = PERF_COUNT_HW_INSTRUCTIONS;
-  instructions_attr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  instructions_attr.inherit = 1;
-  instructions_attr.exclude_kernel = 1;
-  instructions_attr.exclude_hv = 1;
+  struct perf_event_attr InstructionsAttr {};
+  std::memset(&InstructionsAttr, 0, sizeof(struct perf_event_attr));
+  InstructionsAttr.type = PERF_TYPE_HARDWARE;
+  InstructionsAttr.size = sizeof(struct perf_event_attr);
+  InstructionsAttr.config = PERF_COUNT_HW_INSTRUCTIONS;
+  InstructionsAttr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  InstructionsAttr.inherit = 1;
+  InstructionsAttr.exclude_kernel = 1;
+  InstructionsAttr.exclude_hv = 1;
 
-  if ((InstructionsFd = perfEventOpen(&instructions_attr,
+  if ((InstructionsFd = perfEventOpen(&InstructionsAttr,
                                       // pid == 0 and cpu == -1
                                       // This measures the calling process/thread on any CPU.
                                       0, -1,

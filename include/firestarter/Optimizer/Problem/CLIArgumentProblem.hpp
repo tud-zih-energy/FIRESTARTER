@@ -34,18 +34,18 @@ namespace firestarter::optimizer::problem {
 class CLIArgumentProblem final : public firestarter::optimizer::Problem {
 public:
   CLIArgumentProblem(std::function<void(std::vector<std::pair<std::string, unsigned>> const&)>&& ChangePayloadFunction,
-                     std::shared_ptr<firestarter::measurement::MeasurementWorker> const& MeasurementWorker,
+                     std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker,
                      std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
                      std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
-                     std::vector<std::string> const& InstructionGroups)
+                     std::vector<std::string> InstructionGroups)
       : ChangePayloadFunction(std::move(ChangePayloadFunction))
-      , MeasurementWorker(MeasurementWorker)
+      , MeasurementWorker(std::move(MeasurementWorker))
       , Metrics(Metrics)
       , Timeout(Timeout)
       , StartDelta(StartDelta)
       , StopDelta(StopDelta)
-      , InstructionGroups(InstructionGroups) {
-    assert(Metrics.size() != 0);
+      , InstructionGroups(std::move(InstructionGroups)) {
+    assert(!Metrics.empty());
   }
 
   ~CLIArgumentProblem() override = default;
@@ -90,7 +90,7 @@ public:
     for (auto const& MetricName : Metrics) {
       auto FindName = [MetricName](auto const& Summary) {
         auto InvertedName = "-" + Summary.first;
-        return MetricName.compare(Summary.first) == 0 || MetricName.compare(InvertedName) == 0;
+        return MetricName == Summary.first || MetricName == InvertedName;
       };
 
       auto It = std::find_if(Summaries.begin(), Summaries.end(), FindName);

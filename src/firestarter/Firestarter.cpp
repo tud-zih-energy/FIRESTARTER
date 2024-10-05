@@ -159,7 +159,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
     auto All = MeasurementWorker->metricNames();
     auto Initialized = MeasurementWorker->initMetrics(All);
 
-    if (Initialized.size() == 0) {
+    if (Initialized.empty()) {
       log::error() << "No metrics initialized";
       std::exit(EXIT_FAILURE);
     }
@@ -168,7 +168,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
     for (auto const& OptimizationMetric : OptimizationMetrics) {
       auto NameEqual = [OptimizationMetric](auto const& Name) {
         auto InvertedName = "-" + Name;
-        return Name.compare(OptimizationMetric) == 0 || InvertedName.compare(OptimizationMetric) == 0;
+        return Name == OptimizationMetric || InvertedName == OptimizationMetric;
       };
       // metric name is not found
       if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {

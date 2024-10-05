@@ -79,7 +79,7 @@ private:
   std::string ProcessorName;
   unsigned InstructionCacheSize = 0;
   uint64_t Clockrate = 0;
-  hwloc_topology_t Topology;
+  hwloc_topology_t Topology{};
 };
 
 } // namespace firestarter::environment

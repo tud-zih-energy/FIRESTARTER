@@ -494,7 +494,7 @@ public:
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
-  void init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
+  static void init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop

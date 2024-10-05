@@ -41,8 +41,8 @@ namespace firestarter::measurement {
 
 class MeasurementWorker {
 private:
-  pthread_t WorkerThread;
-  pthread_t StdinThread;
+  pthread_t WorkerThread{};
+  pthread_t StdinThread{};
 
   std::vector<const MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
 
@@ -73,7 +73,8 @@ private:
 public:
   // creates the worker thread
   MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
-                    std::vector<std::string> const& MetricDylibs, std::vector<std::string> const& StdinMetrics);
+                    std::vector<std::string> const& MetricDylibsNames,
+                    std::vector<std::string> const& StdinMetricsNames);
 
   // stops the worker threads
   ~MeasurementWorker();

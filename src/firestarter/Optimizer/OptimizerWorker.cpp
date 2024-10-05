@@ -37,12 +37,12 @@ OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorit
   pthread_create(&this->WorkerThread, nullptr, OptimizerWorker::optimizerThread, this);
 }
 
-void OptimizerWorker::kill() {
+void OptimizerWorker::kill() const {
   // we ignore ESRCH errno if thread already exited
   pthread_cancel(WorkerThread);
 }
 
-void OptimizerWorker::join() {
+void OptimizerWorker::join() const {
   // we ignore ESRCH errno if thread already exited
   pthread_join(WorkerThread, nullptr);
 }

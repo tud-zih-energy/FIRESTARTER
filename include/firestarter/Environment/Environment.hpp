@@ -36,7 +36,7 @@ public:
       : Topology(std::move(Topology)) {}
   virtual ~Environment() { delete SelectedConfig; }
 
-  auto evaluateCpuAffinity(unsigned RequestedNumThreads, std::string CpuBind) -> int;
+  auto evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind) -> int;
   auto setCpuAffinity(unsigned Thread) -> int;
   void printThreadSummary();
 
@@ -77,9 +77,10 @@ protected:
 private:
   uint64_t RequestedNumThreads = 0;
 
-  // TODO: replace these functions with the builtins one from hwloc
-  auto cpuAllowed(unsigned Id) -> int;
-  auto cpuSet(unsigned Id) -> int;
+  // TODO: replace these functions with the builtins one from hwlocom hwloc
+  static auto cpuAllowed(unsigned Id) -> int;
+  static auto cpuSet(unsigned Id) -> int;
+  auto addCpuSet(unsigned Cpu, cpu_set_t& Mask) const -> bool;
 
   std::vector<unsigned> CpuBind;
 };

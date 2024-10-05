@@ -115,7 +115,7 @@ static auto init() -> int32_t {
 
   // paths now contains all interesting nodes
 
-  if (Paths.size() == 0) {
+  if (Paths.empty()) {
     errorString = "No valid entries in " + RaplPath;
     return EXIT_FAILURE;
   }
@@ -156,9 +156,9 @@ static auto init() -> int32_t {
     Read = std::sscanf(Buffer.c_str(), "%lu", &Max);
 
     if (Read == 0) {
-      std::stringstream ss;
-      ss << "Contents in file " << MaxEnergyUjRangePath.str() << " do not conform to mask (uint64_t)";
-      errorString = ss.str();
+      std::stringstream Ss;
+      Ss << "Contents in file " << MaxEnergyUjRangePath.str() << " do not conform to mask (uint64_t)";
+      errorString = Ss.str();
       break;
     }
 
@@ -176,7 +176,7 @@ static auto init() -> int32_t {
     Readers.push_back(Def);
   }
 
-  if (errorString.size() != 0) {
+  if (!errorString.empty()) {
     fini();
     return EXIT_FAILURE;
   }

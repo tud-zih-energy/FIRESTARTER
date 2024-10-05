@@ -127,7 +127,7 @@ auto Population::bestIndividual() const -> std::optional<Individual> {
   }
 
   // assert that we have individuals
-  assert(this->X.size() > 0);
+  assert(!this->X.empty());
 
   auto Best = std::max_element(this->X.begin(), this->X.end(), [](const auto& A, const auto& B) { return A < B; });
 
