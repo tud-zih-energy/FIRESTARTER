@@ -41,7 +41,7 @@ void X86Environment::evaluateFunctions() {
   }
 }
 
-auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) -> int {
+void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::string DefaultPayloadName;
 
@@ -51,23 +51,25 @@ auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
       // the selected function
       if (Id == FunctionId) {
         if (!Config->isAvailable()) {
-          log::error() << "Function " << FunctionId << " (\"" << functionName << "\") requires "
-                       << Config->payload().name() << ", which is not supported by the processor.";
-          if (!AllowUnavailablePayload) {
-            return EXIT_FAILURE;
+          const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" + functionName + "\") requires " +
+                                   Config->payload().name() + ", which is not supported by the processor.";
+          if (AllowUnavailablePayload) {
+            log::error() << ErrorString;
+          } else {
+            throw std::invalid_argument(ErrorString);
           }
         }
         // found function
         SelectedConfig =
             new ::firestarter::environment::platform::RuntimeConfig(*Config, thread, topology().instructionCacheSize());
-        return EXIT_SUCCESS;
+        return;
       }
       // default function
       if (0 == FunctionId && Config->isDefault()) {
         if (thread == topology().numThreadsPerCore()) {
           SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, thread,
                                                                                    topology().instructionCacheSize());
-          return EXIT_SUCCESS;
+          return;
         }
         DefaultPayloadName = Config->payload().name();
       }
@@ -109,21 +111,19 @@ auto X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
         log::warn() << "Using function " << SelectedFunctionName << " as fallback.\n"
                     << "You can use the parameter --function to try other "
                        "functions.";
-        return EXIT_SUCCESS;
+        return;
       }
     }
 
     // no fallback found
-    log::error() << "No fallback implementation found for available ISA "
-                    "extensions.";
-    return EXIT_FAILURE;
+    throw std::invalid_argument("No fallback implementation found for available ISA "
+                                "extensions.");
   }
 
-  log::error() << "unknown function id: " << FunctionId << ", see --avail for available ids";
-  return EXIT_FAILURE;
+  throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
 }
 
-auto X86Environment::selectInstructionGroups(std::string Groups) -> int {
+void X86Environment::selectInstructionGroups(std::string Groups) {
   const std::string Delimiter = ",";
   const std::regex Re("^(\\w+):(\\d+)$");
   const auto AvailableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
@@ -139,32 +139,27 @@ auto X86Environment::selectInstructionGroups(std::string Groups) -> int {
     if (std::regex_match(Token, M, Re)) {
       if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==
           AvailableInstructionGroups.end()) {
-        log::error() << "Invalid instruction-group: " << M[1].str()
-                     << "\n       --run-instruction-groups format: multiple INST:VAL "
-                        "pairs comma-seperated";
-        return EXIT_FAILURE;
+        throw std::invalid_argument("Invalid instruction-group: " + M[1].str() +
+                                    "\n       --run-instruction-groups format: multiple INST:VAL "
+                                    "pairs comma-seperated");
       }
       int Num = std::stoul(M[2].str());
       if (Num == 0) {
-        log::error() << "instruction-group VAL may not contain number 0"
-                     << "\n       --run-instruction-groups format: multiple INST:VAL "
-                        "pairs comma-seperated";
-        return EXIT_FAILURE;
+        throw std::invalid_argument("instruction-group VAL may not contain number 0"
+                                    "\n       --run-instruction-groups format: multiple INST:VAL "
+                                    "pairs comma-seperated");
       }
       PayloadSettings.emplace_back(M[1].str(), Num);
     } else {
-      log::error() << "Invalid symbols in instruction-group: " << Token
-                   << "\n       --run-instruction-groups format: multiple INST:VAL "
-                      "pairs comma-seperated";
-      return EXIT_FAILURE;
+      throw std::invalid_argument("Invalid symbols in instruction-group: " + Token +
+                                  "\n       --run-instruction-groups format: multiple INST:VAL "
+                                  "pairs comma-seperated");
     }
   }
 
   selectedConfig().setPayloadSettings(PayloadSettings);
 
   log::info() << "  Running custom instruction group: " << Groups;
-
-  return EXIT_SUCCESS;
 }
 
 void X86Environment::printAvailableInstructionGroups() {

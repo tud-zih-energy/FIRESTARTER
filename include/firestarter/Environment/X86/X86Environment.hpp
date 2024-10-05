@@ -55,8 +55,8 @@ public:
   auto topology() -> X86CPUTopology const& { return *dynamic_cast<X86CPUTopology*>(Topology.get()); }
 
   void evaluateFunctions() override;
-  auto selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) -> int override;
-  auto selectInstructionGroups(std::string Groups) -> int override;
+  void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) override;
+  void selectInstructionGroups(std::string Groups) override;
   void printAvailableInstructionGroups() override;
   void setLineCount(unsigned LineCount) override;
   void printSelectedCodePathSummary() override;

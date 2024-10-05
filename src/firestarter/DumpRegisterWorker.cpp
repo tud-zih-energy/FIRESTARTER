@@ -55,15 +55,13 @@ auto registerNameBySize(unsigned RegisterSize) -> std::string {
 
 namespace firestarter {
 
-auto Firestarter::initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) -> int {
+void Firestarter::initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) {
   // Create the data for the worker thread. The thread will dump the register contents periodically and calculate the
   // hamming distance between dumps.
   auto Data = std::make_unique<DumpRegisterWorkerData>(this->LoadThreads.begin()->second, DumpTimeDelta, DumpFilePath);
 
   // Spawn the thread.
   DumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(Data));
-
-  return EXIT_SUCCESS;
 }
 
 void Firestarter::joinDumpRegisterWorker() { this->DumpRegisterWorkerThread.join(); }

@@ -46,12 +46,8 @@
 
 namespace firestarter {
 
-auto Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) -> int {
-  auto ReturnCode = environment().setCpuAffinity(0);
-
-  if (EXIT_SUCCESS != ReturnCode) {
-    return EXIT_FAILURE;
-  }
+void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) {
+  environment().setCpuAffinity(0);
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
@@ -103,8 +99,6 @@ auto Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period
   }
 
   signalLoadWorkers(LoadThreadState::ThreadInit);
-
-  return EXIT_SUCCESS;
 }
 
 void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function)()) {

@@ -134,7 +134,7 @@ private:
 #endif
 
   // LoadThreadWorker.cpp
-  auto initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) -> int;
+  void initLoadWorkers(bool LowLoad, std::chrono::microseconds Period);
   void joinLoadWorkers();
   void printThreadErrorReport();
   void printPerformanceReport();
@@ -177,7 +177,7 @@ private:
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
-  auto initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath) -> int;
+  void initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath);
   void joinDumpRegisterWorker();
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
 

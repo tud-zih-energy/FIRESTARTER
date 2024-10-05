@@ -80,8 +80,6 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
     , Generations(Generations)
     , Nsga2Cr(Nsga2Cr)
     , Nsga2M(Nsga2M) {
-  int ReturnCode = 0;
-
   Load = (Period * LoadPercent) / 100;
   if (LoadPercent == 100 || Load == std::chrono::microseconds::zero()) {
     this->Period = std::chrono::microseconds::zero();
@@ -99,9 +97,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
   Environment = new environment::x86::X86Environment();
 #endif
 
-  if (EXIT_SUCCESS != (ReturnCode = environment().evaluateCpuAffinity(RequestedNumThreads, CpuBind))) {
-    std::exit(ReturnCode);
-  }
+  environment().evaluateCpuAffinity(RequestedNumThreads, CpuBind);
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
   // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
@@ -126,9 +122,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
     std::exit(EXIT_SUCCESS);
   }
 
-  if (EXIT_SUCCESS != (ReturnCode = environment().selectFunction(FunctionId, AllowUnavailablePayload))) {
-    std::exit(ReturnCode);
-  }
+  environment().selectFunction(FunctionId, AllowUnavailablePayload);
 
   if (ListInstructionGroups) {
     environment().printAvailableInstructionGroups();
@@ -136,9 +130,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
   }
 
   if (!InstructionGroups.empty()) {
-    if (EXIT_SUCCESS != (ReturnCode = environment().selectInstructionGroups(InstructionGroups))) {
-      std::exit(ReturnCode);
-    }
+    environment().selectInstructionGroups(InstructionGroups);
   }
 
   if (LineCount != 0) {
@@ -160,8 +152,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
     auto Initialized = MeasurementWorker->initMetrics(All);
 
     if (Initialized.empty()) {
-      log::error() << "No metrics initialized";
-      std::exit(EXIT_FAILURE);
+      std::invalid_argument("No metrics initialized");
     }
 
     // check if selected metrics are initialized
@@ -172,13 +163,11 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
       };
       // metric name is not found
       if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {
-        log::error() << "Metric \"" << OptimizationMetric << "\" does not exist.";
-        std::exit(EXIT_FAILURE);
+        std::invalid_argument("Metric \"" + OptimizationMetric + "\" does not exist.");
       }
       // metric has not initialized properly
       if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
-        log::error() << "Metric \"" << OptimizationMetric << "\" failed to initialize.";
-        std::exit(EXIT_FAILURE);
+        std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
       }
     }
   }
@@ -241,9 +230,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  if (EXIT_SUCCESS != (ReturnCode = initLoadWorkers((LoadPercent == 0), Period))) {
-    std::exit(ReturnCode);
-  }
+  initLoadWorkers((LoadPercent == 0), Period);
 
   // add some signal handler for aborting FIRESTARTER
 #ifndef _WIN32
@@ -287,10 +274,7 @@ void Firestarter::mainThread() {
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
   if (DumpRegisters) {
-    int ReturnCode = 0;
-    if (EXIT_SUCCESS != (ReturnCode = initDumpRegisterWorker(DumpRegistersTimeDelta, DumpRegistersOutpath))) {
-      std::exit(ReturnCode);
-    }
+    initDumpRegisterWorker(DumpRegistersTimeDelta, DumpRegistersOutpath);
   }
 #endif
 
