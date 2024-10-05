@@ -142,9 +142,15 @@ public:
     return Memory->ExtraVars.Eds;
   }
 
-  LoadThreadState State = LoadThreadState::ThreadWait;
-  bool Ack = false;
-  std::mutex Mutex;
+  /// The members in this struct are used for the communication between the main thread and the load thread.
+  struct Communication {
+    /// The state of the load worker.
+    LoadThreadState State = LoadThreadState::ThreadWait;
+    /// This variable will be set to true when the state change was acknowledged by the load thread.
+    bool Ack = false;
+    /// The mutex that is used to lock access to the Ack and State variabels.
+    std::mutex Mutex;
+  } Communication;
 
   LoadWorkerMemory::UniquePtr Memory = {nullptr, nullptr};
 

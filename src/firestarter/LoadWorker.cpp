@@ -114,15 +114,15 @@ void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
-    Td->Mutex.lock();
+    Td->Communication.Mutex.lock();
   }
 
   // switch the state on all threads
   for (auto const& Thread : LoadThreads) {
     auto Td = Thread.second;
 
-    Td->State = State;
-    Td->Mutex.unlock();
+    Td->Communication.State = State;
+    Td->Communication.Mutex.unlock();
   }
 
   // Execute a function after the state in the threads has been updated. This may be required to terminate an inner
@@ -136,14 +136,14 @@ void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function
     auto Td = Thread.second;
 
     do {
-      Td->Mutex.lock();
-      Ack = Td->Ack;
-      Td->Mutex.unlock();
+      Td->Communication.Mutex.lock();
+      Ack = Td->Communication.Ack;
+      Td->Communication.Mutex.unlock();
     } while (!Ack);
 
-    Td->Mutex.lock();
-    Td->Ack = false;
-    Td->Mutex.unlock();
+    Td->Communication.Mutex.lock();
+    Td->Communication.Ack = false;
+    Td->Communication.Mutex.unlock();
   }
 }
 
@@ -255,16 +255,16 @@ void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> Td) {
 #endif
 
   for (;;) {
-    Td->Mutex.lock();
-    auto CurState = Td->State;
-    Td->Mutex.unlock();
+    Td->Communication.Mutex.lock();
+    auto CurState = Td->Communication.State;
+    Td->Communication.Mutex.unlock();
 
     if (CurState != OldState) {
       OldState = CurState;
 
-      Td->Mutex.lock();
-      Td->Ack = true;
-      Td->Mutex.unlock();
+      Td->Communication.Mutex.lock();
+      Td->Communication.Ack = true;
+      Td->Communication.Mutex.unlock();
     } else {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
       continue;
