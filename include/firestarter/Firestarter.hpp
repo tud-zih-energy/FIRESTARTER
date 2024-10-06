@@ -101,12 +101,10 @@ private:
   std::unique_ptr<cuda::Cuda> Cuda;
   std::unique_ptr<oneapi::OneAPI> Oneapi;
 
-#if defined(linux) || defined(__linux__)
   inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
   std::shared_ptr<measurement::MeasurementWorker> MeasurementWorker;
   std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
   firestarter::optimizer::Population Population;
-#endif
 
   // LoadThreadWorker.cpp
   void initLoadWorkers(bool LowLoad, std::chrono::microseconds Period);

@@ -340,12 +340,12 @@ void Firestarter::sigtermHandler(int Signum) {
   }
   Firestarter::WatchdogTerminateAlert.notify_all();
 
-#if defined(linux) || defined(__linux__)
-  // if we have optimization running stop it
-  if (Firestarter::Optimizer) {
-    Firestarter::Optimizer->kill();
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    // if we have optimization running stop it
+    if (Firestarter::Optimizer) {
+      Firestarter::Optimizer->kill();
+    }
   }
-#endif
 }
 
 } // namespace firestarter
