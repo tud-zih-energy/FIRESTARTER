@@ -21,16 +21,6 @@
 
 #pragma once
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-#include "Cuda/Cuda.hpp"
-#endif
-
-#ifdef FIRESTARTER_BUILD_ONEAPI
-#include "OneAPI/OneAPI.hpp"
-#endif
-
-#include "Constants.hpp"
-
 #if defined(linux) || defined(__linux__)
 #include "Measurement/MeasurementWorker.hpp"
 #include "Optimizer/Algorithm.hpp"
@@ -38,8 +28,11 @@
 #include "Optimizer/Population.hpp"
 #endif
 
+#include "Constants.hpp"
+#include "Cuda/Cuda.hpp"
 #include "DumpRegisterWorkerData.hpp"
 #include "LoadWorkerData.hpp"
+#include "OneAPI/OneAPI.hpp"
 
 #include <chrono>
 #include <condition_variable>
@@ -108,13 +101,8 @@ private:
 
   std::unique_ptr<environment::Environment> Environment;
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  std::unique_ptr<cuda::Cuda> _cuda;
-#endif
-
-#ifdef FIRESTARTER_BUILD_ONEAPI
-  std::unique_ptr<oneapi::OneAPI> _oneapi;
-#endif
+  std::unique_ptr<cuda::Cuda> Cuda;
+  std::unique_ptr<oneapi::OneAPI> Oneapi;
 
 #if defined(linux) || defined(__linux__)
   inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;

@@ -243,13 +243,8 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 void Firestarter::mainThread() {
   Environment->printThreadSummary();
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  _cuda = std::make_unique<cuda::Cuda>(&loadVar, _gpuUseFloat, _gpuUseDouble, _gpuMatrixSize, _gpus);
-#endif
-
-#ifdef FIRESTARTER_BUILD_ONEAPI
-  _oneapi = std::make_unique<oneapi::OneAPI>(&loadVar, _gpuUseFloat, _gpuUseDouble, _gpuMatrixSize, _gpus);
-#endif
+  Cuda = std::make_unique<cuda::Cuda>(LoadVar, GpuUseFloat, GpuUseDouble, GpuMatrixSize, Gpus);
+  Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, GpuUseFloat, GpuUseDouble, GpuMatrixSize, Gpus);
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     // if measurement is enabled, start it here

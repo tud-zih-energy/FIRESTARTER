@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/Constants.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -33,11 +34,22 @@ private:
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
 
-  static void initGpus(std::condition_variable& Cv, volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
-                       unsigned MatrixSize, int Gpus);
+  static void initGpus(std::condition_variable& Cv, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                       bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
 
 public:
-  Cuda(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
+  Cuda(volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus)
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+      ;
+#else
+  {
+    (void)&LoadVar;
+    (void)UseFloat;
+    (void)UseDouble;
+    (void)MatrixSize;
+    (void)Gpus;
+  }
+#endif
 
   ~Cuda() {
     if (InitThread.joinable()) {
