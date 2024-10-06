@@ -21,18 +21,15 @@
 
 #pragma once
 
-#if defined(linux) || defined(__linux__)
-#include "Measurement/MeasurementWorker.hpp"
-#include "Optimizer/Algorithm.hpp"
-#include "Optimizer/OptimizerWorker.hpp"
-#include "Optimizer/Population.hpp"
-#endif
-
 #include "Constants.hpp"
 #include "Cuda/Cuda.hpp"
 #include "DumpRegisterWorkerData.hpp"
 #include "LoadWorkerData.hpp"
+#include "Measurement/MeasurementWorker.hpp"
 #include "OneAPI/OneAPI.hpp"
+#include "Optimizer/Algorithm.hpp"
+#include "Optimizer/OptimizerWorker.hpp"
+#include "Optimizer/Population.hpp"
 
 #include <chrono>
 #include <condition_variable>

@@ -19,18 +19,15 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#if defined(linux) || defined(__linux__)
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
-#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
-#include <firestarter/Optimizer/History.hpp>
-#include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
-#endif
-
 #include <algorithm>
 #include <csignal>
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
+#include <firestarter/Optimizer/History.hpp>
+#include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #include <firestarter/WindowsCompat.hpp>
 #include <functional>
 #include <utility>
