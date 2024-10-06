@@ -47,13 +47,13 @@
 namespace firestarter {
 
 void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) {
-  environment().setCpuAffinity(0);
+  Environment->setCpuAffinity(0);
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
   LoadVar = LowLoad ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
 
-  auto NumThreads = environment().requestedNumThreads();
+  auto NumThreads = Environment->requestedNumThreads();
 
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
@@ -69,7 +69,7 @@ void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period
   }
 
   for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, environment(), LoadVar, Period, DumpRegisters, ErrorDetection);
+    auto Td = std::make_shared<LoadWorkerData>(I, *Environment, LoadVar, Period, DumpRegisters, ErrorDetection);
 
     if (ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
@@ -195,7 +195,7 @@ void Firestarter::printPerformanceReport() {
   }
 
   double const Runtime =
-      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(environment().topology().clockrate());
+      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(Environment->topology().clockrate());
   double const GFlops = static_cast<double>(LoadThreads.front().second->config().payload().flops()) * 0.000000001 *
                         static_cast<double>(Iterations) / Runtime;
   double const Bandwidth = static_cast<double>(LoadThreads.front().second->config().payload().bytes()) * 0.000000001 *

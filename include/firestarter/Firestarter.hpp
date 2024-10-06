@@ -41,10 +41,6 @@
 #include "DumpRegisterWorkerData.hpp"
 #include "LoadWorkerData.hpp"
 
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-#include "Environment/X86/X86Environment.hpp"
-#endif
-
 #include <chrono>
 #include <condition_variable>
 #include <memory>
@@ -77,7 +73,7 @@ public:
               std::vector<std::string> const& OptimizationMetrics, std::chrono::seconds const& EvaluationDuration,
               unsigned Individuals, std::string OptimizeOutfile, unsigned Generations, double Nsga2Cr, double Nsga2M);
 
-  ~Firestarter();
+  ~Firestarter() = default;
 
   void mainThread();
 
@@ -110,13 +106,7 @@ private:
   const double Nsga2Cr;
   const double Nsga2M;
 
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-  environment::x86::X86Environment* Environment = nullptr;
-
-  [[nodiscard]] auto environment() const -> environment::x86::X86Environment& { return *Environment; }
-#else
-#error "FIRESTARTER is not implemented for this ISA"
-#endif
+  std::unique_ptr<environment::Environment> Environment;
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
   std::unique_ptr<cuda::Cuda> _cuda;

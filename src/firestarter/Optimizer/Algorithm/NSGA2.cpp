@@ -100,11 +100,11 @@ auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::opti
   for (auto I = 1U; I <= Gen; ++I) {
     {
       // Print the logs
-      std::vector<double> IdealPoint = util::ideal(Pop.f());
+      const auto IdealPoint = util::ideal(Pop.f());
       std::stringstream Ss;
 
       Ss << std::setw(7) << I << std::setw(15) << Prob.getFevals() - Fevals0;
-      for (double I : IdealPoint) {
+      for (const auto I : IdealPoint) {
         Ss << std::setw(15) << I;
       }
 

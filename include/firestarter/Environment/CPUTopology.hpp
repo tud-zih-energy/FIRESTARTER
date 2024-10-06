@@ -37,6 +37,8 @@ public:
   explicit CPUTopology(std::string Architecture);
   virtual ~CPUTopology();
 
+  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopology) -> std::ostream&;
+
   [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
   [[nodiscard]] auto maxNumThreads() const -> unsigned;
   [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
@@ -81,5 +83,9 @@ private:
   uint64_t Clockrate = 0;
   hwloc_topology_t Topology{};
 };
+
+inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopology) -> std::ostream& {
+  return CpuTopology.print(Stream);
+}
 
 } // namespace firestarter::environment

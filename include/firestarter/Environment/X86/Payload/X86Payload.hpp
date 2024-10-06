@@ -44,9 +44,7 @@ private:
   std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
 
 protected:
-  //  asmjit::CodeHolder code;
   asmjit::JitRuntime Rt;
-  // typedef int (*LoadFunction)(firestarter::ThreadData *);
   using LoadFunctionType = uint64_t (*)(double*, volatile LoadThreadWorkType*, uint64_t);
   LoadFunctionType LoadFunction = nullptr;
 

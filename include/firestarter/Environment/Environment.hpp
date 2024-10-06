@@ -66,7 +66,7 @@ public:
   [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }
 
   [[nodiscard]] auto topology() const -> CPUTopology const& {
-    assert(Topology != nullptr);
+    assert(Topology != nullptr && "Topology is a nullptr");
     return *Topology;
   }
 

@@ -52,7 +52,11 @@ public:
   X86Environment()
       : Environment(std::make_unique<X86CPUTopology>()) {}
 
-  auto topology() -> X86CPUTopology const& { return *dynamic_cast<X86CPUTopology*>(Topology.get()); }
+  [[nodiscard]] auto topology() const -> X86CPUTopology const& {
+    const auto* X86Topology = dynamic_cast<X86CPUTopology*>(Topology.get());
+    assert(X86Topology != nullptr && "X86Topology is a nullptr");
+    return *X86Topology;
+  }
 
   void evaluateFunctions() override;
   void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) override;

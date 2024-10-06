@@ -67,7 +67,7 @@ public:
 
   /// This padding makes shure that we are aligned to a cache line. The allocated memory will most probably reach beyond
   /// this array.
-  EightBytesType DoNotUsePadding[7];
+  std::array<EightBytesType, 7> DoNotUsePadding;
 
   /// Get the pointer to the start of the memory use for computations.
   /// \returns the pointer to the memory.
@@ -85,7 +85,7 @@ public:
     // Allocate the memory for the ExtraLoadWorkerVariables (which are 64B aligned) and the data for the high-load
     // routine which may not be 64B aligned.
     static_assert(sizeof(ExtraLoadWorkerVariables) % 64 == 0,
-                  "ExtraLoadWorkerVariables is not a size of 64B i.e., a cacheline.");
+                  "ExtraLoadWorkerVariables is not a multiple of 64B i.e., multiple cachelines.");
     auto* Ptr = AlignedAlloc::malloc(Bytes + sizeof(ExtraLoadWorkerVariables));
     return {static_cast<LoadWorkerMemory*>(Ptr), deallocate};
   }

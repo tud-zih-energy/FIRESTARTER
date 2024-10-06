@@ -48,9 +48,11 @@ void OptimizerWorker::join() const {
 }
 
 auto OptimizerWorker::optimizerThread(void* OptimizerWorker) -> void* {
+  // NOLINTBEGIN(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+  // NOLINTEND(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
 
-  auto* This = reinterpret_cast<class OptimizerWorker*>(OptimizerWorker);
+  auto* This = static_cast<class OptimizerWorker*>(OptimizerWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "Optimizer");

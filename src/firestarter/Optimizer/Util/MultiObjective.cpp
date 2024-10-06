@@ -242,7 +242,7 @@ auto crowdingDistance(const std::vector<std::vector<double>>& NonDomFront) -> st
     });
     Retval[Indexes[0]] = std::numeric_limits<double>::infinity();
     Retval[Indexes[N - 1U]] = std::numeric_limits<double>::infinity();
-    double Df = NonDomFront[Indexes[N - 1U]][I] - NonDomFront[Indexes[0]][I];
+    const double Df = NonDomFront[Indexes[N - 1U]][I] - NonDomFront[Indexes[0]][I];
     for (decltype(N - 2U) J = 1U; J < N - 1U; ++J) {
       Retval[Indexes[J]] += (NonDomFront[Indexes[J + 1U]][I] - NonDomFront[Indexes[J - 1U]][I]) / Df;
     }

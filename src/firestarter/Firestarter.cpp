@@ -19,9 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <algorithm>
-#include <firestarter/Firestarter.hpp>
-#include <firestarter/Logging/Log.hpp>
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/Metric/IPCEstimate.h>
 #include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
@@ -29,13 +26,20 @@
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #endif
 
-#include <csignal>
-#include <functional>
-#include <utility>
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+#include <firestarter/Environment/X86/X86Environment.hpp>
+#endif
 
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+
+#include <algorithm>
+#include <csignal>
+#include <firestarter/Firestarter.hpp>
+#include <firestarter/Logging/Log.hpp>
+#include <functional>
+#include <utility>
 
 namespace firestarter {
 
@@ -94,53 +98,56 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 #endif
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-  Environment = new environment::x86::X86Environment();
+  Environment = std::make_unique<environment::x86::X86Environment>();
+  const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
+#else
+#error "FIRESTARTER is not implemented for this ISA"
 #endif
 
-  environment().evaluateCpuAffinity(RequestedNumThreads, CpuBind);
+  Environment->evaluateCpuAffinity(RequestedNumThreads, CpuBind);
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
   // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
   if (ErrorDetection) {
-    if (!Environment->topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+    if (!X86Env.topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
       throw std::invalid_argument("Option --error-detection requires the crc32 "
                                   "instruction added with SSE_4_2.\n");
     }
   }
 #endif
 
-  if (ErrorDetection && environment().requestedNumThreads() < 2) {
+  if (ErrorDetection && Environment->requestedNumThreads() < 2) {
     throw std::invalid_argument("Option --error-detection must run with 2 or more threads. Number of "
                                 "threads is " +
-                                std::to_string(environment().requestedNumThreads()) + "\n");
+                                std::to_string(Environment->requestedNumThreads()) + "\n");
   }
 
-  environment().evaluateFunctions();
+  Environment->evaluateFunctions();
 
   if (PrintFunctionSummary) {
-    environment().printFunctionSummary();
+    Environment->printFunctionSummary();
     std::exit(EXIT_SUCCESS);
   }
 
-  environment().selectFunction(FunctionId, AllowUnavailablePayload);
+  Environment->selectFunction(FunctionId, AllowUnavailablePayload);
 
   if (ListInstructionGroups) {
-    environment().printAvailableInstructionGroups();
+    Environment->printAvailableInstructionGroups();
     std::exit(EXIT_SUCCESS);
   }
 
   if (!InstructionGroups.empty()) {
-    environment().selectInstructionGroups(InstructionGroups);
+    Environment->selectInstructionGroups(InstructionGroups);
   }
 
   if (LineCount != 0) {
-    environment().setLineCount(LineCount);
+    Environment->setLineCount(LineCount);
   }
 
 #if defined(linux) || defined(__linux__)
   if (Measurement || ListMetrics || Optimize) {
     MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
-        MeasurementInterval, environment().requestedNumThreads(), MetricPaths, StdinMetrics);
+        MeasurementInterval, Environment->requestedNumThreads(), MetricPaths, StdinMetrics);
 
     if (ListMetrics) {
       log::info() << MeasurementWorker->availableMetrics();
@@ -210,7 +217,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 
     auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
         std::move(ApplySettings), MeasurementWorker, OptimizationMetrics, EvaluationDuration, StartDelta, StopDelta,
-        environment().selectedConfig().payloadItems());
+        Environment->selectedConfig().payloadItems());
 
     Population = firestarter::optimizer::Population(std::move(Prob));
 
@@ -224,9 +231,9 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
   }
 #endif
 
-  environment().printSelectedCodePathSummary();
+  Environment->printSelectedCodePathSummary();
 
-  log::info() << environment().topology();
+  log::info() << Environment->topology();
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
@@ -241,19 +248,8 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
   std::signal(SIGINT, Firestarter::sigtermHandler);
 }
 
-Firestarter::~Firestarter() {
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  _cuda.reset();
-#endif
-#ifdef FIRESTARTER_BUILD_ONEAPI
-  _oneapi.reset();
-#endif
-
-  delete Environment;
-}
-
 void Firestarter::mainThread() {
-  environment().printThreadSummary();
+  Environment->printThreadSummary();
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
   _cuda = std::make_unique<cuda::Cuda>(&loadVar, _gpuUseFloat, _gpuUseDouble, _gpuMatrixSize, _gpus);
@@ -292,7 +288,7 @@ void Firestarter::mainThread() {
     // wait here until optimizer thread terminates
     Firestarter::Optimizer->join();
 
-    auto PayloadItems = environment().selectedConfig().payloadItems();
+    auto PayloadItems = Environment->selectedConfig().payloadItems();
 
     firestarter::optimizer::History::save(OptimizeOutfile, StartTime, PayloadItems, Argc, Argv);
 
@@ -357,7 +353,7 @@ void Firestarter::sigtermHandler(int Signum) {
   // used in case of 0 < load < 100
   // or interrupt sleep for timeout
   {
-    std::lock_guard<std::mutex> Lk(Firestarter::WatchdogTerminateMutex);
+    const std::lock_guard<std::mutex> Lk(Firestarter::WatchdogTerminateMutex);
     Firestarter::WatchdogTerminate = true;
   }
   Firestarter::WatchdogTerminateAlert.notify_all();

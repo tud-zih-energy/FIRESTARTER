@@ -57,16 +57,17 @@ auto Environment::cpuAllowed(unsigned Id) -> int {
 void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
   if (cpuAllowed(Cpu)) {
     CPU_SET(Cpu, &Mask);
+  } else {
+    if (Cpu >= topology().numThreads()) {
+      throw std::invalid_argument("The given bind argument (-b/--bind) includes CPU " + std::to_string(Cpu) +
+                                  " that is not available on this system.");
+    }
+    throw std::invalid_argument("The given bind argument (-b/--bind) cannot "
+                                "be implemented with the cpuset given from the OS\n"
+                                "This can be caused by the taskset tool, cgroups, "
+                                "the batch system, or similar mechanisms.\n"
+                                "Please fix the argument to match the restrictions.");
   }
-  if (Cpu >= topology().numThreads()) {
-    throw std::invalid_argument("The given bind argument (-b/--bind) includes CPU " + std::to_string(Cpu) +
-                                " that is not available on this system.");
-  }
-  throw std::invalid_argument("The given bind argument (-b/--bind) cannot "
-                              "be implemented with the cpuset given from the OS\n"
-                              "This can be caused by the taskset tool, cgroups, "
-                              "the batch system, or similar mechanisms.\n"
-                              "Please fix the argument to match the restrictions.");
 }
 #endif
 
