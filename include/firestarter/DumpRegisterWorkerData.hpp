@@ -26,8 +26,6 @@
 #include <chrono>
 #include <utility>
 
-#ifdef FIRESTARTER_DEBUG_FEATURES
-
 namespace firestarter {
 
 class DumpRegisterWorkerData {
@@ -59,5 +57,3 @@ public:
 };
 
 } // namespace firestarter
-
-#endif
