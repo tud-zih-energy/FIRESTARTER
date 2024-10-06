@@ -19,52 +19,49 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Constants.hpp"
 #include <cassert>
 #include <chrono>
-#include <thread>
-
-#ifdef _MSC_VER
-#include <array>
-#include <intrin.h>
-#endif
-
+#include <firestarter/Constants.hpp>
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
+#include <firestarter/WindowsCompat.hpp>
+#include <thread>
 
 namespace firestarter::environment::x86::payload {
 
 void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
   auto Nap = Period / 100;
 
-#ifndef _MSC_VER
-  __asm__ __volatile__("mfence;"
-                       "cpuid;" ::
-                           : "eax", "ebx", "ecx", "edx");
-#else
-  std::array<int, 4> Cpuid;
-  _mm_mfence();
-  __cpuid(Cpuid.data(), 0);
-#endif
+  if constexpr (firestarter::OptionalFeatures.IsMsc) {
+    std::array<int, 4> Cpuid{};
+    _mm_mfence();
+    __cpuid(Cpuid.data(), 0);
+  } else {
+    __asm__ __volatile__("mfence;"
+                         "cpuid;" ::
+                             : "eax", "ebx", "ecx", "edx");
+  }
 
   // while signal low load
   while (LoadVar == LoadThreadWorkType::LoadLow) {
-#ifndef _MSC_VER
-    __asm__ __volatile__("mfence;"
-                         "cpuid;" ::
-                             : "eax", "ebx", "ecx", "edx");
-#else
-    _mm_mfence();
-    __cpuid(Cpuid.data(), 0);
-#endif
+    if constexpr (firestarter::OptionalFeatures.IsMsc) {
+      std::array<int, 4> Cpuid{};
+      _mm_mfence();
+      __cpuid(Cpuid.data(), 0);
+    } else {
+      __asm__ __volatile__("mfence;"
+                           "cpuid;" ::
+                               : "eax", "ebx", "ecx", "edx");
+    }
     std::this_thread::sleep_for(Nap);
-#ifndef _MSC_VER
-    __asm__ __volatile__("mfence;"
-                         "cpuid;" ::
-                             : "eax", "ebx", "ecx", "edx");
-#else
-    _mm_mfence();
-    __cpuid(Cpuid.data(), 0);
-#endif
+    if constexpr (firestarter::OptionalFeatures.IsMsc) {
+      std::array<int, 4> Cpuid{};
+      _mm_mfence();
+      __cpuid(Cpuid.data(), 0);
+    } else {
+      __asm__ __volatile__("mfence;"
+                           "cpuid;" ::
+                               : "eax", "ebx", "ecx", "edx");
+    }
   }
 }
 

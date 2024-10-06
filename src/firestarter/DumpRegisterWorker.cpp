@@ -19,8 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifdef FIRESTARTER_DEBUG_FEATURES
-
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
 
@@ -170,5 +168,3 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
 }
 
 } // namespace firestarter
-
-#endif

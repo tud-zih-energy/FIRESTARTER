@@ -49,17 +49,7 @@ public:
   virtual void printFunctionSummary() = 0;
 
   [[nodiscard]] auto selectedConfig() const -> platform::RuntimeConfig& {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-value"
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value"
-    assert(("No RuntimeConfig selected", SelectedConfig != nullptr));
-#pragma GCC diagnostic pop
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+    assert(SelectedConfig != nullptr && "No RuntimeConfig selected");
     return *SelectedConfig;
   }
 

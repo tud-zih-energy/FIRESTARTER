@@ -67,19 +67,7 @@ public:
 
   [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigValue; }
   [[nodiscard]] auto payload() const -> payload::Payload& {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-value"
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value"
-    assert(("Payload pointer is null. Each thread has to use it's own "
-            "RuntimeConfig",
-            Payload != nullptr));
-#pragma GCC diagnostic pop
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+    assert(Payload != nullptr && "Payload pointer is null. Each thread has to use it's own RuntimeConfig");
     return *Payload;
   }
   [[nodiscard]] auto thread() const -> unsigned { return Thread; }

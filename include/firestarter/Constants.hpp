@@ -56,6 +56,12 @@ struct FirestarterOptionalFeatures {
   bool DebugFeatureEnabled = false;
   /// Is dumping registers enabled?
   bool DumpRegisterEnabled = false;
+  /// Is the current build for X86?
+  bool IsX86 = false;
+  /// Is the current build for Windows?
+  bool IsWin32 = false;
+  /// Is the current build built with Windows MSC?
+  bool IsMsc = false;
 
   /// Is one of the GPU features enabled?
   [[nodiscard]] constexpr auto gpuEnabled() const -> bool { return CudaEnabled || OneAPIEnabled; }
@@ -74,6 +80,17 @@ static constexpr const FirestarterOptionalFeatures OptionalFeatures {
   .ErrorDetectionEnabled = true,
 #ifdef FIRESTARTER_DEBUG_FEATURES
   .DebugFeatureEnabled = true, .DumpRegisterEnabled = true,
+#endif
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+  .IsX86 = true,
+#else
+#error "FIRESTARTER is not implemented for this ISA"
+#endif
+#ifdef _WIN32
+  .IsWin32 = true,
+#endif
+#ifdef _MSC_VER
+  .IsMsc = true,
 #endif
 };
 

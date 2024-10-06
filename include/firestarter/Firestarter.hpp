@@ -165,14 +165,12 @@ private:
   static auto watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
                              std::chrono::seconds Timeout) -> int;
 
-#ifdef FIRESTARTER_DEBUG_FEATURES
   // DumpRegisterWorker.cpp
   void initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath);
   void joinDumpRegisterWorker();
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
 
   std::thread DumpRegisterWorkerThread;
-#endif
 
   static void setLoad(LoadThreadWorkType Value);
 
