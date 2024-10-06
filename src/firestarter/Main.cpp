@@ -132,27 +132,25 @@ void printHelp(cxxopts::Options const& Parser, std::string const& Section) {
     << "  ./FIRESTARTER -t 300          starts a 5 minute run of FIRESTARTER\n"
     << "  ./FIRESTARTER -l 50 -t 600    starts a 10 minute run of FIRESTARTER with\n"
     << "                                50\% high load and 50\% idle time\n"
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
-    << "                                on CPUs and full load on GPUs\n"
-#endif
+    << (firestarter::OptionalFeatures.gpuEnabled() ? 
+       "                                on CPUs and full load on GPUs\n"
+     : "")
     << "  ./FIRESTARTER -l 75 -p 20000000\n"
     << "                                starts FIRESTARTER with an interval length\n"
     << "                                of 2 sec, 1.5s high load"
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
-    << "                                on CPUs and full load on GPUs\n"
-#else
-    << "\n"
-#endif
-#if defined(linux) || defined(__linux__) 
-    << "  ./FIRESTARTER --measurement --start-delta=300000 -t 900\n"
-    << "                                starts FIRESTARTER measuring all available\n"
-    << "                                metrics for 15 minutes disregarding the first\n"
-    << "                                5 minutes and last two seconds (default to `--stop-delta`)\n"
-    << "  ./FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc\n"
-    << "                                starts FIRESTARTER optimizing with the sysfs-powercap-rapl\n"
-    << "                                and perf-ipc metric. The duration is 20s long. The default\n"
-    << "                                instruction groups for the current platform will be used.\n"
-#endif
+    << (firestarter::OptionalFeatures.gpuEnabled() ? 
+       "                                on CPUs and full load on GPUs\n"
+     : "\n")
+    << (firestarter::OptionalFeatures.OptimizationEnabled ?
+       "  ./FIRESTARTER --measurement --start-delta=300000 -t 900\n"
+       "                                starts FIRESTARTER measuring all available\n"
+       "                                metrics for 15 minutes disregarding the first\n"
+       "                                5 minutes and last two seconds (default to `--stop-delta`)\n"
+       "  ./FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,perf-ipc\n"
+       "                                starts FIRESTARTER optimizing with the sysfs-powercap-rapl\n"
+       "                                and perf-ipc metric. The duration is 20s long. The default\n"
+       "                                instruction groups for the current platform will be used.\n"
+     : "")
     ;
   // clang-format on
 }
@@ -164,16 +162,19 @@ Config::Config(int Argc, const char** Argv) {
 
   cxxopts::Options Parser(ExecutableName);
 
+  const auto HelpDescription =
+      std::string("Display usage information. SECTION can be any of: information | general | specialized-workloads") +
+      (firestarter::OptionalFeatures.DebugFeatureEnabled ? " | debug" : "") +
+      (firestarter::OptionalFeatures.OptimizationEnabled ? "\n| measurement | optimization" : "");
+
+  const auto LoadDescription =
+      std::string("Set the percentage of high CPU load to LOAD\n(%) default: 100, valid values: 0 <= LOAD <=\n100, "
+                  "threads will be idle in the remaining time,\nfrequency of load changes is determined by -p.") +
+      (firestarter::OptionalFeatures.gpuEnabled() ? " This option does NOT influence the GPU\nworkload!" : "");
+
   // clang-format off
   Parser.add_options("information")
-    ("h,help", "Display usage information. SECTION can be any of: information | general | specialized-workloads"
-#ifdef FIRESTARTER_DEBUG_FEATURES
-     " | debug"
-#endif
-#if defined(linux) || defined(__linux__)
-     "\n| measurement | optimization"
-#endif
-     ,
+    ("h,help", HelpDescription,
       cxxopts::value<std::string>()->implicit_value(""), "SECTION")
     ("v,version", "Display version information")
     ("c,copyright", "Display copyright information")
@@ -185,22 +186,23 @@ Config::Config(int Argc, const char** Argv) {
 
   Parser.add_options("general")
     ("i,function", "Specify integer ID of the load-function to be\nused (as listed by --avail)",
-      cxxopts::value<unsigned>()->default_value("0"), "ID")
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
-    ("f,usegpufloat", "Use single precision matrix multiplications\ninstead of default")
-    ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default")
-    ("g,gpus", "Number of gpus to use, default: -1 (all)",
-      cxxopts::value<int>()->default_value("-1"))
-    ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
-      cxxopts::value<unsigned>()->default_value("0"))
-#endif
+      cxxopts::value<unsigned>()->default_value("0"), "ID");
+
+  if (firestarter::OptionalFeatures.gpuEnabled()) {
+    Parser.add_options("general")
+      ("f,usegpufloat", "Use single precision matrix multiplications\ninstead of default")
+      ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default")
+      ("g,gpus", "Number of gpus to use, default: -1 (all)",
+        cxxopts::value<int>()->default_value("-1"))
+      ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
+        cxxopts::value<unsigned>()->default_value("0"));
+  }
+
+  Parser.add_options("general")
     ("t,timeout", "Set the timeout (seconds) after which FIRESTARTER\nterminates itself, default: 0 (no timeout)",
       cxxopts::value<unsigned>()->default_value("0"), "TIMEOUT")
-    ("l,load", "Set the percentage of high CPU load to LOAD\n(%) default: 100, valid values: 0 <= LOAD <=\n100, threads will be idle in the remaining time,\nfrequency of load changes is determined by -p."
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
-     " This option does NOT influence the GPU\nworkload!"
-#endif
-     , cxxopts::value<unsigned>()->default_value("100"), "LOAD")
+    ("l,load", LoadDescription,
+      cxxopts::value<unsigned>()->default_value("100"), "LOAD")
     ("p,period", "Set the interval length for CPUs to PERIOD\n(usec), default: 100000, each interval contains\na high load and an idle phase, the percentage\nof high load is defined by -l.",
       cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
     ("n,threads", "Specify the number of threads. Cannot be\ncombined with -b | --bind, which impicitly\nspecifies the number of threads.",
@@ -218,50 +220,50 @@ Config::Config(int Argc, const char** Argv) {
     ("set-line-count", "Set the number of lines for a payload.",
       cxxopts::value<unsigned>());
 
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  Parser.add_options("debug")
-    ("allow-unavailable-payload", "")
-    ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs. Cannot be used with --error-detection.",
-      cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
-    ("dump-registers-outpath", "Path for the dump of the output files. If\nPATH is not given, current working directory will\nbe used.",
-      cxxopts::value<std::string>()->default_value(""), "PATH");
-#endif
+  if (firestarter::OptionalFeatures.DebugFeatureEnabled) {
+    Parser.add_options("debug")
+      ("allow-unavailable-payload", "")
+      ("dump-registers", "Dump the working registers on the first\nthread. Depending on the payload these are mm, xmm,\nymm or zmm. Only use it without a timeout and\n100 percent load. DELAY between dumps in secs. Cannot be used with --error-detection.",
+        cxxopts::value<unsigned>()->implicit_value("10"), "DELAY")
+      ("dump-registers-outpath", "Path for the dump of the output files. If\nPATH is not given, current working directory will\nbe used.",
+        cxxopts::value<std::string>()->default_value(""), "PATH");
+  }
 
-#if defined(linux) || defined(__linux__)
-  Parser.add_options("measurement")
-    ("list-metrics", "List the available metrics.")
+  if (firestarter::OptionalFeatures.OptimizationEnabled) {
+    Parser.add_options("measurement")
+      ("list-metrics", "List the available metrics.")
 #ifndef FIRESTARTER_LINK_STATIC
-    ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
-      cxxopts::value<std::vector<std::string>>()->default_value(""))
+      ("metric-path", "Add a path to a shared library representing an interface for a metric. This option can be specified multiple times.",
+        cxxopts::value<std::vector<std::string>>()->default_value(""))
 #endif
-    ("metric-from-stdin", "Add a metric NAME with values from stdin.\nFormat of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\".\nTIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush\nlines!)",
-      cxxopts::value<std::vector<std::string>>(), "NAME")
-    ("measurement", "Start a measurement for the time specified by\n-t | --timeout. (The timeout must be greater\nthan the start and stop deltas.) Cannot be\ncombined with --optimize.")
-    ("measurement-interval", "Interval of measurements in milliseconds, default: 100",
-      cxxopts::value<unsigned>()->default_value("100"))
-    ("start-delta", "Cut of first N milliseconds of measurement, default: 5000",
-      cxxopts::value<unsigned>()->default_value("5000"), "N")
-    ("stop-delta", "Cut of last N milliseconds of measurement, default: 2000",
-      cxxopts::value<unsigned>()->default_value("2000"), "N")
-    ("preheat", "Preheat for N seconds, default: 240",
-      cxxopts::value<unsigned>()->default_value("240"), "N");
-
-  Parser.add_options("optimization")
-    ("optimize", "Run the optimization with one of these algorithms: NSGA2.\nCannot be combined with --measurement.",
-      cxxopts::value<std::string>())
-    ("optimize-outfile", "Dump the output of the optimization into this\nfile, default: $PWD/$HOSTNAME_$DATE.json",
-      cxxopts::value<std::string>())
-    ("optimization-metric", "Use a metric for optimization. Metrics listed\nwith cli argument --list-metrics or specified\nwith --metric-from-stdin are valid.",
-      cxxopts::value<std::vector<std::string>>())
-    ("individuals", "Number of individuals for the population. For\nNSGA2 specify at least 5 and a multiple of 4,\ndefault: 20",
-      cxxopts::value<unsigned>()->default_value("20"))
-    ("generations", "Number of generations, default: 20",
-      cxxopts::value<unsigned>()->default_value("20"))
-    ("nsga2-cr", "Crossover probability. Must be in range [0,1[\ndefault: 0.6",
-      cxxopts::value<double>()->default_value("0.6"))
-    ("nsga2-m", "Mutation probability. Must be in range [0,1]\ndefault: 0.4",
-      cxxopts::value<double>()->default_value("0.4"));
-#endif
+      ("metric-from-stdin", "Add a metric NAME with values from stdin.\nFormat of input: \"NAME TIME_SINCE_EPOCH VALUE\\n\".\nTIME_SINCE_EPOCH is a int64 in nanoseconds. VALUE is a double. (Do not forget to flush\nlines!)",
+        cxxopts::value<std::vector<std::string>>(), "NAME")
+      ("measurement", "Start a measurement for the time specified by\n-t | --timeout. (The timeout must be greater\nthan the start and stop deltas.) Cannot be\ncombined with --optimize.")
+      ("measurement-interval", "Interval of measurements in milliseconds, default: 100",
+        cxxopts::value<unsigned>()->default_value("100"))
+      ("start-delta", "Cut of first N milliseconds of measurement, default: 5000",
+        cxxopts::value<unsigned>()->default_value("5000"), "N")
+      ("stop-delta", "Cut of last N milliseconds of measurement, default: 2000",
+        cxxopts::value<unsigned>()->default_value("2000"), "N")
+      ("preheat", "Preheat for N seconds, default: 240",
+        cxxopts::value<unsigned>()->default_value("240"), "N");
+  
+    Parser.add_options("optimization")
+      ("optimize", "Run the optimization with one of these algorithms: NSGA2.\nCannot be combined with --measurement.",
+        cxxopts::value<std::string>())
+      ("optimize-outfile", "Dump the output of the optimization into this\nfile, default: $PWD/$HOSTNAME_$DATE.json",
+        cxxopts::value<std::string>())
+      ("optimization-metric", "Use a metric for optimization. Metrics listed\nwith cli argument --list-metrics or specified\nwith --metric-from-stdin are valid.",
+        cxxopts::value<std::vector<std::string>>())
+      ("individuals", "Number of individuals for the population. For\nNSGA2 specify at least 5 and a multiple of 4,\ndefault: 20",
+        cxxopts::value<unsigned>()->default_value("20"))
+      ("generations", "Number of generations, default: 20",
+        cxxopts::value<unsigned>()->default_value("20"))
+      ("nsga2-cr", "Crossover probability. Must be in range [0,1[\ndefault: 0.6",
+        cxxopts::value<double>()->default_value("0.6"))
+      ("nsga2-m", "Mutation probability. Must be in range [0,1]\ndefault: 0.4",
+        cxxopts::value<double>()->default_value("0.4"));
+  }
   // clang-format on
 
   try {
@@ -323,21 +325,21 @@ Config::Config(int Argc, const char** Argv) {
                                   "with -l/--load equal 100.");
     }
 
-#ifdef FIRESTARTER_DEBUG_FEATURES
-    AllowUnavailablePayload = static_cast<bool>(Options.count("allow-unavailable-payload"));
-    DumpRegisters = static_cast<bool>(Options.count("dump-registers"));
-    if (DumpRegisters) {
-      DumpRegistersTimeDelta = std::chrono::seconds(Options["dump-registers"].as<unsigned>());
-      if (Timeout != std::chrono::microseconds::zero() && LoadPercent != 100) {
-        throw std::invalid_argument("Option --dump-registers may only be used "
-                                    "without a timeout and full load.");
-      }
-      if (ErrorDetection) {
-        throw std::invalid_argument("Options --dump-registers and --error-detection cannot be used "
-                                    "together.");
+    if (firestarter::OptionalFeatures.DebugFeatureEnabled) {
+      AllowUnavailablePayload = static_cast<bool>(Options.count("allow-unavailable-payload"));
+      DumpRegisters = static_cast<bool>(Options.count("dump-registers"));
+      if (DumpRegisters) {
+        DumpRegistersTimeDelta = std::chrono::seconds(Options["dump-registers"].as<unsigned>());
+        if (Timeout != std::chrono::microseconds::zero() && LoadPercent != 100) {
+          throw std::invalid_argument("Option --dump-registers may only be used "
+                                      "without a timeout and full load.");
+        }
+        if (ErrorDetection) {
+          throw std::invalid_argument("Options --dump-registers and --error-detection cannot be used "
+                                      "together.");
+        }
       }
     }
-#endif
 
     RequestedNumThreads = Options["threads"].as<unsigned>();
 
@@ -350,22 +352,22 @@ Config::Config(int Argc, const char** Argv) {
     }
 #endif
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_ONEAPI) || defined(FIRESTARTER_BUILD_HIP)
-    GpuUseFloat = Options.count("usegpufloat");
-    GpuUseDouble = Options.count("usegpudouble");
+    if (firestarter::OptionalFeatures.gpuEnabled()) {
+      GpuUseFloat = static_cast<bool>(Options.count("usegpufloat"));
+      GpuUseDouble = static_cast<bool>(Options.count("usegpudouble"));
 
-    if (GpuUseFloat && GpuUseDouble) {
-      throw std::invalid_argument("Options -f/--usegpufloat and "
-                                  "-d/--usegpudouble cannot be used together.");
+      if (GpuUseFloat && GpuUseDouble) {
+        throw std::invalid_argument("Options -f/--usegpufloat and "
+                                    "-d/--usegpudouble cannot be used together.");
+      }
+
+      GpuMatrixSize = Options["matrixsize"].as<unsigned>();
+      if (GpuMatrixSize > 0 && GpuMatrixSize < 64) {
+        throw std::invalid_argument("Option -m/--matrixsize may not be below 64.");
+      }
+
+      Gpus = Options["gpus"].as<int>();
     }
-
-    GpuMatrixSize = Options["matrixsize"].as<unsigned>();
-    if (GpuMatrixSize > 0 && GpuMatrixSize < 64) {
-      throw std::invalid_argument("Option -m/--matrixsize may not be below 64.");
-    }
-
-    Gpus = Options["gpus"].as<int>();
-#endif
 
     PrintFunctionSummary = static_cast<bool>(Options.count("avail"));
 
@@ -377,56 +379,56 @@ Config::Config(int Argc, const char** Argv) {
       LineCount = Options["set-line-count"].as<unsigned>();
     }
 
-#if defined(linux) || defined(__linux__)
-    StartDelta = std::chrono::milliseconds(Options["start-delta"].as<unsigned>());
-    StopDelta = std::chrono::milliseconds(Options["stop-delta"].as<unsigned>());
-    MeasurementInterval = std::chrono::milliseconds(Options["measurement-interval"].as<unsigned>());
+    if (firestarter::OptionalFeatures.OptimizationEnabled) {
+      StartDelta = std::chrono::milliseconds(Options["start-delta"].as<unsigned>());
+      StopDelta = std::chrono::milliseconds(Options["stop-delta"].as<unsigned>());
+      MeasurementInterval = std::chrono::milliseconds(Options["measurement-interval"].as<unsigned>());
 #ifndef FIRESTARTER_LINK_STATIC
-    MetricPaths = Options["metric-path"].as<std::vector<std::string>>();
+      MetricPaths = Options["metric-path"].as<std::vector<std::string>>();
 #endif
-    if (static_cast<bool>(Options.count("metric-from-stdin"))) {
-      StdinMetrics = Options["metric-from-stdin"].as<std::vector<std::string>>();
-    }
-    Measurement = static_cast<bool>(Options.count("measurement"));
-    ListMetrics = static_cast<bool>(Options.count("list-metrics"));
-    Optimize = static_cast<bool>(Options.count("optimize"));
+      if (static_cast<bool>(Options.count("metric-from-stdin"))) {
+        StdinMetrics = Options["metric-from-stdin"].as<std::vector<std::string>>();
+      }
+      Measurement = static_cast<bool>(Options.count("measurement"));
+      ListMetrics = static_cast<bool>(Options.count("list-metrics"));
+      Optimize = static_cast<bool>(Options.count("optimize"));
 
-    if (Optimize) {
-      if (ErrorDetection) {
-        throw std::invalid_argument("Options --error-detection and --optimize "
-                                    "cannot be used together.");
-      }
-      if (Measurement) {
-        throw std::invalid_argument("Options --measurement and --optimize cannot be used together.");
-      }
-      Preheat = std::chrono::seconds(Options["preheat"].as<unsigned>());
-      OptimizationAlgorithm = Options["optimize"].as<std::string>();
-      if (static_cast<bool>(Options.count("optimization-metric"))) {
-        OptimizationMetrics = Options["optimization-metric"].as<std::vector<std::string>>();
-      }
-      if (LoadPercent != 100) {
-        throw std::invalid_argument("Options -p | --period and -l | --load are "
-                                    "not compatible with --optimize.");
-      }
-      if (Timeout == std::chrono::seconds::zero()) {
-        throw std::invalid_argument("Option -t | --timeout must be specified for optimization.");
-      }
-      EvaluationDuration = Timeout;
-      // this will deactivate the watchdog worker
-      Timeout = std::chrono::seconds::zero();
-      Individuals = Options["individuals"].as<unsigned>();
-      if (static_cast<bool>(Options.count("optimize-outfile"))) {
-        OptimizeOutfile = Options["optimize-outfile"].as<std::string>();
-      }
-      Generations = Options["generations"].as<unsigned>();
-      Nsga2Cr = Options["nsga2-cr"].as<double>();
-      Nsga2M = Options["nsga2-m"].as<double>();
+      if (Optimize) {
+        if (ErrorDetection) {
+          throw std::invalid_argument("Options --error-detection and --optimize "
+                                      "cannot be used together.");
+        }
+        if (Measurement) {
+          throw std::invalid_argument("Options --measurement and --optimize cannot be used together.");
+        }
+        Preheat = std::chrono::seconds(Options["preheat"].as<unsigned>());
+        OptimizationAlgorithm = Options["optimize"].as<std::string>();
+        if (static_cast<bool>(Options.count("optimization-metric"))) {
+          OptimizationMetrics = Options["optimization-metric"].as<std::vector<std::string>>();
+        }
+        if (LoadPercent != 100) {
+          throw std::invalid_argument("Options -p | --period and -l | --load are "
+                                      "not compatible with --optimize.");
+        }
+        if (Timeout == std::chrono::seconds::zero()) {
+          throw std::invalid_argument("Option -t | --timeout must be specified for optimization.");
+        }
+        EvaluationDuration = Timeout;
+        // this will deactivate the watchdog worker
+        Timeout = std::chrono::seconds::zero();
+        Individuals = Options["individuals"].as<unsigned>();
+        if (static_cast<bool>(Options.count("optimize-outfile"))) {
+          OptimizeOutfile = Options["optimize-outfile"].as<std::string>();
+        }
+        Generations = Options["generations"].as<unsigned>();
+        Nsga2Cr = Options["nsga2-cr"].as<double>();
+        Nsga2M = Options["nsga2-m"].as<double>();
 
-      if (OptimizationAlgorithm != "NSGA2") {
-        throw std::invalid_argument("Option --optimize must be any of: NSGA2");
+        if (OptimizationAlgorithm != "NSGA2") {
+          throw std::invalid_argument("Option --optimize must be any of: NSGA2");
+        }
       }
     }
-#endif
 
   } catch (std::exception& E) {
     firestarter::log::error() << E.what() << "\n";

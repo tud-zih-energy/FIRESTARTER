@@ -23,6 +23,8 @@
 
 #include <cstdint>
 
+namespace firestarter {
+
 using EightBytesType = uint64_t;
 
 // We want enum to have the size of 8B. Disable the warnings for bigger enum size than needed.
@@ -39,3 +41,40 @@ enum class LoadThreadWorkType : EightBytesType {
   LoadSwitch = 4
 };
 // NOLINTEND(performance-enum-size)
+
+/// This struct holds infomation about enabled or disabled compile time features for FIRESTARTER.
+struct FirestarterOptionalFeatures {
+  /// Do we have a build that enabled optimization?
+  bool OptimizationEnabled = false;
+  /// Do we have a build that enabled CUDA or HIP?
+  bool CudaEnabled = false;
+  /// Do we have a build that enabled OneAPU?
+  bool OneAPIEnabled = false;
+  /// Is error detection enabled?
+  bool ErrorDetectionEnabled = false;
+  /// Are debug features enabled?
+  bool DebugFeatureEnabled = false;
+  /// Is dumping registers enabled?
+  bool DumpRegisterEnabled = false;
+
+  /// Is one of the GPU features enabled?
+  [[nodiscard]] constexpr auto gpuEnabled() const -> bool { return CudaEnabled || OneAPIEnabled; }
+};
+
+static constexpr const FirestarterOptionalFeatures OptionalFeatures {
+#if defined(linux) || defined(__linux__)
+  .OptimizationEnabled = true,
+#endif
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+  .CudaEnabled = true,
+#endif
+#ifdef FIRESTARTER_BUILD_ONEAPI
+  .OneAPIEnabled = true,
+#endif
+  .ErrorDetectionEnabled = true,
+#ifdef FIRESTARTER_DEBUG_FEATURES
+  .DebugFeatureEnabled = true, .DumpRegisterEnabled = true,
+#endif
+};
+
+} // namespace firestarter
