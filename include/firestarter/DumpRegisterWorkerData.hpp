@@ -23,6 +23,7 @@
 
 #include "LoadWorkerData.hpp"
 #include "Logging/Log.hpp"
+#include "WindowsCompat.hpp" // IWYU pragma: keep
 #include <chrono>
 #include <utility>
 
@@ -37,9 +38,9 @@ public:
       : LoadWorkerDataPtr(std::move(LoadWorkerDataPtr))
       , DumpTimeDelta(DumpTimeDelta) {
     if (DumpFilePath.empty()) {
-      char Cwd[PATH_MAX];
-      if (getcwd(Cwd, sizeof(Cwd)) != nullptr) {
-        this->DumpFilePath = Cwd;
+      char* Pwd = get_current_dir_name();
+      if (Pwd) {
+        this->DumpFilePath = Pwd;
       } else {
         log::error() << "getcwd() failed. Set --dump-registers-outpath to /tmp";
         this->DumpFilePath = "/tmp";

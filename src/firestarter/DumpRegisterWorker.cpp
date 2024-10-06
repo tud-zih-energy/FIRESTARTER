@@ -84,7 +84,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
   std::stringstream DumpFilePath;
   DumpFilePath << Data->DumpFilePath;
 #if defined(__MINGW32__) || defined(__MINGW64__)
-  dumpFilePath << "\\";
+  DumpFilePath << "\\";
 #else
   DumpFilePath << "/";
 #endif

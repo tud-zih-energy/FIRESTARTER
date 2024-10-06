@@ -36,7 +36,9 @@ namespace {
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#if not(defined(__MINGW32__) || defined(__MINGW64__))
 void _mm_mfence() noexcept {};
+#endif
 void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
 #if defined(__clang__)
@@ -47,3 +49,13 @@ void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 } // namespace
 #endif
 // NOLINTEND(cert-dcl59-cpp,google-build-namespaces)
+
+#ifdef _WIN32
+// SIGALRM is not available on Windows
+#define SIGALRM 0
+
+namespace {
+#include <direct.h>
+inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
+} // namespace
+#endif
