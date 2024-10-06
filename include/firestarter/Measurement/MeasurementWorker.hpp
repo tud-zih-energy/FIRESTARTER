@@ -27,13 +27,10 @@
 #include "MetricInterface.h"
 #include "Summary.hpp"
 #include "TimeValue.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 #include <chrono>
 #include <map>
 #include <mutex>
-
-extern "C" {
-#include <pthread.h>
-}
 
 void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, double Value);
 

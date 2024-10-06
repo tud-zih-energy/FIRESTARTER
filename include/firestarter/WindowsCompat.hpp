@@ -59,3 +59,13 @@ namespace {
 inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 } // namespace
 #endif
+
+// Make references in header files to pthread_t compatible to MSC. This will not make them functionally work.
+#ifdef _MSC_VER
+struct Placeholder {};
+using pthread_t = Placeholder;
+#else
+extern "C" {
+#include <pthread.h>
+}
+#endif

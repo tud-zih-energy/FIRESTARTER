@@ -45,52 +45,72 @@ enum class LoadThreadWorkType : EightBytesType {
 /// This struct holds infomation about enabled or disabled compile time features for FIRESTARTER.
 struct FirestarterOptionalFeatures {
   /// Do we have a build that enabled optimization?
-  bool OptimizationEnabled = false;
+  bool OptimizationEnabled;
   /// Do we have a build that enabled CUDA or HIP?
-  bool CudaEnabled = false;
+  bool CudaEnabled;
   /// Do we have a build that enabled OneAPU?
-  bool OneAPIEnabled = false;
+  bool OneAPIEnabled;
   /// Is error detection enabled?
-  bool ErrorDetectionEnabled = false;
+  bool ErrorDetectionEnabled;
   /// Are debug features enabled?
-  bool DebugFeatureEnabled = false;
+  bool DebugFeatureEnabled;
   /// Is dumping registers enabled?
-  bool DumpRegisterEnabled = false;
+  bool DumpRegisterEnabled;
   /// Is the current build for X86?
-  bool IsX86 = false;
+  bool IsX86;
   /// Is the current build for Windows?
-  bool IsWin32 = false;
+  bool IsWin32;
   /// Is the current build built with Windows MSC?
-  bool IsMsc = false;
+  bool IsMsc;
 
   /// Is one of the GPU features enabled?
   [[nodiscard]] constexpr auto gpuEnabled() const -> bool { return CudaEnabled || OneAPIEnabled; }
 };
 
+// MSC only supports designated initializers from C++20
 static constexpr const FirestarterOptionalFeatures OptionalFeatures {
 #if defined(linux) || defined(__linux__)
-  .OptimizationEnabled = true,
+  /*OptimizationEnabled=*/true,
+#else
+  /*OptimizationEnabled=*/false,
 #endif
+
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  .CudaEnabled = true,
+      /*CudaEnabled=*/true,
+#else
+      /*CudaEnabled=*/false,
 #endif
+
 #ifdef FIRESTARTER_BUILD_ONEAPI
-  .OneAPIEnabled = true,
+      /*OneAPIEnabled=*/true,
+#else
+      /*OneAPIEnabled=*/false,
 #endif
-  .ErrorDetectionEnabled = true,
+
+      /*ErrorDetectionEnabled=*/true,
+
 #ifdef FIRESTARTER_DEBUG_FEATURES
-  .DebugFeatureEnabled = true, .DumpRegisterEnabled = true,
+      /*DebugFeatureEnabled=*/true, /*DumpRegisterEnabled =*/true,
+#else
+      /*DebugFeatureEnabled=*/false, /*DumpRegisterEnabled =*/false,
 #endif
+
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-  .IsX86 = true,
+      /*IsX86=*/true,
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
+
 #ifdef _WIN32
-  .IsWin32 = true,
+      /*IsWin32=*/true,
+#else
+      /*IsWin32=*/false,
 #endif
+
 #ifdef _MSC_VER
-  .IsMsc = true,
+      /*IsMsc=*/true,
+#else
+      /*IsMsc=*/false,
 #endif
 };
 

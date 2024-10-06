@@ -21,12 +21,9 @@
 
 #include "Algorithm.hpp"
 #include "Population.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 #include <chrono>
 #include <memory>
-
-extern "C" {
-#include <pthread.h>
-}
 
 namespace firestarter::optimizer {
 
