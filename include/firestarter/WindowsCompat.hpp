@@ -37,9 +37,9 @@ namespace {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if not(defined(__MINGW32__) || defined(__MINGW64__))
-void _mm_mfence() noexcept {};
+inline void _mm_mfence() noexcept {};
 #endif
-void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
+inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
