@@ -36,10 +36,8 @@ namespace {
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#if defined(__clang__)
-#include <emmintrin.h>
-#elif not(defined(__MINGW32__) || defined(__MINGW64__))
-inline void _mm_mfence() noexcept {};
+#if not(defined(__MINGW32__) || defined(__MINGW64__))
+inline void _mm_mfence(){};
 #endif
 inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
