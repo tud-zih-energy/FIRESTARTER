@@ -65,8 +65,9 @@ void Firestarter::initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, con
 void Firestarter::joinDumpRegisterWorker() { this->DumpRegisterWorkerThread.join(); }
 
 void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data) {
-
+#if defined(linux) || defined(__linux__)
   pthread_setname_np(pthread_self(), "DumpRegWorker");
+#endif
 
   const auto RegisterCount = Data->LoadWorkerDataPtr->config().payload().registerCount();
   const auto RegisterSize = Data->LoadWorkerDataPtr->config().payload().registerSize();

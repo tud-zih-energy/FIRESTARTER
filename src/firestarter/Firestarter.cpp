@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/WindowsCompat.hpp"
 #include <algorithm>
 #include <csignal>
 #include <firestarter/Environment/X86/X86Environment.hpp>
@@ -179,7 +180,7 @@ Firestarter::Firestarter(const int Argc, const char** Argv, std::chrono::seconds
 
             signalWork();
 
-            uint64_t StartTimestamp = std::numeric_limits<uint64_t>::max();
+            uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
             uint64_t StopTimestamp = 0;
 
             for (auto const& Thread : LoadThreads) {

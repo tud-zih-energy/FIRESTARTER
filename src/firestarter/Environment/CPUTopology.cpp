@@ -68,7 +68,8 @@ auto CPUTopology::print(std::ostream& Stream) const -> std::ostream& {
 
       auto* CacheObj = hwloc_get_obj_by_type(Topology, Cache, 0);
       std::array<char, 128> String{};
-      hwloc_obj_type_snprintf(String.begin(), sizeof(String), CacheObj, 0);
+      auto* StringPtr = String.data();
+      hwloc_obj_type_snprintf(StringPtr, sizeof(String), CacheObj, 0);
 
       switch (CacheObj->attr->cache.type) {
       case HWLOC_OBJ_CACHE_DATA:
@@ -378,7 +379,7 @@ auto CPUTopology::maxNumThreads() const -> unsigned {
 
     for (int I = 0; I < Width; I++) {
       auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      Max = std::max(Max, Obj->os_index);
+      Max = (std::max)(Max, Obj->os_index);
     }
 
     return Max + 1;

@@ -92,7 +92,7 @@ void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period
 
     if (I == 0) {
       // only show error for all worker threads except first.
-      firestarter::logging::FirstWorkerThreadFilter<firestarter::logging::Record>::setFirstThread(T.get_id());
+      firestarter::logging::FirstWorkerThreadFilter<firestarter::logging::record>::setFirstThread(T.get_id());
     }
 
     LoadThreads.emplace_back(std::move(T), Td);
@@ -175,7 +175,7 @@ void Firestarter::printThreadErrorReport() {
 
 void Firestarter::printPerformanceReport() {
   // performance report
-  uint64_t StartTimestamp = std::numeric_limits<uint64_t>::max();
+  uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
   uint64_t StopTimestamp = 0;
 
   uint64_t Iterations = 0;
@@ -188,8 +188,8 @@ void Firestarter::printPerformanceReport() {
     log::debug() << "Thread " << Td->id() << ": " << Td->LastRun.Iterations
                  << " iterations, tsc_delta: " << Td->LastRun.StopTsc - Td->LastRun.StartTsc;
 
-    StartTimestamp = std::min(StartTimestamp, Td->LastRun.StartTsc.load());
-    StopTimestamp = std::max(StopTimestamp, Td->LastRun.StopTsc.load());
+    StartTimestamp = (std::min)(StartTimestamp, Td->LastRun.StartTsc.load());
+    StopTimestamp = (std::max)(StopTimestamp, Td->LastRun.StopTsc.load());
 
     Iterations += Td->LastRun.Iterations.load();
   }

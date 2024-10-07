@@ -25,6 +25,7 @@
 #include "../Logging/Log.hpp"
 #include "../Measurement/Summary.hpp"
 #include "Individual.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -34,10 +35,6 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <vector>
-
-extern "C" {
-#include <unistd.h>
-}
 
 namespace firestarter::optimizer {
 

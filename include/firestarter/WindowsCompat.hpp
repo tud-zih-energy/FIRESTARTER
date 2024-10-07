@@ -58,9 +58,21 @@ namespace {
 #include <direct.h>
 inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 } // namespace
+#else
+#include <unistd.h>
+#endif
+
+// correct include for gethostname
+#ifdef _MSC_VER
+#include <winsock.h>
+#else
+// NOLINTBEGIN(readability-duplicate-include)
+#include <unistd.h>
+// NOLINTEND(readability-duplicate-include)
 #endif
 
 // Make references in header files to pthread_t compatible to MSC. This will not make them functionally work.
+// We will be able to remove this hack once we transition from using pthread to std::thread
 #ifdef _MSC_VER
 struct Placeholder {};
 using pthread_t = Placeholder;
@@ -68,4 +80,12 @@ using pthread_t = Placeholder;
 extern "C" {
 #include <pthread.h>
 }
+#endif
+
+// Disable __asm__ __volatile__ in MSC
+// Static assert wont work, since if constexpr doesn't seem to work correctly
+#ifdef _MSC_VER
+#define __volatile__(X, ...)                                                                                           \
+  assert(false && "Attempted to use code path that uses the incorrect inline assembly macros for MSC.")
+#define __asm__
 #endif

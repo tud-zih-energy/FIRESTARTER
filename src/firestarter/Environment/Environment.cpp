@@ -178,7 +178,7 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
   }
 #endif
 
-  this->RequestedNumThreads = std::min(RequestedNumThreads, topology().maxNumThreads());
+  this->RequestedNumThreads = (std::min)(RequestedNumThreads, topology().maxNumThreads());
 }
 
 void Environment::printThreadSummary() {

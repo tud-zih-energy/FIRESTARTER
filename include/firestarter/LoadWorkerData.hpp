@@ -26,6 +26,7 @@
 #include "DumpRegisterStruct.hpp"
 #include "Environment/Environment.hpp"
 #include "ErrorDetectionStruct.hpp"
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
@@ -106,7 +107,7 @@ public:
     }
   };
 
-  LoadWorkerData(int Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
+  LoadWorkerData(uint64_t Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
                  std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
       , Period(Period)
@@ -124,7 +125,7 @@ public:
     this->CommunicationRight = std::move(CommunicationRight);
   }
 
-  [[nodiscard]] auto id() const -> int { return Id; }
+  [[nodiscard]] auto id() const -> uint64_t { return Id; }
   [[nodiscard]] auto environment() const -> environment::Environment& { return Environment; }
   [[nodiscard]] auto config() const -> environment::platform::RuntimeConfig& { return *Config; }
 
@@ -173,7 +174,7 @@ public:
   std::shared_ptr<uint64_t> CommunicationRight;
 
 private:
-  int Id;
+  uint64_t Id;
   environment::Environment& Environment;
   environment::platform::RuntimeConfig* Config;
 };
