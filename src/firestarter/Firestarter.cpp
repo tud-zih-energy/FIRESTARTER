@@ -19,8 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/WindowsCompat.hpp"
-#include <algorithm>
 #include <csignal>
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #include <firestarter/Firestarter.hpp>
@@ -30,8 +28,6 @@
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #include <firestarter/WindowsCompat.hpp>
-#include <functional>
-#include <utility>
 
 namespace firestarter {
 
