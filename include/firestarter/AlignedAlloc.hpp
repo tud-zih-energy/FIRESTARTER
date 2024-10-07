@@ -63,7 +63,7 @@ public:
   static void free(void* Ptr) {
     // NOLINTBEGIN(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
 #if defined(__APPLE__)
-    free(Ptr);
+    ::free(Ptr);
 #elif defined(__MINGW64__)
     _mm_free(Ptr);
 #elif defined(_MSC_VER)
