@@ -54,10 +54,20 @@ public:
   }
 };
 
-using Record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute,
+// NOLINTBEGIN(readability-identifier-naming)
+// The class may not be named Record since this is used as a template argument name in nitro which will cause errors
+// when compiling with MSC.
+using record = nitro::log::record<nitro::log::severity_attribute, nitro::log::message_attribute,
                                   nitro::log::timestamp_attribute, nitro::log::std_thread_id_attribute>;
+// NOLINTEND(readability-identifier-naming)
 
-template <typename Record> class Formater {
+template <typename Record>
+// NOLINTBEGIN(readability-identifier-naming)
+// The class may not be named Formater since this is used as a template argument name in nitro which will cause errors
+// when compiling with MSC. We will also write it with lower case and the correct spelling in case it gets renamed
+// correctly there.
+class formatter {
+  // NOLINTEND(readability-identifier-naming)
 public:
   auto format(Record& R) -> std::string {
     std::stringstream S;
@@ -92,9 +102,9 @@ using WorkerFilter = nitro::log::filter::and_filter<Filter<Record>, FirstWorkerT
 
 } // namespace logging
 
-using log = nitro::log::logger<logging::Record, logging::Formater, firestarter::logging::StdOut, logging::Filter>;
+using log = nitro::log::logger<logging::record, logging::formatter, firestarter::logging::StdOut, logging::Filter>;
 
 using workerLog =
-    nitro::log::logger<logging::Record, logging::Formater, firestarter::logging::StdOut, logging::WorkerFilter>;
+    nitro::log::logger<logging::record, logging::formatter, firestarter::logging::StdOut, logging::WorkerFilter>;
 
 } // namespace firestarter

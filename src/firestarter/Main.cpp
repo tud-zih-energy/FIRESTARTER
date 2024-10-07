@@ -270,13 +270,13 @@ Config::Config(int Argc, const char** Argv) {
     auto Options = Parser.parse(Argc, Argv);
 
     if (static_cast<bool>(Options.count("quiet"))) {
-      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::warn);
+      firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::warn);
     } else if (static_cast<bool>(Options.count("report"))) {
-      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::debug);
+      firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::debug);
     } else if (static_cast<bool>(Options.count("debug"))) {
-      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::trace);
+      firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::trace);
     } else {
-      firestarter::logging::Filter<firestarter::logging::Record>::set_severity(nitro::log::severity_level::info);
+      firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
     }
 
     if (static_cast<bool>(Options.count("version"))) {
