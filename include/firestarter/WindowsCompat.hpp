@@ -62,7 +62,6 @@ inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 #elif defined(__APPLE__)
 #include <unistd.h>
 namespace {
-#include <direct.h>
 inline auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
 } // namespace
 #else
