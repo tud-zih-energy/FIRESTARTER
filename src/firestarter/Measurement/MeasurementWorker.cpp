@@ -81,7 +81,7 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
     Metrics.push_back(Metric);
   }
 #else
-  (void)MetricDylibs;
+  (void)MetricDylibsNames;
 #endif
 
   // setup metric objects for metric names passed from stdin.
