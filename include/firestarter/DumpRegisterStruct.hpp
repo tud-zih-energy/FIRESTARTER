@@ -21,20 +21,28 @@
 
 #pragma once
 
+#include "firestarter/Constants.hpp"
+
 namespace firestarter {
 
 /* DO NOT CHANGE! the asm load-loop tests if it should dump the current register
  * content */
-enum DumpVariable : unsigned long long { Start = 0, Wait = 1 };
+// NOLINTBEGIN(performance-enum-size)
+// Define the variable with the size of a cache line
+enum class DumpVariable : EightBytesType { Start = 0, Wait = 1 };
+// NOLINTEND(performance-enum-size)
 
-#define REGISTER_MAX_NUM 32
+// The maximal number of SIMD registers. This is currently 32 for zmm registers.
+constexpr const auto RegisterMaxNum = 32;
+/// The maximal number of doubles in SIMD registers. This is currently 8 for zmm registers.
+constexpr const auto RegisterMaxSize = 8;
 
+// REGISTER_MAX_NUM cachelines
 struct DumpRegisterStruct {
-  // REGISTER_MAX_NUM cachelines
-  volatile double registerValues[REGISTER_MAX_NUM * 8];
+  volatile double RegisterValues[RegisterMaxNum * RegisterMaxSize];
   // pad to use a whole cacheline
-  volatile unsigned long long padding[7];
-  volatile DumpVariable dumpVar;
+  volatile EightBytesType Padding[7];
+  volatile DumpVariable DumpVar;
 };
 
 #undef REGISTER_MAX_NUM

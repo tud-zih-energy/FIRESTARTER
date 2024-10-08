@@ -21,6 +21,14 @@
 
 #pragma once
 
-#include <firestarter/Measurement/MetricInterface.h>
+#include "../MetricInterface.h"
 
-extern metric_interface_t rapl_metric;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const MetricInterface RaplMetric;
+
+#ifdef __cplusplus
+};
+#endif

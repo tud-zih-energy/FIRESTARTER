@@ -21,25 +21,23 @@
 
 #pragma once
 
-#include <firestarter/Optimizer/Algorithm.hpp>
+#include "../Algorithm.hpp"
 
 namespace firestarter::optimizer::algorithm {
 
 class NSGA2 : public Algorithm {
 public:
-  NSGA2(unsigned gen, double cr, double m);
-  ~NSGA2() {}
+  NSGA2(unsigned Gen, double Cr, double M);
+  ~NSGA2() override = default;
 
-  void checkPopulation(firestarter::optimizer::Population const &pop,
-                       std::size_t populationSize) override;
+  void checkPopulation(firestarter::optimizer::Population const& Pop, std::size_t PopulationSize) override;
 
-  firestarter::optimizer::Population
-  evolve(firestarter::optimizer::Population &pop) override;
+  auto evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population override;
 
 private:
-  unsigned _gen;
-  double _cr;
-  double _m;
+  const unsigned Gen;
+  const double Cr;
+  const double M;
 };
 
 } // namespace firestarter::optimizer::algorithm

@@ -19,42 +19,36 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Optimizer/Algorithm.hpp>
-#include <firestarter/Optimizer/Population.hpp>
-
+#include "Algorithm.hpp"
+#include "Population.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 #include <chrono>
 #include <memory>
-
-extern "C" {
-#include <pthread.h>
-}
 
 namespace firestarter::optimizer {
 
 class OptimizerWorker {
 public:
-  OptimizerWorker(
-      std::unique_ptr<firestarter::optimizer::Algorithm> &&algorithm,
-      firestarter::optimizer::Population &population,
-      std::string const &optimizationAlgorithm, unsigned individuals,
-      std::chrono::seconds const &preheat);
+  OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
+                  firestarter::optimizer::Population& Population, std::string OptimizationAlgorithm,
+                  unsigned Individuals, std::chrono::seconds const& Preheat);
 
-  ~OptimizerWorker() {}
+  ~OptimizerWorker() = default;
 
-  void join();
+  void join() const;
 
-  void kill();
+  void kill() const;
 
 private:
-  static void *optimizerThread(void *optimizerWorker);
+  static auto optimizerThread(void* OptimizerWorker) -> void*;
 
-  std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
-  firestarter::optimizer::Population _population;
-  std::string _optimizationAlgorithm;
-  unsigned _individuals;
-  std::chrono::seconds _preheat;
+  std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
+  firestarter::optimizer::Population Population;
+  std::string OptimizationAlgorithm;
+  unsigned Individuals;
+  std::chrono::seconds Preheat;
 
-  pthread_t workerThread;
+  pthread_t WorkerThread{};
 };
 
 } // namespace firestarter::optimizer

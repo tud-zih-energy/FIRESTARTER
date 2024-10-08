@@ -28,63 +28,61 @@ extern "C" {
 #include <firestarter/Measurement/MetricInterface.h>
 }
 
-static std::string errorString = "";
+static std::string ErrorString;
 
-static void (*callback)(void *, const char *, int64_t, double) = nullptr;
-static void *callback_arg = nullptr;
+static void (*Callback)(void*, const char*, int64_t, double) = nullptr;
+static void* CallbackArg = nullptr;
 
-static int32_t fini(void) {
-  callback = nullptr;
-  callback_arg = nullptr;
-
-  return EXIT_SUCCESS;
-}
-
-static int32_t init(void) {
-  errorString = "";
+static auto fini() -> int32_t {
+  Callback = nullptr;
+  CallbackArg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
-static const char *get_error(void) {
-  const char *errorCString = errorString.c_str();
-  return errorCString;
-}
+static auto init() -> int32_t {
+  ErrorString = "";
 
-static int32_t register_insert_callback(void (*c)(void *, const char *, int64_t,
-                                                  double),
-                                        void *arg) {
-  callback = c;
-  callback_arg = arg;
   return EXIT_SUCCESS;
 }
 
-void ipc_estimate_metric_insert(double value) {
-  if (callback == nullptr || callback_arg == nullptr) {
+static auto getError() -> const char* {
+  const char* ErrorCString = ErrorString.c_str();
+  return ErrorCString;
+}
+
+static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t {
+  Callback = C;
+  CallbackArg = Arg;
+  return EXIT_SUCCESS;
+}
+
+void ipcEstimateMetricInsert(double Value) {
+  if (Callback == nullptr || CallbackArg == nullptr) {
     return;
   }
 
-  int64_t t = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                  std::chrono::high_resolution_clock::now().time_since_epoch())
-                  .count();
+  int64_t T =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
+          .count();
 
-  callback(callback_arg, "ipc-estimate", t, value);
+  Callback(CallbackArg, "ipc-estimate", T, Value);
 }
 
-metric_interface_t ipc_estimate_metric = {
-    .name = "ipc-estimate",
-    .type = {.absolute = 1,
-             .accumalative = 0,
-             .divide_by_thread_count = 0,
-             .insert_callback = 1,
-             .ignore_start_stop_delta = 1,
-             .__reserved = 0},
-    .unit = "IPC",
-    .callback_time = 0,
-    .callback = nullptr,
-    .init = init,
-    .fini = fini,
-    .get_reading = nullptr,
-    .get_error = get_error,
-    .register_insert_callback = register_insert_callback,
+const MetricInterface IpcEstimateMetric = {
+    .Name = "ipc-estimate",
+    .Type = {.Absolute = 1,
+             .Accumalative = 0,
+             .DivideByThreadCount = 0,
+             .InsertCallback = 1,
+             .IgnoreStartStopDelta = 1,
+             .Reserved = 0},
+    .Unit = "IPC",
+    .CallbackTime = 0,
+    .Callback = nullptr,
+    .Init = init,
+    .Fini = fini,
+    .GetReading = nullptr,
+    .GetError = getError,
+    .RegisterInsertCallback = registerInsertCallback,
 };

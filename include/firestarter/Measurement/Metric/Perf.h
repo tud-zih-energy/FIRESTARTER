@@ -21,8 +21,16 @@
 
 #pragma once
 
-#include <firestarter/Measurement/MetricInterface.h>
+#include "../MetricInterface.h"
 
-extern metric_interface_t perf_ipc_metric;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern metric_interface_t perf_freq_metric;
+extern const MetricInterface PerfIpcMetric;
+
+extern const MetricInterface PerfFreqMetric;
+
+#ifdef __cplusplus
+};
+#endif

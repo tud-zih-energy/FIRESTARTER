@@ -21,8 +21,16 @@
 
 #pragma once
 
-#include <firestarter/Measurement/MetricInterface.h>
+#include "../MetricInterface.h"
 
-extern metric_interface_t ipc_estimate_metric;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern void ipc_estimate_metric_insert(double value);
+extern const MetricInterface IpcEstimateMetric;
+
+extern void ipcEstimateMetricInsert(double Value);
+
+#ifdef __cplusplus
+};
+#endif
