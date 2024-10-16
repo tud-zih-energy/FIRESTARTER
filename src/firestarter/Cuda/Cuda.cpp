@@ -87,8 +87,8 @@ static int get_precision(int device_index, int useDouble) {
 
   auto stream_or_context = compat::createContextOrStream(device_index);
 
-  compat::accell_safe_call(compat::memGetInfo<>(memory_avail, memory_total), __FILE__, __LINE__, device_index);
-  compat::accell_safe_call(compat::getDeviceProperties<>(properties, device_index), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::memGetInfo<>(memory_avail, memory_total), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::getDeviceProperties<>(properties, device_index), __FILE__, __LINE__, device_index);
 
   useDouble = get_precision(useDouble, properties);
 
@@ -115,7 +115,7 @@ static int get_precision(int device_index, int useDouble) {
     useDouble = 0;
   }
 
-  compat::accell_safe_call(compat::destroyContextOrStream<>(stream_or_context), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::destroyContextOrStream<>(stream_or_context), __FILE__, __LINE__, device_index);
 
   return useDouble;
 }
@@ -144,15 +144,15 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   auto stream_or_context = compat::createContextOrStream(device_index);
 
   firestarter::log::trace() << "Create " << compat::AccelleratorString << " Blas on device nr. " << device_index;
-  compat::accell_safe_call(compat::blasCreate<>(blas), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::blasCreate<>(blas), __FILE__, __LINE__, device_index);
 
   firestarter::log::trace() << "Get " << compat::AccelleratorString << " device properties (e.g., support for double)"
                             << " on device nr. " << device_index;
-  compat::accell_safe_call(compat::getDeviceProperties<>(properties, device_index), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::getDeviceProperties<>(properties, device_index), __FILE__, __LINE__, device_index);
 
   // getting information about the GPU memory
   size_t memory_avail, memory_total;
-  compat::accell_safe_call(compat::memGetInfo<>(memory_avail, memory_total), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::memGetInfo<>(memory_avail, memory_total), __FILE__, __LINE__, device_index);
   firestarter::log::trace() << "Get " << compat::AccelleratorString << " Memory info on device nr. " << device_index
                             << ": " << memory_avail << " B avail. from " << memory_total << " B total";
 
@@ -175,9 +175,9 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   firestarter::log::trace() << "Allocating " << compat::AccelleratorString << " memory on device nr. " << device_index;
 
   // allocating memory on the GPU
-  compat::accell_safe_call(compat::malloc<>(a_data_ptr, memory_size), __FILE__, __LINE__, device_index);
-  compat::accell_safe_call(compat::malloc<>(b_data_ptr, memory_size), __FILE__, __LINE__, device_index);
-  compat::accell_safe_call(compat::malloc<>(c_data_ptr, iterations * memory_size), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::malloc<>(a_data_ptr, memory_size), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::malloc<>(b_data_ptr, memory_size), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::malloc<>(c_data_ptr, iterations * memory_size), __FILE__, __LINE__, device_index);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << device_index
                             << ". A: " << a_data_ptr << "(Size: " << memory_size << "B)"
@@ -196,14 +196,14 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   // initialize matrix A and B on the GPU with random values
   {
     compat::RandGenerator random_gen;
-    compat::accell_safe_call(compat::randCreateGeneratorPseudoRandom<>(random_gen), __FILE__, __LINE__, device_index);
-    compat::accell_safe_call(compat::randSetPseudoRandomGeneratorSeed<>(random_gen, Seed), __FILE__, __LINE__,
-                             device_index);
-    compat::accell_safe_call(compat::generateUniform<>(random_gen, a_data_ptr, size_use * size_use), __FILE__, __LINE__,
-                             device_index);
-    compat::accell_safe_call(compat::generateUniform<>(random_gen, b_data_ptr, size_use * size_use), __FILE__, __LINE__,
-                             device_index);
-    compat::accell_safe_call(compat::randDestroyGenerator<>(random_gen), __FILE__, __LINE__, device_index);
+    compat::accellSafeCall(compat::randCreateGeneratorPseudoRandom<>(random_gen), __FILE__, __LINE__, device_index);
+    compat::accellSafeCall(compat::randSetPseudoRandomGeneratorSeed<>(random_gen, Seed), __FILE__, __LINE__,
+                           device_index);
+    compat::accellSafeCall(compat::generateUniform<>(random_gen, a_data_ptr, size_use * size_use), __FILE__, __LINE__,
+                           device_index);
+    compat::accellSafeCall(compat::generateUniform<>(random_gen, b_data_ptr, size_use * size_use), __FILE__, __LINE__,
+                           device_index);
+    compat::accellSafeCall(compat::randDestroyGenerator<>(random_gen), __FILE__, __LINE__, device_index);
   }
 
   // initialize c_data_ptr with copies of A
@@ -212,8 +212,8 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
         c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(FloatingPointType) / (float)sizeof(c_data_ptr));
     firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrix c-" << i << " by copying "
                               << memory_size << " byte from " << a_data_ptr << " to " << DestinationPtr << "\n";
-    compat::accell_safe_call(compat::memcpyDtoD<>(DestinationPtr, a_data_ptr, memory_size), __FILE__, __LINE__,
-                             device_index);
+    compat::accellSafeCall(compat::memcpyDtoD<>(DestinationPtr, a_data_ptr, memory_size), __FILE__, __LINE__,
+                           device_index);
   }
 
   // save gpuvar->init_count and sys.out
@@ -240,22 +240,22 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   // actual stress begins here
   while (*loadVar != LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
-      compat::accell_safe_call(compat::gemm<FloatingPointType>(
-                                   blas, compat::BlasOperation::BLAS_OP_N, compat::BlasOperation::BLAS_OP_N, size_use_i,
-                                   size_use_i, size_use_i, &alpha, a_data_ptr, size_use_i, b_data_ptr, size_use_i,
-                                   &beta, c_data_ptr + i * size_use * size_use, size_use_i),
-                               __FILE__, __LINE__, device_index);
-      compat::accell_safe_call(compat::deviceSynchronize<>(), __FILE__, __LINE__, device_index);
+      compat::accellSafeCall(compat::gemm<FloatingPointType>(
+                                 blas, compat::BlasOperation::BLAS_OP_N, compat::BlasOperation::BLAS_OP_N, size_use_i,
+                                 size_use_i, size_use_i, &alpha, a_data_ptr, size_use_i, b_data_ptr, size_use_i, &beta,
+                                 c_data_ptr + i * size_use * size_use, size_use_i),
+                             __FILE__, __LINE__, device_index);
+      compat::accellSafeCall(compat::deviceSynchronize<>(), __FILE__, __LINE__, device_index);
     }
   }
 
-  compat::accell_safe_call(compat::free<>(a_data_ptr), __FILE__, __LINE__, device_index);
-  compat::accell_safe_call(compat::free<>(b_data_ptr), __FILE__, __LINE__, device_index);
-  compat::accell_safe_call(compat::free<>(c_data_ptr), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::free<>(a_data_ptr), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::free<>(b_data_ptr), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::free<>(c_data_ptr), __FILE__, __LINE__, device_index);
 
   compat::accell_safe_call(compat::blasDestroy<>(blas), __FILE__, __LINE__, device_index);
 
-  compat::accell_safe_call(compat::destroyContextOrStream<>(stream_or_context), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::destroyContextOrStream<>(stream_or_context), __FILE__, __LINE__, device_index);
 }
 
 Cuda::Cuda(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus) {

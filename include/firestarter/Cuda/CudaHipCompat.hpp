@@ -404,16 +404,16 @@ auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
   firestarter::log::trace() << "Creating " << AccelleratorString << " context for computation on device nr. "
                             << DeviceIndex;
   CUdevice Device;
-  accell_safe_call(cuDeviceGet(&Device, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
-  accell_safe_call(cuCtxCreate(&Soc, 0, device), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(cuDeviceGet(&Device, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(cuCtxCreate(&Soc, 0, device), __FILE__, __LINE__, DeviceIndex);
 
   firestarter::log::trace() << "Set created " << AccelleratorString << " context on device nr. " << DeviceIndex;
-  ACCELL_SAFE_CALL(cuCtxSetCurrent(Soc), DeviceIndex);
+  accellSafeCall(cuCtxSetCurrent(Soc), __FILE__, __LINE__, DeviceIndex);
 #elif defined(FIRESTARTER_BUILD_HIP)
   firestarter::log::trace() << "Creating " << AccelleratorString << " Stream for computation on device nr. "
                             << DeviceIndex;
-  accell_safe_call(hipSetDevice(DeviceIndex), __FILE__, __LINE__, DeviceIndex);
-  accell_safe_call(hipStreamCreate(&Soc), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(hipSetDevice(DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(hipStreamCreate(&Soc), __FILE__, __LINE__, DeviceIndex);
 #else
   (void)DeviceIndex;
   static_assert(false, "Tried to call createContextOrStream, but neither building for CUDA nor HIP.");
