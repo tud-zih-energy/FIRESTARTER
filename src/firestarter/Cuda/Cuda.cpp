@@ -94,9 +94,9 @@ static auto getPrecision(int DeviceIndex, int UseDouble) -> int {
 
   bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
-      properties.major <= 1 && properties.minor <= 2;
+      Properties.major <= 1 && Properties.minor <= 2;
 #elif defined(FIRESTARTER_BUILD_HIP)
-      !properties.hasDoubles;
+      !Properties.hasDoubles;
 #else
       true;
 #endif
