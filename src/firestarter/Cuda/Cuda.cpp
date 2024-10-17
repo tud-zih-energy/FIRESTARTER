@@ -123,7 +123,8 @@ static int get_precision(int device_index, int useDouble) {
 // GPU index. Used to pin this thread to the GPU.
 template <typename FloatingPointType>
 static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
-                        std::atomic<int>& initCount, volatile uint64_t* loadVar, int matrixSize) {
+                        std::atomic<int>& initCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                        int matrixSize) {
   static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
                 "create_load<FloatingPointType>: Template argument must be either float or double");
 
@@ -238,7 +239,7 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
 
   int size_use_i = size_use;
   // actual stress begins here
-  while (*loadVar != LOAD_STOP) {
+  while (LoadVar != LoadThreadWorkType::LOAD_STOP) {
     for (i = 0; i < iterations; i++) {
       compat::accellSafeCall(compat::gemm<FloatingPointType>(
                                  blas, compat::BlasOperation::BLAS_OP_N, compat::BlasOperation::BLAS_OP_N, size_use_i,
@@ -253,13 +254,17 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   compat::accellSafeCall(compat::free<>(b_data_ptr), __FILE__, __LINE__, device_index);
   compat::accellSafeCall(compat::free<>(c_data_ptr), __FILE__, __LINE__, device_index);
 
-  compat::accell_safe_call(compat::blasDestroy<>(blas), __FILE__, __LINE__, device_index);
+  compat::accellSafeCall(compat::blasDestroy<>(blas), __FILE__, __LINE__, device_index);
 
   compat::accellSafeCall(compat::destroyContextOrStream<>(stream_or_context), __FILE__, __LINE__, device_index);
 }
 
-Cuda::Cuda(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus) {
-  std::thread T(Cuda::initGpus, std::ref(WaitForInitCv), LoadVar, UseFloat, UseDouble, MatrixSize, Gpus);
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+           int Gpus) {
+  std::condition_variable WaitForInitCv;
+  std::mutex WaitForInitCvMutex;
+
+  std::thread T(Cuda::initGpus, std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   const std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
@@ -267,17 +272,17 @@ Cuda::Cuda(volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble, unsigned M
   WaitForInitCv.wait(Lk);
 }
 
-void Cuda::initGpus(std::condition_variable& WaitForInitCv, volatile uint64_t* LoadVar, bool UseFloat, bool UseDouble,
-                    unsigned MatrixSize, int Gpus) {
+void Cuda::initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                    bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
 
   if (Gpus) {
-    accell_safe_call(compat::init<>(0), __FILE__, __LINE__);
+    compat::accellSafeCall(compat::init<>(0), __FILE__, __LINE__);
 
     int DevCount;
-    accell_safe_call(compat::getDeviceCount<>(DevCount), __FILE__, __LINE__);
+    compat::accellSafeCall(compat::getDeviceCount<>(DevCount), __FILE__, __LINE__);
 
     if (DevCount) {
       std::atomic<int> InitCount = 0;
@@ -313,7 +318,7 @@ void Cuda::initGpus(std::condition_variable& WaitForInitCv, volatile uint64_t* L
       }
 
       {
-        std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
+        std::lock_guard<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
 
         for (int I = 0; I < Gpus; ++I) {
           // if there's a GPU in the system without Double Precision support, we
@@ -323,14 +328,14 @@ void Cuda::initGpus(std::condition_variable& WaitForInitCv, volatile uint64_t* L
               Precision ? create_load<double> : create_load<float>;
 
           std::thread t(LoadFunc, std::ref(GpuThreadsWaitForInitCv), std::ref(GpuThreadsWaitForInitCvMutex), I,
-                        std::ref(InitCount), LoadVar, (int)MatrixSize);
+                        std::ref(InitCount), std::cref(LoadVar), (int)MatrixSize);
         }
       }
 
       {
         std::unique_lock<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
         // wait for all threads to initialize
-        GpuThreadsWaitForInitCv.wait(lk, [&] { return InitCount == Gpus; });
+        GpuThreadsWaitForInitCv.wait(Lk, [&] { return InitCount == Gpus; });
       }
     } else {
       firestarter::log::info() << "    - No " << compat::AccelleratorString

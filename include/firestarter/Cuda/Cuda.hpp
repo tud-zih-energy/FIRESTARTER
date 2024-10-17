@@ -23,7 +23,6 @@
 
 #include "firestarter/Constants.hpp"
 #include <condition_variable>
-#include <mutex>
 #include <thread>
 
 namespace firestarter::cuda {
@@ -31,19 +30,18 @@ namespace firestarter::cuda {
 class Cuda {
 private:
   std::thread InitThread;
-  std::condition_variable WaitForInitCv;
-  std::mutex WaitForInitCvMutex;
 
-  static void initGpus(std::condition_variable& Cv, const volatile firestarter::LoadThreadWorkType& LoadVar,
+  static void initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
                        bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
 
 public:
-  Cuda(volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus)
+  Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+       int Gpus)
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
       ;
 #else
   {
-    (void)&LoadVar;
+    (void)LoadVar;
     (void)UseFloat;
     (void)UseDouble;
     (void)MatrixSize;
