@@ -35,14 +35,41 @@
 #include <sstream>
 #include <type_traits>
 
-namespace firestarter::cuda::compat {
-
 #ifdef FIRESTARTER_BUILD_CUDA
-// Start of CUDA compatibility types
+
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <curand_kernel.h>
+
+#elif defined(FIRESTARTER_BUILD_HIP)
+
+#include <hip/hip_runtime.h>
+#include <hip/hip_runtime_api.h>
+#include <hipblas/hipblas.h>
+#include <hiprand_kernel.h>
+
+#else
+
+#error "Attempting to compile file but neither CUDA nor HIP is used"
+
+#endif
+
+namespace firestarter::cuda::compat {
+
+/// Use this function as a wrapper to all calls of CUDA or HIP functions. If an error occured we abort and print the
+/// error code.
+/// \tparam T The type of the error code returned from calls to CUDA or HIP. This may be one of BlasStatusT, ErrorT,
+/// RandStatusT or CUresult.
+/// \arg TVal The errorcode returned from calls to CUDA or HIP.
+/// \arg File The file for the log message in which the error occured.
+/// \arg Line The line for the log message in which the error occured.
+/// \arg DeviceIndex if the CUDA or HIP call is associated to a specific device, the index of the device should be
+/// provided here for the log message.
+template <typename T> void accellSafeCall(T TVal, const char* File, int Line, std::optional<int> DeviceIndex = {});
+
+#ifdef FIRESTARTER_BUILD_CUDA
+// Start of CUDA compatibility types
 
 enum class BlasStatusT : std::underlying_type_t<cublasStatus_t> {
   BLAS_STATUS_SUCCESS = CUBLAS_STATUS_SUCCESS,
@@ -59,7 +86,7 @@ enum class BlasStatusT : std::underlying_type_t<cublasStatus_t> {
 
 constexpr const char* AccelleratorString = "CUDA";
 
-enum class ErrorT : std::underlying_type_t<cuError_t> {
+enum class ErrorT : std::underlying_type_t<cudaError_t> {
   Success = cudaSuccess,
 };
 
@@ -83,7 +110,7 @@ using StreamOrContext = CUcontext;
 
 template <typename FloatingPointType> using DevicePtr = CUdeviceptr;
 
-using DeviceProperties = struct cudaDeviceProp;
+using DeviceProperties = cudaDeviceProp;
 
 using RandGenerator = curandGenerator_t;
 
@@ -97,13 +124,12 @@ enum class BlasOperation : std::underlying_type_t<cublasOperation_t> {
   BLAS_OP_C = CUBLAS_OP_C,
 };
 
+using BlasOperationT = cublasOperation_t;
+
+using CUResultOrHipErrorT = CUresult;
+
 #elif defined(FIRESTARTER_BUILD_HIP)
 // Start of HIP compatibility types
-
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime_api.h>
-#include <hipblas/hipblas.h>
-#include <hiprand_kernel.h>
 
 enum class BlasStatusT : std::underlying_type_t<hipblasStatus_t> {
   BLAS_STATUS_SUCCESS = HIPBLAS_STATUS_SUCCESS,
@@ -147,7 +173,7 @@ using StreamOrContext = hipStream_t;
 
 template <typename FloatingPointType> using DevicePtr = FloatingPointType*;
 
-using DeviceProperties = struct hipDeviceProp_t;
+using DeviceProperties = hipDeviceProp_t;
 
 using RandGenerator = hiprandGenerator_t;
 
@@ -161,9 +187,11 @@ enum class BlasOperation : std::underlying_type_t<hipblasOperation_t> {
   BLAS_OP_C = HIPBLAS_OP_C,
 };
 
-#else
+using BlasOperationT = hipblasOperation_t;
 
-#error "Attempting to compile file but neither CUDA nor HIP is used"
+using CUResultOrHipErrorT = ErrorT;
+
+#else
 
 // Start of compatibility types for clangd
 
@@ -198,6 +226,10 @@ enum class BlasOperation {
   BLAS_OP_T,
   BLAS_OP_C,
 };
+
+using BlasOperationT = std::size_t;
+
+using CUResultOrHipErrorT = void*;
 
 #endif
 
@@ -319,17 +351,7 @@ constexpr const int CUDA_SUCCESS = 0;
 // NOLINTEND(readability-identifier-naming)
 #endif
 
-/// Use this function as a wrapper to all calls of CUDA or HIP functions. If an error occured we abort and print the
-/// error code.
-/// \tparam T The type of the error code returned from calls to CUDA or HIP. This may be one of BlasStatusT, ErrorT,
-/// RandStatusT or CUresult.
-/// \arg TVal The errorcode returned from calls to CUDA or HIP.
-/// \arg File The file for the log message in which the error occured.
-/// \arg Line The line for the log message in which the error occured.
-/// \arg DeviceIndex if the CUDA or HIP call is associated to a specific device, the index of the device should be
-/// provided here for the log message.
-template <typename T>
-inline void accellSafeCall(T TVal, const char* File, const int Line, std::optional<int> DeviceIndex = std::nullopt_t) {
+template <typename T> void accellSafeCall(T TVal, const char* File, const int Line, std::optional<int> DeviceIndex) {
   if constexpr (std::is_same_v<T, BlasStatusT>) {
     if (TVal == BlasStatusT::BLAS_STATUS_SUCCESS) {
       return;
@@ -344,18 +366,18 @@ inline void accellSafeCall(T TVal, const char* File, const int Line, std::option
     }
   } else if constexpr (std::is_same_v<T, CUresult>) {
 #ifndef FIRESTARTER_BUILD_CUDA
-    static_assert(false, "Tried to call accell_safe_call with CUresult, but not building for CUDA.");
+    static_assert(false, "Tried to call accellSafeCall with CUresult, but not building for CUDA.");
 #endif
     if (TVal == CUDA_SUCCESS) {
       return;
     }
   } else {
-    static_assert(false, "Tried to call accell_safe_call with an unknown type.");
+    static_assert(false, "Tried to call accellSafeCall with an unknown type.");
   }
 
   std::stringstream Ss;
-  Ss << AccelleratorString << " error at " << File << ":" << Line << ": error code = " << TVal << " ("
-     << getErrorString(TVal) << ")";
+  Ss << AccelleratorString << " error at " << File << ":" << Line
+     << ": error code = " << static_cast<std::underlying_type_t<T>>(TVal) << " (" << getErrorString(TVal) << ")";
 
   if (DeviceIndex) {
     Ss << ", device index: " << *DeviceIndex;
@@ -366,10 +388,9 @@ inline void accellSafeCall(T TVal, const char* File, const int Line, std::option
 }
 
 /// Wrapper to cuInit or hipInit.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg Flags The Flags forwarded to cuInit or hipInit.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto init(unsigned int Flags) -> ReturnType {
+auto init(unsigned int Flags) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuInit(Flags);
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -381,10 +402,9 @@ template <typename ReturnType> auto init(unsigned int Flags) -> ReturnType {
 }
 
 /// Get the number GPU devices. Wrapper to cuDeviceGetCount or hipGetDeviceCount.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg DevCount The reference to where the number of GPU devices will be written.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto getDeviceCount(int& DevCount) -> ReturnType {
+auto getDeviceCount(int& DevCount) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuDeviceGetCount(&DevCount);
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -406,7 +426,7 @@ auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
                             << DeviceIndex;
   CUdevice Device;
   accellSafeCall(cuDeviceGet(&Device, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
-  accellSafeCall(cuCtxCreate(&Soc, 0, device), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(cuCtxCreate(&Soc, 0, Device), __FILE__, __LINE__, DeviceIndex);
 
   firestarter::log::trace() << "Set created " << AccelleratorString << " context on device nr. " << DeviceIndex;
   accellSafeCall(cuCtxSetCurrent(Soc), __FILE__, __LINE__, DeviceIndex);
@@ -423,14 +443,13 @@ auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
 }
 
 /// Destroy the context (CUDA) or stream (HIP) with cuCtxDestroy and hipStreamDestroy respectively.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg Soc The reference to the context or stream.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto destroyContextOrStream(StreamOrContext& Soc) -> ReturnType {
+auto destroyContextOrStream(StreamOrContext& Soc) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cuCtxDestroy(Soc);
+  return static_cast<CUResultOrHipErrorT>(cuCtxDestroy(Soc));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipStreamDestroy(Soc);
+  return static_cast<CUResultOrHipErrorT>(hipStreamDestroy(Soc));
 #else
   (void)Soc;
   static_assert(false, "Tried to call destroyContextOrStream, but neither building for CUDA nor HIP.");
@@ -438,14 +457,13 @@ template <typename ReturnType> auto destroyContextOrStream(StreamOrContext& Soc)
 }
 
 /// Create a blas handle. Wrapper to cublasCreate or hipblasCreate.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg BlasHandle The reference to a BlasHandle object which will be initialized.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto blasCreate(BlasHandle& BlasHandle) -> ReturnType {
+auto blasCreate(BlasHandle& BlasHandle) -> BlasStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cublasCreate(&BlasHandle);
+  return static_cast<BlasStatusT>(cublasCreate(&BlasHandle));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipblasCreate(&BlasHandle);
+  return static_cast<BlasStatusT>(hipblasCreate(&BlasHandle));
 #else
   (void)BlasHandle;
   static_assert(false, "Tried to call blasCreate, but neither building for CUDA nor HIP.");
@@ -453,30 +471,28 @@ template <typename ReturnType> auto blasCreate(BlasHandle& BlasHandle) -> Return
 }
 
 /// Destory a blas handle. Wrapper to cublasDestroy or hipblasDestroy.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg BlasHandle The reference to a BlasHandle object which will be destroyed.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto blasDestory(BlasHandle& BlasHandle) -> ReturnType {
+auto blasDestroy(BlasHandle& BlasHandle) -> BlasStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cublasDestroy(BlasHandle);
+  return static_cast<BlasStatusT>(cublasDestroy(BlasHandle));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipblasDestroy(BlasHandle);
+  return static_cast<BlasStatusT>(hipblasDestroy(BlasHandle));
 #else
   (void)BlasHandle;
-  static_assert(false, "Tried to call blasDestory, but neither building for CUDA nor HIP.");
+  static_assert(false, "Tried to call blasDestroy, but neither building for CUDA nor HIP.");
 #endif
 }
 
 /// Get the properties of a specific GPU device. Wrapper to cudaGetDeviceProperties or hipGetDeviceProperties.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg Property The reference to the properties that are retrived.
 /// \arg DeviceIndex The index of the GPU device for which to retrive the device properties.s
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> ReturnType {
+auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> ErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cudaGetDeviceProperties(&Property, DeviceIndex);
+  return static_cast<ErrorT>(cudaGetDeviceProperties(&Property, DeviceIndex));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipGetDeviceProperties(&Property, DeviceIndex);
+  return static_cast<ErrorT>(hipGetDeviceProperties(&Property, DeviceIndex));
 #else
   (void)Property;
   (void)DeviceIndex;
@@ -486,15 +502,14 @@ template <typename ReturnType> auto getDeviceProperties(DeviceProperties& Proper
 
 /// Get the number of memory in the current CUDA or HIP context. Wrapper to cuMemGetInfo or
 /// hipMemGetInfo.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg MemoryAvail The reference to the available memory that is retrived.
 /// \arg MemoryTotal The reference to the total memory that is retrived.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> ReturnType {
+auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cuMemGetInfo(&MemoryAvail, &MemoryTotal);
+  return static_cast<CUResultOrHipErrorT>(cuMemGetInfo(&MemoryAvail, &MemoryTotal));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipMemGetInfo(&MemoryAvail, &MemoryTotal);
+  return static_cast<CUResultOrHipErrorT>(hipMemGetInfo(&MemoryAvail, &MemoryTotal));
 #else
   (void)MemoryAvail;
   (void)MemoryTotal;
@@ -504,17 +519,16 @@ template <typename ReturnType> auto memGetInfo(std::size_t& MemoryAvail, std::si
 
 /// Malloc device memory in the current CUDA or HIP context. Wrapper to cuMemAlloc or
 /// hipMalloc.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \tparam FloatingPointType The type of the floating point used. Either float or double.
 /// \arg Ptr The reference to the device pointer which is retrieved by the malloc call.
 /// \arg MemorySize The memory that is allocated on the device in bytes.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType, typename FloatingPointType>
-auto malloc(DevicePtr<FloatingPointType>& Ptr, std::size_t MemorySize) -> ReturnType {
+template <typename FloatingPointType>
+auto malloc(DevicePtr<FloatingPointType>& Ptr, std::size_t MemorySize) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cuMemAlloc(&Ptr, MemorySize);
+  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(&Ptr, MemorySize));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipMalloc(&Ptr, MemorySize);
+  return static_cast<CUResultOrHipErrorT>(hipMalloc(&Ptr, MemorySize));
 #else
   (void)Ptr;
   (void)MemorySize;
@@ -524,15 +538,14 @@ auto malloc(DevicePtr<FloatingPointType>& Ptr, std::size_t MemorySize) -> Return
 
 /// Free device memory in the current CUDA or HIP context. Wrapper to cuMemFree or
 /// hipFree.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \tparam FloatingPointType The type of the floating point used. Either float or double.
 /// \arg Ptr The reference to the device pointer which is used in the free call.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType, typename FloatingPointType> auto free(DevicePtr<FloatingPointType>& Ptr) -> ReturnType {
+template <typename FloatingPointType> auto free(DevicePtr<FloatingPointType>& Ptr) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cuMemFree(Ptr);
+  return static_cast<CUResultOrHipErrorT>(cuMemFree(Ptr));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipFree(Ptr);
+  return static_cast<CUResultOrHipErrorT>(hipFree(Ptr));
 #else
   (void)Ptr;
   static_assert(false, "Tried to call free, but neither building for CUDA nor HIP.");
@@ -541,14 +554,13 @@ template <typename ReturnType, typename FloatingPointType> auto free(DevicePtr<F
 
 /// Create a random generator in the current CUDA or HIP context. Wrapper to curandCreateGenerator or
 /// hiprandCreateGenerator.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg RandomGen The reference to the random generation which is retrived by the calls.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto randCreateGeneratorPseudoRandom(RandGenerator& RandomGen) -> ReturnType {
+auto randCreateGeneratorPseudoRandom(RandGenerator& RandomGen) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return curandCreateGenerator(&RandomGen, CURAND_RNG_PSEUDO_DEFAULT);
+  return static_cast<RandStatusT>(curandCreateGenerator(&RandomGen, CURAND_RNG_PSEUDO_DEFAULT));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hiprandCreateGenerator(&RandomGen, HIPRAND_RNG_PSEUDO_DEFAULT);
+  return static_cast<RandStatusT>(hiprandCreateGenerator(&RandomGen, HIPRAND_RNG_PSEUDO_DEFAULT));
 #else
   (void)RandomGen;
   static_assert(false, "Tried to call randCreateGeneratorPseudoRandom, but neither building for CUDA nor HIP.");
@@ -557,15 +569,14 @@ template <typename ReturnType> auto randCreateGeneratorPseudoRandom(RandGenerato
 
 /// Set the pseudo random generator seed in the current CUDA or HIP context. Wrapper to
 /// curandSetPseudoRandomGeneratorSeed or hiprandSetPseudoRandomGeneratorSeed.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg RandomGen The reference to the random generator.
 /// \arg Seed The seed used to initialize the pseudo random generator.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed) -> ReturnType {
+auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return curandSetPseudoRandomGeneratorSeed(RandomGen, Seed);
+  return static_cast<RandStatusT>(curandSetPseudoRandomGeneratorSeed(RandomGen, Seed));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hiprandSetPseudoRandomGeneratorSeed(RandomGen, Seed);
+  return static_cast<RandStatusT>(hiprandSetPseudoRandomGeneratorSeed(RandomGen, Seed));
 #else
   (void)RandomGen;
   (void)Seed;
@@ -575,17 +586,15 @@ template <typename ReturnType> auto randSetPseudoRandomGeneratorSeed(RandGenerat
 
 /// Initialize the provided memory with with a specific number of uniform random floats. Wrapper to
 /// curandGenerateUniform or hiprandGenerateUniform.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg RandomGen The reference to the random generator.
 /// \arg OutputPtr The device pointer on which is initialized with specific number of uniform random floats.
 /// \arg Num The number of unifrom random floats.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType>
-auto randGenerateUniform(RandGenerator& RandomGen, DevicePtr<float> OutputPtr, std::size_t Num) -> ReturnType {
+auto randGenerateUniform(RandGenerator& RandomGen, DevicePtr<float> OutputPtr, std::size_t Num) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return curandGenerateUniform(RandomGen, OutputPtr, Num);
+  return static_cast<RandStatusT>(curandGenerateUniform(RandomGen, reinterpret_cast<float*>(OutputPtr), Num));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hiprandGenerateUniform(RandomGen, OutputPtr, Num);
+  return static_cast<RandStatusT>(hiprandGenerateUniform(RandomGen, OutputPtr, Num));
 #else
   (void)RandomGen;
   (void)OutputPtr;
@@ -596,17 +605,15 @@ auto randGenerateUniform(RandGenerator& RandomGen, DevicePtr<float> OutputPtr, s
 
 /// Initialize the provided memory with with a specific number of uniform random doubles. Wrapper to
 /// curandGenerateUniformDouble or hiprandGenerateUniformDouble.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg RandomGen The reference to the random generator.
 /// \arg OutputPtr The device pointer on which is initialized with specific number of uniform random floats.
 /// \arg Num The number of unifrom random doubles.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType>
-auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> OutputPtr, std::size_t Num) -> ReturnType {
+auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> OutputPtr, std::size_t Num) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return curandGenerateUniformDouble(RandomGen, OutputPtr, Num);
+  return static_cast<RandStatusT>(curandGenerateUniformDouble(RandomGen, reinterpret_cast<double*>(OutputPtr), Num));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hiprandGenerateUniformDouble(RandomGen, OutputPtr, Num);
+  return static_cast<RandStatusT>(hiprandGenerateUniformDouble(RandomGen, OutputPtr, Num));
 #else
   (void)RandomGen;
   (void)OutputPtr;
@@ -617,18 +624,17 @@ auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> Outpu
 
 /// Initialize the provided memory with with a specific number of uniform random floating points. Wrapper to
 /// randGenerateUniform or randGenerateUniformDouble.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \tparam FloatPointType The float point types is used. Either float or double.
 /// \arg Generator The reference to the random generator.
 /// \arg OutputPtr The device pointer on which is initialized with specific number of uniform random floats.
 /// \arg Num The number of unifrom random doubles.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType, typename FloatPointType>
-auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputPtr, size_t Num) -> ReturnType {
+template <typename FloatPointType>
+auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputPtr, size_t Num) -> RandStatusT {
   if constexpr (std::is_same_v<FloatPointType, float>) {
-    return randGenerateUniform<ReturnType>(Generator, OutputPtr, Num);
+    return static_cast<RandStatusT>(randGenerateUniform(Generator, OutputPtr, Num));
   } else if constexpr (std::is_same_v<FloatPointType, double>) {
-    return randGenerateUniformDouble<ReturnType>(Generator, OutputPtr, Num);
+    return static_cast<RandStatusT>(randGenerateUniformDouble(Generator, OutputPtr, Num));
   } else {
     static_assert(false, "generateUniform<FloatPointType>: Template argument must be either float or double");
   }
@@ -636,14 +642,13 @@ auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputP
 
 /// Destory a random generator in the current CUDA or HIP context. Wrapper to curandDestroyGenerator or
 /// hiprandDestroyGenerator.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg RandomGen The reference to the random generation which shoule be destroyed.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto randDestroyGenerator(RandGenerator& RandomGen) -> ReturnType {
+auto randDestroyGenerator(RandGenerator& RandomGen) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return curandDestroyGenerator(RandomGen);
+  return static_cast<RandStatusT>(curandDestroyGenerator(RandomGen));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hiprandDestroyGenerator(RandomGen);
+  return static_cast<RandStatusT>(hiprandDestroyGenerator(RandomGen));
 #else
   (void)RandomGen;
   static_assert(false, "Tried to call randDestroyGenerator, but neither building for CUDA nor HIP.");
@@ -651,18 +656,17 @@ template <typename ReturnType> auto randDestroyGenerator(RandGenerator& RandomGe
 }
 
 /// Copy memory from a device pointer to another device pointer. Wrapper to cuMemcpyDtoD or hipMemcpyDtoD.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \arg DestinationPtr The destination address.
 /// \arg SourcePtr The source address.
 /// \arg Size The number of bytes to copy.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType, typename FloatPointType>
+template <typename FloatPointType>
 auto memcpyDtoD(DevicePtr<FloatPointType> DestinationPtr, DevicePtr<FloatPointType> SourcePtr, std::size_t Size)
-    -> ReturnType {
+    -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cuMemcpyDtoD(DestinationPtr, SourcePtr, Size);
+  return static_cast<CUResultOrHipErrorT>(cuMemcpyDtoD(DestinationPtr, SourcePtr, Size));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipMemcpyDtoD(DestinationPtr, SourcePtr, Size);
+  return static_cast<CUResultOrHipErrorT>(hipMemcpyDtoD(DestinationPtr, SourcePtr, Size));
 #else
   (void)DestinationPtr;
   (void)SourcePtr;
@@ -672,13 +676,12 @@ auto memcpyDtoD(DevicePtr<FloatPointType> DestinationPtr, DevicePtr<FloatPointTy
 }
 
 /// Block until the current device finished. Wrapper to cudaDeviceSynchronize or hipcudaDeviceSynchronize.
-/// \tparam ReturnType The type of the return code to these calls.
 /// \returns The Error code returned from these calls.
-template <typename ReturnType> auto deviceSynchronize() -> ReturnType {
+auto deviceSynchronize() -> ErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return cudaDeviceSynchronize();
+  return static_cast<ErrorT>(cudaDeviceSynchronize());
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipcudaDeviceSynchronize();
+  return static_cast<ErrorT>(hipDeviceSynchronize());
 #else
   static_assert(false, "Tried to call deviceSynchronize, but neither building for CUDA nor HIP.");
 #endif
@@ -705,20 +708,30 @@ template <typename ReturnType> auto deviceSynchronize() -> ReturnType {
 /// \arg Ldc Leading dimension of a two-dimensional array used to store the matrix C.
 /// \returns The Error code returned from these calls.
 template <typename FloatPointType>
-auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int& M, int& N, int& K,
-          const FloatPointType* Alpha, const DevicePtr<FloatPointType>& A, int& Lda, const DevicePtr<FloatPointType>& B,
-          int& Ldb, const FloatPointType* Beta, DevicePtr<FloatPointType>& C, int& Ldc) -> BlasStatus {
+auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, int N, int K,
+          const FloatPointType& Alpha, const DevicePtr<FloatPointType> A, int Lda, const DevicePtr<FloatPointType> B,
+          int Ldb, const FloatPointType& Beta, DevicePtr<FloatPointType> C, int Ldc) -> BlasStatusT {
   if constexpr (std::is_same_v<FloatPointType, float>) {
 #ifdef FIRESTARTER_BUILD_CUDA
-    return cublasSgemm(Handle, Transa, Transb, M, N, K, Alpha, A, Lda, B, Ldb, Beta, C, Ldc);
+    return static_cast<BlasStatusT>(
+        cublasSgemm(Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha,
+                    reinterpret_cast<const float*>(A), Lda, reinterpret_cast<const float*>(B), Ldb, &Beta,
+                    reinterpret_cast<float*>(C), Ldc));
 #elif defined(FIRESTARTER_BUILD_HIP)
-    return hipblasSgemm(Handle, Transa, Transb, M, N, K, Alpha, A, Lda, B, Ldb, Beta, C, Ldc);
+    return static_cast<BlasStatusT>(hipblasSgemm(Handle, static_cast<BlasOperationT>(Transa),
+                                                 static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,
+                                                 &Beta, C, Ldc));
 #endif
   } else if constexpr (std::is_same_v<FloatPointType, double>) {
 #ifdef FIRESTARTER_BUILD_CUDA
-    return cublasDgemm(Handle, Transa, Transb, M, N, K, Alpha, A, Lda, B, Ldb, Beta, C, Ldc);
+    return static_cast<BlasStatusT>(
+        cublasDgemm(Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha,
+                    reinterpret_cast<const double*>(A), Lda, reinterpret_cast<const double*>(B), Ldb, &Beta,
+                    reinterpret_cast<double*>(C), Ldc));
 #elif defined(FIRESTARTER_BUILD_HIP)
-    return hipblasDgemm(Handle, Transa, Transb, M, N, K, Alpha, A, Lda, B, Ldb, Beta, C, Ldc);
+    return static_cast<BlasStatusT>(hipblasDgemm(Handle, static_cast<BlasOperationT>(Transa),
+                                                 static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,
+                                                 &Beta, C, Ldc));
 #endif
   } else {
     (void)Handle;
