@@ -22,15 +22,34 @@
 #pragma once
 
 #include "../MetricInterface.h"
+#include <string>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern const MetricInterface IpcEstimateMetric;
-
-extern void ipcEstimateMetricInsert(double Value);
-
-#ifdef __cplusplus
+struct IpcEstimateMetricData {
+  static std::string ErrorString;
+  static void (*Callback)(void*, const char*, int64_t, double);
+  static void* CallbackArg;
+  static auto fini() -> int32_t;
+  static auto init() -> int32_t;
+  static auto getError() -> const char*;
+  static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t;
 };
-#endif
+
+const MetricInterface IpcEstimateMetric = {
+    .Name = "ipc-estimate",
+    .Type = {.Absolute = 1,
+             .Accumalative = 0,
+             .DivideByThreadCount = 0,
+             .InsertCallback = 1,
+             .IgnoreStartStopDelta = 1,
+             .Reserved = 0},
+    .Unit = "IPC",
+    .CallbackTime = 0,
+    .Callback = nullptr,
+    .Init = IpcEstimateMetricData::init,
+    .Fini = IpcEstimateMetricData::fini,
+    .GetReading = nullptr,
+    .GetError = IpcEstimateMetricData::getError,
+    .RegisterInsertCallback = IpcEstimateMetricData::registerInsertCallback,
+};
+
+void ipcEstimateMetricInsert(double Value);

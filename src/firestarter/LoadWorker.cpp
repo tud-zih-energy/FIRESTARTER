@@ -30,7 +30,7 @@
 #include <limits>
 
 #if defined(linux) || defined(__linux__)
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
+#include <firestarter/Measurement/Metric/IPCEstimate.hpp>
 #endif
 
 #ifdef ENABLE_VTRACING

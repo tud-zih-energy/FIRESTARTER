@@ -22,42 +22,21 @@
 #include <cstring>
 #include <string>
 
-extern "C" {
-#include <firestarter/Measurement/Metric/Perf.h>
-#include <firestarter/Measurement/MetricInterface.h>
+#include <firestarter/Measurement/Metric/Perf.hpp>
 
+extern "C" {
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+}
 
-static const std::string PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
-
-struct ReadFormat {
-  uint64_t Nr;
-  struct {
-    uint64_t Value;
-    uint64_t Id;
-  } Values[2];
-};
-
-static std::string ErrorString;
-
-static int CpuCyclesFd = -1;
-static int InstructionsFd = -1;
-static uint64_t CpuCyclesId;
-static uint64_t InstructionsId;
-static bool InitDone = false;
-static int32_t InitValue;
-
-static struct ReadFormat Last;
-
-static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
-    -> long {
+auto PerfMetricData::perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd,
+                                   unsigned long Flags) -> long {
   return syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags);
 }
 
-static auto fini() -> int32_t {
+auto PerfMetricData::fini() -> int32_t {
   if (!(CpuCyclesFd < 0)) {
     close(CpuCyclesFd);
     CpuCyclesFd = -1;
@@ -70,17 +49,18 @@ static auto fini() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-static auto init() -> int32_t {
+auto PerfMetricData::init() -> int32_t {
   if (InitDone) {
     return InitValue;
   }
 
-  if (access(PerfEventParanoidFile.c_str(), F_OK) == -1) {
+  if (access(PerfEventParanoidFile, F_OK) == -1) {
     // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     // The official way of knowing if perf_event_open() support is enabled
     // is checking for the existence of the file
     // /proc/sys/kernel/perf_event_paranoid.
-    ErrorString = "syscall perf_event_open not supported or file " + PerfEventParanoidFile + " does not exist";
+    ErrorString =
+        "syscall perf_event_open not supported or file " + std::string(PerfEventParanoidFile) + " does not exist";
     InitValue = EXIT_FAILURE;
     InitDone = true;
     return EXIT_FAILURE;
@@ -179,7 +159,7 @@ static auto init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-static auto valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t {
+auto PerfMetricData::valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t {
   for (decltype(Values->Nr) I = 0; I < Values->Nr; ++I) {
     if (Id == Values->Values[I].Id) {
       return Values->Values[I].Value;
@@ -189,7 +169,7 @@ static auto valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t {
   return 0;
 }
 
-static auto getReading(double* IpcValue, double* FreqValue) -> int32_t {
+auto PerfMetricData::getReading(double* IpcValue, double* FreqValue) -> int32_t {
 
   if (CpuCyclesFd < 0 || InstructionsFd < 0) {
     fini();
@@ -221,48 +201,11 @@ static auto getReading(double* IpcValue, double* FreqValue) -> int32_t {
   return EXIT_SUCCESS;
 }
 
-static auto getReadingIpc(double* Value) -> int32_t { return getReading(Value, nullptr); }
+auto PerfMetricData::getReadingIpc(double* Value) -> int32_t { return getReading(Value, nullptr); }
 
-static auto getReadingFreq(double* Value) -> int32_t { return getReading(nullptr, Value); }
+auto PerfMetricData::getReadingFreq(double* Value) -> int32_t { return getReading(nullptr, Value); }
 
-static auto getError() -> const char* {
+auto PerfMetricData::getError() -> const char* {
   const char* ErrorCString = ErrorString.c_str();
   return ErrorCString;
 }
-}
-
-const MetricInterface PerfIpcMetric = {
-    .Name = "perf-ipc",
-    .Type = {.Absolute = 1,
-             .Accumalative = 0,
-             .DivideByThreadCount = 0,
-             .InsertCallback = 0,
-             .IgnoreStartStopDelta = 0,
-             .Reserved = 0},
-    .Unit = "IPC",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = init,
-    .Fini = fini,
-    .GetReading = getReadingIpc,
-    .GetError = getError,
-    .RegisterInsertCallback = nullptr,
-};
-
-const MetricInterface PerfFreqMetric = {
-    .Name = "perf-freq",
-    .Type = {.Absolute = 0,
-             .Accumalative = 1,
-             .DivideByThreadCount = 1,
-             .InsertCallback = 0,
-             .IgnoreStartStopDelta = 0,
-             .Reserved = 0},
-    .Unit = "GHz",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = init,
-    .Fini = fini,
-    .GetReading = getReadingFreq,
-    .GetError = getError,
-    .RegisterInsertCallback = nullptr,
-};

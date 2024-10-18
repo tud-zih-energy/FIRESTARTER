@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include "Metric/IPCEstimate.h"
-#include "Metric/Perf.h"
-#include "Metric/RAPL.h"
+#include "Metric/IPCEstimate.hpp"
+#include "Metric/Perf.hpp"
+#include "Metric/RAPL.hpp"
 #include "MetricInterface.h"
 #include "Summary.hpp"
 #include "TimeValue.hpp"

@@ -21,44 +21,36 @@
 
 #include <chrono>
 #include <cstdlib>
+#include <firestarter/Measurement/Metric/IPCEstimate.hpp>
 #include <string>
 
-extern "C" {
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
-#include <firestarter/Measurement/MetricInterface.h>
-}
-
-static std::string ErrorString;
-
-static void (*Callback)(void*, const char*, int64_t, double) = nullptr;
-static void* CallbackArg = nullptr;
-
-static auto fini() -> int32_t {
-  Callback = nullptr;
-  CallbackArg = nullptr;
+auto IpcEstimateMetricData::fini() -> int32_t {
+  IpcEstimateMetricData::Callback = nullptr;
+  IpcEstimateMetricData::CallbackArg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
-static auto init() -> int32_t {
-  ErrorString = "";
+auto IpcEstimateMetricData::init() -> int32_t {
+  IpcEstimateMetricData::ErrorString = "";
 
   return EXIT_SUCCESS;
 }
 
-static auto getError() -> const char* {
-  const char* ErrorCString = ErrorString.c_str();
+auto IpcEstimateMetricData::getError() -> const char* {
+  const char* ErrorCString = IpcEstimateMetricData::ErrorString.c_str();
   return ErrorCString;
 }
 
-static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t {
-  Callback = C;
-  CallbackArg = Arg;
+auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg)
+    -> int32_t {
+  IpcEstimateMetricData::Callback = C;
+  IpcEstimateMetricData::CallbackArg = Arg;
   return EXIT_SUCCESS;
 }
 
 void ipcEstimateMetricInsert(double Value) {
-  if (Callback == nullptr || CallbackArg == nullptr) {
+  if (IpcEstimateMetricData::Callback == nullptr || IpcEstimateMetricData::CallbackArg == nullptr) {
     return;
   }
 
@@ -66,23 +58,5 @@ void ipcEstimateMetricInsert(double Value) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
           .count();
 
-  Callback(CallbackArg, "ipc-estimate", T, Value);
+  IpcEstimateMetricData::Callback(IpcEstimateMetricData::CallbackArg, "ipc-estimate", T, Value);
 }
-
-const MetricInterface IpcEstimateMetric = {
-    .Name = "ipc-estimate",
-    .Type = {.Absolute = 1,
-             .Accumalative = 0,
-             .DivideByThreadCount = 0,
-             .InsertCallback = 1,
-             .IgnoreStartStopDelta = 1,
-             .Reserved = 0},
-    .Unit = "IPC",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = init,
-    .Fini = fini,
-    .GetReading = nullptr,
-    .GetError = getError,
-    .RegisterInsertCallback = registerInsertCallback,
-};
