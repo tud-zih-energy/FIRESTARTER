@@ -21,7 +21,6 @@
 
 #pragma once
 
-// NOLINTBEGIN(cert-dcl59-cpp,google-build-namespaces)
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
@@ -47,21 +46,16 @@ static void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 // NOLINTEND(readability-identifier-naming,cert-dcl37-c,cert-dcl37-cpp,cert-dcl51-cpp,bugprone-reserved-identifier)
 
 #endif
-// NOLINTEND(cert-dcl59-cpp,google-build-namespaces)
 
 #ifdef _WIN32
 // SIGALRM is not available on Windows
 #define SIGALRM 0
 
-namespace {
 #include <direct.h>
-auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
-} // namespace
+static auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 #elif defined(__APPLE__)
 #include <unistd.h>
-namespace {
-auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
-} // namespace
+static auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
 #else
 #include <unistd.h>
 #endif
