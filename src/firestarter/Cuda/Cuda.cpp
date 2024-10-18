@@ -95,10 +95,8 @@ static auto getPrecision(int DeviceIndex, int UseDouble) -> int {
   bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
       Properties.major <= 1 && Properties.minor <= 2;
-#elif defined(FIRESTARTER_BUILD_HIP)
-      !Properties.hasDoubles;
 #else
-      true;
+      false;
 #endif
 
   // we check for double precision support on the GPU and print errormsg, when

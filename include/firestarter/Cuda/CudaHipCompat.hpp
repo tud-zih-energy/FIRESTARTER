@@ -149,7 +149,7 @@ enum class BlasStatusT : std::underlying_type_t<hipblasStatus_t> {
 
 constexpr const char* AccelleratorString = "HIP";
 
-enum class ErrorT ErrorT : std::underlying_type_t<hipError_t> {
+enum class ErrorT : std::underlying_type_t<hipError_t> {
   Success = hipSuccess,
 };
 
@@ -395,7 +395,7 @@ auto init(unsigned int Flags) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuInit(Flags);
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipInit(Flags);
+  return static_cast<CUResultOrHipErrorT>(hipInit(Flags));
 #else
   (void)Flags;
   static_assert(false, "Tried to call init, but neither building for CUDA nor HIP.");
@@ -409,7 +409,7 @@ auto getDeviceCount(int& DevCount) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuDeviceGetCount(&DevCount);
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return hipGetDeviceCount(&DevCount);
+  return static_cast<CUResultOrHipErrorT>(hipGetDeviceCount(&DevCount));
 #else
   (void)DevCount;
   static_assert(false, "Tried to call getDeviceCount, but neither building for CUDA nor HIP.");
@@ -434,8 +434,8 @@ auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
 #elif defined(FIRESTARTER_BUILD_HIP)
   firestarter::log::trace() << "Creating " << AccelleratorString << " Stream for computation on device nr. "
                             << DeviceIndex;
-  accellSafeCall(hipSetDevice(DeviceIndex), __FILE__, __LINE__, DeviceIndex);
-  accellSafeCall(hipStreamCreate(&Soc), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(static_cast<ErrorT>(hipSetDevice(DeviceIndex)), __FILE__, __LINE__, DeviceIndex);
+  accellSafeCall(static_cast<ErrorT>(hipStreamCreate(&Soc)), __FILE__, __LINE__, DeviceIndex);
 #else
   (void)DeviceIndex;
   static_assert(false, "Tried to call createContextOrStream, but neither building for CUDA nor HIP.");

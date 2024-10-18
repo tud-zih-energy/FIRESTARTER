@@ -38,7 +38,7 @@
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
 static inline void _mm_mfence() noexcept {};
 #endif
-#if not defined(__INTEL_LLVM_COMPILER)
+#if not(defined(__INTEL_LLVM_COMPILER) || defined(__HIP__))
 static inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #endif
 #pragma GCC diagnostic pop
