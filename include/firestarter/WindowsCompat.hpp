@@ -36,9 +36,9 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if defined(__clang__)
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
-static void _mm_mfence() noexcept {};
+static inline void _mm_mfence() noexcept {};
 #endif
-static void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
+static inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -52,10 +52,10 @@ static void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #define SIGALRM 0
 
 #include <direct.h>
-static auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
+static inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 #elif defined(__APPLE__)
 #include <unistd.h>
-static auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
+static inline auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
 #else
 #include <unistd.h>
 #endif
