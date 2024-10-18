@@ -103,7 +103,7 @@ protected:
                   "IterReg is not of any supported type");
 
     if constexpr (std::is_same_v<asmjit::x86::Mm, IterRegT>) {
-      assert((IterReg == asmjit::x86::mm0, "iter_reg must be mm0"));
+      assert(IterReg == asmjit::x86::mm0 && "iter_reg must be mm0");
     }
 
     assert(IterReg != TempReg && "iter_reg must be != temp_reg");
