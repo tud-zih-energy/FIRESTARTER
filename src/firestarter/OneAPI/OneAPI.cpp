@@ -33,7 +33,7 @@
 #include <atomic>
 #include <type_traits>
 
-using namespace firestarter::oneapi;
+namespace firestarter::oneapi {
 
 /* Random number generation helpers */
 template <typename T> void generate_random_data(size_t elems, T* v) {
@@ -116,7 +116,8 @@ static int round_up(int num_to_round, int multiple) {
 // GPU index. Used to pin this thread to the GPU.
 template <typename T>
 static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
-                        std::atomic<int>& initCount, volatile uint64_t* loadVar, int matrixSize) {
+                        std::atomic<int>& initCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                        unsigned matrixSize) {
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
                 "create_load<T>: Template argument T must be either float or double");
 
@@ -227,63 +228,64 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
         return runs;
     };
   */
-  while (*loadVar != LOAD_STOP) {
+  while (LoadVar != firestarter::LoadThreadWorkType::LoadStop) {
     firestarter::log::trace() << "Run gemm on device nr. " << device_index;
-    oneapi::mkl::blas::gemm(device_queue, oneapi::mkl::transpose::N, oneapi::mkl::transpose::N, size_use, size_use,
-                            size_use, 1, A, size_use, B, size_use, 0, C, size_use);
+    ::oneapi::mkl::blas::gemm(device_queue, ::oneapi::mkl::transpose::N, ::oneapi::mkl::transpose::N, size_use,
+                              size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
     firestarter::log::trace() << "wait gemm on device nr. " << device_index;
     device_queue.wait_and_throw();
   }
 }
 
-OneAPI::OneAPI(volatile uint64_t* loadVar, bool useFloat, bool useDouble, unsigned matrixSize, int gpus) {
-  std::thread t(OneAPI::initGpus, std::ref(_waitForInitCv), loadVar, useFloat, useDouble, matrixSize, gpus);
-  _initThread = std::move(t);
+OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
+               unsigned MatrixSize, int Gpus) {
+  std::condition_variable WaitForInitCv;
+  std::mutex WaitForInitCvMutex;
 
-  std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
+  std::thread T(OneAPI::initGpus, std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
+  InitThread = std::move(T);
+
+  std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  _waitForInitCv.wait(lk);
+  WaitForInitCv.wait(Lk);
 }
 
-void OneAPI::initGpus(std::condition_variable& cv, volatile uint64_t* loadVar, bool useFloat, bool useDouble,
-                      unsigned matrixSize, int gpus) {
-  std::condition_variable waitForInitCv;
-  std::mutex waitForInitCvMutex;
+void OneAPI::initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                      bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus) {
+  std::condition_variable GpuThreadsWaitForInitCv;
+  std::mutex GpuThreadsWaitForInitCvMutex;
+  std::vector<std::thread> GpuThreads;
 
-  if (gpus) {
+  if (Gpus) {
+    auto Platforms = sycl::platform::get_platforms();
 
-    auto platforms = sycl::platform::get_platforms();
-
-    if (platforms.empty()) {
+    if (Platforms.empty()) {
       std::cerr << "No SYCL platforms found." << std::endl;
       return;
     }
 
     // Choose a platform based on specific criteria (e.g., device type)
-    sycl::platform chosenPlatform;
-    auto devCount = 0;
-    for (const auto& platform : platforms) {
-      auto devices = platform.get_devices();
-      devCount = 0;
-      for (const auto& device : devices) {
-        if (device.is_gpu()) { // Choose GPU, you can use other criteria
-          chosenPlatform = platform;
-          devCount++;
+    auto DevCount = 0;
+    for (const auto& Platform : Platforms) {
+      auto Devices = Platform.get_devices();
+      DevCount = 0;
+      for (const auto& Device : Devices) {
+        if (Device.is_gpu()) { // Choose GPU, you can use other criteria
+          DevCount++;
         }
       }
     }
 
-    if (devCount) {
-      std::vector<std::thread> gpuThreads;
-      std::atomic<int> initCount = 0;
-      int use_double;
+    if (DevCount) {
+      std::atomic<int> InitCount = 0;
+      int UseDoubleConverted;
 
-      if (useFloat) {
-        use_double = 0;
-      } else if (useDouble) {
-        use_double = 1;
+      if (UseFloat) {
+        UseDoubleConverted = 0;
+      } else if (UseDouble) {
+        UseDoubleConverted = 1;
       } else {
-        use_double = 2;
+        UseDoubleConverted = 2;
       }
 
       firestarter::log::info()
@@ -293,62 +295,58 @@ void OneAPI::initGpus(std::condition_variable& cv, volatile uint64_t* loadVar, b
           << "\n  graphics processor characteristics:";
 
       // use all GPUs if the user gave no information about use_device
-      if (gpus < 0) {
-        gpus = devCount;
+      if (Gpus < 0) {
+        Gpus = DevCount;
       }
-      if (gpus > devCount) {
-        firestarter::log::warn() << "You requested more OneAPI devices than available.";
-        firestarter::log::warn() << "FIRESTARTER will use " << devCount << " of the requested " << gpus
+
+      if (Gpus > DevCount) {
+        firestarter::log::warn() << "You requested more OneAPI devices than available. "
+                                    "Maybe you set OneAPI_VISIBLE_DEVICES?";
+        firestarter::log::warn() << "FIRESTARTER will use " << DevCount << " of the requested " << Gpus
                                  << " OneAPI device(s)";
-        gpus = devCount;
+        Gpus = DevCount;
       }
 
       {
-        std::lock_guard<std::mutex> lk(waitForInitCvMutex);
+        const std::lock_guard<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
 
-        for (int i = 0; i < gpus; ++i) {
-          // if there's a GPU in the system without Double Precision support, we
-          // have to correct this.
-          int precision = get_precision(i, use_double);
-          if (precision == -1) {
+        for (int I = 0; I < Gpus; ++I) {
+          const auto Precision = get_precision(I, UseDoubleConverted);
+          if (Precision == -1) {
             firestarter::log::warn() << "This should not have happened. Could not get precision via SYCL.";
           }
+          void (*LoadFunc)(std::condition_variable&, std::mutex&, int, std::atomic<int>&,
+                           const volatile firestarter::LoadThreadWorkType&, unsigned) =
+              Precision ? create_load<double> : create_load<float>;
 
-          if (precision) {
-            firestarter::log::trace() << "Starting OneAPI GPU double workload.";
-            std::thread t(create_load<double>, std::ref(waitForInitCv), std::ref(waitForInitCvMutex), i,
-                          std::ref(initCount), loadVar, (int)matrixSize);
-            gpuThreads.push_back(std::move(t));
-          } else {
-            firestarter::log::trace() << "Starting OneAPI GPU float workload.";
-            std::thread t(create_load<float>, std::ref(waitForInitCv), std::ref(waitForInitCvMutex), i,
-                          std::ref(initCount), loadVar, (int)matrixSize);
-            gpuThreads.push_back(std::move(t));
-          }
+          std::thread T(LoadFunc, std::ref(GpuThreadsWaitForInitCv), std::ref(GpuThreadsWaitForInitCvMutex), I,
+                        std::ref(InitCount), std::cref(LoadVar), MatrixSize);
+          GpuThreads.emplace_back(std::move(T));
         }
       }
 
       {
-        std::unique_lock<std::mutex> lk(waitForInitCvMutex);
+        std::unique_lock<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
         // wait for all threads to initialize
-        waitForInitCv.wait(lk, [&] { return initCount == gpus; });
-      }
-
-      // notify that init is done
-      cv.notify_all();
-
-      /* join computation threads */
-      for (auto& t : gpuThreads) {
-        t.join();
+        GpuThreadsWaitForInitCv.wait(Lk, [&] { return InitCount == Gpus; });
       }
     } else {
-      firestarter::log::info() << "    - No OneAPI devices. Just stressing CPU(s). Maybe use "
+      firestarter::log::info() << "    - No OneAPI"
+                               << " devices. Just stressing CPU(s). Maybe use "
                                   "FIRESTARTER instead of FIRESTARTER_OneAPI?";
-      cv.notify_all();
     }
   } else {
     firestarter::log::info() << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
                                 "FIRESTARTER instead of FIRESTARTER_OneAPI?";
-    cv.notify_all();
+  }
+
+  // notify that init is done
+  WaitForInitCv.notify_all();
+
+  /* join computation threads */
+  for (auto& Thread : GpuThreads) {
+    Thread.join();
   }
 }
+
+} // namespace firestarter::oneapi
