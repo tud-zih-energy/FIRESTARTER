@@ -29,7 +29,7 @@
 struct RaplMetricData {
   inline static const char* RaplPath = "/sys/class/powercap";
 
-  static std::string ErrorString;
+  inline static std::string ErrorString;
 
   struct ReaderDef {
     char* Path;
@@ -42,7 +42,7 @@ struct RaplMetricData {
     void operator()(struct ReaderDef* Def);
   };
 
-  static std::vector<std::shared_ptr<struct ReaderDef>> Readers;
+  inline static std::vector<std::shared_ptr<struct ReaderDef>> Readers;
 
   static auto fini() -> int32_t;
   static auto init() -> int32_t;

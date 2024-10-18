@@ -25,27 +25,27 @@
 #include <string>
 
 auto IpcEstimateMetricData::fini() -> int32_t {
-  IpcEstimateMetricData::Callback = nullptr;
-  IpcEstimateMetricData::CallbackArg = nullptr;
+  Callback = nullptr;
+  CallbackArg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
 auto IpcEstimateMetricData::init() -> int32_t {
-  IpcEstimateMetricData::ErrorString = "";
+  ErrorString = "";
 
   return EXIT_SUCCESS;
 }
 
 auto IpcEstimateMetricData::getError() -> const char* {
-  const char* ErrorCString = IpcEstimateMetricData::ErrorString.c_str();
+  const char* ErrorCString = ErrorString.c_str();
   return ErrorCString;
 }
 
 auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg)
     -> int32_t {
-  IpcEstimateMetricData::Callback = C;
-  IpcEstimateMetricData::CallbackArg = Arg;
+  Callback = C;
+  CallbackArg = Arg;
   return EXIT_SUCCESS;
 }
 

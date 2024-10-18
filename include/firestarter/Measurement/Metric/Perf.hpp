@@ -35,14 +35,14 @@ struct PerfMetricData {
     } Values[2];
   };
 
-  static std::string ErrorString;
+  inline static std::string ErrorString;
   inline static int CpuCyclesFd = -1;
   inline static int InstructionsFd = -1;
-  static uint64_t CpuCyclesId;
-  static uint64_t InstructionsId;
+  inline static uint64_t CpuCyclesId;
+  inline static uint64_t InstructionsId;
   inline static bool InitDone = false;
-  static int32_t InitValue;
-  static struct ReadFormat Last;
+  inline static int32_t InitValue;
+  inline static struct ReadFormat Last;
   static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
       -> long;
   static auto fini() -> int32_t;

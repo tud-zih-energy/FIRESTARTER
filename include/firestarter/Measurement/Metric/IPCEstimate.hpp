@@ -25,9 +25,9 @@
 #include <string>
 
 struct IpcEstimateMetricData {
-  static std::string ErrorString;
-  static void (*Callback)(void*, const char*, int64_t, double);
-  static void* CallbackArg;
+  inline static std::string ErrorString;
+  inline static void (*Callback)(void*, const char*, int64_t, double);
+  inline static void* CallbackArg;
   static auto fini() -> int32_t;
   static auto init() -> int32_t;
   static auto getError() -> const char*;
