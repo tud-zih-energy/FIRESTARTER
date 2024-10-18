@@ -29,6 +29,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <firestarter/Logging/Log.hpp>
 #include <optional>
@@ -372,7 +373,7 @@ template <typename T> void accellSafeCall(T TVal, const char* File, const int Li
       return;
     }
   } else {
-    static_assert(false, "Tried to call accellSafeCall with an unknown type.");
+    assert(false && "Tried to call accellSafeCall with an unknown type.");
   }
 
   std::stringstream Ss;
@@ -632,11 +633,11 @@ auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> Outpu
 template <typename FloatPointType>
 auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputPtr, size_t Num) -> RandStatusT {
   if constexpr (std::is_same_v<FloatPointType, float>) {
-    return static_cast<RandStatusT>(randGenerateUniform(Generator, OutputPtr, Num));
+    return randGenerateUniform(Generator, OutputPtr, Num);
   } else if constexpr (std::is_same_v<FloatPointType, double>) {
-    return static_cast<RandStatusT>(randGenerateUniformDouble(Generator, OutputPtr, Num));
+    return randGenerateUniformDouble(Generator, OutputPtr, Num);
   } else {
-    static_assert(false, "generateUniform<FloatPointType>: Template argument must be either float or double");
+    assert(false && "generateUniform<FloatPointType>: Template argument must be either float or double");
   }
 }
 
@@ -748,7 +749,7 @@ auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, 
     (void)Beta;
     (void)C;
     (void)Ldc;
-    static_assert(false, "gemm<FloatPointType>: Template argument must be either float or double");
+    assert(false && "gemm<FloatPointType>: Template argument must be either float or double");
   }
 
 #if not(defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP))
