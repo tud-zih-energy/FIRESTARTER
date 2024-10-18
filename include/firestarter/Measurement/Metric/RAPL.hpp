@@ -54,20 +54,17 @@ struct RaplMetricData {
   static void callback();
 };
 
-const MetricInterface RaplMetric = {
-    .Name = "sysfs-powercap-rapl",
-    .Type = {.Absolute = 0,
-             .Accumalative = 1,
-             .DivideByThreadCount = 0,
-             .InsertCallback = 0,
-             .IgnoreStartStopDelta = 0,
-             .Reserved = 0},
-    .Unit = "J",
-    .CallbackTime = 30000000,
-    .Callback = RaplMetricData::callback,
-    .Init = RaplMetricData::init,
-    .Fini = RaplMetricData::fini,
-    .GetReading = RaplMetricData::getReading,
-    .GetError = RaplMetricData::getError,
-    .RegisterInsertCallback = nullptr,
+static constexpr const MetricInterface RaplMetric{
+    /*Name=*/"sysfs-powercap-rapl",
+    /*Type=*/
+    {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+     /*Reserved=*/0},
+    /*Unit=*/"J",
+    /*CallbackTime=*/30000000,
+    /*Callback=*/nullptr,
+    /*Init=*/RaplMetricData::init,
+    /*Fini=*/RaplMetricData::fini,
+    /*GetReading=*/RaplMetricData::getReading,
+    /*GetError=*/RaplMetricData::getError,
+    /*RegisterInsertCallback=*/nullptr,
 };

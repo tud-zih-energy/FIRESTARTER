@@ -54,38 +54,32 @@ struct PerfMetricData {
   static auto getError() -> const char*;
 };
 
-const MetricInterface PerfIpcMetric = {
-    .Name = "perf-ipc",
-    .Type = {.Absolute = 1,
-             .Accumalative = 0,
-             .DivideByThreadCount = 0,
-             .InsertCallback = 0,
-             .IgnoreStartStopDelta = 0,
-             .Reserved = 0},
-    .Unit = "IPC",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = PerfMetricData::init,
-    .Fini = PerfMetricData::fini,
-    .GetReading = PerfMetricData::getReadingIpc,
-    .GetError = PerfMetricData::getError,
-    .RegisterInsertCallback = nullptr,
+static constexpr const MetricInterface PerfIpcMetric{
+    /*Name=*/"perf-ipc",
+    /*Type=*/
+    {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+     /*Reserved=*/0},
+    /*Unit=*/"IPC",
+    /*CallbackTime=*/0,
+    /*Callback=*/nullptr,
+    /*Init=*/PerfMetricData::init,
+    /*Fini=*/PerfMetricData::fini,
+    /*GetReading=*/PerfMetricData::getReadingIpc,
+    /*GetError=*/PerfMetricData::getError,
+    /*RegisterInsertCallback=*/nullptr,
 };
 
-const MetricInterface PerfFreqMetric = {
-    .Name = "perf-freq",
-    .Type = {.Absolute = 0,
-             .Accumalative = 1,
-             .DivideByThreadCount = 1,
-             .InsertCallback = 0,
-             .IgnoreStartStopDelta = 0,
-             .Reserved = 0},
-    .Unit = "GHz",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = PerfMetricData::init,
-    .Fini = PerfMetricData::fini,
-    .GetReading = PerfMetricData::getReadingFreq,
-    .GetError = PerfMetricData::getError,
-    .RegisterInsertCallback = nullptr,
+static constexpr const MetricInterface PerfFreqMetric{
+    /*Name=*/"perf-freq",
+    /*Type=*/
+    {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+     /*Reserved=*/0},
+    /*Unit=*/"GHz",
+    /*CallbackTime=*/0,
+    /*Callback=*/nullptr,
+    /*Init=*/PerfMetricData::init,
+    /*Fini=*/PerfMetricData::fini,
+    /*GetReading=*/PerfMetricData::getReadingFreq,
+    /*GetError=*/PerfMetricData::getError,
+    /*RegisterInsertCallback=*/nullptr,
 };

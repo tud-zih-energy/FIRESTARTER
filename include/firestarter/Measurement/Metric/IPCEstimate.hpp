@@ -34,22 +34,19 @@ struct IpcEstimateMetricData {
   static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t;
 };
 
-const MetricInterface IpcEstimateMetric = {
-    .Name = "ipc-estimate",
-    .Type = {.Absolute = 1,
-             .Accumalative = 0,
-             .DivideByThreadCount = 0,
-             .InsertCallback = 1,
-             .IgnoreStartStopDelta = 1,
-             .Reserved = 0},
-    .Unit = "IPC",
-    .CallbackTime = 0,
-    .Callback = nullptr,
-    .Init = IpcEstimateMetricData::init,
-    .Fini = IpcEstimateMetricData::fini,
-    .GetReading = nullptr,
-    .GetError = IpcEstimateMetricData::getError,
-    .RegisterInsertCallback = IpcEstimateMetricData::registerInsertCallback,
+static constexpr const MetricInterface IpcEstimateMetric{
+    /*Name=*/"ipc-estimate",
+    /*Type=*/
+    {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/1, /*IgnoreStartStopDelta=*/1,
+     /*Reserved=*/0},
+    /*Unit=*/"IPC",
+    /*CallbackTime=*/0,
+    /*Callback=*/nullptr,
+    /*Init=*/IpcEstimateMetricData::init,
+    /*Fini=*/IpcEstimateMetricData::fini,
+    /*GetReading=*/nullptr,
+    /*GetError=*/IpcEstimateMetricData::getError,
+    /*RegisterInsertCallback=*/IpcEstimateMetricData::registerInsertCallback,
 };
 
 void ipcEstimateMetricInsert(double Value);
