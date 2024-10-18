@@ -1,0 +1,4 @@
+---
+# Disable all clangd checks for the lib folder
+
+Checks: '-*'
