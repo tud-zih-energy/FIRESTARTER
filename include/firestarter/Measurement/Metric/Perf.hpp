@@ -43,8 +43,6 @@ struct PerfMetricData {
   inline static bool InitDone = false;
   inline static int32_t InitValue;
   inline static struct ReadFormat Last;
-  static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
-      -> long;
   static auto fini() -> int32_t;
   static auto init() -> int32_t;
   static auto valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t;

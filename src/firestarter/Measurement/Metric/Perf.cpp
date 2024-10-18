@@ -31,8 +31,8 @@ extern "C" {
 #include <unistd.h>
 }
 
-auto PerfMetricData::perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd,
-                                   unsigned long Flags) -> long {
+static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
+    -> long {
   return syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags);
 }
 
