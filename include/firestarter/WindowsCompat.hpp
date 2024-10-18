@@ -25,7 +25,6 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
-namespace {
 
 /// Define the _mm_mfence and __cpuid function when we are not using MSC to enable the use of if constexpr instead of
 /// ifdefs.
@@ -38,16 +37,15 @@ namespace {
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if defined(__clang__)
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
-void _mm_mfence() noexcept {};
+static void _mm_mfence() noexcept {};
 #endif
-void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
+static void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
 // NOLINTEND(readability-identifier-naming,cert-dcl37-c,cert-dcl37-cpp,cert-dcl51-cpp,bugprone-reserved-identifier)
 
-} // namespace
 #endif
 // NOLINTEND(cert-dcl59-cpp,google-build-namespaces)
 
