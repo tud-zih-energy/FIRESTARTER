@@ -38,9 +38,9 @@ namespace {
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if defined(__clang__)
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
-inline void _mm_mfence() noexcept {};
+void _mm_mfence() noexcept {};
 #endif
-inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
+void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -57,12 +57,12 @@ inline void __cpuid(int* /*unused*/, int /*unused*/) noexcept {};
 
 namespace {
 #include <direct.h>
-inline auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
+auto get_current_dir_name() -> char* { return _getcwd(nullptr, 0); }
 } // namespace
 #elif defined(__APPLE__)
 #include <unistd.h>
 namespace {
-inline auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
+auto get_current_dir_name() -> char* { return getcwd(nullptr, 0); }
 } // namespace
 #else
 #include <unistd.h>
