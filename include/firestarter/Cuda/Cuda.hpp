@@ -41,7 +41,7 @@ public:
       ;
 #else
   {
-    (void)LoadVar;
+    (void)&LoadVar;
     (void)UseFloat;
     (void)UseDouble;
     (void)MatrixSize;
