@@ -36,6 +36,7 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if defined(__clang__)
 #pragma message("Compiling with clang. Not defining _mm_mfence.")
+#include <emmintrin.h>
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
 #pragma message("Not compiling with clang or mingw. Defining _mm_mfence.")
 void _mm_mfence() noexcept;
