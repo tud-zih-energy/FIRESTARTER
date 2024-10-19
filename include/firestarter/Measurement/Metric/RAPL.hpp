@@ -61,7 +61,7 @@ static constexpr const MetricInterface RaplMetric{
      /*Reserved=*/0},
     /*Unit=*/"J",
     /*CallbackTime=*/30000000,
-    /*Callback=*/nullptr,
+    /*Callback=*/RaplMetricData::callback,
     /*Init=*/RaplMetricData::init,
     /*Fini=*/RaplMetricData::fini,
     /*GetReading=*/RaplMetricData::getReading,
