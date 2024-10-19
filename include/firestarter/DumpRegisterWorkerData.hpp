@@ -21,42 +21,40 @@
 
 #pragma once
 
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/LoadWorkerData.hpp>
-
+#include "LoadWorkerData.hpp"
+#include "Logging/Log.hpp"
+#include "WindowsCompat.hpp" // IWYU pragma: keep
 #include <chrono>
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
+#include <utility>
 
 namespace firestarter {
 
 class DumpRegisterWorkerData {
 public:
-  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData,
-                         std::chrono::seconds dumpTimeDelta,
-                         std::string dumpFilePath)
-      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
+  DumpRegisterWorkerData() = delete;
 
-    if (dumpFilePath.empty()) {
-      char cwd[PATH_MAX];
-      if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        this->dumpFilePath = cwd;
+  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr, std::chrono::seconds DumpTimeDelta,
+                         const std::string& DumpFilePath)
+      : LoadWorkerDataPtr(std::move(LoadWorkerDataPtr))
+      , DumpTimeDelta(DumpTimeDelta) {
+    if (DumpFilePath.empty()) {
+      char* Pwd = get_current_dir_name();
+      if (Pwd) {
+        this->DumpFilePath = Pwd;
       } else {
         log::error() << "getcwd() failed. Set --dump-registers-outpath to /tmp";
-        this->dumpFilePath = "/tmp";
+        this->DumpFilePath = "/tmp";
       }
     } else {
-      this->dumpFilePath = dumpFilePath;
+      this->DumpFilePath = DumpFilePath;
     }
   }
 
-  ~DumpRegisterWorkerData() {}
+  ~DumpRegisterWorkerData() = default;
 
-  std::shared_ptr<LoadWorkerData> loadWorkerData;
-  const std::chrono::seconds dumpTimeDelta;
-  std::string dumpFilePath;
+  std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr;
+  const std::chrono::seconds DumpTimeDelta;
+  std::string DumpFilePath;
 };
 
 } // namespace firestarter
-
-#endif

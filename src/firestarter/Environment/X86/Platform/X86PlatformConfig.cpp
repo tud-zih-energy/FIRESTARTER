@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2021 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,10 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#pragma once
-
-#include <firestarter/Measurement/MetricInterface.h>
-
-extern metric_interface_t ipc_estimate_metric;
-
-extern void ipc_estimate_metric_insert(double value);
+// This file exists to get an entry in the compile commands database. Clangd will interpolate the include directories
+// for header files based on the source file with the best matching score. This file should be the best score for the
+// included header. Therefore we should not see any errors in this file for missing includes. For more infomation
+// look in the LLVM code base: clang/lib/Tooling/InterpolatingCompilationDatabase.cpp
