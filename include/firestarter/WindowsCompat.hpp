@@ -31,9 +31,10 @@
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
-#endif
+#elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 #if defined(__clang__)
 #include <emmintrin.h>
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
@@ -42,9 +43,10 @@ void _mm_mfence() noexcept;
 #if not(defined(__INTEL_LLVM_COMPILER))
 void __cpuid(int* /*unused*/, int /*unused*/) noexcept;
 #endif
-#pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
 // NOLINTEND(readability-identifier-naming,cert-dcl37-c,cert-dcl37-cpp,cert-dcl51-cpp,bugprone-reserved-identifier)
 
