@@ -35,8 +35,12 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #if defined(__clang__)
+#pragma message("Compiling with clang. Not defining _mm_mfence.")
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
+#pragma message("Not compiling with clang or mingw. Defining _mm_mfence.")
 void _mm_mfence() noexcept;
+#else
+#pragma message("Compiling with mingw or not clang. Not defining _mm_mfence.")
 #endif
 #if not(defined(__INTEL_LLVM_COMPILER))
 void __cpuid(int* /*unused*/, int /*unused*/) noexcept;
