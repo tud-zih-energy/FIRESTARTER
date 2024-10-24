@@ -533,7 +533,7 @@ inline auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CU
 template <typename FloatingPointType>
 auto malloc(FloatingPointType** Ptr, std::size_t MemorySize) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(static_cast<void**>(Ptr), MemorySize));
+  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(&static_cast<void*>(*Ptr), MemorySize));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<CUResultOrHipErrorT>(hipMalloc(Ptr, MemorySize));
 #else
@@ -550,7 +550,7 @@ auto malloc(FloatingPointType** Ptr, std::size_t MemorySize) -> CUResultOrHipErr
 /// \returns The Error code returned from these calls.
 template <typename FloatingPointType> auto free(FloatingPointType* Ptr) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemFree(static_cast<void**>(Ptr)));
+  return static_cast<CUResultOrHipErrorT>(cuMemFree(static_cast<void*>(Ptr)));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<CUResultOrHipErrorT>(hipFree(Ptr));
 #else
@@ -670,7 +670,8 @@ inline auto randDestroyGenerator(RandGenerator& RandomGen) -> RandStatusT {
 template <typename FloatPointType>
 auto memcpyDtoD(FloatPointType* DestinationPtr, FloatPointType* SourcePtr, std::size_t Size) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemcpyDtoD(DestinationPtr, SourcePtr, Size));
+  return static_cast<CUResultOrHipErrorT>(
+      cuMemcpyDtoD(reinterpret_cast<CUdeviceptr>(DestinationPtr), reinterpret_cast<CUdeviceptr>(SourcePtr), Size));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<CUResultOrHipErrorT>(hipMemcpyDtoD(DestinationPtr, SourcePtr, Size));
 #else
