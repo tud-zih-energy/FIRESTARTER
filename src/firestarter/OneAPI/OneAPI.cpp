@@ -35,6 +35,8 @@
 
 namespace firestarter::oneapi {
 
+namespace {
+
 /// Helper function to generate random floating point values between 0 and 1 in an array.
 /// \targ FloatingPointType The type of floating point value of the array. Either float or double.
 /// \arg NumberOfElems The number of elements of the array.
@@ -48,204 +50,195 @@ template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t Numb
   }
 }
 
-template <typename T> void replicate_data(sycl::queue& Q, T* dst, size_t dst_elems, const T* src, size_t src_elems) {
-  firestarter::log::trace() << "replicate_data " << dst_elems << " elements from " << src << " to " << dst;
-  while (dst_elems > 0) {
-    auto copy_elems = std::min(dst_elems, src_elems);
-    Q.copy(src, dst, copy_elems);
-    dst += copy_elems;
-    dst_elems -= copy_elems;
+template <typename FloatingPointType>
+void replicateData(sycl::queue& Q, FloatingPointType* Dst, size_t DstElems, const FloatingPointType* Src,
+                   size_t SrcElems) {
+  static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
+                "fillArrayWithRandomFloats<FloatingPointType>: Template argument must be either float or double");
+
+  firestarter::log::trace() << "replicateData<FloatingPointType> " << DstElems << " elements from " << Src << " to "
+                            << Dst;
+  while (DstElems > 0) {
+    auto copy_elems = std::min(DstElems, SrcElems);
+    Q.copy(Src, Dst, copy_elems);
+    Dst += copy_elems;
+    DstElems -= copy_elems;
   }
   Q.wait();
 }
 
-static int get_precision(int device_index, int useDouble) {
+int getPrecision(int DeviceIndex, int UseDouble) {
+  firestarter::log::trace() << "Checking UseDouble " << UseDouble;
 
-  firestarter::log::trace() << "Checking useDouble " << useDouble;
-
-  if (!useDouble) {
+  if (!UseDouble) {
     return 0;
   }
 
-  int supports_double = 0;
+  int SupportsDouble = 0;
 
-  auto platforms = sycl::platform::get_platforms();
+  auto Platforms = sycl::platform::get_platforms();
 
-  if (platforms.empty()) {
+  if (Platforms.empty()) {
     firestarter::log::warn() << "No SYCL platforms found.";
     return -1;
   }
   // Choose a platform based on specific criteria (e.g., device type)
   // TODO(Issue #75): We may select the incorrect platform with gpu devices of the wrong vendor/type.
-  sycl::platform chosenPlatform;
-  auto nr_gpus = 0;
-  for (const auto& platform : platforms) {
+  sycl::platform ChosenPlatform;
+  auto NbGpus = 0;
+  for (const auto& Platform : Platforms) {
     firestarter::log::trace() << "Checking SYCL platform " << platform.get_info<sycl::info::platform::name>();
-    auto devices = platform.get_devices();
-    nr_gpus = 0;
+    auto devices = Platform.get_devices();
+    NbGpus = 0;
     for (const auto& device : devices) {
       firestarter::log::trace() << "Checking SYCL device " << device.get_info<sycl::info::device::name>();
       if (device.is_gpu()) { // Choose GPU, you can use other criteria
         firestarter::log::trace() << " ... is GPU";
-        chosenPlatform = platform;
-        nr_gpus++;
+        ChosenPlatform = Platform;
+        NbGpus++;
       }
     }
   }
 
-  if (!nr_gpus) {
+  if (!NbGpus) {
     firestarter::log::warn() << "No suitable platform with GPU found.";
     return -1;
   }
   // Get a list of devices for the chosen platform
 
   firestarter::log::trace() << "Get support for double"
-                            << " on device nr. " << device_index;
-  auto devices = chosenPlatform.get_devices();
-  if (devices[device_index].has(sycl::aspect::fp64))
-    supports_double = 1;
+                            << " on device nr. " << DeviceIndex;
+  auto Devices = ChosenPlatform.get_devices();
+  if (Devices[DeviceIndex].has(sycl::aspect::fp64))
+    SupportsDouble = 1;
 
-  return supports_double;
+  return SupportsDouble;
 }
 
-static int round_up(int num_to_round, int multiple) {
-  if (multiple == 0) {
-    return num_to_round;
+template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
+  static_assert(Multiple != 0, "Multiple may not be zero.");
+
+  const int Remainder = NumToRound % Multiple;
+  if (Remainder == 0) {
+    return NumToRound;
   }
 
-  int remainder = num_to_round % multiple;
-  if (remainder == 0) {
-    return num_to_round;
-  }
-
-  return num_to_round + multiple - remainder;
+  return NumToRound + Multiple - Remainder;
 }
 
 // GPU index. Used to pin this thread to the GPU.
 // The main difference to the CUDA/HIP version is that we do not run multiple iterations of C=A*B, just one single
 // iteration.
-template <typename T>
-static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
-                        std::atomic<int>& initCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                        unsigned matrixSize) {
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "create_load<T>: Template argument T must be either float or double");
+template <typename FloatingPointType>
+void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex, int DeviceIndex,
+                std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                unsigned MatrixSize) {
+  static_assert(std::is_same<FloatingPointType, float>::value || std::is_same<FloatingPointType, double>::value,
+                "createLoad<T>: Template argument T must be either float or double");
 
-  firestarter::log::trace() << "Starting OneAPI with given matrix size " << matrixSize;
-
-  size_t size_use = 0;
-  if (matrixSize > 0) {
-    size_use = matrixSize;
-  }
-
-  size_t use_bytes;
+  firestarter::log::trace() << "Starting OneAPI with given matrix size " << MatrixSize;
 
   // reserving the GPU and initializing
 
-  firestarter::log::trace() << "Getting device nr. " << device_index;
+  firestarter::log::trace() << "Getting device nr. " << DeviceIndex;
 
-  auto platforms = sycl::platform::get_platforms();
+  auto Platforms = sycl::platform::get_platforms();
 
-  if (platforms.empty()) {
+  if (Platforms.empty()) {
     firestarter::log::warn() << "No SYCL platforms found.";
     return;
   }
 
   // Choose a platform based on specific criteria (e.g., device type)
-  sycl::platform chosenPlatform;
-  auto nr_gpus = 0;
-  for (const auto& platform : platforms) {
-    auto devices = platform.get_devices();
-    nr_gpus = 0;
-    for (const auto& device : devices) {
-      if (device.is_gpu()) { // Choose GPU, you can use other criteria
-        chosenPlatform = platform;
-        nr_gpus++;
+  sycl::platform ChosenPlatform;
+  auto NbGpus = 0;
+  for (const auto& Platform : Platforms) {
+    auto Devices = Platform.get_devices();
+    NbGpus = 0;
+    for (const auto& Device : Devices) {
+      if (Device.is_gpu()) { // Choose GPU, you can use other criteria
+        ChosenPlatform = Platform;
+        NbGpus++;
       }
     }
   }
 
-  if (!nr_gpus) {
+  if (!NbGpus) {
     firestarter::log::warn() << "No suitable platform with GPU found.";
     return;
   }
 
   // Get a list of devices for the chosen platform
-  auto devices = chosenPlatform.get_devices();
+  auto Devices = ChosenPlatform.get_devices();
 
-  firestarter::log::trace() << "Creating SYCL queue for computation on device nr. " << device_index;
-  auto chosenDevice = devices[device_index];
-  sycl::queue device_queue(chosenDevice);
+  firestarter::log::trace() << "Creating SYCL queue for computation on device nr. " << DeviceIndex;
+  auto ChosenDevice = Devices[DeviceIndex];
+  auto DeviceQueue = sycl::queue(chosenDevice);
 
-  firestarter::log::trace() << "Get memory size on device nr. " << device_index;
+  firestarter::log::trace() << "Get memory size on device nr. " << DeviceIndex;
 
   // getting information about the GPU memory
-  size_t memory_total = devices[device_index].get_info<sycl::info::device::global_mem_size>();
+  size_t MemoryTotal = Devices[DeviceIndex].get_info<sycl::info::device::global_mem_size>();
 
-  firestarter::log::trace() << "Get Memory info on device nr. " << device_index << ": has " << memory_total
+  firestarter::log::trace() << "Get Memory info on device nr. " << DeviceIndex << ": has " << MemoryTotal
                             << " B global memory";
 
-  // check if the user has not set a matrix OR has set a too big matrixsite and
-  // if this is true: set a good matrixsize
-  if (!size_use || ((size_use * size_use * sizeof(T) * 3 > memory_total))) {
-    size_use = round_up((int)(0.8 * sqrt(((memory_total) / (sizeof(T) * 3)))),
-                        1024); // a multiple of 1024 works always well
+  // If the matrix size is not set or three square matricies with dim size of SizeUse do not fit into the available
+  // memory, select the size so that 3 square matricies will fit into the available device memory where the dim size
+  // is a multiple of 1024.
+  std::size_t MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
+  if (!MatrixSize || (MemorySize * 3 > MemoryTotal)) {
+    // a multiple of 1024 works always well
+    MatrixSize = roundUp<1024>(0.8 * std::sqrt(MemoryTotal / sizeof(FloatingPointType) / 3));
+    MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
   }
 
-  firestarter::log::trace() << "Set OneAPI matrix size in B: " << size_use;
-  use_bytes = sizeof(T) * size_use * size_use * 3;
+  firestarter::log::trace() << "Set OneAPI matrix size in B: " << MatrixSize;
 
   /* Allocate A/B/C matrices */
 
-  firestarter::log::trace() << "Allocating memory on device nr. " << device_index;
-  auto* A = sycl::malloc_device<T>(size_use * size_use, device_queue);
-  auto* B = sycl::malloc_device<T>(size_use * size_use, device_queue);
-  auto* C = sycl::malloc_device<T>(size_use * size_use, device_queue);
+  firestarter::log::trace() << "Allocating memory on device nr. " << DeviceIndex;
+  auto* A = sycl::malloc_device<FloatingPointType>(MatrixSize * MatrixSize, DeviceQueue);
+  auto* B = sycl::malloc_device<FloatingPointType>(MatrixSize * MatrixSize, DeviceQueue);
+  auto* C = sycl::malloc_device<FloatingPointType>(MatrixSize * MatrixSize, DeviceQueue);
 
   /* Create 64 MB random data on Host */
-  constexpr int rd_size = 1024 * 1024 * 64;
-  auto* random_data = malloc_host<T>(rd_size, device_queue);
-  fillArrayWithRandomFloats(rd_size, random_data);
+  constexpr int RandomSize = 1024 * 1024 * 64;
+  auto* RandomData = malloc_host<FloatingPointType>(RandomSize, DeviceQueue);
+  fillArrayWithRandomFloats<FloatingPointType>(RandomSize, RandomData);
 
-  firestarter::log::trace() << "Copy memory to device nr. " << device_index;
+  firestarter::log::trace() << "Copy memory to device nr. " << DeviceIndex;
   /* fill A and B with random data */
-  replicate_data(device_queue, A, size_use * size_use, random_data, rd_size);
-  replicate_data(device_queue, B, size_use * size_use, random_data, rd_size);
+  replicateData(DeviceQueue, A, MatrixSize * MatrixSize, RandomData, RandomSize);
+  replicateData(DeviceQueue, B, MatrixSize * MatrixSize, RandomData, RandomSize);
 
   {
-    std::lock_guard<std::mutex> lk(waitForInitCvMutex);
+    std::lock_guard<std::mutex> lk(WaitForInitCvMutex);
 
-#define TO_MB(x) (unsigned long)(x / 1024 / 1024)
+    auto ToMiB = [](const size_t Val) { return Val / 1024 / 1024; };
     firestarter::log::info() << "   GPU " << device_index << "\n"
-                             << "    name:           " << devices[device_index].get_info<sycl::info::device::name>()
+                             << "    name:           " << Devices[DeviceIndex].get_info<sycl::info::device::name>()
                              << "\n"
-                             << "    memory:         " << TO_MB(memory_total) << " MiB total (using "
-                             << TO_MB(use_bytes) << " MiB)\n"
-                             << "    matrix size:    " << size_use << "\n"
+                             << "    memory:         " << ToMiB(MemoryTotal) << " MiB total (using "
+                             << ToMiB(MemorySize) << " MiB)\n"
+                             << "    matrix size:    " << MatrixSize << "\n"
                              << "    used precision: " << ((sizeof(T) == sizeof(double)) ? "double" : "single");
-#undef TO_MB
 
-    initCount++;
+    InitCount++;
   }
-  waitForInitCv.notify_all();
+  WaitForInitCv.notify_all();
 
-  firestarter::log::trace() << "Run gemm on device nr. " << device_index;
-  /* With this, we could run multiple gemms ...*/
-  /*  auto run_gemms = [=, &device_queue](int runs) -> double {
-        using namespace oneapi::mkl;
-        for (int i = 0; i < runs; i++)
-
-        return runs;
-    };
-  */
+  firestarter::log::trace() << "Run gemm on device nr. " << DeviceIndex;
   while (LoadVar != firestarter::LoadThreadWorkType::LoadStop) {
-    firestarter::log::trace() << "Run gemm on device nr. " << device_index;
-    ::oneapi::mkl::blas::gemm(device_queue, ::oneapi::mkl::transpose::N, ::oneapi::mkl::transpose::N, size_use,
-                              size_use, size_use, 1, A, size_use, B, size_use, 0, C, size_use);
-    firestarter::log::trace() << "wait gemm on device nr. " << device_index;
-    device_queue.wait_and_throw();
+    firestarter::log::trace() << "Run gemm on device nr. " << DeviceIndex;
+    ::oneapi::mkl::blas::gemm(DeviceQueue, ::oneapi::mkl::transpose::N, ::oneapi::mkl::transpose::N, MatrixSize,
+                              MatrixSize, MatrixSize, 1, A, MatrixSize, B, MatrixSize, 0, C, MatrixSize);
+    firestarter::log::trace() << "wait gemm on device nr. " << DeviceIndex;
+    DeviceQueue.wait_and_throw();
   }
 }
+
+} // namespace
 
 OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
                unsigned MatrixSize, int Gpus) {
@@ -322,13 +315,13 @@ void OneAPI::initGpus(std::condition_variable& WaitForInitCv, const volatile fir
         const std::lock_guard<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
 
         for (int I = 0; I < Gpus; ++I) {
-          const auto Precision = get_precision(I, UseDoubleConverted);
+          const auto Precision = getPrecision(I, UseDoubleConverted);
           if (Precision == -1) {
             firestarter::log::warn() << "This should not have happened. Could not get precision via SYCL.";
           }
           void (*LoadFunc)(std::condition_variable&, std::mutex&, int, std::atomic<int>&,
                            const volatile firestarter::LoadThreadWorkType&, unsigned) =
-              Precision ? create_load<double> : create_load<float>;
+              Precision ? createLoad<double> : createLoad<float>;
 
           std::thread T(LoadFunc, std::ref(GpuThreadsWaitForInitCv), std::ref(GpuThreadsWaitForInitCvMutex), I,
                         std::ref(InitCount), std::cref(LoadVar), MatrixSize);
