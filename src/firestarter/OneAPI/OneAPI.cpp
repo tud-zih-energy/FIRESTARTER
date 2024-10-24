@@ -35,10 +35,17 @@
 
 namespace firestarter::oneapi {
 
-/* Random number generation helpers */
-template <typename T> void generate_random_data(size_t elems, T* v) {
-  for (size_t i = 0; i < elems; i++)
-    v[i] = double(std::rand()) / RAND_MAX;
+/// Helper function to generate random floating point values between 0 and 1 in an array.
+/// \targ FloatingPointType The type of floating point value of the array. Either float or double.
+/// \arg NumberOfElems The number of elements of the array.
+/// \arg Array The array of floating point values which should be initilized with random data between 0 and 1.
+template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t NumberOfElems, FloatingPointType& Array) {
+  static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
+                "fillArrayWithRandomFloats<FloatingPointType>: Template argument must be either float or double");
+
+  for (size_t i = 0; i < NumberOfElems; i++) {
+    Array[i] = static_cast<FloatingPointType>(std::rand()) / RAND_MAX;
+  }
 }
 
 template <typename T> void replicate_data(sycl::queue& Q, T* dst, size_t dst_elems, const T* src, size_t src_elems) {
@@ -69,6 +76,7 @@ static int get_precision(int device_index, int useDouble) {
     return -1;
   }
   // Choose a platform based on specific criteria (e.g., device type)
+  // TODO(Issue #75): We may select the incorrect platform with gpu devices of the wrong vendor/type.
   sycl::platform chosenPlatform;
   auto nr_gpus = 0;
   for (const auto& platform : platforms) {
@@ -114,6 +122,8 @@ static int round_up(int num_to_round, int multiple) {
 }
 
 // GPU index. Used to pin this thread to the GPU.
+// The main difference to the CUDA/HIP version is that we do not run multiple iterations of C=A*B, just one single
+// iteration.
 template <typename T>
 static void create_load(std::condition_variable& waitForInitCv, std::mutex& waitForInitCvMutex, int device_index,
                         std::atomic<int>& initCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
@@ -188,14 +198,14 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
   /* Allocate A/B/C matrices */
 
   firestarter::log::trace() << "Allocating memory on device nr. " << device_index;
-  auto A = malloc_device<T>(size_use * size_use, device_queue);
-  auto B = malloc_device<T>(size_use * size_use, device_queue);
-  auto C = malloc_device<T>(size_use * size_use, device_queue);
+  auto* A = sycl::malloc_device<T>(size_use * size_use, device_queue);
+  auto* B = sycl::malloc_device<T>(size_use * size_use, device_queue);
+  auto* C = sycl::malloc_device<T>(size_use * size_use, device_queue);
 
   /* Create 64 MB random data on Host */
   constexpr int rd_size = 1024 * 1024 * 64;
   auto random_data = malloc_host<T>(rd_size, device_queue);
-  generate_random_data(rd_size, random_data);
+  fillArrayWithRandomFloats(rd_size, *random_data);
 
   firestarter::log::trace() << "Copy memory to device nr. " << device_index;
   /* fill A and B with random data */
@@ -265,6 +275,7 @@ void OneAPI::initGpus(std::condition_variable& WaitForInitCv, const volatile fir
     }
 
     // Choose a platform based on specific criteria (e.g., device type)
+    // TODO(Issue #75): We may select the incorrect platform with gpu devices of the wrong vendor/type.
     auto DevCount = 0;
     for (const auto& Platform : Platforms) {
       auto Devices = Platform.get_devices();

@@ -67,8 +67,8 @@ protected:
 private:
   uint64_t RequestedNumThreads = 0;
 
+  // TODO(Issue #74): Use hwloc for cpu thread affinity.
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  // TODO: replace these functions with the builtins one from hwlocom hwloc
   static auto cpuAllowed(unsigned Id) -> int;
   static auto cpuSet(unsigned Id) -> int;
   void addCpuSet(unsigned Cpu, cpu_set_t& Mask) const;

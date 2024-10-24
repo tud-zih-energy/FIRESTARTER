@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -72,6 +72,7 @@ template <typename T> void accellSafeCall(T TVal, const char* File, int Line, st
 #ifdef FIRESTARTER_BUILD_CUDA
 // Start of CUDA compatibility types
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasStatusT : std::underlying_type_t<cublasStatus_t> {
   BLAS_STATUS_SUCCESS = CUBLAS_STATUS_SUCCESS,
   BLAS_STATUS_NOT_INITIALIZED = CUBLAS_STATUS_NOT_INITIALIZED,
@@ -87,10 +88,12 @@ enum class BlasStatusT : std::underlying_type_t<cublasStatus_t> {
 
 constexpr const char* AccelleratorString = "CUDA";
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class ErrorT : std::underlying_type_t<cudaError_t> {
   Success = cudaSuccess,
 };
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class RandStatusT : std::underlying_type_t<curandStatus_t> {
   RAND_STATUS_SUCCESS = CURAND_STATUS_SUCCESS,
   RAND_STATUS_VERSION_MISMATCH = CURAND_STATUS_VERSION_MISMATCH,
@@ -109,8 +112,6 @@ enum class RandStatusT : std::underlying_type_t<curandStatus_t> {
 
 using StreamOrContext = CUcontext;
 
-template <typename FloatingPointType> using DevicePtr = CUdeviceptr;
-
 using DeviceProperties = cudaDeviceProp;
 
 using RandGenerator = curandGenerator_t;
@@ -119,6 +120,7 @@ using BlasHandle = cublasHandle_t;
 
 using BlasStatus = cublasStatus_t;
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasOperation : std::underlying_type_t<cublasOperation_t> {
   BLAS_OP_N = CUBLAS_OP_N,
   BLAS_OP_T = CUBLAS_OP_T,
@@ -132,6 +134,7 @@ using CUResultOrHipErrorT = CUresult;
 #elif defined(FIRESTARTER_BUILD_HIP)
 // Start of HIP compatibility types
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasStatusT : std::underlying_type_t<hipblasStatus_t> {
   BLAS_STATUS_SUCCESS = HIPBLAS_STATUS_SUCCESS,
   BLAS_STATUS_NOT_INITIALIZED = HIPBLAS_STATUS_NOT_INITIALIZED,
@@ -149,10 +152,12 @@ enum class BlasStatusT : std::underlying_type_t<hipblasStatus_t> {
 
 constexpr const char* AccelleratorString = "HIP";
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class ErrorT : std::underlying_type_t<hipError_t> {
   Success = hipSuccess,
 };
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class RandStatusT : std::underlying_type_t<hiprandStatus_t> {
   RAND_STATUS_SUCCESS = HIPRAND_STATUS_SUCCESS,
   RAND_STATUS_VERSION_MISMATCH = HIPRAND_STATUS_VERSION_MISMATCH,
@@ -172,8 +177,6 @@ enum class RandStatusT : std::underlying_type_t<hiprandStatus_t> {
 
 using StreamOrContext = hipStream_t;
 
-template <typename FloatingPointType> using DevicePtr = FloatingPointType*;
-
 using DeviceProperties = hipDeviceProp_t;
 
 using RandGenerator = hiprandGenerator_t;
@@ -182,6 +185,7 @@ using BlasHandle = hipblasHandle_t;
 
 using BlasStatus = hipblasStatus_t;
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasOperation : std::underlying_type_t<hipblasOperation_t> {
   BLAS_OP_N = HIPBLAS_OP_N,
   BLAS_OP_T = HIPBLAS_OP_T,
@@ -196,23 +200,24 @@ using CUResultOrHipErrorT = ErrorT;
 
 // Start of compatibility types for clangd
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasStatusT {
   BLAS_STATUS_SUCCESS = 0,
 };
 
 constexpr const char* AccelleratorString = "unknown";
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class ErrorT {
   Success = 0,
 };
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class RandStatusT {
   RAND_STATUS_SUCCESS = 0,
 };
 
 using StreamOrContext = void*;
-
-template <typename FloatingPointType> using DevicePtr = std::size_t;
 
 using DeviceProperties = void*;
 
@@ -222,6 +227,7 @@ using BlasHandle = void*;
 
 using BlasStatus = void*;
 
+// NOLINTNEXTLINE(performance-enum-size)
 enum class BlasOperation {
   BLAS_OP_N,
   BLAS_OP_T,
@@ -239,7 +245,7 @@ using CUResultOrHipErrorT = void*;
 /// Get the error string from a call to CUDA of HIP libraries.
 /// \arg Status The status code that is returned by these calls.
 /// \return The error as a string.
-auto getErrorString(ErrorT Error) -> const char* {
+inline auto getErrorString(ErrorT Error) -> const char* {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cudaGetErrorString(static_cast<cudaError_t>(Error));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -391,7 +397,7 @@ template <typename T> void accellSafeCall(T TVal, const char* File, const int Li
 /// Wrapper to cuInit or hipInit.
 /// \arg Flags The Flags forwarded to cuInit or hipInit.
 /// \returns The Error code returned from these calls.
-auto init(unsigned int Flags) -> CUResultOrHipErrorT {
+inline auto init(unsigned int Flags) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuInit(Flags);
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -405,7 +411,7 @@ auto init(unsigned int Flags) -> CUResultOrHipErrorT {
 /// Get the number GPU devices. Wrapper to cuDeviceGetCount or hipGetDeviceCount.
 /// \arg DevCount The reference to where the number of GPU devices will be written.
 /// \returns The Error code returned from these calls.
-auto getDeviceCount(int& DevCount) -> CUResultOrHipErrorT {
+inline auto getDeviceCount(int& DevCount) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return cuDeviceGetCount(&DevCount);
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -420,8 +426,8 @@ auto getDeviceCount(int& DevCount) -> CUResultOrHipErrorT {
 /// destroyContextOrStream.
 /// \arg DeviceIndex The device on which to create the context or stream.
 /// \return The created context or stream.
-auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
-  StreamOrContext Soc;
+inline auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
+  StreamOrContext Soc{};
 #ifdef FIRESTARTER_BUILD_CUDA
   firestarter::log::trace() << "Creating " << AccelleratorString << " context for computation on device nr. "
                             << DeviceIndex;
@@ -446,7 +452,7 @@ auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
 /// Destroy the context (CUDA) or stream (HIP) with cuCtxDestroy and hipStreamDestroy respectively.
 /// \arg Soc The reference to the context or stream.
 /// \returns The Error code returned from these calls.
-auto destroyContextOrStream(StreamOrContext& Soc) -> CUResultOrHipErrorT {
+inline auto destroyContextOrStream(StreamOrContext& Soc) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<CUResultOrHipErrorT>(cuCtxDestroy(Soc));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -460,7 +466,7 @@ auto destroyContextOrStream(StreamOrContext& Soc) -> CUResultOrHipErrorT {
 /// Create a blas handle. Wrapper to cublasCreate or hipblasCreate.
 /// \arg BlasHandle The reference to a BlasHandle object which will be initialized.
 /// \returns The Error code returned from these calls.
-auto blasCreate(BlasHandle& BlasHandle) -> BlasStatusT {
+inline auto blasCreate(BlasHandle& BlasHandle) -> BlasStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<BlasStatusT>(cublasCreate(&BlasHandle));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -474,7 +480,7 @@ auto blasCreate(BlasHandle& BlasHandle) -> BlasStatusT {
 /// Destory a blas handle. Wrapper to cublasDestroy or hipblasDestroy.
 /// \arg BlasHandle The reference to a BlasHandle object which will be destroyed.
 /// \returns The Error code returned from these calls.
-auto blasDestroy(BlasHandle& BlasHandle) -> BlasStatusT {
+inline auto blasDestroy(BlasHandle& BlasHandle) -> BlasStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<BlasStatusT>(cublasDestroy(BlasHandle));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -489,7 +495,7 @@ auto blasDestroy(BlasHandle& BlasHandle) -> BlasStatusT {
 /// \arg Property The reference to the properties that are retrived.
 /// \arg DeviceIndex The index of the GPU device for which to retrive the device properties.s
 /// \returns The Error code returned from these calls.
-auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> ErrorT {
+inline auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> ErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<ErrorT>(cudaGetDeviceProperties(&Property, DeviceIndex));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -506,7 +512,7 @@ auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> ErrorT 
 /// \arg MemoryAvail The reference to the available memory that is retrived.
 /// \arg MemoryTotal The reference to the total memory that is retrived.
 /// \returns The Error code returned from these calls.
-auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CUResultOrHipErrorT {
+inline auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<CUResultOrHipErrorT>(cuMemGetInfo(&MemoryAvail, &MemoryTotal));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -525,11 +531,11 @@ auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CUResultO
 /// \arg MemorySize The memory that is allocated on the device in bytes.
 /// \returns The Error code returned from these calls.
 template <typename FloatingPointType>
-auto malloc(DevicePtr<FloatingPointType>& Ptr, std::size_t MemorySize) -> CUResultOrHipErrorT {
+auto malloc(FloatingPointType** Ptr, std::size_t MemorySize) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(&Ptr, MemorySize));
+  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(static_cast<void**>(Ptr), MemorySize));
 #elif defined(FIRESTARTER_BUILD_HIP)
-  return static_cast<CUResultOrHipErrorT>(hipMalloc(&Ptr, MemorySize));
+  return static_cast<CUResultOrHipErrorT>(hipMalloc(Ptr, MemorySize));
 #else
   (void)Ptr;
   (void)MemorySize;
@@ -542,9 +548,9 @@ auto malloc(DevicePtr<FloatingPointType>& Ptr, std::size_t MemorySize) -> CUResu
 /// \tparam FloatingPointType The type of the floating point used. Either float or double.
 /// \arg Ptr The reference to the device pointer which is used in the free call.
 /// \returns The Error code returned from these calls.
-template <typename FloatingPointType> auto free(DevicePtr<FloatingPointType>& Ptr) -> CUResultOrHipErrorT {
+template <typename FloatingPointType> auto free(FloatingPointType* Ptr) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemFree(Ptr));
+  return static_cast<CUResultOrHipErrorT>(cuMemFree(static_cast<void**>(Ptr)));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<CUResultOrHipErrorT>(hipFree(Ptr));
 #else
@@ -557,7 +563,7 @@ template <typename FloatingPointType> auto free(DevicePtr<FloatingPointType>& Pt
 /// hiprandCreateGenerator.
 /// \arg RandomGen The reference to the random generation which is retrived by the calls.
 /// \returns The Error code returned from these calls.
-auto randCreateGeneratorPseudoRandom(RandGenerator& RandomGen) -> RandStatusT {
+inline auto randCreateGeneratorPseudoRandom(RandGenerator& RandomGen) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<RandStatusT>(curandCreateGenerator(&RandomGen, CURAND_RNG_PSEUDO_DEFAULT));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -573,7 +579,7 @@ auto randCreateGeneratorPseudoRandom(RandGenerator& RandomGen) -> RandStatusT {
 /// \arg RandomGen The reference to the random generator.
 /// \arg Seed The seed used to initialize the pseudo random generator.
 /// \returns The Error code returned from these calls.
-auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed) -> RandStatusT {
+inline auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<RandStatusT>(curandSetPseudoRandomGeneratorSeed(RandomGen, Seed));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -591,7 +597,7 @@ auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed) -> Ran
 /// \arg OutputPtr The device pointer on which is initialized with specific number of uniform random floats.
 /// \arg Num The number of unifrom random floats.
 /// \returns The Error code returned from these calls.
-auto randGenerateUniform(RandGenerator& RandomGen, DevicePtr<float> OutputPtr, std::size_t Num) -> RandStatusT {
+inline auto randGenerateUniform(RandGenerator& RandomGen, float* OutputPtr, std::size_t Num) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<RandStatusT>(curandGenerateUniform(RandomGen, reinterpret_cast<float*>(OutputPtr), Num));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -610,9 +616,9 @@ auto randGenerateUniform(RandGenerator& RandomGen, DevicePtr<float> OutputPtr, s
 /// \arg OutputPtr The device pointer on which is initialized with specific number of uniform random floats.
 /// \arg Num The number of unifrom random doubles.
 /// \returns The Error code returned from these calls.
-auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> OutputPtr, std::size_t Num) -> RandStatusT {
+inline auto randGenerateUniformDouble(RandGenerator& RandomGen, double* OutputPtr, std::size_t Num) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<RandStatusT>(curandGenerateUniformDouble(RandomGen, reinterpret_cast<double*>(OutputPtr), Num));
+  return static_cast<RandStatusT>(curandGenerateUniformDouble(RandomGen, OutputPtr, Num));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<RandStatusT>(hiprandGenerateUniformDouble(RandomGen, OutputPtr, Num));
 #else
@@ -631,7 +637,7 @@ auto randGenerateUniformDouble(RandGenerator& RandomGen, DevicePtr<double> Outpu
 /// \arg Num The number of unifrom random doubles.
 /// \returns The Error code returned from these calls.
 template <typename FloatPointType>
-auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputPtr, size_t Num) -> RandStatusT {
+auto generateUniform(RandGenerator& Generator, FloatPointType* OutputPtr, size_t Num) -> RandStatusT {
   if constexpr (std::is_same_v<FloatPointType, float>) {
     return randGenerateUniform(Generator, OutputPtr, Num);
   } else if constexpr (std::is_same_v<FloatPointType, double>) {
@@ -645,7 +651,7 @@ auto generateUniform(RandGenerator& Generator, DevicePtr<FloatPointType> OutputP
 /// hiprandDestroyGenerator.
 /// \arg RandomGen The reference to the random generation which shoule be destroyed.
 /// \returns The Error code returned from these calls.
-auto randDestroyGenerator(RandGenerator& RandomGen) -> RandStatusT {
+inline auto randDestroyGenerator(RandGenerator& RandomGen) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<RandStatusT>(curandDestroyGenerator(RandomGen));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -662,8 +668,7 @@ auto randDestroyGenerator(RandGenerator& RandomGen) -> RandStatusT {
 /// \arg Size The number of bytes to copy.
 /// \returns The Error code returned from these calls.
 template <typename FloatPointType>
-auto memcpyDtoD(DevicePtr<FloatPointType> DestinationPtr, DevicePtr<FloatPointType> SourcePtr, std::size_t Size)
-    -> CUResultOrHipErrorT {
+auto memcpyDtoD(FloatPointType* DestinationPtr, FloatPointType* SourcePtr, std::size_t Size) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<CUResultOrHipErrorT>(cuMemcpyDtoD(DestinationPtr, SourcePtr, Size));
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -678,7 +683,7 @@ auto memcpyDtoD(DevicePtr<FloatPointType> DestinationPtr, DevicePtr<FloatPointTy
 
 /// Block until the current device finished. Wrapper to cudaDeviceSynchronize or hipcudaDeviceSynchronize.
 /// \returns The Error code returned from these calls.
-auto deviceSynchronize() -> ErrorT {
+inline auto deviceSynchronize() -> ErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
   return static_cast<ErrorT>(cudaDeviceSynchronize());
 #elif defined(FIRESTARTER_BUILD_HIP)
@@ -710,14 +715,13 @@ auto deviceSynchronize() -> ErrorT {
 /// \returns The Error code returned from these calls.
 template <typename FloatPointType>
 auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, int N, int K,
-          const FloatPointType& Alpha, const DevicePtr<FloatPointType> A, int Lda, const DevicePtr<FloatPointType> B,
-          int Ldb, const FloatPointType& Beta, DevicePtr<FloatPointType> C, int Ldc) -> BlasStatusT {
+          const FloatPointType& Alpha, const FloatPointType* A, int Lda, const FloatPointType* B, int Ldb,
+          const FloatPointType& Beta, FloatPointType* C, int Ldc) -> BlasStatusT {
   if constexpr (std::is_same_v<FloatPointType, float>) {
 #ifdef FIRESTARTER_BUILD_CUDA
-    return static_cast<BlasStatusT>(
-        cublasSgemm(Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha,
-                    reinterpret_cast<const float*>(A), Lda, reinterpret_cast<const float*>(B), Ldb, &Beta,
-                    reinterpret_cast<float*>(C), Ldc));
+    return static_cast<BlasStatusT>(cublasSgemm(Handle, static_cast<BlasOperationT>(Transa),
+                                                static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,
+                                                &Beta, C, Ldc));
 #elif defined(FIRESTARTER_BUILD_HIP)
     return static_cast<BlasStatusT>(hipblasSgemm(Handle, static_cast<BlasOperationT>(Transa),
                                                  static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,
@@ -725,10 +729,9 @@ auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, 
 #endif
   } else if constexpr (std::is_same_v<FloatPointType, double>) {
 #ifdef FIRESTARTER_BUILD_CUDA
-    return static_cast<BlasStatusT>(
-        cublasDgemm(Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha,
-                    reinterpret_cast<const double*>(A), Lda, reinterpret_cast<const double*>(B), Ldb, &Beta,
-                    reinterpret_cast<double*>(C), Ldc));
+    return static_cast<BlasStatusT>(cublasDgemm(Handle, static_cast<BlasOperationT>(Transa),
+                                                static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,
+                                                &Beta, C, Ldc));
 #elif defined(FIRESTARTER_BUILD_HIP)
     return static_cast<BlasStatusT>(hipblasDgemm(Handle, static_cast<BlasOperationT>(Transa),
                                                  static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, Lda, B, Ldb,

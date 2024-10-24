@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020-2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,14 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-/* CUDA error checking based on CudaWrapper.h
- * https://github.com/ashwin/gDel3D/blob/master/GDelFlipping/src/gDel3D/GPU/CudaWrapper.h
- *
+/******************************************************************************
  * inspired by gpu_burn
  * http://wili.cc/blog/gpu-burn.html
  *****************************************************************************/
 
 #include <atomic>
+#include <cstddef>
 #include <firestarter/Cuda/Cuda.hpp>
 #include <firestarter/Cuda/CudaHipCompat.hpp>
 #include <firestarter/LoadWorkerData.hpp>
@@ -37,10 +36,10 @@ namespace firestarter::cuda {
 
 constexpr const int Seed = 123;
 
-static auto roundUp(int NumToRound, int Multiple) -> int {
-  if (Multiple == 0) {
-    return NumToRound;
-  }
+namespace {
+
+template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
+  static_assert(Multiple != 0, "Multiple may not be zero.");
 
   const int Remainder = NumToRound % Multiple;
   if (Remainder == 0) {
@@ -57,7 +56,7 @@ static auto roundUp(int NumToRound, int Multiple) -> int {
 /// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
 /// \arg Properties The device properties.
 /// \return The selected precision, either 0 or 1 for float or double respectively.
-static auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
+auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
 #if (CUDART_VERSION >= 8000)
   // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
   // workload
@@ -80,11 +79,12 @@ static auto getPrecision(int UseDouble, const compat::DeviceProperties& Properti
 #endif
 }
 
-static auto getPrecision(int DeviceIndex, int UseDouble) -> int {
-  size_t MemoryAvail;
-  size_t MemoryTotal;
+auto getPrecision(int DeviceIndex, int UseDouble) -> int {
+  std::size_t MemoryAvail{};
+  std::size_t MemoryTotal{};
   compat::DeviceProperties Properties;
 
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto StreamOrContext = compat::createContextOrStream(DeviceIndex);
 
   compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
@@ -92,7 +92,7 @@ static auto getPrecision(int DeviceIndex, int UseDouble) -> int {
 
   UseDouble = getPrecision(UseDouble, Properties);
 
-  bool DoubleNotSupported =
+  const bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
       Properties.major <= 1 && Properties.minor <= 2;
 #else
@@ -119,26 +119,21 @@ static auto getPrecision(int DeviceIndex, int UseDouble) -> int {
 }
 
 // GPU index. Used to pin this thread to the GPU.
+// Size use is one square matrix dim size
 template <typename FloatingPointType>
-static void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex, int DeviceIndex,
-                       std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                       unsigned MatrixSize) {
+void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex, int DeviceIndex,
+                std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                unsigned MatrixSize) {
   static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
                 "create_load<FloatingPointType>: Template argument must be either float or double");
 
   firestarter::log::trace() << "Starting " << compat::AccelleratorString << " with given matrix size " << MatrixSize;
 
-  size_t SizeUse = 0;
-  if (MatrixSize > 0) {
-    SizeUse = MatrixSize;
-  }
-
-  size_t UseBytes;
-  size_t MemorySize;
   compat::DeviceProperties Properties;
-  compat::BlasHandle Blas;
+  compat::BlasHandle Blas{};
   // reserving the GPU and initializing cublas
 
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto StreamOrContext = compat::createContextOrStream(DeviceIndex);
 
   firestarter::log::trace() << "Create " << compat::AccelleratorString << " Blas on device nr. " << DeviceIndex;
@@ -149,66 +144,72 @@ static void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitF
   compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
 
   // getting information about the GPU memory
-  size_t MemoryAvail;
-  size_t MemoryTotal;
+  std::size_t MemoryAvail{};
+  std::size_t MemoryTotal{};
   compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
   firestarter::log::trace() << "Get " << compat::AccelleratorString << " emory info on device nr. " << DeviceIndex
                             << ": " << MemoryAvail << " B avail. from " << MemoryTotal << " B total";
 
-  // defining memory pointers
-  compat::DevicePtr<FloatingPointType> ADataPtr;
-  compat::DevicePtr<FloatingPointType> BDataPtr;
-  compat::DevicePtr<FloatingPointType> CDataPtr;
+  // Defining memory pointers. ADataPtr and BDataPtr will point to a square matrix. CDataPtr may be one or multiple
+  // square matrices.
+  FloatingPointType* ADataPtr{};
+  FloatingPointType* BDataPtr{};
+  FloatingPointType* CDataPtr{};
 
-  // check if the user has not set a matrix OR has set a too big matrixsite and
-  // if this is true: set a good matrixsize
-  if (!SizeUse || ((SizeUse * SizeUse * sizeof(FloatingPointType) * 3 > MemoryAvail))) {
-    SizeUse = roundUp((int)(0.8 * sqrt(((MemoryAvail) / (sizeof(FloatingPointType) * 3)))),
-                      1024); // a multiple of 1024 works always well
+  // If the matrix size is not set or three square matricies with dim size of SizeUse do not fit into the available
+  // memory, select the size so that 3 square matricies will fit into the available device memory where the dim size
+  // is a multiple of 1024. There may be edge cases with small device memory that results in matricies that are not
+  // multiples of 1024.
+  std::size_t MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
+  if (!MatrixSize || (MemorySize * 3 > MemoryAvail)) {
+    // a multiple of 1024 works always well
+    MatrixSize = roundUp<1024>(0.8 * std::sqrt(MemoryAvail / sizeof(FloatingPointType) / 3));
+    MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
   }
+
   firestarter::log::trace() << "Set " << compat::AccelleratorString << " matrix size: " << MatrixSize;
-  UseBytes = (size_t)((FloatingPointType)MemoryAvail);
-  MemorySize = sizeof(FloatingPointType) * SizeUse * SizeUse;
-  int Iterations = (UseBytes - 2 * MemorySize) / MemorySize; // = 1;
+  // Calculate the numnber of C matricies based on the available memory and the matrix size in B.
+  const auto Iterations = (MemoryAvail - 2 * MemorySize) / MemorySize;
+  // The numner of used memory are two time the matrix size in B (Matrix A and B) plus the number of matricies in C.
+  const auto UseBytes = (2 + Iterations) * MemorySize;
 
   firestarter::log::trace() << "Allocating " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex;
 
   // allocating memory on the GPU
-  compat::accellSafeCall(compat::malloc<FloatingPointType>(ADataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
-  compat::accellSafeCall(compat::malloc<FloatingPointType>(BDataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
-  compat::accellSafeCall(compat::malloc<FloatingPointType>(CDataPtr, Iterations * MemorySize), __FILE__, __LINE__,
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&ADataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&BDataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&CDataPtr, Iterations * MemorySize), __FILE__, __LINE__,
                          DeviceIndex);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << "(Size: " << MemorySize << "B)"
-                            << "\n";
-
-  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << "(Size: " << MemorySize << "B)"
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)"
                             << "\n";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << "(Size: " << Iterations * MemorySize << "B)"
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)"
+                            << "\n";
+  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)"
                             << "\n";
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
-                            << DeviceIndex << ". Using " << SizeUse * SizeUse << " elements of size "
+                            << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
                             << sizeof(FloatingPointType) << " Byte";
   // initialize matrix A and B on the GPU with random values
   {
-    compat::RandGenerator RandomGen;
+    compat::RandGenerator RandomGen{};
     compat::accellSafeCall(compat::randCreateGeneratorPseudoRandom(RandomGen), __FILE__, __LINE__, DeviceIndex);
     compat::accellSafeCall(compat::randSetPseudoRandomGeneratorSeed(RandomGen, Seed), __FILE__, __LINE__, DeviceIndex);
-    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, ADataPtr, SizeUse * SizeUse), __FILE__,
-                           __LINE__, DeviceIndex);
-    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, BDataPtr, SizeUse * SizeUse), __FILE__,
-                           __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, ADataPtr, MatrixSize * MatrixSize),
+                           __FILE__, __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, BDataPtr, MatrixSize * MatrixSize),
+                           __FILE__, __LINE__, DeviceIndex);
     compat::accellSafeCall(compat::randDestroyGenerator(RandomGen), __FILE__, __LINE__, DeviceIndex);
   }
 
   // initialize c_data_ptr with copies of A
-  for (int I = 0; I < Iterations; I++) {
-    auto DestinationPtr =
-        CDataPtr + (size_t)(I * SizeUse * SizeUse * (float)sizeof(FloatingPointType) / (float)sizeof(CDataPtr));
+  for (std::size_t I = 0; I < Iterations; I++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    auto DestinationPtr = CDataPtr + (I * MatrixSize * MatrixSize);
     firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrix c-" << I << " by copying "
                               << MemorySize << " byte from " << ADataPtr << " to " << DestinationPtr << "\n";
     compat::accellSafeCall(compat::memcpyDtoD<FloatingPointType>(DestinationPtr, ADataPtr, MemorySize), __FILE__,
@@ -219,12 +220,12 @@ static void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitF
   {
     const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
 
-    auto ToiB = [](const size_t Val) { return Val / 1024 / 1024; };
+    auto ToMiB = [](const size_t Val) { return Val / 1024 / 1024; };
     firestarter::log::info() << "   GPU " << DeviceIndex << "\n"
                              << "    name:           " << Properties.name << "\n"
-                             << "    memory:         " << ToiB(MemoryAvail) << "/" << ToiB(MemoryTotal)
-                             << " iB available (using " << ToiB(UseBytes) << " iB)\n"
-                             << "    matrix size:    " << SizeUse << "\n"
+                             << "    memory:         " << ToMiB(MemoryAvail) << "/" << ToMiB(MemoryTotal)
+                             << " iB available (using " << ToMiB(UseBytes) << " iB)\n"
+                             << "    matrix size:    " << MatrixSize << "\n"
                              << "    used precision: "
                              << ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single");
 
@@ -235,14 +236,15 @@ static void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitF
   const FloatingPointType Alpha = 1.0;
   const FloatingPointType Beta = 0.0;
 
-  const int SizeUseI = SizeUse;
   // actual stress begins here
   while (LoadVar != firestarter::LoadThreadWorkType::LoadStop) {
-    for (int I = 0; I < Iterations; I++) {
+    for (std::size_t I = 0; I < Iterations; I++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      auto CSectionPtr = CDataPtr + (I * MatrixSize * MatrixSize);
       compat::accellSafeCall(compat::gemm<FloatingPointType>(Blas, compat::BlasOperation::BLAS_OP_N,
-                                                             compat::BlasOperation::BLAS_OP_N, SizeUseI, SizeUseI,
-                                                             SizeUseI, Alpha, ADataPtr, SizeUseI, BDataPtr, SizeUseI,
-                                                             Beta, CDataPtr + (I * SizeUse * SizeUse), SizeUseI),
+                                                             compat::BlasOperation::BLAS_OP_N, MatrixSize, MatrixSize,
+                                                             MatrixSize, Alpha, ADataPtr, MatrixSize, BDataPtr,
+                                                             MatrixSize, Beta, CSectionPtr, MatrixSize),
                              __FILE__, __LINE__, DeviceIndex);
       compat::accellSafeCall(compat::deviceSynchronize(), __FILE__, __LINE__, DeviceIndex);
     }
@@ -256,6 +258,8 @@ static void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitF
 
   compat::accellSafeCall(compat::destroyContextOrStream(StreamOrContext), __FILE__, __LINE__, DeviceIndex);
 }
+
+}; // namespace
 
 Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
            int Gpus) {
@@ -279,12 +283,12 @@ void Cuda::initGpus(std::condition_variable& WaitForInitCv, const volatile fires
   if (Gpus) {
     compat::accellSafeCall(compat::init(0), __FILE__, __LINE__);
 
-    int DevCount;
+    int DevCount{};
     compat::accellSafeCall(compat::getDeviceCount(DevCount), __FILE__, __LINE__);
 
     if (DevCount) {
       std::atomic<int> InitCount = 0;
-      int UseDoubleConverted;
+      int UseDoubleConverted{};
 
       if (UseFloat) {
         UseDoubleConverted = 0;
