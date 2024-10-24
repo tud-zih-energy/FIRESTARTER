@@ -46,7 +46,7 @@ template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t Numb
                 "fillArrayWithRandomFloats<FloatingPointType>: Template argument must be either float or double");
 
   for (size_t i = 0; i < NumberOfElems; i++) {
-    Array[i] = static_cast<FloatingPointType>(std::rand()) / RAND_MAX;
+    Array[i] = static_cast<FloatingPointType>(std::rand()) / static_cast<FloatingPointType>(RAND_MAX);
   }
 }
 
@@ -87,12 +87,12 @@ int getPrecision(int DeviceIndex, int UseDouble) {
   sycl::platform ChosenPlatform;
   auto NbGpus = 0;
   for (const auto& Platform : Platforms) {
-    firestarter::log::trace() << "Checking SYCL platform " << platform.get_info<sycl::info::platform::name>();
-    auto devices = Platform.get_devices();
+    firestarter::log::trace() << "Checking SYCL platform " << Platform.get_info<sycl::info::platform::name>();
+    auto Devices = Platform.get_devices();
     NbGpus = 0;
-    for (const auto& device : devices) {
-      firestarter::log::trace() << "Checking SYCL device " << device.get_info<sycl::info::device::name>();
-      if (device.is_gpu()) { // Choose GPU, you can use other criteria
+    for (const auto& Device : Devices) {
+      firestarter::log::trace() << "Checking SYCL device " << Device.get_info<sycl::info::device::name>();
+      if (Device.is_gpu()) { // Choose GPU, you can use other criteria
         firestarter::log::trace() << " ... is GPU";
         ChosenPlatform = Platform;
         NbGpus++;
@@ -173,7 +173,7 @@ void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitC
 
   firestarter::log::trace() << "Creating SYCL queue for computation on device nr. " << DeviceIndex;
   auto ChosenDevice = Devices[DeviceIndex];
-  auto DeviceQueue = sycl::queue(chosenDevice);
+  auto DeviceQueue = sycl::queue(ChosenDevice);
 
   firestarter::log::trace() << "Get memory size on device nr. " << DeviceIndex;
 
@@ -204,7 +204,7 @@ void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitC
 
   /* Create 64 MB random data on Host */
   constexpr int RandomSize = 1024 * 1024 * 64;
-  auto* RandomData = malloc_host<FloatingPointType>(RandomSize, DeviceQueue);
+  auto* RandomData = sycl::malloc_host<FloatingPointType>(RandomSize, DeviceQueue);
   fillArrayWithRandomFloats<FloatingPointType>(RandomSize, RandomData);
 
   firestarter::log::trace() << "Copy memory to device nr. " << DeviceIndex;
@@ -216,13 +216,14 @@ void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitC
     std::lock_guard<std::mutex> lk(WaitForInitCvMutex);
 
     auto ToMiB = [](const size_t Val) { return Val / 1024 / 1024; };
-    firestarter::log::info() << "   GPU " << device_index << "\n"
+    firestarter::log::info() << "   GPU " << DeviceIndex << "\n"
                              << "    name:           " << Devices[DeviceIndex].get_info<sycl::info::device::name>()
                              << "\n"
                              << "    memory:         " << ToMiB(MemoryTotal) << " MiB total (using "
                              << ToMiB(MemorySize) << " MiB)\n"
                              << "    matrix size:    " << MatrixSize << "\n"
-                             << "    used precision: " << ((sizeof(T) == sizeof(double)) ? "double" : "single");
+                             << "    used precision: "
+                             << ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single");
 
     InitCount++;
   }
