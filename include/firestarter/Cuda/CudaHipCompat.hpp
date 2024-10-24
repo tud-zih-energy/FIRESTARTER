@@ -533,7 +533,7 @@ inline auto memGetInfo(std::size_t& MemoryAvail, std::size_t& MemoryTotal) -> CU
 template <typename FloatingPointType>
 auto malloc(FloatingPointType** Ptr, std::size_t MemorySize) -> CUResultOrHipErrorT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(&static_cast<void*>(*Ptr), MemorySize));
+  return static_cast<CUResultOrHipErrorT>(cuMemAlloc(reinterpret_cast<void**>(Ptr), MemorySize));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<CUResultOrHipErrorT>(hipMalloc(Ptr, MemorySize));
 #else
