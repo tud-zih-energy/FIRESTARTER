@@ -21,12 +21,12 @@
 
 #include <firestarter/Firestarter.hpp>
 
+extern "C" {
+#include <firestarter/Tracing/FIRESTARTER_Tracing.h>
+}
+
 #include <cerrno>
 #include <csignal>
-
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
-#endif
 
 using namespace firestarter;
 
@@ -75,13 +75,8 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec load_nsec = load - load_reduction;
 
       // wait for time to be ellapsed with high load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+      firestarter_tracing_region_begin("WD_HIGH");
+
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -92,12 +87,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
-#endif
+      firestarter_tracing_region_end("WD_HIGH");
 
       // signal low load
       this->setLoad(LOAD_LOW);
@@ -106,13 +96,8 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       nsec idle_nsec = idle - idle_reduction;
 
       // wait for time to be ellapsed with low load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_LOW");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW",
-                                       SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+
+      firestarter_tracing_region_begin("WD_LOW");
       {
         std::unique_lock<std::mutex> lk(this->_watchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -123,13 +108,7 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
           return EXIT_SUCCESS;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_LOW");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_LOW");
-#endif
-
+      firestarter_tracing_region_end("WD_LOW");
       // increment elapsed time
       time += period;
 
@@ -155,6 +134,10 @@ int Firestarter::watchdogWorker(std::chrono::microseconds period,
       Firestarter::_watchdogTerminateAlert.wait_for(
           lk, timeout, []() { return Firestarter::_watchdog_terminate; });
     }
+    if (Firestarter::loadVar == LOAD_LOW)
+      firestarter_tracing_region_end("WD_LOW");
+    if (Firestarter::loadVar == LOAD_HIGH)
+      firestarter_tracing_region_end("WD_HIGH");
 
     this->setLoad(LOAD_STOP);
 
