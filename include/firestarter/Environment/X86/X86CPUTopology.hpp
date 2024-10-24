@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include <firestarter/Environment/CPUTopology.hpp>
-
 #include <asmjit/asmjit.h>
+
+#include "../CPUTopology.hpp"
 
 namespace firestarter::environment::x86 {
 
@@ -31,45 +31,33 @@ class X86CPUTopology final : public CPUTopology {
 public:
   X86CPUTopology();
 
-  friend std::ostream &operator<<(std::ostream &stream,
-                                  X86CPUTopology const &cpuTopology);
+  friend auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream&;
 
-  std::list<std::string> const &features() const override {
-    return this->featureList;
-  }
-  const asmjit::CpuFeatures& featuresAsmjit() const{
-    return this->cpuInfo.features();
-  }
+  [[nodiscard]] auto features() const -> std::list<std::string> const& override { return this->FeatureList; }
+  [[nodiscard]] auto featuresAsmjit() const -> const asmjit::CpuFeatures& { return this->CpuInfo.features(); }
 
-  std::string const &vendor() const override { return this->_vendor; }
-  std::string const &model() const override { return this->_model; }
+  [[nodiscard]] auto clockrate() const -> uint64_t override;
 
-  unsigned long long clockrate() const override;
+  [[nodiscard]] auto timestamp() const -> uint64_t override;
 
-  unsigned long long timestamp() const override;
-
-  unsigned familyId() const { return this->cpuInfo.familyId(); }
-  unsigned modelId() const { return this->cpuInfo.modelId(); }
-  unsigned stepping() const { return this->cpuInfo.stepping(); }
+  [[nodiscard]] auto familyId() const -> unsigned { return this->CpuInfo.familyId(); }
+  [[nodiscard]] auto modelId() const -> unsigned { return this->CpuInfo.modelId(); }
+  [[nodiscard]] auto stepping() const -> unsigned { return this->CpuInfo.stepping(); }
 
 private:
-  bool hasRdtsc() const { return this->_hasRdtsc; }
-  bool hasInvariantRdtsc() const { return this->_hasInvariantRdtsc; }
-  void cpuid(unsigned long long *a, unsigned long long *b,
-             unsigned long long *c, unsigned long long *d) const;
+  [[nodiscard]] auto hasRdtsc() const -> bool { return this->HasRdtsc; }
+  [[nodiscard]] auto hasInvariantRdtsc() const -> bool { return this->HasInvariantRdtsc; }
+  static void cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx);
 
-  asmjit::CpuInfo cpuInfo;
-  std::list<std::string> featureList;
+  asmjit::CpuInfo CpuInfo;
+  std::list<std::string> FeatureList;
 
-  bool _hasRdtsc;
-  bool _hasInvariantRdtsc;
-  std::string _vendor;
-  std::string _model;
+  bool HasRdtsc;
+  bool HasInvariantRdtsc;
 };
 
-inline std::ostream &operator<<(std::ostream &stream,
-                                X86CPUTopology const &cpuTopology) {
-  return cpuTopology.print(stream);
+inline auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream& {
+  return CpuTopology.print(Stream);
 }
 
 } // namespace firestarter::environment::x86

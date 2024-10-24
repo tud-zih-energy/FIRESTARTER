@@ -21,74 +21,60 @@
 
 #pragma once
 
-#include <firestarter/Environment/CPUTopology.hpp>
-#include <firestarter/Environment/Platform/PlatformConfig.hpp>
-#include <firestarter/Environment/Platform/RuntimeConfig.hpp>
-
+#include "CPUTopology.hpp"
+#include "Platform/RuntimeConfig.hpp"
 #include <cassert>
+#include <cstdint>
 #include <vector>
 
 namespace firestarter::environment {
 
 class Environment {
 public:
-  Environment(CPUTopology *topology) : _topology(topology) {}
-  ~Environment() {
-    delete this->_topology;
-    if (_selectedConfig != nullptr) {
-      delete _selectedConfig;
-    }
-  }
+  Environment() = delete;
+  explicit Environment(std::unique_ptr<CPUTopology>&& Topology)
+      : Topology(std::move(Topology)) {}
+  virtual ~Environment() { delete SelectedConfig; }
 
-  int evaluateCpuAffinity(unsigned requestedNumThreads, std::string cpuBind);
-  int setCpuAffinity(unsigned thread);
+  void evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind);
+  void setCpuAffinity(unsigned Thread);
   void printThreadSummary();
 
   virtual void evaluateFunctions() = 0;
-  virtual int selectFunction(unsigned functionId,
-                             bool allowUnavailablePayload) = 0;
-  virtual int selectInstructionGroups(std::string groups) = 0;
+  virtual void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) = 0;
+  virtual void selectInstructionGroups(std::string Groups) = 0;
   virtual void printAvailableInstructionGroups() = 0;
-  virtual void setLineCount(unsigned lineCount) = 0;
+  virtual void setLineCount(unsigned LineCount) = 0;
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  platform::RuntimeConfig &selectedConfig() const {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-value"
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value"
-    assert(("No RuntimeConfig selected", _selectedConfig != nullptr));
-#pragma GCC diagnostic pop
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-    return *_selectedConfig;
+  [[nodiscard]] auto selectedConfig() const -> platform::RuntimeConfig& {
+    assert(SelectedConfig != nullptr && "No RuntimeConfig selected");
+    return *SelectedConfig;
   }
 
-  unsigned long long requestedNumThreads() const {
-    return _requestedNumThreads;
-  }
+  [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }
 
-  CPUTopology const &topology() const {
-    assert(_topology != nullptr);
-    return *_topology;
+  [[nodiscard]] auto topology() const -> CPUTopology const& {
+    assert(Topology != nullptr && "Topology is a nullptr");
+    return *Topology;
   }
 
 protected:
-  platform::RuntimeConfig *_selectedConfig = nullptr;
-  CPUTopology *_topology = nullptr;
+  platform::RuntimeConfig* SelectedConfig = nullptr;
+  std::unique_ptr<CPUTopology> Topology;
 
 private:
-  unsigned long long _requestedNumThreads;
+  uint64_t RequestedNumThreads = 0;
 
-  // TODO: replace these functions with the builtins one from hwloc
-  int cpuAllowed(unsigned id);
-  int cpuSet(unsigned id);
+  // TODO(Issue #74): Use hwloc for cpu thread affinity.
+#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
+  static auto cpuAllowed(unsigned Id) -> int;
+  static auto cpuSet(unsigned Id) -> int;
+  void addCpuSet(unsigned Cpu, cpu_set_t& Mask) const;
+#endif
 
-  std::vector<unsigned> cpuBind;
+  std::vector<unsigned> CpuBind;
 };
 
 } // namespace firestarter::environment

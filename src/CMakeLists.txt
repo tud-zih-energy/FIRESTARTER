@@ -4,6 +4,8 @@ SET(FIRESTARTER_FILES
 	firestarter/LoadWorker.cpp
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
+	
+	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
 	firestarter/Environment/Environment.cpp
 	firestarter/Environment/CPUTopology.cpp
