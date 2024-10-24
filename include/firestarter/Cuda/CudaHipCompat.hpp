@@ -599,7 +599,7 @@ inline auto randSetPseudoRandomGeneratorSeed(RandGenerator& RandomGen, int Seed)
 /// \returns The Error code returned from these calls.
 inline auto randGenerateUniform(RandGenerator& RandomGen, float* OutputPtr, std::size_t Num) -> RandStatusT {
 #ifdef FIRESTARTER_BUILD_CUDA
-  return static_cast<RandStatusT>(curandGenerateUniform(RandomGen, reinterpret_cast<float*>(OutputPtr), Num));
+  return static_cast<RandStatusT>(curandGenerateUniform(RandomGen, OutputPtr, Num));
 #elif defined(FIRESTARTER_BUILD_HIP)
   return static_cast<RandStatusT>(hiprandGenerateUniform(RandomGen, OutputPtr, Num));
 #else
