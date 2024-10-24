@@ -39,7 +39,7 @@ namespace firestarter::oneapi {
 /// \targ FloatingPointType The type of floating point value of the array. Either float or double.
 /// \arg NumberOfElems The number of elements of the array.
 /// \arg Array The array of floating point values which should be initilized with random data between 0 and 1.
-template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t NumberOfElems, FloatingPointType& Array) {
+template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t NumberOfElems, FloatingPointType* Array) {
   static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
                 "fillArrayWithRandomFloats<FloatingPointType>: Template argument must be either float or double");
 
@@ -204,8 +204,8 @@ static void create_load(std::condition_variable& waitForInitCv, std::mutex& wait
 
   /* Create 64 MB random data on Host */
   constexpr int rd_size = 1024 * 1024 * 64;
-  auto random_data = malloc_host<T>(rd_size, device_queue);
-  fillArrayWithRandomFloats(rd_size, *random_data);
+  auto* random_data = malloc_host<T>(rd_size, device_queue);
+  fillArrayWithRandomFloats(rd_size, random_data);
 
   firestarter::log::trace() << "Copy memory to device nr. " << device_index;
   /* fill A and B with random data */
