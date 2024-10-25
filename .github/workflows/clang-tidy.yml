@@ -36,7 +36,7 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-        ./tooling/clang-tidy.py --build-root build --cores 2
+        ./tooling/clang-tidy.py --build-root build --cores 4
 
     - name: Print report
       run: |
