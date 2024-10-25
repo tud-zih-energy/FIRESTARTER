@@ -58,7 +58,30 @@ def run_clang_tidy(files: typing.List[Path], project_root_path: Path, build_root
     
     return b''
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+@cli.command(help='Exsits successfully if the report is empty')
+@click.option('--build-root', help='The folder where the clang-tidy-report.txt is located.', required=True)
+def check(build_root):
+    build_root_path = Path(build_root).absolute()
+
+    print(f'Looking for clang-tidy-report.txt in {build_root_path}')
+    clang_tidy_report_path = build_root_path / Path('clang-tidy-report.txt')
+    if clang_tidy_report_path.exists():
+        print(f'Found {clang_tidy_report_path}')
+    else:
+        sys.exit("Dind't find clang-tidy-report.txt. Aborting.")
+
+    with open(clang_tidy_report_path, 'r') as fp:
+        content = fp.read().rstrip()
+        if len(content) == 0:
+            print('No content in clang-tidy-report.txt')
+        else:
+            sys.exit('Found content in clang-tidy-report.txt')
+
+@cli.command(help='Create the clang-tidy report')
 @click.option('--project-root', default=Path(__file__).parent.parent.absolute(), help='The folder where the git repository is located.')
 @click.option('--build-root', help='The folder where the compile_commands.json is located.', required=True)
 @click.option('--cores', default=multiprocessing.cpu_count(), help='The number of clang-tidy processes to spawn.')
@@ -98,4 +121,4 @@ def clang_tidy_report(project_root, build_root, cores):
         fp.write(b''.join(stdout))
 
 if __name__ == '__main__':
-    clang_tidy_report()
+    cli()

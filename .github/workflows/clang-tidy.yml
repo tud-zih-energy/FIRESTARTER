@@ -36,8 +36,12 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-        ./tooling/clang-tidy.py --build-root build --cores 4
+        ./tooling/clang-tidy.py clang-tidy-report --build-root build --cores 4
 
     - name: Print report
       run: |
         cat build/clang-tidy-report.txt
+
+    - name: Check if report is empty
+      run: |
+        ./tooling/clang-tidy.py check --build-root build
