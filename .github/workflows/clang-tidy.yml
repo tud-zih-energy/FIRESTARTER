@@ -29,6 +29,11 @@ jobs:
         cd build
         cmake ..
 
+    - name: Build
+      run: |
+        cd build
+        make -j4
+
     - name: Run clang-tidy
       run: |
         ./tooling/clang-tidy.py --build-root build --cores 2
