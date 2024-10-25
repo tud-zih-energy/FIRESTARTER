@@ -50,10 +50,6 @@
 #include <hipblas/hipblas.h>
 #include <hiprand_kernel.h>
 
-#else
-
-#error "Attempting to compile file but neither CUDA nor HIP is used"
-
 #endif
 
 namespace firestarter::cuda::compat {
