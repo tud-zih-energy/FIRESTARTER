@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import glob
+import json
 from pathlib import Path
 import subprocess
 import click
@@ -12,13 +13,27 @@ import random
 from multiprocessing import Pool
 from functools import partial
 
+# Find all source files from the compile commands database that are in a specific directory
+def find_source_files_from_compile_commands(compile_commands_path: Path, sources_dir: Path) -> typing.List[Path]:
+    with open(compile_commands_path, 'r') as fp:
+        compile_commands = json.loads(fp.read())
+        sources = [ entry['file'] for entry in compile_commands ]
+        sources = list(filter(lambda file: str(file).startswith(str(sources_dir)), sources))
+        return sources
+
 # Find all source and header files in the project root that belong to FIRESTARTER
-def find_source_and_header_files(project_root: Path) -> typing.List[ Path ]:
+def find_source_and_header_files(project_root: Path, build_root: Path) -> typing.List[Path]:
     src_path = project_root / Path('src')
     include_path = project_root / Path('include')
-    files = glob.glob(f'{src_path}/**/*.cpp', recursive=True)
+
+    # find all cpp file from the compile commands database
+    compile_commands_path = build_root / Path('compile_commands.json')
+    files = find_source_files_from_compile_commands(compile_commands_path, src_path)
+
+    # find all headers based on glob
     files += glob.glob(f'{include_path}/**/*.hpp', recursive=True)
     files += glob.glob(f'{include_path}/**/*.h', recursive=True)
+
     return files
 
 # Split a list of paths into multiple list of paths
@@ -66,7 +81,7 @@ def clang_tidy_report(project_root, build_root, cores):
     else:
         sys.exit("Dind't find .clang-tidy. Aborting.")
 
-    files = find_source_and_header_files(project_root_path)
+    files = find_source_and_header_files(project_root_path, build_root_path)
     print(f'Found {len(files)} source and header files.')
     
     print(f'Lanching {cores} instances of clang-tidy in project root: {project_root_path}')
