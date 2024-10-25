@@ -81,7 +81,7 @@ public:
 
   static void printBest(std::vector<std::string> const& OptimizationMetrics,
                         std::vector<std::string> const& PayloadItems) {
-    // TODO: print paretto front
+    // TODO(Issue #76): print paretto front
 
     // print the best 20 individuals for each metric in a format
     // where the user can give it to --run-instruction-groups directly

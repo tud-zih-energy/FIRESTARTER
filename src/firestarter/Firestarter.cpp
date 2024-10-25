@@ -296,7 +296,7 @@ void Firestarter::mainThread() {
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     // if measurment is enabled, stop it here
     if (Measurement) {
-      // TODO: clear this up
+      // TODO(Issue #77): clear this up
       log::info() << "metric,num_timepoints,duration_ms,average,stddev";
       for (auto const& [name, sum] : MeasurementWorker->getValues(StartDelta, StopDelta)) {
         log::info() << std::quoted(name) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","

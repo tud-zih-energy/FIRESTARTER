@@ -30,10 +30,8 @@ namespace firestarter::measurement {
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
 auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<TimeValue>::iterator End,
                         MetricType MetricType, uint64_t NumThreads) -> Summary {
-  std::vector<TimeValue> Values = {};
+  std::vector<TimeValue> Values;
 
-  // TODO: i would really like to make this code a bit more readable, but i
-  // could not find a way yet.
   if (MetricType.Accumalative) {
     TimeValue Prev;
 
