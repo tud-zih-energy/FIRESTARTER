@@ -63,7 +63,7 @@ def clang_tidy_report(project_root, build_root, cores):
         command_args = ['clang-tidy', '-extra-arg=-std=c++17', f'-p={build_root_path}', f'--config-file={clang_tidy_file_path}', '--header-filter=include/firestarter/*', '--format-style=file']
         command_args += chunck
         print(f'Starting {command_args}')
-        processes.add(subprocess.Popen(command_args, stdout=subprocess.PIPE, cwd=project_root_path))
+        processes.add(subprocess.Popen(' '.join(command_args), shell=True, stdout=subprocess.PIPE, cwd=project_root_path))
 
     # Wait for clang-tidy instances to terminate
     complete_stdout = b''
