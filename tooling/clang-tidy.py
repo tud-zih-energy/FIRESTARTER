@@ -8,6 +8,7 @@ import click
 import multiprocessing
 import sys
 import typing
+import random
 
 # Find all source and header files in the project root that belong to FIRESTARTER
 def find_source_and_header_files(project_root: Path) -> typing.List[ Path ]:
@@ -53,8 +54,12 @@ def clang_tidy_report(project_root, build_root, cores):
     
     print(f'Lanching {cores} instances of clang-tidy in project root: {project_root_path}')
 
+    # Scramble files to improve runtime performance
+    files_scrambled = files.copy()
+    random.shuffle(files_scrambled)
+
     processes = set()
-    for chunck in split_in_chunks(cores, files):
+    for chunck in split_in_chunks(cores, files_scrambled):
         command_args = ['clang-tidy', '-extra-arg=-std=c++17', f'-p={build_root_path}', f'--config-file={clang_tidy_file_path}', '--header-filter=include/firestarter/*', '--format-style=file']
         command_args += chunck
         print(f'Starting {command_args}')
