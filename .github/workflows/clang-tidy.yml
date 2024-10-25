@@ -22,7 +22,7 @@ jobs:
 
     - name: Create build directory
       run: |
-          mkdir build
+        mkdir build
 
     - name: Run CMake configure (default)
       run: |
@@ -31,8 +31,8 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-          ./tooling/clang-tidy.py --build-root build
+        ./tooling/clang-tidy.py --build-root build --cores 2
 
     - name: Print report
       run: |
-          cat build/clang-tidy-report.txt
+        cat build/clang-tidy-report.txt
