@@ -10,7 +10,6 @@ import multiprocessing
 import sys
 import typing
 import random
-from multiprocessing import Pool
 from functools import partial
 
 # Find all source files from the compile commands database that are in a specific directory
@@ -42,7 +41,7 @@ def split_in_chunks(chunk_size: int, input: typing.List[Path]) -> typing.List[ty
     if length * chunk_size < len(input):
         length += 1
     
-    return [ input[i:i+length] for i in range(0, len(input), length)]
+    return [ input[i:i+length] for i in range(0, len(input), length) ]
 
 # Run clang-tidy on a set of input files and return the stdout
 def run_clang_tidy(files: typing.List[Path], project_root_path: Path, build_root_path: Path, clang_tidy_file_path: Path) -> bytes:
@@ -90,7 +89,7 @@ def clang_tidy_report(project_root, build_root, cores):
     files_scrambled = files.copy()
     random.shuffle(files_scrambled)
 
-    with Pool(cores) as p:
+    with multiprocessing.Pool(cores) as p:
         stdout = p.map(partial(run_clang_tidy, project_root_path=project_root_path, build_root_path=build_root_path, clang_tidy_file_path=clang_tidy_file_path), split_in_chunks(cores, files_scrambled))
 
     clang_tidy_report_file = build_root_path / Path('clang-tidy-report.txt')
