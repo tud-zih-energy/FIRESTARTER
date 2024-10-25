@@ -85,12 +85,12 @@ def clang_tidy_report(project_root, build_root, cores):
     
     print(f'Lanching {cores} instances of clang-tidy in project root: {project_root_path}')
 
-    # Scramble files to improve runtime performance
-    files_scrambled = files.copy()
-    random.shuffle(files_scrambled)
+    # Shuffle files to improve runtime performance. Use seed 123 to keep it the same across runs.
+    files_shuffled = files.copy()
+    random.Random(123).shuffle(files_shuffled)
 
     with multiprocessing.Pool(cores) as p:
-        stdout = p.map(partial(run_clang_tidy, project_root_path=project_root_path, build_root_path=build_root_path, clang_tidy_file_path=clang_tidy_file_path), split_in_chunks(cores, files_scrambled))
+        stdout = p.map(partial(run_clang_tidy, project_root_path=project_root_path, build_root_path=build_root_path, clang_tidy_file_path=clang_tidy_file_path), split_in_chunks(cores, files_shuffled))
 
     clang_tidy_report_file = build_root_path / Path('clang-tidy-report.txt')
     print(f'Writing report to {clang_tidy_report_file}')
