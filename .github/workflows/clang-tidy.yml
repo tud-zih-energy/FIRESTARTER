@@ -2,6 +2,9 @@ name: clang-tidy-review
 
 on: [push, pull_request]
 
+env:
+  PYTHONUNBUFFERED: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
