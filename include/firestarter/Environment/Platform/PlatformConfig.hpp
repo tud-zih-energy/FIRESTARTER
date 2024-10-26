@@ -22,6 +22,7 @@
 #pragma once
 
 #include "../Payload/Payload.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
 #include <initializer_list>
 #include <map>
 #include <sstream>
@@ -76,9 +77,9 @@ public:
     return ThreadMap;
   }
 
-  [[nodiscard]] auto isAvailable() const -> bool { return payload().isAvailable(); }
+  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool { return payload().isAvailable(Topology); }
 
-  [[nodiscard]] virtual auto isDefault() const -> bool = 0;
+  [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
 
   [[nodiscard]] virtual auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> = 0;
 

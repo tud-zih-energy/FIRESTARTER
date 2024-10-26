@@ -26,10 +26,8 @@
 namespace firestarter::environment::x86::payload {
 class AVX512Payload final : public X86Payload {
 public:
-  AVX512Payload() = delete;
-
-  explicit AVX512Payload(asmjit::CpuFeatures const& SupportedFeatures)
-      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::kAVX512_F}, "AVX512", 8, 32) {}
+  AVX512Payload()
+      : X86Payload({asmjit::CpuFeatures::X86::kAVX512_F}, "AVX512", 8, 32) {}
 
   auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
                       std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
@@ -38,7 +36,7 @@ public:
   void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<AVX512Payload>(this->supportedFeatures());
+    return std::make_unique<AVX512Payload>();
   };
 
 private:

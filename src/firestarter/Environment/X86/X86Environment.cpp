@@ -31,12 +31,11 @@ namespace firestarter::environment::x86 {
 void X86Environment::evaluateFunctions() {
   for (const auto& Ctor : PlatformConfigsCtor) {
     // add asmjit for model and family detection
-    PlatformConfigs.emplace_back(Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId()));
+    PlatformConfigs.emplace_back(Ctor());
   }
 
   for (const auto& Ctor : FallbackPlatformConfigsCtor) {
-    FallbackPlatformConfigs.emplace_back(
-        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId()));
+    FallbackPlatformConfigs.emplace_back(Ctor());
   }
 }
 
@@ -49,7 +48,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     for (auto const& [thread, functionName] : Config->getThreadMap()) {
       // the selected function
       if (Id == FunctionId) {
-        if (!Config->isAvailable()) {
+        if (!Config->isAvailable(Topology.get())) {
           const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" + functionName + "\") requires " +
                                    Config->payload().name() + ", which is not supported by the processor.";
           if (AllowUnavailablePayload) {
@@ -64,7 +63,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
         return;
       }
       // default function
-      if (0 == FunctionId && Config->isDefault()) {
+      if (0 == FunctionId && Config->isDefault(topology())) {
         if (thread == topology().numThreadsPerCore()) {
           SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, thread,
                                                                                    topology().instructionCacheSize());
@@ -92,7 +91,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     // loop over available implementation and check if they are marked as
     // fallback
     for (const auto& Config : FallbackPlatformConfigs) {
-      if (Config->isAvailable()) {
+      if (Config->isAvailable(Topology.get())) {
         auto SelectedThread = 0U;
         auto SelectedFunctionName = std::string("");
         for (auto const& [Thread, FunctionName] : Config->getThreadMap()) {
@@ -195,7 +194,7 @@ void X86Environment::printFunctionSummary() {
 
   for (auto const& Config : PlatformConfigs) {
     for (auto const& [thread, functionName] : Config->getThreadMap()) {
-      const char* Available = Config->isAvailable() ? "yes" : "no";
+      const char* Available = Config->isAvailable(Topology.get()) ? "yes" : "no";
       const char* Fmt = "  %4u | %-30s | %-24s | %s";
       int Sz = std::snprintf(nullptr, 0, Fmt, Id, functionName.c_str(), Available,
                              Config->getDefaultPayloadSettingsString().c_str());

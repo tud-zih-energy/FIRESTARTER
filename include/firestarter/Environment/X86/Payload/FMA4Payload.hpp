@@ -27,11 +27,8 @@ namespace firestarter::environment::x86::payload {
 
 class FMA4Payload final : public X86Payload {
 public:
-  FMA4Payload() = delete;
-
-  explicit FMA4Payload(asmjit::CpuFeatures const& SupportedFeatures)
-      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA4}, "FMA4", 4,
-                   16) {}
+  FMA4Payload()
+      : X86Payload({asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA4}, "FMA4", 4, 16) {}
 
   auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
                       std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
@@ -40,7 +37,7 @@ public:
   void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<FMA4Payload>(this->supportedFeatures());
+    return std::make_unique<FMA4Payload>();
   };
 
 private:

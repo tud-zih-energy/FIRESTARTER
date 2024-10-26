@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
 #include <chrono>
 #include <list>
 #include <memory>
@@ -92,7 +93,7 @@ public:
   /// The number of SIMD registers used by the payload
   [[nodiscard]] auto registerCount() const -> unsigned { return RegisterCount; }
 
-  [[nodiscard]] virtual auto isAvailable() const -> bool = 0;
+  [[nodiscard]] virtual auto isAvailable(const CPUTopology*) const -> bool = 0;
 
   virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) = 0;
 

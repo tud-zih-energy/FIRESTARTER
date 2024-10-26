@@ -26,11 +26,8 @@
 namespace firestarter::environment::x86::payload {
 class ZENFMAPayload final : public X86Payload {
 public:
-  ZENFMAPayload() = delete;
-
-  explicit ZENFMAPayload(asmjit::CpuFeatures const& SupportedFeatures)
-      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
-                   "ZENFMA", 4, 16) {}
+  ZENFMAPayload()
+      : X86Payload({asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA}, "ZENFMA", 4, 16) {}
 
   auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
                       std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
@@ -39,7 +36,7 @@ public:
   void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<ZENFMAPayload>(this->supportedFeatures());
+    return std::make_unique<ZENFMAPayload>();
   };
 
 private:

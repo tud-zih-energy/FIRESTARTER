@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class RomeConfig final : public X86PlatformConfig {
 public:
-  RomeConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
-      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0, {32768, 524288, 2097152}, 104857600, 1536, Family, Model,
-                          std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
+  RomeConfig()
+      : X86PlatformConfig("ZEN_2_EPYC", 23, {49}, {1, 2}, 0, {32768, 524288, 2097152}, 104857600, 1536,
+                          std::make_unique<payload::FMAPayload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
 public:
-  SandyBridgeConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
-      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536, Family, Model,
-                          std::make_unique<payload::AVXPayload>(SupportedFeatures)) {}
+  SandyBridgeConfig()
+      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536,
+                          std::make_unique<payload::AVXPayload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

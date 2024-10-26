@@ -23,6 +23,8 @@
 
 #include "../../Platform/PlatformConfig.hpp"
 #include "../Payload/X86Payload.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/X86/X86CPUTopology.hpp"
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -34,24 +36,26 @@ class X86PlatformConfig : public environment::platform::PlatformConfig {
 private:
   unsigned Family;
   std::list<unsigned> Models;
-  unsigned CurrentFamily;
-  unsigned CurrentModel;
 
 public:
   X86PlatformConfig(std::string Name, unsigned Family, std::initializer_list<unsigned> Models,
                     std::initializer_list<unsigned> Threads, unsigned InstructionCacheSize,
                     std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBuffersize, unsigned Lines,
-                    unsigned CurrentFamily, unsigned CurrentModel, std::unique_ptr<payload::X86Payload>&& Payload)
+                    std::unique_ptr<payload::X86Payload>&& Payload)
       : PlatformConfig(std::move(Name), Threads, InstructionCacheSize, DataCacheBufferSize, RamBuffersize, Lines,
                        std::move(Payload))
       , Family(Family)
-      , Models(Models)
-      , CurrentFamily(CurrentFamily)
-      , CurrentModel(CurrentModel) {}
+      , Models(Models) {}
 
-  [[nodiscard]] auto isDefault() const -> bool override {
-    return Family == CurrentFamily && (std::find(Models.begin(), Models.end(), CurrentModel) != Models.end()) &&
-           isAvailable();
+  [[nodiscard]] auto isDefault(const X86CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+
+private:
+  [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {
+    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
+    assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
+
+    return Family == FinalTopology->familyId() &&
+           (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) && isAvailable(Topology);
   }
 };
 

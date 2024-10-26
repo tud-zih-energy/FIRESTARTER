@@ -26,6 +26,7 @@
 #include "../../../LoadWorkerData.hpp"
 #include "../../../Logging/Log.hpp" // IWYU pragma: keep
 #include "../../Payload/Payload.hpp"
+#include "../X86CPUTopology.hpp"
 #include <asmjit/x86.h>
 #include <cassert>
 #include <cstdint>
@@ -40,15 +41,12 @@ namespace firestarter::environment::x86::payload {
 class X86Payload : public environment::payload::Payload {
 private:
   // we can use this to check, if our platform support this payload
-  asmjit::CpuFeatures const& SupportedFeatures;
   std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
 
 protected:
   asmjit::JitRuntime Rt;
   using LoadFunctionType = uint64_t (*)(double*, volatile LoadThreadWorkType*, uint64_t);
   LoadFunctionType LoadFunction = nullptr;
-
-  [[nodiscard]] auto supportedFeatures() const -> asmjit::CpuFeatures const& { return this->SupportedFeatures; }
 
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \arg Vec the type of the vector register used.
@@ -468,24 +466,12 @@ protected:
   }
 
 public:
-  X86Payload(asmjit::CpuFeatures const& SupportedFeatures,
-             std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
+  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
              unsigned RegisterSize, unsigned RegisterCount)
       : Payload(std::move(Name), RegisterSize, RegisterCount)
-      , SupportedFeatures(SupportedFeatures)
       , FeatureRequests(FeatureRequests) {}
 
-  [[nodiscard]] auto isAvailable() const -> bool override {
-    bool Available = true;
-
-    for (auto const& Feature : FeatureRequests) {
-      Available &= this->SupportedFeatures.has(Feature);
-    }
-
-    return Available;
-  };
-
-    // A generic implemenation for all x86 payloads
+  // A generic implemenation for all x86 payloads
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
@@ -502,6 +488,22 @@ public:
 
   auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
       -> uint64_t override;
+
+  [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
+
+private:
+  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
+    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
+    assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
+
+    bool Available = true;
+
+    for (auto const& Feature : FeatureRequests) {
+      Available &= FinalTopology->featuresAsmjit().has(Feature);
+    }
+
+    return Available;
+  };
 };
 
 } // namespace firestarter::environment::x86::payload

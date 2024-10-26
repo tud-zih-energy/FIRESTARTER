@@ -26,10 +26,8 @@
 namespace firestarter::environment::x86::payload {
 class SSE2Payload final : public X86Payload {
 public:
-  SSE2Payload() = delete;
-
-  explicit SSE2Payload(asmjit::CpuFeatures const& SupportedFeatures)
-      : X86Payload(SupportedFeatures, {asmjit::CpuFeatures::X86::kSSE2}, "SSE2", 2, 16) {}
+  SSE2Payload()
+      : X86Payload({asmjit::CpuFeatures::X86::kSSE2}, "SSE2", 2, 16) {}
 
   auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
                       std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
@@ -38,7 +36,7 @@ public:
   void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<SSE2Payload>(this->supportedFeatures());
+    return std::make_unique<SSE2Payload>();
   };
 
 private:
