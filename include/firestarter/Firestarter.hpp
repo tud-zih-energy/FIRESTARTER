@@ -51,7 +51,7 @@ class Firestarter {
 public:
   Firestarter() = delete;
 
-  explicit Firestarter(Config&& Cfg);
+  explicit Firestarter(Config&& ProvidedConfig);
 
   ~Firestarter() = default;
 

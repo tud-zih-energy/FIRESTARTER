@@ -31,8 +31,8 @@
 
 namespace firestarter {
 
-Firestarter::Firestarter(Config&& Cfg)
-    : Cfg(std::move(Cfg)) {
+Firestarter::Firestarter(Config&& ProvidedConfig)
+    : Cfg(std::move(ProvidedConfig)) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     Environment = std::make_unique<environment::x86::X86Environment>();
   }
