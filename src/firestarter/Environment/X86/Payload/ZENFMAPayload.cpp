@@ -27,8 +27,11 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
                                    bool ErrorDetection) -> int {
-  using namespace asmjit;
-  using namespace asmjit::x86;
+  using Imm = asmjit::Imm;
+  using Xmm = asmjit::x86::Xmm;
+  using Ymm = asmjit::x86::Ymm;
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  constexpr asmjit::x86::Mem (*xmmword_ptr)(const asmjit::x86::Gp&, int32_t) = asmjit::x86::xmmword_ptr;
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
@@ -75,48 +78,49 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   auto L3LoopCount = getL3LoopCount(Sequence, NumberOfLines, L3Size * Thread, Thread);
   auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
-  CodeHolder Code;
+  asmjit::CodeHolder Code;
   Code.init(Rt.environment());
 
   if (nullptr != LoadFunction) {
-    Rt.release(&LoadFunction);
+    Rt.release(LoadFunction);
   }
 
-  Builder Cb(&Code);
+  asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
                           asmjit::DiagnosticOptions::kValidateIntermediate);
 
-  auto PointerReg = rax;
-  auto L1Addr = rbx;
-  auto L2Addr = rcx;
-  auto L3Addr = r8;
-  auto RamAddr = r9;
-  auto L2CountReg = r10;
-  auto L3CountReg = r11;
-  auto RamCountReg = r12;
-  auto TempReg = r13;
-  auto TempReg2 = rbp;
-  auto OffsetReg = r14;
-  auto AddrHighReg = r15;
-  auto IterReg = mm0;
-  auto ShiftRegs = std::vector<Gp>({rdi, rsi, rdx});
+  auto PointerReg = asmjit::x86::rax;
+  auto L1Addr = asmjit::x86::rbx;
+  auto L2Addr = asmjit::x86::rcx;
+  auto L3Addr = asmjit::x86::r8;
+  auto RamAddr = asmjit::x86::r9;
+  auto L2CountReg = asmjit::x86::r10;
+  auto L3CountReg = asmjit::x86::r11;
+  auto RamCountReg = asmjit::x86::r12;
+  auto TempReg = asmjit::x86::r13;
+  auto TempReg2 = asmjit::x86::rbp;
+  auto OffsetReg = asmjit::x86::r14;
+  auto AddrHighReg = asmjit::x86::r15;
+  auto IterReg = asmjit::x86::mm0;
+  auto ShiftRegs = std::vector<asmjit::x86::Gp>({asmjit::x86::rdi, asmjit::x86::rsi, asmjit::x86::rdx});
   auto NbShiftRegs = 3;
   auto NbAddRegs = 11;
-  auto RamReg = ymm15;
+  auto RamReg = asmjit::x86::ymm15;
 
-  FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+  asmjit::FuncDetail Func;
+  Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
+                asmjit::CallConvId::kCDecl),
             Rt.environment());
 
-  FuncFrame Frame;
+  asmjit::FuncFrame Frame;
   Frame.init(Func);
 
   // make (x|y)mm registers dirty
-  for (int I = 0; I < 16; I++) {
-    Frame.addDirtyRegs(Ymm(I));
+  for (auto I = 0U; I < 16U; I++) {
+    Frame.addDirtyRegs(asmjit::x86::Ymm(I));
   }
-  for (int I = 0; I < 8; I++) {
-    Frame.addDirtyRegs(Mm(I));
+  for (auto I = 0U; I < 8U; I++) {
+    Frame.addDirtyRegs(asmjit::x86::Mm(I));
   }
   // make all other used registers dirty except RAX
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
@@ -125,7 +129,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
     Frame.addDirtyRegs(Reg);
   }
 
-  FuncArgsAssignment Args(&Func);
+  asmjit::FuncArgsAssignment Args(&Func);
   // FIXME: asmjit assigment to mm0 does not seem to be supported
   Args.assignAll(PointerReg, AddrHighReg, TempReg);
   Args.updateFuncFrame(Frame);
@@ -151,12 +155,12 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
     Cb.mov(Reg, Imm(0xAAAAAAAAAAAAAAAA));
   }
   // Initialize AVX-Registers for FMA Operations
-  Cb.vmovapd(ymm0, ymmword_ptr(PointerReg));
-  Cb.vmovapd(ymm1, ymmword_ptr(PointerReg, 32));
+  Cb.vmovapd(asmjit::x86::ymm0, ymmword_ptr(PointerReg));
+  Cb.vmovapd(asmjit::x86::ymm1, ymmword_ptr(PointerReg, 32));
 
   auto AddRegsStart = 2;
   auto AddRegsEnd = AddRegsStart + NbAddRegs - 1;
-  for (int I = AddRegsStart; I <= AddRegsEnd; I++) {
+  for (auto I = AddRegsStart; I <= AddRegsEnd; I++) {
     Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
 
@@ -185,7 +189,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   workerLog::trace() << "reset counter for RAM-buffer with " << RamLoopCount << " cache line accesses per loop ("
                      << RamSize / 1024 << ") KiB";
 
-  Cb.align(AlignMode::kCode, 64);
+  Cb.align(asmjit::AlignMode::kCode, 64);
 
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
@@ -209,7 +213,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   const auto L3Increment = [&Cb, &L3Addr, &OffsetReg]() { Cb.add(L3Addr, OffsetReg); };
   const auto RamIncrement = [&Cb, &RamAddr, &OffsetReg]() { Cb.add(RamAddr, OffsetReg); };
 
-  for (unsigned Count = 0; Count < Repetitions; Count++) {
+  for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
 
       // swap second and third param of fma instruction to force bitchanges on
@@ -217,11 +221,11 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
       Ymm SecondParam;
       Ymm ThirdParam;
       if (0 == ItemCount % 2) {
-        SecondParam = ymm0;
-        ThirdParam = ymm1;
+        SecondParam = asmjit::x86::ymm0;
+        ThirdParam = asmjit::x86::ymm1;
       } else {
-        SecondParam = ymm1;
-        ThirdParam = ymm0;
+        SecondParam = asmjit::x86::ymm1;
+        ThirdParam = asmjit::x86::ymm0;
       }
 
       if (Item == "REG") {
@@ -255,6 +259,8 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
 
       // make sure the shifts do could end up shifting out the data one end.
       if (ItemCount < (Sequence.size() * Repetitions) - ((Sequence.size() * Repetitions) % 4)) {
+        // all cases are covered
+        // NOLINTNEXTLINE(bugprone-switch-missing-default-case)
         switch (ItemCount % 4) {
         case 0:
           Cb.vpsrlq(Xmm(13), Xmm(13), Imm(1));
@@ -331,7 +337,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   Cb.mov(L1Addr, PointerReg);
 
   if (DumpRegisters) {
-    emitDumpRegisterCode<Ymm>(Cb, PointerReg, ymmword_ptr);
+    emitDumpRegisterCode<Ymm>(Cb, PointerReg, asmjit::x86::ymmword_ptr);
   }
 
   if (ErrorDetection) {
@@ -343,7 +349,7 @@ auto ZENFMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>>
 
   Cb.bind(FunctionExit);
 
-  Cb.movq(rax, IterReg);
+  Cb.movq(asmjit::x86::rax, IterReg);
 
   Cb.emitEpilog(Frame);
 

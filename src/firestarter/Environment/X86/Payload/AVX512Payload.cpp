@@ -27,8 +27,14 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
                                    bool ErrorDetection) -> int {
-  using namespace asmjit;
-  using namespace asmjit::x86;
+  using Imm = asmjit::Imm;
+  using Zmm = asmjit::x86::Zmm;
+  // NOLINTBEGIN(readability-identifier-naming)
+  constexpr asmjit::x86::Mem (*zmmword_ptr)(const asmjit::x86::Gp&, int32_t) = asmjit::x86::zmmword_ptr;
+  constexpr auto zmm0 = asmjit::x86::zmm0;
+  constexpr auto zmm1 = asmjit::x86::zmm1;
+  constexpr auto zmm2 = asmjit::x86::zmm2;
+  // NOLINTEND(readability-identifier-naming)
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
@@ -75,51 +81,52 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   const auto L3LoopCount = getL3LoopCount(Sequence, NumberOfLines, L3Size * Thread, Thread);
   const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
-  CodeHolder Code;
+  asmjit::CodeHolder Code;
   Code.init(Rt.environment());
 
   if (nullptr != LoadFunction) {
-    Rt.release(&LoadFunction);
+    Rt.release(LoadFunction);
   }
 
-  Builder Cb(&Code);
+  asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
                           asmjit::DiagnosticOptions::kValidateIntermediate);
 
-  const auto PointerReg = rax;
-  const auto L1Addr = rbx;
-  const auto L2Addr = rcx;
-  const auto L3Addr = r8;
-  const auto RamAddr = r9;
-  const auto L2CountReg = r10;
-  const auto L3CountReg = r11;
-  const auto RamCountReg = r12;
-  const auto TempReg = r13;
-  const auto TempReg2 = rbp;
-  const auto OffsetReg = r14;
-  const auto AddrHighReg = r15;
-  const auto IterReg = mm0;
-  const auto ShiftReg = std::vector<Gp>({rdi, rsi, rdx});
-  const auto ShiftReg32 = std::vector<Gp>({edi, esi, edx});
+  const auto PointerReg = asmjit::x86::rax;
+  const auto L1Addr = asmjit::x86::rbx;
+  const auto L2Addr = asmjit::x86::rcx;
+  const auto L3Addr = asmjit::x86::r8;
+  const auto RamAddr = asmjit::x86::r9;
+  const auto L2CountReg = asmjit::x86::r10;
+  const auto L3CountReg = asmjit::x86::r11;
+  const auto RamCountReg = asmjit::x86::r12;
+  const auto TempReg = asmjit::x86::r13;
+  const auto TempReg2 = asmjit::x86::rbp;
+  const auto OffsetReg = asmjit::x86::r14;
+  const auto AddrHighReg = asmjit::x86::r15;
+  const auto IterReg = asmjit::x86::mm0;
+  const auto ShiftReg = std::vector<asmjit::x86::Gp>({asmjit::x86::rdi, asmjit::x86::rsi, asmjit::x86::rdx});
+  const auto ShiftReg32 = std::vector<asmjit::x86::Gp>({asmjit::x86::edi, asmjit::x86::esi, asmjit::x86::edx});
   const auto NrShiftRegs = 3;
   const auto MulRegs = 3;
   const auto AddRegs = 22;
   const auto AltDstRegs = 5;
-  const auto RamReg = zmm30;
+  const auto RamReg = asmjit::x86::zmm30;
 
-  FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+  asmjit::FuncDetail Func;
+  Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
+                asmjit::CallConvId::kCDecl),
             Rt.environment());
 
-  FuncFrame Frame;
+  asmjit::FuncFrame Frame;
   Frame.init(Func);
 
   // make zmm registers dirty
-  for (int I = 0; I < 32; I++) {
+  for (auto I = 0U; I < 32U; I++) {
     Frame.addDirtyRegs(Zmm(I));
   }
-  for (int I = 0; I < 8; I++) {
-    Frame.addDirtyRegs(Mm(I));
+  for (auto I = 0U; I < 8U; I++) {
+    Frame.addDirtyRegs(asmjit::x86::Mm(I));
   }
   // make all other used registers dirty except RAX
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
@@ -128,7 +135,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
     Frame.addDirtyRegs(Reg);
   }
 
-  FuncArgsAssignment Args(&Func);
+  asmjit::FuncArgsAssignment Args(&Func);
   // FIXME: asmjit assigment to mm0 does not seem to be supported
   Args.assignAll(PointerReg, AddrHighReg, TempReg);
   Args.updateFuncFrame(Frame);
@@ -154,14 +161,14 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
     Cb.mov(Reg, Imm(0xAAAAAAAA));
   }
   // Initialize AVX512-Registers for FMA Operations
-  Cb.vmovapd(zmm0, zmmword_ptr(PointerReg));
+  Cb.vmovapd(zmm0, zmmword_ptr(PointerReg, 0));
   Cb.vmovapd(zmm1, zmmword_ptr(PointerReg, 64));
   Cb.vmovapd(zmm2, zmmword_ptr(PointerReg, 128));
   auto AddStart = MulRegs;
   auto AddEnd = MulRegs + AddRegs - 1;
   auto TransStart = AddRegs + MulRegs;
   auto TransEnd = AddRegs + MulRegs + AltDstRegs - 1;
-  for (int I = AddStart; I <= TransEnd; I++) {
+  for (auto I = AddStart; I <= TransEnd; I++) {
     Cb.vmovapd(Zmm(I), zmmword_ptr(PointerReg, 256 + (I * 64)));
   }
   Cb.mov(L1Addr, PointerReg); // address for L1-buffer
@@ -181,7 +188,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   workerLog::trace() << "reset counter for RAM-buffer with " << RamLoopCount << " cache line accesses per loop ("
                      << RamSize / 1024 << ") KiB";
 
-  Cb.align(AlignMode::kCode, 64);
+  Cb.align(asmjit::AlignMode::kCode, 64);
 
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
@@ -205,7 +212,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
   const auto L3Increment = [&Cb, &L3Addr, &OffsetReg]() { Cb.add(L3Addr, OffsetReg); };
   const auto RamIncrement = [&Cb, &RamAddr, &OffsetReg]() { Cb.add(RamAddr, OffsetReg); };
 
-  for (unsigned Count = 0; Count < Repetitions; Count++) {
+  for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
       if (Item == "REG") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
@@ -354,7 +361,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
 
   Cb.bind(FunctionExit);
 
-  Cb.movq(rax, IterReg);
+  Cb.movq(asmjit::x86::rax, IterReg);
 
   Cb.emitEpilog(Frame);
 

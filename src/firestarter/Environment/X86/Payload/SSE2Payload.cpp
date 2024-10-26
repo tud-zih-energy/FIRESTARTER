@@ -27,8 +27,11 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
                                  unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
                                  unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
                                  bool ErrorDetection) -> int {
-  using namespace asmjit;
-  using namespace asmjit::x86;
+  using Imm = asmjit::Imm;
+  using Mm = asmjit::x86::Mm;
+  using Xmm = asmjit::x86::Xmm;
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  constexpr asmjit::x86::Mem (*xmmword_ptr)(const asmjit::x86::Gp&, int32_t) = asmjit::x86::xmmword_ptr;
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
@@ -75,54 +78,55 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto L3LoopCount = getL3LoopCount(Sequence, NumberOfLines, L3Size * Thread, Thread);
   const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
-  CodeHolder Code;
+  asmjit::CodeHolder Code;
   Code.init(Rt.environment());
 
   if (nullptr != LoadFunction) {
-    Rt.release(&LoadFunction);
+    Rt.release(LoadFunction);
   }
 
-  Builder Cb(&Code);
+  asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
                           asmjit::DiagnosticOptions::kValidateIntermediate);
 
-  const auto PointerReg = rax;
-  const auto L1Addr = rbx;
-  const auto L2Addr = rcx;
-  const auto L3Addr = rdx;
-  const auto RamAddr = rdi;
-  const auto L2CountReg = r8;
-  const auto L3CountReg = r9;
-  const auto RamCountReg = r10;
-  const auto TempReg = r11;
-  const auto TempReg2 = rbp;
-  const auto OffsetReg = r12;
-  const auto AddrHighReg = r13;
-  const auto IterReg = r14;
+  const auto PointerReg = asmjit::x86::rax;
+  const auto L1Addr = asmjit::x86::rbx;
+  const auto L2Addr = asmjit::x86::rcx;
+  const auto L3Addr = asmjit::x86::rdx;
+  const auto RamAddr = asmjit::x86::rdi;
+  const auto L2CountReg = asmjit::x86::r8;
+  const auto L3CountReg = asmjit::x86::r9;
+  const auto RamCountReg = asmjit::x86::r10;
+  const auto TempReg = asmjit::x86::r11;
+  const auto TempReg2 = asmjit::x86::rbp;
+  const auto OffsetReg = asmjit::x86::r12;
+  const auto AddrHighReg = asmjit::x86::r13;
+  const auto IterReg = asmjit::x86::r14;
   constexpr const auto MovRegs = 0;
   const auto AddRegs = 14;
   const auto TransRegs = 2;
 
-  FuncDetail Func;
-  Func.init(FuncSignatureT<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(CallConvId::kCDecl),
+  asmjit::FuncDetail Func;
+  Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
+                asmjit::CallConvId::kCDecl),
             Rt.environment());
 
-  FuncFrame Frame;
+  asmjit::FuncFrame Frame;
   Frame.init(Func);
 
   // make xmm registers dirty
-  for (int I = 0; I < 16; I++) {
+  for (auto I = 0U; I < 16U; I++) {
     Frame.addDirtyRegs(Xmm(I));
   }
   // make mmx registers dirty
-  for (int I = 0; I < 8; I++) {
+  for (auto I = 0U; I < 8U; I++) {
     Frame.addDirtyRegs(Mm(I));
   }
   // make all other used registers dirty except RAX
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
                      AddrHighReg, IterReg);
 
-  FuncArgsAssignment Args(&Func);
+  asmjit::FuncArgsAssignment Args(&Func);
   Args.assignAll(PointerReg, AddrHighReg, IterReg);
   Args.updateFuncFrame(Frame);
   Frame.finalize();
@@ -146,7 +150,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto TransStart = AddRegs;
   const auto TransEnd = AddRegs + TransRegs - 1;
   if (AddRegs > 0) {
-    for (int I = AddStart; I <= AddEnd; I++) {
+    for (auto I = AddStart; I <= AddEnd; I++) {
       Cb.movapd(Xmm(I), xmmword_ptr(PointerReg, 32 * I));
     }
   }
@@ -157,7 +161,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   if (MovRegs > 0) {
     Cb.mov(TempReg, Imm(0x5555555555555555));
     Cb.movq(Mm(MovStart), TempReg);
-    for (int I = MovStart + 1; I <= MovEnd; I++) {
+    for (auto I = MovStart + 1; I <= MovEnd; I++) {
       Cb.movq(Mm(I), Mm(MovStart));
     }
   }
@@ -171,7 +175,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
     }
     Cb.pinsrq(Xmm(TransStart), TempReg, Imm(0));
     Cb.pinsrq(Xmm(TransStart), TempReg, Imm(1));
-    for (int I = TransStart + 1; I <= TransEnd; I++) {
+    for (auto I = TransStart + 1; I <= TransEnd; I++) {
       if (I % 2 == 0) {
         Cb.shr(TempReg, Imm(4));
       } else {
@@ -199,7 +203,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   workerLog::trace() << "reset counter for RAM-buffer with " << RamLoopCount << " cache line accesses per loop ("
                      << RamSize / 1024 << ") KiB";
 
-  Cb.align(AlignMode::kCode, 64);
+  Cb.align(asmjit::AlignMode::kCode, 64);
 
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
@@ -223,7 +227,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto L3Increment = [&Cb, &L3Addr, &OffsetReg]() { Cb.add(L3Addr, OffsetReg); };
   const auto RamIncrement = [&Cb, &RamAddr, &OffsetReg]() { Cb.add(RamAddr, OffsetReg); };
 
-  for (unsigned Count = 0; Count < Repetitions; Count++) {
+  for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
       if (Item == "REG") {
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
@@ -378,7 +382,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
 
   Cb.bind(FunctionExit);
 
-  Cb.mov(rax, IterReg); // restore iteration counter
+  Cb.mov(asmjit::x86::rax, IterReg); // restore iteration counter
 
   Cb.emitEpilog(Frame);
 
