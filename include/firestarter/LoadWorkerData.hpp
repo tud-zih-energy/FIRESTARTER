@@ -107,7 +107,7 @@ public:
     }
   };
 
-  LoadWorkerData(uint64_t Id, environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
+  LoadWorkerData(uint64_t Id, const environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
                  std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
       , Period(Period)
@@ -126,7 +126,7 @@ public:
   }
 
   [[nodiscard]] auto id() const -> uint64_t { return Id; }
-  [[nodiscard]] auto environment() const -> environment::Environment& { return Environment; }
+  [[nodiscard]] auto environment() const -> const environment::Environment& { return Environment; }
   [[nodiscard]] auto config() const -> environment::platform::RuntimeConfig& { return *Config; }
 
   /// Access the DumpRegisterStruct. Asserts when dumping registers is not enabled.
@@ -173,9 +173,8 @@ public:
   std::shared_ptr<uint64_t> CommunicationLeft;
   std::shared_ptr<uint64_t> CommunicationRight;
 
-private:
-  uint64_t Id;
-  environment::Environment& Environment;
+  const uint64_t Id;
+  const environment::Environment& Environment;
   environment::platform::RuntimeConfig* Config;
 };
 

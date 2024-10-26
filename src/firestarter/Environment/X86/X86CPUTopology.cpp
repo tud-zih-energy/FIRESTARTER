@@ -153,7 +153,7 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
   }
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
-  if (!hasInvariantRdtsc() && Governor.compare("performance") && Governor.compare("powersave")) {
+  if (!hasInvariantRdtsc() && Governor != "performance" && Governor != "powersave") {
     return CPUTopology::clockrate();
   }
 

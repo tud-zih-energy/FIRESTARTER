@@ -208,7 +208,7 @@ void Environment::printThreadSummary() {
 #endif
 }
 
-void Environment::setCpuAffinity(unsigned Thread) {
+void Environment::setCpuAffinity(unsigned Thread) const {
   if (Thread >= requestedNumThreads()) {
     throw std::invalid_argument("Trying to set more CPUs than available.");
   }

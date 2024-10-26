@@ -69,8 +69,8 @@ void Firestarter::initLoadWorkers() {
   }
 
   for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td =
-        std::make_shared<LoadWorkerData>(I, *Environment, LoadVar, Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
+    auto Td = std::make_shared<LoadWorkerData>(I, std::cref(*Environment), std::ref(LoadVar), Cfg.Period,
+                                               Cfg.DumpRegisters, Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)

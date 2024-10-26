@@ -37,7 +37,7 @@ public:
   virtual ~Environment() { delete SelectedConfig; }
 
   void evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind);
-  void setCpuAffinity(unsigned Thread);
+  void setCpuAffinity(unsigned Thread) const;
   void printThreadSummary();
 
   virtual void evaluateFunctions() = 0;

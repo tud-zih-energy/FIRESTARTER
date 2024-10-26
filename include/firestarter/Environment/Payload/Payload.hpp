@@ -38,15 +38,16 @@ private:
   [[nodiscard]] static auto getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start)
       -> unsigned;
 
+  /// The size of the SIMD registers in units of doubles (8B)
+  unsigned RegisterSize = 0;
+  /// The number of SIMD registers used by the payload
+  unsigned RegisterCount = 0;
+
 protected:
   unsigned Flops = 0;
   unsigned Bytes = 0;
   // number of instructions in load loop
   unsigned Instructions = 0;
-  /// The size of the SIMD registers in units of doubles (8B)
-  unsigned RegisterSize = 0;
-  /// The number of SIMD registers used by the payload
-  unsigned RegisterCount = 0;
 
   [[nodiscard]] static auto generateSequence(const std::vector<std::pair<std::string, unsigned>>& Proportion)
       -> std::vector<std::string>;
