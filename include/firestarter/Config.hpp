@@ -29,51 +29,50 @@ namespace firestarter {
 
 struct Config {
   const char** Argv;
-  int Argc;
 
-  // default parameters
   std::chrono::seconds Timeout{};
   std::chrono::microseconds Period{};
   std::chrono::microseconds Load{};
-  unsigned RequestedNumThreads;
-  std::string CpuBind;
-  bool PrintFunctionSummary;
-  unsigned FunctionId;
-  bool ListInstructionGroups;
-  std::string InstructionGroups;
-  unsigned LineCount = 0;
-  // debug features
-  bool AllowUnavailablePayload = false;
-  bool DumpRegisters = false;
+
   std::chrono::seconds DumpRegistersTimeDelta = std::chrono::seconds(0);
-  std::string DumpRegistersOutpath;
-  bool ErrorDetection = false;
-  // CUDA parameters
-  int Gpus = 0;
-  unsigned GpuMatrixSize = 0;
-  bool GpuUseFloat = false;
-  bool GpuUseDouble = false;
-  // linux features
-  bool ListMetrics = false;
-  bool Measurement = false;
   std::chrono::milliseconds StartDelta = std::chrono::milliseconds(0);
   std::chrono::milliseconds StopDelta = std::chrono::milliseconds(0);
   std::chrono::milliseconds MeasurementInterval = std::chrono::milliseconds(0);
-  std::vector<std::string> StdinMetrics;
-  // linux and dynamic linked binary
-  std::vector<std::string> MetricPaths;
-
-  // optimization
-  bool Optimize = false;
   std::chrono::seconds Preheat{};
-  std::string OptimizationAlgorithm;
-  std::vector<std::string> OptimizationMetrics;
   std::chrono::seconds EvaluationDuration{};
-  unsigned Individuals;
-  std::string OptimizeOutfile;
-  unsigned Generations;
+
   double Nsga2Cr;
   double Nsga2M;
+
+  std::vector<std::string> StdinMetrics;
+  std::vector<std::string> MetricPaths;
+  std::vector<std::string> OptimizationMetrics;
+
+  std::string CpuBind;
+  std::string InstructionGroups;
+  std::string DumpRegistersOutpath;
+  std::string OptimizationAlgorithm;
+  std::string OptimizeOutfile;
+
+  int Argc;
+  unsigned RequestedNumThreads;
+  unsigned FunctionId;
+  unsigned LineCount = 0;
+  int Gpus = 0;
+  unsigned GpuMatrixSize = 0;
+  unsigned Individuals;
+  unsigned Generations;
+
+  bool PrintFunctionSummary;
+  bool ListInstructionGroups;
+  bool AllowUnavailablePayload = false;
+  bool DumpRegisters = false;
+  bool ErrorDetection = false;
+  bool GpuUseFloat = false;
+  bool GpuUseDouble = false;
+  bool ListMetrics = false;
+  bool Measurement = false;
+  bool Optimize = false;
 
   Config() = delete;
 
