@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "Config.hpp"
 #include "Constants.hpp"
 #include "Cuda/Cuda.hpp"
 #include "DumpRegisterWorkerData.hpp"
@@ -50,64 +51,39 @@ class Firestarter {
 public:
   Firestarter() = delete;
 
-  Firestarter(int Argc, const char** Argv, std::chrono::seconds const& Timeout, unsigned LoadPercent,
-              std::chrono::microseconds const& Period, unsigned RequestedNumThreads, std::string const& CpuBind,
-              bool PrintFunctionSummary, unsigned FunctionId, bool ListInstructionGroups,
-              std::string const& InstructionGroups, unsigned LineCount, bool AllowUnavailablePayload,
-              bool DumpRegisters, std::chrono::seconds const& DumpRegistersTimeDelta, std::string DumpRegistersOutpath,
-              bool ErrorDetection, int Gpus, unsigned GpuMatrixSize, bool GpuUseFloat, bool GpuUseDouble,
-              bool ListMetrics, bool Measurement, std::chrono::milliseconds const& StartDelta,
-              std::chrono::milliseconds const& StopDelta, std::chrono::milliseconds const& MeasurementInterval,
-              std::vector<std::string> const& MetricPaths, std::vector<std::string> const& StdinMetrics, bool Optimize,
-              std::chrono::seconds const& Preheat, std::string const& OptimizationAlgorithm,
-              std::vector<std::string> const& OptimizationMetrics, std::chrono::seconds const& EvaluationDuration,
-              unsigned Individuals, std::string OptimizeOutfile, unsigned Generations, double Nsga2Cr, double Nsga2M);
+  explicit Firestarter(Config&& Cfg);
 
   ~Firestarter() = default;
 
   void mainThread();
 
 private:
-  const int Argc;
-  const char** Argv;
-  const std::chrono::seconds Timeout;
-  const unsigned LoadPercent;
-  std::chrono::microseconds Load{};
-  std::chrono::microseconds Period;
-  const bool DumpRegisters;
-  const std::chrono::seconds DumpRegistersTimeDelta;
-  const std::string DumpRegistersOutpath;
-  const bool ErrorDetection;
-  const int Gpus;
-  const unsigned GpuMatrixSize;
-  const bool GpuUseFloat;
-  const bool GpuUseDouble;
-  const std::chrono::milliseconds StartDelta;
-  const std::chrono::milliseconds StopDelta;
-  const bool Measurement;
-  const bool Optimize;
-  const std::chrono::seconds Preheat;
-  const std::string OptimizationAlgorithm;
-  const std::vector<std::string> OptimizationMetrics;
-  const std::chrono::seconds EvaluationDuration;
-  const unsigned Individuals;
-  const std::string OptimizeOutfile;
-  const unsigned Generations;
-  const double Nsga2Cr;
-  const double Nsga2M;
+  const Config Cfg;
 
   std::unique_ptr<environment::Environment> Environment;
-
   std::unique_ptr<cuda::Cuda> Cuda;
   std::unique_ptr<oneapi::OneAPI> Oneapi;
-
-  inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
-  std::shared_ptr<measurement::MeasurementWorker> MeasurementWorker;
   std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
+  std::thread DumpRegisterWorkerThread;
+  std::shared_ptr<measurement::MeasurementWorker> MeasurementWorker;
+
+  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
+  std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
+
   firestarter::optimizer::Population Population;
 
+  inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
+
+  // variables to control the termination of the watchdog
+  inline static bool WatchdogTerminate = false;
+  inline static std::condition_variable WatchdogTerminateAlert;
+  inline static std::mutex WatchdogTerminateMutex;
+
+  // variable to control the load of the threads
+  inline static volatile LoadThreadWorkType LoadVar = LoadThreadWorkType::LoadLow;
+
   // LoadThreadWorker.cpp
-  void initLoadWorkers(bool LowLoad, std::chrono::microseconds Period);
+  void initLoadWorkers();
   void joinLoadWorkers();
   void printThreadErrorReport();
   void printPerformanceReport();
@@ -149,28 +125,14 @@ private:
                              std::chrono::seconds Timeout) -> int;
 
   // DumpRegisterWorker.cpp
-  void initDumpRegisterWorker(std::chrono::seconds DumpTimeDelta, const std::string& DumpFilePath);
+  void initDumpRegisterWorker();
   void joinDumpRegisterWorker();
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
-
-  std::thread DumpRegisterWorkerThread;
 
   static void setLoad(LoadThreadWorkType Value);
 
   static void sigalrmHandler(int Signum);
   static void sigtermHandler(int Signum);
-
-  // variables to control the termination of the watchdog
-  inline static bool WatchdogTerminate = false;
-  inline static std::condition_variable WatchdogTerminateAlert;
-  inline static std::mutex WatchdogTerminateMutex;
-
-  // variable to control the load of the threads
-  inline static volatile LoadThreadWorkType LoadVar = LoadThreadWorkType::LoadLow;
-
-  std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
-
-  std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
 };
 
 } // namespace firestarter

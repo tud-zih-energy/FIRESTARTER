@@ -46,18 +46,18 @@
 
 namespace firestarter {
 
-void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period) {
+void Firestarter::initLoadWorkers() {
   Environment->setCpuAffinity(0);
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
-  LoadVar = LowLoad ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
+  LoadVar = Cfg.Load == std::chrono::microseconds::zero() ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
 
   auto NumThreads = Environment->requestedNumThreads();
 
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
-  if (ErrorDetection) {
+  if (Cfg.ErrorDetection) {
     for (uint64_t I = 0; I < NumThreads; I++) {
       auto* CommPtr = static_cast<uint64_t*>(AlignedAlloc::malloc(2 * sizeof(uint64_t)));
       assert(CommPtr);
@@ -69,9 +69,10 @@ void Firestarter::initLoadWorkers(bool LowLoad, std::chrono::microseconds Period
   }
 
   for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, *Environment, LoadVar, Period, DumpRegisters, ErrorDetection);
+    auto Td =
+        std::make_shared<LoadWorkerData>(I, *Environment, LoadVar, Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
 
-    if (ErrorDetection) {
+    if (Cfg.ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
       // give this thread the left pointer i and right pointer (i+1) %
       // requestedNumThreads().
@@ -148,7 +149,7 @@ void Firestarter::joinLoadWorkers() {
 }
 
 void Firestarter::printThreadErrorReport() {
-  if (ErrorDetection) {
+  if (Cfg.ErrorDetection) {
     auto MaxSize = LoadThreads.size();
 
     std::vector<bool> Errors(MaxSize, false);
@@ -204,7 +205,7 @@ void Firestarter::printPerformanceReport() {
   // insert values for ipc-estimate metric
   // if we are on linux
 #if defined(linux) || defined(__linux__)
-  if (Measurement) {
+  if (Cfg.Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
       ipcEstimateMetricInsert(static_cast<double>(Td->LastRun.Iterations) *

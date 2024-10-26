@@ -1,4 +1,5 @@
 SET(FIRESTARTER_FILES
+	firestarter/Config.cpp
 	firestarter/Main.cpp
 	firestarter/Firestarter.cpp
 	firestarter/LoadWorker.cpp
