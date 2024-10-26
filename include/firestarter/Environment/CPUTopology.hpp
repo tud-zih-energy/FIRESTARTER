@@ -69,10 +69,12 @@ protected:
   [[nodiscard]] static auto scalingGovernor() -> std::string;
   [[nodiscard]] auto print(std::ostream& Stream) const -> std::ostream&;
 
+private:
+  /// The Vendor name of the CPU.
   std::string Vendor;
+  /// The Model name of the CPU.
   std::string Model;
 
-private:
   [[nodiscard]] static auto getFileAsStream(std::string const& FilePath) -> std::stringstream;
 
   unsigned NumThreadsPerCore;

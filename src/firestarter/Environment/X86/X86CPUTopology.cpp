@@ -35,9 +35,8 @@ namespace firestarter::environment::x86 {
 
 X86CPUTopology::X86CPUTopology()
     : CPUTopology("x86_64")
-    , CpuInfo(asmjit::CpuInfo::host()) {
-
-  Vendor = CpuInfo.vendor();
+    , CpuInfo(asmjit::CpuInfo::host())
+    , Vendor(CpuInfo.vendor()) {
 
   {
     std::stringstream Ss;

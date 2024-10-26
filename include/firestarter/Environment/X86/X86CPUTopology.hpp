@@ -44,6 +44,9 @@ public:
   [[nodiscard]] auto modelId() const -> unsigned { return this->CpuInfo.modelId(); }
   [[nodiscard]] auto stepping() const -> unsigned { return this->CpuInfo.stepping(); }
 
+  [[nodiscard]] auto vendor() const -> std::string const& final { return Vendor; }
+  [[nodiscard]] auto model() const -> std::string const& final { return Model; }
+
 private:
   [[nodiscard]] auto hasRdtsc() const -> bool { return this->HasRdtsc; }
   [[nodiscard]] auto hasInvariantRdtsc() const -> bool { return this->HasInvariantRdtsc; }
@@ -54,6 +57,11 @@ private:
 
   bool HasRdtsc;
   bool HasInvariantRdtsc;
+
+  /// The Vendor name of the CPU.
+  std::string Vendor;
+  /// The Model name of the CPU.
+  std::string Model;
 };
 
 inline auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream& {
