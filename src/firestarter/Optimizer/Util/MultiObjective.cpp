@@ -39,10 +39,8 @@ auto lessThanF(double A, double B) -> bool {
     }
     return true; // a < nan
   }
-  if (!std::isnan(B)) {
-    return false; // nan < b
-  }
-  return false; // nan < nan
+  // nan < b or nan < nan
+  return false;
 }
 
 // Greater than compares floating point types placing nans after inf or before
