@@ -31,13 +31,12 @@ namespace firestarter::environment::x86 {
 void X86Environment::evaluateFunctions() {
   for (const auto& Ctor : PlatformConfigsCtor) {
     // add asmjit for model and family detection
-    PlatformConfigs.emplace_back(
-        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId(), topology().numThreadsPerCore()));
+    PlatformConfigs.emplace_back(Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId()));
   }
 
   for (const auto& Ctor : FallbackPlatformConfigsCtor) {
     FallbackPlatformConfigs.emplace_back(
-        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId(), topology().numThreadsPerCore()));
+        Ctor(topology().featuresAsmjit(), topology().familyId(), topology().modelId()));
   }
 }
 
@@ -94,7 +93,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     // fallback
     for (const auto& Config : FallbackPlatformConfigs) {
       if (Config->isAvailable()) {
-        auto SelectedThread = 0;
+        auto SelectedThread = 0U;
         auto SelectedFunctionName = std::string("");
         for (auto const& [Thread, FunctionName] : Config->getThreadMap()) {
           if (Thread == topology().numThreadsPerCore()) {
@@ -192,7 +191,7 @@ void X86Environment::printFunctionSummary() {
                  "-------------------------------------------------------------"
                  "-----------------------------";
 
-  unsigned Id = 1;
+  auto Id = 1U;
 
   for (auto const& Config : PlatformConfigs) {
     for (auto const& [thread, functionName] : Config->getThreadMap()) {

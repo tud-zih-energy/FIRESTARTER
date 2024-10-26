@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class HaswellEPConfig final : public X86PlatformConfig {
 public:
-  HaswellEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+  HaswellEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
       : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0, {32768, 262144, 2621440}, 104857600, 1536, Family,
-                          Model, Threads, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
+                          Model, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

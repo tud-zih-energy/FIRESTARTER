@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class KnightsLandingConfig final : public X86PlatformConfig {
 public:
-  KnightsLandingConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+  KnightsLandingConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
       : X86PlatformConfig("KNL_XEONPHI", 6, {87}, {4}, 0, {32768, 524288, 236279125}, 26214400, 1536, Family, Model,
-                          Threads, std::make_unique<payload::AVX512Payload>(SupportedFeatures)) {}
+                          std::make_unique<payload::AVX512Payload>(SupportedFeatures)) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_P", 3}, {"L2_S", 8}, {"L1_L", 40}, {"REG", 10}});

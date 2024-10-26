@@ -36,21 +36,18 @@ private:
   std::list<unsigned> Models;
   unsigned CurrentFamily;
   unsigned CurrentModel;
-  unsigned CurrentThreads;
 
 public:
   X86PlatformConfig(std::string Name, unsigned Family, std::initializer_list<unsigned> Models,
                     std::initializer_list<unsigned> Threads, unsigned InstructionCacheSize,
                     std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBuffersize, unsigned Lines,
-                    unsigned CurrentFamily, unsigned CurrentModel, unsigned CurrentThreads,
-                    std::unique_ptr<payload::X86Payload>&& Payload)
+                    unsigned CurrentFamily, unsigned CurrentModel, std::unique_ptr<payload::X86Payload>&& Payload)
       : PlatformConfig(std::move(Name), Threads, InstructionCacheSize, DataCacheBufferSize, RamBuffersize, Lines,
                        std::move(Payload))
       , Family(Family)
       , Models(Models)
       , CurrentFamily(CurrentFamily)
-      , CurrentModel(CurrentModel)
-      , CurrentThreads(CurrentThreads) {}
+      , CurrentModel(CurrentModel) {}
 
   [[nodiscard]] auto isDefault() const -> bool override {
     return Family == CurrentFamily && (std::find(Models.begin(), Models.end(), CurrentModel) != Models.end()) &&

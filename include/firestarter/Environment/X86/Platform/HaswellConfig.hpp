@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class HaswellConfig final : public X86PlatformConfig {
 public:
-  HaswellConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+  HaswellConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
       : X86PlatformConfig("HSW_COREI", 6, {60, 61, 69, 70, 71}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536,
-                          Family, Model, Threads, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
+                          Family, Model, std::make_unique<payload::FMAPayload>(SupportedFeatures)) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

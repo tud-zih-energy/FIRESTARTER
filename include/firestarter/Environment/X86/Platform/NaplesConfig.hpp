@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class NaplesConfig final : public X86PlatformConfig {
 public:
-  NaplesConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+  NaplesConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
       : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0, {65536, 524288, 2097152}, 104857600, 1536, Family,
-                          Model, Threads, std::make_unique<payload::ZENFMAPayload>(SupportedFeatures)) {}
+                          Model, std::make_unique<payload::ZENFMAPayload>(SupportedFeatures)) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

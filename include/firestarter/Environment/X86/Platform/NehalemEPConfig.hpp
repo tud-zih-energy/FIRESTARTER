@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class NehalemEPConfig final : public X86PlatformConfig {
 public:
-  NehalemEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model, unsigned Threads)
+  NehalemEPConfig(asmjit::CpuFeatures const& SupportedFeatures, unsigned Family, unsigned Model)
       : X86PlatformConfig("NHM_XEONEP", 6, {26, 44}, {1, 2}, 0, {32768, 262144, 2097152}, 104857600, 1536, Family,
-                          Model, Threads, std::make_unique<payload::SSE2Payload>(SupportedFeatures)) {}
+                          Model, std::make_unique<payload::SSE2Payload>(SupportedFeatures)) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}});
