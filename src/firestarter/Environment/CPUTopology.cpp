@@ -222,7 +222,7 @@ CPUTopology::CPUTopology(std::string Architecture)
       firestarter::log::warn() << "Can't determine clockrate from /proc/cpuinfo";
     } else {
       firestarter::log::trace() << "Clockrate from /proc/cpuinfo is " << ClockrateStr;
-      Clockrate = 1e6 * std::stoi(ClockrateStr);
+      Clockrate = static_cast<uint64_t>(1000000U) * std::stoi(ClockrateStr);
     }
 
     auto Governor = scalingGovernor();
@@ -251,7 +251,7 @@ CPUTopology::CPUTopology(std::string Architecture)
         }
       }
 
-      Clockrate = 1e3 * std::stoi(ClockrateStr);
+      Clockrate = static_cast<uint64_t>(1000U) * std::stoi(ClockrateStr);
     }
   }
 #endif
@@ -327,7 +327,7 @@ auto CPUTopology::scalingGovernor() -> std::string {
   return getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").str();
 }
 
-auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> int {
+auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
 
   if (Width >= 1) {
@@ -343,10 +343,10 @@ auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> int {
     }
   }
 
-  return -1;
+  return {};
 }
 
-auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> int {
+auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
 
   if (Width >= 1) {
@@ -362,7 +362,7 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> int {
     }
   }
 
-  return -1;
+  return {};
 }
 
 auto CPUTopology::maxNumThreads() const -> unsigned {

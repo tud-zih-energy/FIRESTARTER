@@ -72,7 +72,10 @@ public:
 
   /// Get the pointer to the start of the memory use for computations.
   /// \returns the pointer to the memory.
-  [[nodiscard]] auto getMemoryAddress() -> auto{ return reinterpret_cast<double*>(&DoNotUseAddrMem); }
+  [[nodiscard]] auto getMemoryAddress() -> auto{
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return reinterpret_cast<double*>(&DoNotUseAddrMem);
+  }
 
   /// Get the offset to the memory which is used by the high-load functions
   /// \returns the offset to the memory

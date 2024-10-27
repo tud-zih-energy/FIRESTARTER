@@ -194,8 +194,9 @@ void Environment::printThreadSummary() {
     const auto CoreId = topology().getCoreIdFromPU(Bind);
     const auto PkgId = topology().getPkgIdFromPU(Bind);
 
-    if (CoreId != -1 && PkgId != -1) {
-      log::info() << "    - Thread " << I << " run on CPU " << Bind << ", core " << CoreId << " in package: " << PkgId;
+    if (CoreId && PkgId) {
+      log::info() << "    - Thread " << I << " run on CPU " << Bind << ", core " << *CoreId
+                  << " in package: " << *PkgId;
       PrintCoreIdInfo = true;
     }
 

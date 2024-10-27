@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -38,7 +39,7 @@ public:
   explicit CPUTopology(std::string Architecture);
   virtual ~CPUTopology();
 
-  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopology) -> std::ostream&;
+  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream&;
 
   [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
   [[nodiscard]] auto maxNumThreads() const -> unsigned;
@@ -62,8 +63,8 @@ public:
   // get a timestamp
   [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
 
-  [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> int;
-  [[nodiscard]] auto getCoreIdFromPU(unsigned Pu) const -> int;
+  [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
+  [[nodiscard]] auto getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
 
 protected:
   [[nodiscard]] static auto scalingGovernor() -> std::string;
@@ -87,8 +88,8 @@ private:
   hwloc_topology_t Topology{};
 };
 
-inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopology) -> std::ostream& {
-  return CpuTopology.print(Stream);
+inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream& {
+  return CpuTopologyRef.print(Stream);
 }
 
 } // namespace firestarter::environment
