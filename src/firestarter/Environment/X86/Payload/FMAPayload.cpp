@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <firestarter/Environment/X86/Payload/CompiledX86Payload.hpp>
 #include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
 
 namespace firestarter::environment::x86::payload {
@@ -26,7 +27,7 @@ namespace firestarter::environment::x86::payload {
 auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
                                 unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
                                 unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
-                                bool ErrorDetection) -> int {
+                                bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   using Ymm = asmjit::x86::Ymm;
@@ -43,29 +44,28 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   auto Repetitions = getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Thread);
 
   // compute count of flops and memory access for performance report
-  Flops = 0;
-  Bytes = 0;
+  environment::payload::PayloadStats Stats;
 
   for (const auto& Item : Sequence) {
     auto It = InstructionFlops.find(Item);
 
     if (It == InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
-      return EXIT_FAILURE;
+      std::exit(EXIT_FAILURE);
     }
 
-    Flops += It->second;
+    Stats.Flops += It->second;
 
     It = InstructionMemory.find(Item);
 
     if (It != InstructionMemory.end()) {
-      Bytes += It->second;
+      Stats.Bytes += It->second;
     }
   }
 
-  Flops *= Repetitions;
-  Bytes *= Repetitions;
-  Instructions = Repetitions * Sequence.size() * 4 + 6;
+  Stats.Flops *= Repetitions;
+  Stats.Bytes *= Repetitions;
+  Stats.Instructions = Repetitions * Sequence.size() * 4 + 6;
 
   // calculate the buffer sizes
   const auto L1iCacheSize = InstructionCacheSize / Thread;
@@ -83,11 +83,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
   asmjit::CodeHolder Code;
-  Code.init(Rt.environment());
-
-  if (nullptr != LoadFunction) {
-    Rt.release(LoadFunction);
-  }
+  Code.init(asmjit::Environment::host());
 
   asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
@@ -117,7 +113,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
   asmjit::FuncDetail Func;
   Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
                 asmjit::CallConvId::kCDecl),
-            Rt.environment());
+            Code.environment());
 
   asmjit::FuncFrame Frame;
   Frame.init(Func);
@@ -313,7 +309,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
         RamIncrement();
       } else {
         workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
-        return EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
       }
 
       if (Item != "L1_2LS_256" && Item != "L2_2LS_256") {
@@ -354,7 +350,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
     Cb.add(RamAddr, Imm(L3Size));
     Cb.bind(NoRamReset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   Cb.inc(TempReg); // increment iteration counter
   if (getL2SequenceCount(Sequence) > 0) {
@@ -368,7 +364,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
     Cb.add(L2Addr, Imm(L1Size));
     Cb.bind(NoL2Reset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   Cb.movq(IterReg, TempReg); // store iteration counter
   if (getL3SequenceCount(Sequence) > 0) {
@@ -382,7 +378,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
     Cb.add(L3Addr, Imm(L2Size));
     Cb.bind(NoL3Reset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   Cb.mov(L1Addr, PointerReg);
 
@@ -405,14 +401,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
 
   Cb.finalize();
 
-  // String sb;
-  // cb.dump(sb);
-
-  const auto Err = Rt.add(&LoadFunction, &Code);
-  if (Err) {
-    workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
-    return EXIT_FAILURE;
-  }
+  auto CompiledPayloadPtr = CompiledX86Payload::create(Stats, Code, clone());
 
   // skip if we could not determine cache size
   if (L1iCacheSize != 0) {
@@ -429,7 +418,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
     workerLog::trace() << "Repetition count: " << Repetitions;
   }
 
-  return EXIT_SUCCESS;
+  return CompiledPayloadPtr;
 }
 
 auto FMAPayload::getAvailableInstructions() const -> std::list<std::string> {
@@ -441,7 +430,7 @@ auto FMAPayload::getAvailableInstructions() const -> std::list<std::string> {
   return Instructions;
 }
 
-void FMAPayload::init(double* MemoryAddr, uint64_t BufferSize) {
+void FMAPayload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::init(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 

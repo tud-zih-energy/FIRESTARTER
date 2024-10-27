@@ -23,6 +23,7 @@
 
 #include "firestarter/Constants.hpp"
 #include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/Payload/PayloadStats.hpp"
 #include <chrono>
 #include <list>
 #include <memory>
@@ -31,6 +32,46 @@
 #include <vector>
 
 namespace firestarter::environment::payload {
+
+class Payload;
+
+class CompiledPayload {
+public:
+  CompiledPayload() = delete;
+  virtual ~CompiledPayload() = default;
+
+  using UniquePtr = std::unique_ptr<CompiledPayload, void (*)(CompiledPayload*)>;
+
+  using HighLoadFunctionPtr = uint64_t (*)(double*, volatile LoadThreadWorkType*, uint64_t);
+
+  CompiledPayload(const PayloadStats& Stats, std::unique_ptr<Payload>&& PayloadPtr,
+                  HighLoadFunctionPtr HighLoadFunction)
+      : Stats(Stats)
+      , PayloadPtr(std::move(PayloadPtr))
+      , HighLoadFunction(HighLoadFunction) {}
+
+  [[nodiscard]] auto stats() const -> const PayloadStats& { return Stats; };
+
+  void init(double* MemoryAddr, uint64_t BufferSize);
+
+  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period);
+
+  [[nodiscard]] auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
+      -> uint64_t {
+    return HighLoadFunction(AddrMem, &LoadVar, Iterations);
+  }
+
+protected:
+  // We need to access this pointer directly to free the associated memory from asmjit
+  [[nodiscard]] auto highLoadFunctionPtr() -> HighLoadFunctionPtr { return HighLoadFunction; }
+
+private:
+  PayloadStats Stats;
+
+  std::unique_ptr<Payload> PayloadPtr;
+
+  HighLoadFunctionPtr HighLoadFunction;
+};
 
 class Payload {
 private:
@@ -44,11 +85,6 @@ private:
   unsigned RegisterCount = 0;
 
 protected:
-  unsigned Flops = 0;
-  unsigned Bytes = 0;
-  // number of instructions in load loop
-  unsigned Instructions = 0;
-
   [[nodiscard]] static auto generateSequence(const std::vector<std::pair<std::string, unsigned>>& Proportion)
       -> std::vector<std::string>;
   [[nodiscard]] static auto getL2SequenceCount(const std::vector<std::string>& Sequence) -> unsigned {
@@ -76,6 +112,10 @@ protected:
   [[nodiscard]] static auto getRAMLoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
                                             unsigned Size, unsigned Threads) -> unsigned;
 
+  virtual void init(double* MemoryAddr, uint64_t BufferSize) const = 0;
+
+  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const = 0;
+
 public:
   Payload() = delete;
 
@@ -85,10 +125,10 @@ public:
       , RegisterCount(RegisterCount) {}
   virtual ~Payload() = default;
 
+  friend void CompiledPayload::init(double*, uint64_t);
+  friend void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType&, std::chrono::microseconds);
+
   [[nodiscard]] auto name() const -> const std::string& { return Name; }
-  [[nodiscard]] auto flops() const -> unsigned { return Flops; }
-  [[nodiscard]] auto bytes() const -> unsigned { return Bytes; }
-  [[nodiscard]] auto instructions() const -> unsigned { return Instructions; }
   /// The size of the SIMD registers in units of doubles (8B)
   [[nodiscard]] auto registerSize() const -> unsigned { return RegisterSize; }
   /// The number of SIMD registers used by the payload
@@ -96,17 +136,12 @@ public:
 
   [[nodiscard]] virtual auto isAvailable(const CPUTopology*) const -> bool = 0;
 
-  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) = 0;
-
   [[nodiscard]] virtual auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
                                             unsigned InstructionCacheSize,
                                             std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize,
                                             unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
-                                            bool ErrorDetection) -> int = 0;
+                                            bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
-  virtual void init(double* MemoryAddr, uint64_t BufferSize) = 0;
-  [[nodiscard]] virtual auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar,
-                                              uint64_t Iterations) -> uint64_t = 0;
 
   [[nodiscard]] virtual auto clone() const -> std::unique_ptr<Payload> = 0;
 };

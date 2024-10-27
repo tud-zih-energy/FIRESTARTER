@@ -35,7 +35,7 @@ class PlatformConfig {
 private:
   std::string Name;
   std::list<unsigned> Threads;
-  std::unique_ptr<payload::Payload> Payload;
+  std::shared_ptr<payload::Payload> Payload;
   unsigned InstructionCacheSize;
   std::list<unsigned> DataCacheBufferSize;
   unsigned RamBufferSize;
@@ -46,7 +46,7 @@ public:
 
   PlatformConfig(std::string Name, std::list<unsigned> Threads, unsigned InstructionCacheSize,
                  std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBufferSize, unsigned Lines,
-                 std::unique_ptr<payload::Payload>&& Payload)
+                 std::shared_ptr<payload::Payload>&& Payload)
       : Name(std::move(Name))
       , Threads(std::move(Threads))
       , Payload(std::move(Payload))

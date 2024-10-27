@@ -29,17 +29,21 @@ public:
   FMAPayload()
       : X86Payload({asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA}, "FMA", 4, 16) {}
 
-  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
-                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
-                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                    bool ErrorDetection) const
+      -> environment::payload::CompiledPayload::UniquePtr override;
+
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
-  void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
     return std::make_unique<FMAPayload>();
   };
 
 private:
+  void init(double* MemoryAddr, uint64_t BufferSize) const override;
+
   const std::map<std::string, unsigned> InstructionFlops = {
       {"REG", 16},        {"L1_L", 16},  {"L1_2L", 16}, {"L1_S", 8},      {"L1_LS", 8},     {"L1_LS_256", 8},
       {"L1_2LS_256", 16}, {"L2_L", 16},  {"L2_S", 8},   {"L2_LS", 8},     {"L2_LS_256", 8}, {"L2_2LS_256", 16},

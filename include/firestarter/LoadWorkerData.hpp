@@ -159,6 +159,9 @@ public:
   /// The memory which is used by the load worker.
   LoadWorkerMemory::UniquePtr Memory = {nullptr, nullptr};
 
+  /// The compiled payload which contains the pointers to the specific functions which are executed and some stats.
+  environment::payload::CompiledPayload::UniquePtr CompiledPayloadPtr = {nullptr, nullptr};
+
   volatile LoadThreadWorkType& LoadVar;
   uint64_t BuffersizeMem{};
 

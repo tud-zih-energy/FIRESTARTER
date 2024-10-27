@@ -139,7 +139,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
               auto Td = Thread.second;
               ipcEstimateMetricInsert(
                   static_cast<double>(Td->LastRun.Iterations) *
-                  static_cast<double>(LoadThreads.front().second->config().payload().instructions()) /
+                  static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
                   static_cast<double>(StopTimestamp - StartTimestamp));
             }
 

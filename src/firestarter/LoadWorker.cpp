@@ -197,10 +197,10 @@ void Firestarter::printPerformanceReport() {
 
   double const Runtime =
       static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(Environment->topology().clockrate());
-  double const GFlops = static_cast<double>(LoadThreads.front().second->config().payload().flops()) * 0.000000001 *
-                        static_cast<double>(Iterations) / Runtime;
-  double const Bandwidth = static_cast<double>(LoadThreads.front().second->config().payload().bytes()) * 0.000000001 *
-                           static_cast<double>(Iterations) / Runtime;
+  double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
+                        0.000000001 * static_cast<double>(Iterations) / Runtime;
+  double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *
+                           0.000000001 * static_cast<double>(Iterations) / Runtime;
 
   // insert values for ipc-estimate metric
   // if we are on linux
@@ -208,9 +208,10 @@ void Firestarter::printPerformanceReport() {
   if (Cfg.Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
-      ipcEstimateMetricInsert(static_cast<double>(Td->LastRun.Iterations) *
-                              static_cast<double>(LoadThreads.front().second->config().payload().instructions()) /
-                              static_cast<double>(StopTimestamp - StartTimestamp));
+      ipcEstimateMetricInsert(
+          static_cast<double>(Td->LastRun.Iterations) *
+          static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
+          static_cast<double>(StopTimestamp - StartTimestamp));
     }
   }
 #endif
@@ -271,10 +272,10 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       Td->environment().setCpuAffinity(Td->id());
 
       // compile payload
-      Td->config().payload().compilePayload(Td->config().payloadSettings(), Td->config().instructionCacheSize(),
-                                            Td->config().dataCacheBufferSize(), Td->config().ramBufferSize(),
-                                            Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
-                                            Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload().compilePayload(
+          Td->config().payloadSettings(), Td->config().instructionCacheSize(), Td->config().dataCacheBufferSize(),
+          Td->config().ramBufferSize(), Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
+          Td->ErrorDetection);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -305,7 +306,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       }
 
       // call init function
-      Td->config().payload().init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
+      Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
 
       break;
     // perform stress test
@@ -323,8 +324,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->CurrentRun.Iterations = Td->config().payload().highLoadFunction(Td->Memory->getMemoryAddress(), Td->LoadVar,
-                                                                            Td->CurrentRun.Iterations);
+        Td->CurrentRun.Iterations = Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
+                                                                             Td->LoadVar, Td->CurrentRun.Iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING
@@ -335,7 +336,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
         SCOREP_USER_REGION_BY_NAME_END("HIGH");
         SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->config().payload().lowLoadFunction(Td->LoadVar, Td->Period);
+        Td->CompiledPayloadPtr->lowLoadFunction(Td->LoadVar, Td->Period);
 #ifdef ENABLE_VTRACING
         VT_USER_END("LOW_LOAD_FUNC");
 #endif
@@ -361,13 +362,13 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       break;
     case LoadThreadState::ThreadSwitch:
       // compile payload
-      Td->config().payload().compilePayload(Td->config().payloadSettings(), Td->config().instructionCacheSize(),
-                                            Td->config().dataCacheBufferSize(), Td->config().ramBufferSize(),
-                                            Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
-                                            Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload().compilePayload(
+          Td->config().payloadSettings(), Td->config().instructionCacheSize(), Td->config().dataCacheBufferSize(),
+          Td->config().ramBufferSize(), Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
+          Td->ErrorDetection);
 
       // call init function
-      Td->config().payload().init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
+      Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
       break;
     case LoadThreadState::ThreadWait:
       break;

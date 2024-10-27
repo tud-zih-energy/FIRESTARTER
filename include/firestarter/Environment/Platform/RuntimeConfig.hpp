@@ -29,8 +29,7 @@ namespace firestarter::environment::platform {
 
 class RuntimeConfig {
 private:
-  PlatformConfig const& PlatformConfigValue;
-  std::unique_ptr<payload::Payload> Payload;
+  PlatformConfig const& PlatformConfigRef;
   unsigned Thread;
   std::vector<std::pair<std::string, unsigned>> PayloadSettings;
   unsigned InstructionCacheSize;
@@ -39,37 +38,33 @@ private:
   unsigned Lines;
 
 public:
-  RuntimeConfig(PlatformConfig const& PlatformConfigValue, unsigned Thread, unsigned DetectedInstructionCacheSize)
-      : PlatformConfigValue(PlatformConfigValue)
-      , Payload(nullptr)
+  RuntimeConfig(PlatformConfig const& PlatformConfigRef, unsigned Thread, unsigned DetectedInstructionCacheSize)
+      : PlatformConfigRef(PlatformConfigRef)
       , Thread(Thread)
-      , PayloadSettings(PlatformConfigValue.getDefaultPayloadSettings())
-      , InstructionCacheSize(PlatformConfigValue.instructionCacheSize())
-      , DataCacheBufferSize(PlatformConfigValue.dataCacheBufferSize())
-      , RamBufferSize(PlatformConfigValue.ramBufferSize())
-      , Lines(PlatformConfigValue.lines()) {
+      , PayloadSettings(PlatformConfigRef.getDefaultPayloadSettings())
+      , InstructionCacheSize(PlatformConfigRef.instructionCacheSize())
+      , DataCacheBufferSize(PlatformConfigRef.dataCacheBufferSize())
+      , RamBufferSize(PlatformConfigRef.ramBufferSize())
+      , Lines(PlatformConfigRef.lines()) {
     if (DetectedInstructionCacheSize != 0) {
       this->InstructionCacheSize = DetectedInstructionCacheSize;
     }
   };
 
-  RuntimeConfig(const RuntimeConfig& Other)
-      : PlatformConfigValue(Other.platformConfig())
-      , Payload(Other.platformConfig().payload().clone())
-      , Thread(Other.thread())
-      , PayloadSettings(Other.payloadSettings())
-      , InstructionCacheSize(Other.instructionCacheSize())
-      , DataCacheBufferSize(Other.dataCacheBufferSize())
-      , RamBufferSize(Other.ramBufferSize())
-      , Lines(Other.lines()) {}
+  // RuntimeConfig(const RuntimeConfig& Other)
+  //     : PlatformConfigRef(Other.platformConfig())
+  //     , Payload(Other.platformConfig().payload().clone())
+  //     , Thread(Other.thread())
+  //     , PayloadSettings(Other.payloadSettings())
+  //     , InstructionCacheSize(Other.instructionCacheSize())
+  //     , DataCacheBufferSize(Other.dataCacheBufferSize())
+  //     , RamBufferSize(Other.ramBufferSize())
+  //     , Lines(Other.lines()) {}
 
   ~RuntimeConfig() = default;
 
-  [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigValue; }
-  [[nodiscard]] auto payload() const -> payload::Payload& {
-    assert(Payload != nullptr && "Payload pointer is null. Each thread has to use it's own RuntimeConfig");
-    return *Payload;
-  }
+  [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigRef; }
+  [[nodiscard]] auto payload() const -> const payload::Payload& { return PlatformConfigRef.payload(); }
   [[nodiscard]] auto thread() const -> unsigned { return Thread; }
   [[nodiscard]] auto payloadSettings() const -> const std::vector<std::pair<std::string, unsigned>>& {
     return PayloadSettings;

@@ -19,6 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "asmjit/core/environment.h"
+#include <firestarter/Environment/X86/Payload/CompiledX86Payload.hpp>
 #include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
@@ -26,7 +28,7 @@ namespace firestarter::environment::x86::payload {
 auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
                                  unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
                                  unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
-                                 bool ErrorDetection) -> int {
+                                 bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Mm = asmjit::x86::Mm;
   using Xmm = asmjit::x86::Xmm;
@@ -39,29 +41,28 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   auto Repetitions = getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Thread);
 
   // compute count of flops and memory access for performance report
-  Flops = 0;
-  Bytes = 0;
+  environment::payload::PayloadStats Stats;
 
   for (const auto& Item : Sequence) {
     auto It = InstructionFlops.find(Item);
 
     if (It == InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
-      return EXIT_FAILURE;
+      std::exit(EXIT_FAILURE);
     }
 
-    Flops += It->second;
+    Stats.Flops += It->second;
 
     It = InstructionMemory.find(Item);
 
     if (It != InstructionMemory.end()) {
-      Bytes += It->second;
+      Stats.Bytes += It->second;
     }
   }
 
-  Flops *= Repetitions;
-  Bytes *= Repetitions;
-  Instructions = Repetitions * Sequence.size() * 2 + 4;
+  Stats.Flops *= Repetitions;
+  Stats.Bytes *= Repetitions;
+  Stats.Instructions = Repetitions * Sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
   const auto L1iCacheSize = InstructionCacheSize / Thread;
@@ -79,11 +80,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
 
   asmjit::CodeHolder Code;
-  Code.init(Rt.environment());
-
-  if (nullptr != LoadFunction) {
-    Rt.release(LoadFunction);
-  }
+  Code.init(asmjit::Environment::host());
 
   asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
@@ -109,7 +106,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   asmjit::FuncDetail Func;
   Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
                 asmjit::CallConvId::kCDecl),
-            Rt.environment());
+            Code.environment());
 
   asmjit::FuncFrame Frame;
   Frame.init(Func);
@@ -239,12 +236,12 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
         Cb.movapd(xmmword_ptr(L1Addr, 32), Xmm(AddDest));
         L1Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L1_LS") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
         Cb.movapd(xmmword_ptr(L1Addr, 64), Xmm(AddDest));
         L1Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L2_L") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L2Addr, 64));
         L2Increment();
@@ -252,12 +249,12 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
         Cb.movapd(xmmword_ptr(L2Addr, 64), Xmm(AddDest));
         L2Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L2_LS") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L2Addr, 64));
         Cb.movapd(xmmword_ptr(L2Addr, 96), Xmm(AddDest));
         L2Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L3_L") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
         L3Increment();
@@ -265,17 +262,17 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
         Cb.movapd(xmmword_ptr(L3Addr, 96), Xmm(AddDest));
         L3Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L3_LS") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
         Cb.movapd(xmmword_ptr(L3Addr, 96), Xmm(AddDest));
         L3Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "L3_P") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
         Cb.prefetcht0(ptr(L3Addr));
         L3Increment();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "RAM_L") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(RamAddr, 64));
         RamIncrement();
@@ -283,24 +280,24 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs - 1) % AddRegs)));
         Cb.movapd(xmmword_ptr(RamAddr, 64), Xmm(AddDest));
         RamIncrement();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "RAM_LS") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L3Addr, 64));
         Cb.movapd(xmmword_ptr(RamAddr, 64), Xmm(AddDest));
         RamIncrement();
-        Instructions++;
+        Stats.Instructions++;
       } else if (Item == "RAM_P") {
         Cb.addpd(Xmm(AddDest), xmmword_ptr(L1Addr, 32));
         Cb.prefetcht2(ptr(RamAddr));
         RamIncrement();
-        Instructions++;
+        Stats.Instructions++;
       } else {
         workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
-        return EXIT_FAILURE;
+        std::exit(EXIT_FAILURE);
       }
 
       if constexpr (MovRegs > 0) {
-        Instructions++;
+        Stats.Instructions++;
         Cb.movq(Mm(MovStart + ((MovqDest - MovStart + MovRegs - 1) % MovRegs)), Mm(MovqDest));
       }
 
@@ -338,7 +335,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
     Cb.add(RamAddr, Imm(L3Size));
     Cb.bind(NoRamReset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   if (getL2SequenceCount(Sequence) > 0) {
     // reset L2-Cache counter
@@ -351,7 +348,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
     Cb.add(L2Addr, Imm(L1Size));
     Cb.bind(NoL2Reset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   if (getL3SequenceCount(Sequence) > 0) {
     // reset L3-Cache counter
@@ -364,7 +361,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
     Cb.add(L3Addr, Imm(L2Size));
     Cb.bind(NoL3Reset);
     // adds always two instruction
-    Instructions += 2;
+    Stats.Instructions += 2;
   }
   Cb.inc(IterReg); // increment iteration counter
   Cb.mov(L1Addr, PointerReg);
@@ -388,14 +385,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
 
   Cb.finalize();
 
-  // String sb;
-  // cb.dump(sb);
-
-  const auto Err = Rt.add(&LoadFunction, &Code);
-  if (Err) {
-    workerLog::error() << "Asmjit adding Assembler to JitRuntime failed in " << __FILE__ << " at " << __LINE__;
-    return EXIT_FAILURE;
-  }
+  auto CompiledPayloadPtr = CompiledX86Payload::create(Stats, Code, clone());
 
   // skip if we could not determine cache size
   if (L1iCacheSize != 0) {
@@ -412,7 +402,7 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
     workerLog::trace() << "Repetition count: " << Repetitions;
   }
 
-  return EXIT_SUCCESS;
+  return CompiledPayloadPtr;
 }
 
 auto SSE2Payload::getAvailableInstructions() const -> std::list<std::string> {
@@ -424,7 +414,7 @@ auto SSE2Payload::getAvailableInstructions() const -> std::list<std::string> {
   return Instructions;
 }
 
-void SSE2Payload::init(double* MemoryAddr, uint64_t BufferSize) {
+void SSE2Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
 

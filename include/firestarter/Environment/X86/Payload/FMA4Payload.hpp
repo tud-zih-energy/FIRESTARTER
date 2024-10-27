@@ -30,11 +30,15 @@ public:
   FMA4Payload()
       : X86Payload({asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA4}, "FMA4", 4, 16) {}
 
-  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
-                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
-                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                    bool ErrorDetection) const
+      -> environment::payload::CompiledPayload::UniquePtr override;
+
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
-  void init(double* MemoryAddr, uint64_t BufferSize) override;
+
+  void init(double* MemoryAddr, uint64_t BufferSize) const override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
     return std::make_unique<FMA4Payload>();

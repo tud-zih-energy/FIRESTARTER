@@ -44,10 +44,6 @@ private:
   std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
 
 protected:
-  asmjit::JitRuntime Rt;
-  using LoadFunctionType = uint64_t (*)(double*, volatile LoadThreadWorkType*, uint64_t);
-  LoadFunctionType LoadFunction = nullptr;
-
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \arg Vec the type of the vector register used.
   /// \arg Cb The asmjit code builder that is used to emit the assembler code.
@@ -56,7 +52,7 @@ protected:
   /// \arg VecPtr The function that is used to create a ptr to the vector register
   template <class Vec>
   void emitDumpRegisterCode(asmjit::x86::Builder& Cb, const asmjit::x86::Gpq& PointerReg,
-                            asmjit::x86::Mem (*VecPtr)(const asmjit::x86::Gp&, int32_t)) {
+                            asmjit::x86::Mem (*VecPtr)(const asmjit::x86::Gp&, int32_t)) const {
     constexpr const auto DumpRegisterStructRegisterValuesTopOffset =
         -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
         static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Drs.Padding));
@@ -87,7 +83,7 @@ protected:
   template <class MaybeConstIterRegT, class MaybeConstVectorRegT>
   void emitErrorDetectionCode(asmjit::x86::Builder& Cb, MaybeConstIterRegT& IterReg,
                               const asmjit::x86::Gpq& AddrHighReg, const asmjit::x86::Gpq& PointerReg,
-                              const asmjit::x86::Gpq& TempReg, const asmjit::x86::Gpq& TempReg2) {
+                              const asmjit::x86::Gpq& TempReg, const asmjit::x86::Gpq& TempReg2) const {
     using IterRegT = std::remove_const_t<MaybeConstIterRegT>;
     using VectorRegT = std::remove_const_t<MaybeConstVectorRegT>;
 
@@ -465,12 +461,6 @@ protected:
     Cb.bind(SkipErrorDetection);
   }
 
-public:
-  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
-             unsigned RegisterSize, unsigned RegisterCount)
-      : Payload(std::move(Name), RegisterSize, RegisterCount)
-      , FeatureRequests(FeatureRequests) {}
-
   // A generic implemenation for all x86 payloads
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -483,11 +473,15 @@ public:
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
-  // use cpuid and usleep as low load
-  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) override;
 
-  auto highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
-      -> uint64_t override;
+  // use cpuid and usleep as low load
+  void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
+
+public:
+  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
+             unsigned RegisterSize, unsigned RegisterCount)
+      : Payload(std::move(Name), RegisterSize, RegisterCount)
+      , FeatureRequests(FeatureRequests) {}
 
   [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
 

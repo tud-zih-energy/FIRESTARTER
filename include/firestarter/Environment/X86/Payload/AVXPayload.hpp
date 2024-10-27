@@ -29,17 +29,21 @@ public:
   AVXPayload()
       : X86Payload({asmjit::CpuFeatures::X86::kAVX}, "AVX", 4, 16) {}
 
-  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
-                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
-                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                    bool ErrorDetection) const
+      -> environment::payload::CompiledPayload::UniquePtr override;
+
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
-  void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
     return std::make_unique<AVXPayload>();
   };
 
 private:
+  void init(double* MemoryAddr, uint64_t BufferSize) const override;
+
   const std::map<std::string, unsigned> InstructionFlops = {
       {"REG", 4},  {"L1_L", 4},  {"L1_S", 4}, {"L1_LS", 4}, {"L2_L", 4},  {"L2_S", 4},   {"L2_LS", 4}, {"L3_L", 4},
       {"L3_S", 4}, {"L3_LS", 4}, {"L3_P", 4}, {"RAM_L", 4}, {"RAM_S", 4}, {"RAM_LS", 4}, {"RAM_P", 4}};

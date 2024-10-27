@@ -29,17 +29,21 @@ public:
   SSE2Payload()
       : X86Payload({asmjit::CpuFeatures::X86::kSSE2}, "SSE2", 2, 16) {}
 
-  auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion, unsigned InstructionCacheSize,
-                      std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize, unsigned Thread,
-                      unsigned NumberOfLines, bool DumpRegisters, bool ErrorDetection) -> int override;
+  [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
+                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
+                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+                                    bool ErrorDetection) const
+      -> environment::payload::CompiledPayload::UniquePtr override;
+
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
-  void init(double* MemoryAddr, uint64_t BufferSize) override;
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
     return std::make_unique<SSE2Payload>();
   };
 
 private:
+  void init(double* MemoryAddr, uint64_t BufferSize) const override;
+
   const std::map<std::string, unsigned> InstructionFlops = {
       {"REG", 2},  {"L1_L", 2},  {"L1_S", 2}, {"L1_LS", 2}, {"L2_L", 2},  {"L2_S", 2},   {"L2_LS", 2}, {"L3_L", 2},
       {"L3_S", 2}, {"L3_LS", 2}, {"L3_P", 2}, {"RAM_L", 2}, {"RAM_S", 2}, {"RAM_LS", 2}, {"RAM_P", 2}};

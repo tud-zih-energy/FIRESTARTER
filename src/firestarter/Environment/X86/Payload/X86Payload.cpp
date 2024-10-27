@@ -28,7 +28,7 @@
 
 namespace firestarter::environment::x86::payload {
 
-void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
+void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const {
   auto Nap = Period / 100;
 
   if constexpr (firestarter::OptionalFeatures.IsMsc) {
@@ -77,11 +77,6 @@ void X86Payload::init(double* MemoryAddr, uint64_t BufferSize, double FirstValue
   for (; I < BufferSize; I++) {
     MemoryAddr[I] = 0.25 + static_cast<double>(I) * 8.0 * LastValue;
   }
-}
-
-auto X86Payload::highLoadFunction(double* AddrMem, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
-    -> uint64_t {
-  return this->LoadFunction(AddrMem, &LoadVar, Iterations);
 }
 
 }; // namespace firestarter::environment::x86::payload

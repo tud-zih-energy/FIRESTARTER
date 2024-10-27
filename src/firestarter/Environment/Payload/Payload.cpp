@@ -26,6 +26,12 @@
 
 namespace firestarter::environment::payload {
 
+void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize) { PayloadPtr->init(MemoryAddr, BufferSize); }
+
+void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
+  PayloadPtr->lowLoadFunction(LoadVar, Period);
+};
+
 auto Payload::getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start) -> unsigned {
   unsigned I = 0;
 
