@@ -36,8 +36,6 @@ private:
   std::string Name;
   std::list<unsigned> Threads;
   std::unique_ptr<payload::Payload> Payload;
-
-protected:
   unsigned InstructionCacheSize;
   std::list<unsigned> DataCacheBufferSize;
   unsigned RamBufferSize;

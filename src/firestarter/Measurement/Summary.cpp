@@ -45,7 +45,7 @@ auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<Time
         double Value = ValueDiff / TimeDiff;
 
         if (MetricType.DivideByThreadCount) {
-          Value /= NumThreads;
+          Value /= static_cast<double>(NumThreads);
         }
 
         Values.emplace_back(Prev.Time, Value);
@@ -57,7 +57,7 @@ auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<Time
       double Value = It->Value;
 
       if (MetricType.DivideByThreadCount) {
-        Value /= NumThreads;
+        Value /= static_cast<double>(NumThreads);
       }
 
       Values.emplace_back(It->Time, Value);
@@ -84,12 +84,12 @@ auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<Time
       for (auto It = Begin; It != End; ++It) {
         Acc += Fn(It->Value);
       }
-      return Acc / SummaryVal.NumTimepoints;
+      return Acc / static_cast<double>(SummaryVal.NumTimepoints);
     };
 
     SummaryVal.Average = SumOverNths([](double V) { return V; });
     SummaryVal.Stddev = std::sqrt(SumOverNths([&SummaryVal](double V) {
-      double Centered = V - SummaryVal.Average;
+      const auto Centered = V - SummaryVal.Average;
       return Centered * Centered;
     }));
   }
