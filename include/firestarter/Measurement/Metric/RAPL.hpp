@@ -27,22 +27,26 @@
 #include <vector>
 
 struct RaplMetricData {
-  inline static const char* RaplPath = "/sys/class/powercap";
+  inline static const char* const RaplPath = "/sys/class/powercap";
 
   inline static std::string ErrorString;
 
   struct ReaderDef {
-    char* Path;
-    long long int LastReading;
-    long long int Overflow;
-    long long int Max;
+    ReaderDef() = delete;
+
+    ReaderDef(std::string Path, int64_t LastReading, int64_t Overflow, int64_t Max)
+        : Path(std::move(Path))
+        , LastReading(LastReading)
+        , Overflow(Overflow)
+        , Max(Max){};
+
+    std::string Path;
+    int64_t LastReading;
+    int64_t Overflow;
+    int64_t Max;
   };
 
-  struct ReaderDefFree {
-    void operator()(struct ReaderDef* Def);
-  };
-
-  inline static std::vector<std::shared_ptr<struct ReaderDef>> Readers;
+  inline static std::vector<std::unique_ptr<ReaderDef>> Readers;
 
   static auto fini() -> int32_t;
   static auto init() -> int32_t;

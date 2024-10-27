@@ -25,19 +25,11 @@
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <vector>
 
 extern "C" {
 #include <dirent.h>
-}
-
-void RaplMetricData::ReaderDefFree::operator()(struct ReaderDef* Def) {
-  if (Def != nullptr) {
-    if (((void*)Def->Path) != nullptr) {
-      free((void*)Def->Path);
-    }
-    free((void*)Def);
-  }
 }
 
 auto RaplMetricData::fini() -> int32_t {
@@ -121,43 +113,17 @@ auto RaplMetricData::init() -> int32_t {
       break;
     }
 
-    uint64_t Reading = 0;
-    uint64_t Max = 0;
     std::string Buffer;
-    int Read = 0;
 
     std::getline(EnergyReadingStream, Buffer);
-    Read = std::sscanf(Buffer.c_str(), "%lu", &Reading);
-
-    if (Read == 0) {
-      std::stringstream Ss;
-      Ss << "Contents in file " << EnergyUjPath.str() << " do not conform to mask (uint64_t)";
-      ErrorString = Ss.str();
-      break;
-    }
+    const auto Reading = std::stoul(Buffer);
 
     std::getline(MaxEnergyReadingStream, Buffer);
-    Read = std::sscanf(Buffer.c_str(), "%lu", &Max);
+    const auto Max = std::stoul(Buffer);
 
-    if (Read == 0) {
-      std::stringstream Ss;
-      Ss << "Contents in file " << MaxEnergyUjRangePath.str() << " do not conform to mask (uint64_t)";
-      ErrorString = Ss.str();
-      break;
-    }
+    auto Def = std::make_unique<ReaderDef>(Path, Max, Reading, 0);
 
-    std::shared_ptr<struct ReaderDef> Def(static_cast<struct ReaderDef*>(malloc(sizeof(struct ReaderDef))),
-                                          ReaderDefFree());
-    const auto* PathName = Path.c_str();
-    size_t Size = (strlen(PathName) + 1) * sizeof(char);
-    void* Name = malloc(Size);
-    memcpy(Name, PathName, Size);
-    Def->Path = (char*)Name;
-    Def->Max = Max;
-    Def->LastReading = Reading;
-    Def->Overflow = 0;
-
-    Readers.push_back(Def);
+    Readers.emplace_back(std::move(Def));
   }
 
   if (!ErrorString.empty()) {
@@ -172,14 +138,13 @@ auto RaplMetricData::getReading(double* Value) -> int32_t {
   double FinalReading = 0.0;
 
   for (auto& Def : Readers) {
-    long long int Reading = 0;
     std::string Buffer;
 
     std::stringstream EnergyUjPath;
     EnergyUjPath << Def->Path << "/energy_uj";
     std::ifstream EnergyReadingStream(EnergyUjPath.str());
     std::getline(EnergyReadingStream, Buffer);
-    std::sscanf(Buffer.c_str(), "%llu", &Reading);
+    const auto Reading = std::stoll(Buffer);
 
     if (Reading < Def->LastReading) {
       Def->Overflow += 1;

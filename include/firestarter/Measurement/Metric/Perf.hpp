@@ -25,7 +25,7 @@
 #include <string>
 
 struct PerfMetricData {
-  inline static const char* PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
+  inline static const char* const PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
 
   struct ReadFormat {
     uint64_t Nr;
