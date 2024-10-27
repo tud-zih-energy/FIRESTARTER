@@ -78,7 +78,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
   auto& DumpRegisterStructRef = Data->LoadWorkerDataPtr->Memory->ExtraVars.Drs;
   auto& DumpVar = DumpRegisterStructRef.DumpVar;
   // memory of simd variables is before the padding
-  const auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStructRef.Padding) - Offset;
+  const auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStructRef.Padding.data()) - Offset;
 
   // allocate continous memory that fits the register contents
   auto Last = std::vector<uint64_t>(Offset);

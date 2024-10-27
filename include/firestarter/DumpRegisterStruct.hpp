@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include <array>
 
 namespace firestarter {
 
@@ -36,12 +37,14 @@ enum class DumpVariable : EightBytesType { Start = 0, Wait = 1 };
 constexpr const auto RegisterMaxNum = 32;
 /// The maximal number of doubles in SIMD registers. This is currently 8 for zmm registers.
 constexpr const auto RegisterMaxSize = 8;
+/// The maximum number of doubles in SIMD registers multiplied with the maximum number of vector registers.
+constexpr const auto MaxNumberOfDoublesInVectorRegisters = RegisterMaxNum * RegisterMaxSize;
 
 // REGISTER_MAX_NUM cachelines
 struct DumpRegisterStruct {
-  volatile double RegisterValues[RegisterMaxNum * RegisterMaxSize];
+  std::array<volatile double, MaxNumberOfDoublesInVectorRegisters> RegisterValues;
   // pad to use a whole cacheline
-  volatile EightBytesType Padding[7];
+  std::array<volatile EightBytesType, 7> Padding;
   volatile DumpVariable DumpVar;
 };
 
