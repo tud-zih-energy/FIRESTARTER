@@ -233,7 +233,7 @@ CPUTopology::CPUTopology(std::string Architecture)
       auto ScalingMaxFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq").str();
       auto CpuinfoMaxFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq").str();
 
-      if (Governor.compare("performance") || Governor.compare("powersave")) {
+      if (Governor == "performance" || Governor == "powersave") {
         if (ScalingCurFreq.empty()) {
           if (!CpuinfoCurFreq.empty()) {
             ClockrateStr = CpuinfoCurFreq;
