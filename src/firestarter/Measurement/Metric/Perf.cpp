@@ -19,6 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <array>
+#include <cassert>
 #include <cstring>
 #include <string>
 
@@ -31,10 +33,12 @@ extern "C" {
 #include <unistd.h>
 }
 
-static auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, unsigned long Flags)
-    -> long {
-  return syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags);
+namespace {
+auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, uint64_t Flags) -> int {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+  return static_cast<int>(syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags));
 }
+} // namespace
 
 auto PerfMetricData::fini() -> int32_t {
   if (!(CpuCyclesFd < 0)) {
@@ -95,16 +99,18 @@ auto PerfMetricData::init() -> int32_t {
   CpuCyclesAttr.exclude_kernel = 1;
   CpuCyclesAttr.exclude_hv = 1;
 
-  if ((CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
-                                   // pid == 0 and cpu == -1
-                                   // This measures the calling process/thread on any CPU.
-                                   0, -1,
-                                   // The group_fd argument allows event groups to be created.  An event
-                                   // group has one event which is the group leader.  The leader is
-                                   // created first, with group_fd = -1.  The rest of the group members
-                                   // are created with subsequent perf_event_open() calls with group_fd
-                                   // being set to the file descriptor of the group leader.
-                                   -1, 0)) < 0) {
+  CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
+                              // pid == 0 and cpu == -1
+                              // This measures the calling process/thread on any CPU.
+                              0, -1,
+                              // The group_fd argument allows event groups to be created.  An event
+                              // group has one event which is the group leader.  The leader is
+                              // created first, with group_fd = -1.  The rest of the group members
+                              // are created with subsequent perf_event_open() calls with group_fd
+                              // being set to the file descriptor of the group leader.
+                              -1, 0);
+
+  if (CpuCyclesFd < 0) {
     fini();
     ErrorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
     InitValue = EXIT_FAILURE;
@@ -112,6 +118,7 @@ auto PerfMetricData::init() -> int32_t {
     return EXIT_FAILURE;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   ioctl(CpuCyclesFd, PERF_EVENT_IOC_ID, &CpuCyclesId);
 
   struct perf_event_attr InstructionsAttr {};
@@ -124,16 +131,18 @@ auto PerfMetricData::init() -> int32_t {
   InstructionsAttr.exclude_kernel = 1;
   InstructionsAttr.exclude_hv = 1;
 
-  if ((InstructionsFd = perfEventOpen(&InstructionsAttr,
-                                      // pid == 0 and cpu == -1
-                                      // This measures the calling process/thread on any CPU.
-                                      0, -1,
-                                      // The group_fd argument allows event groups to be created.  An event
-                                      // group has one event which is the group leader.  The leader is
-                                      // created first, with group_fd = -1.  The rest of the group members
-                                      // are created with subsequent perf_event_open() calls with group_fd
-                                      // being set to the file descriptor of the group leader.
-                                      CpuCyclesFd, 0)) < 0) {
+  InstructionsFd = perfEventOpen(&InstructionsAttr,
+                                 // pid == 0 and cpu == -1
+                                 // This measures the calling process/thread on any CPU.
+                                 0, -1,
+                                 // The group_fd argument allows event groups to be created.  An event
+                                 // group has one event which is the group leader.  The leader is
+                                 // created first, with group_fd = -1.  The rest of the group members
+                                 // are created with subsequent perf_event_open() calls with group_fd
+                                 // being set to the file descriptor of the group leader.
+                                 CpuCyclesFd, 0);
+
+  if (InstructionsFd < 0) {
     fini();
     ErrorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
     InitValue = EXIT_FAILURE;
@@ -141,9 +150,12 @@ auto PerfMetricData::init() -> int32_t {
     return EXIT_FAILURE;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   ioctl(InstructionsFd, PERF_EVENT_IOC_ID, &InstructionsId);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   ioctl(CpuCyclesFd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
   ioctl(CpuCyclesFd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 
   if (0 == read(CpuCyclesFd, &Last, sizeof(Last))) {
@@ -159,11 +171,14 @@ auto PerfMetricData::init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto PerfMetricData::valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t {
-  for (decltype(Values->Nr) I = 0; I < Values->Nr; ++I) {
-    if (Id == Values->Values[I].Id) {
-      return Values->Values[I].Value;
+auto PerfMetricData::valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t {
+  for (decltype(Reader->Nr) I = 0; I < Reader->Nr; ++I) {
+    assert(I < 2 && "Index is out of bounds");
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
+    if (Id == Reader->Values[I].Id) {
+      return Reader->Values[I].Value;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
   }
 
   return 0;
@@ -185,17 +200,16 @@ auto PerfMetricData::getReading(double* IpcValue, double* FreqValue) -> int32_t 
   }
 
   if (IpcValue != nullptr) {
-    uint64_t Diff[2];
-    Diff[0] = valueFromId(&ReadValues, InstructionsId) - valueFromId(&Last, InstructionsId);
-    Diff[1] = valueFromId(&ReadValues, CpuCyclesId) - valueFromId(&Last, CpuCyclesId);
+    std::array<uint64_t, 2> Diff = {valueFromId(&ReadValues, InstructionsId) - valueFromId(&Last, InstructionsId),
+                                    valueFromId(&ReadValues, CpuCyclesId) - valueFromId(&Last, CpuCyclesId)};
 
     std::memcpy(&Last, &ReadValues, sizeof(Last));
 
-    *IpcValue = (double)Diff[0] / (double)Diff[1];
+    *IpcValue = static_cast<double>(Diff[0]) / static_cast<double>(Diff[1]);
   }
 
   if (FreqValue != nullptr) {
-    *FreqValue = (double)valueFromId(&ReadValues, CpuCyclesId) / 1e9;
+    *FreqValue = static_cast<double>(valueFromId(&ReadValues, CpuCyclesId)) / 1e9;
   }
 
   return EXIT_SUCCESS;

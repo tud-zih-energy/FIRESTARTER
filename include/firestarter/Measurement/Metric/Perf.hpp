@@ -45,7 +45,7 @@ struct PerfMetricData {
   inline static struct ReadFormat Last;
   static auto fini() -> int32_t;
   static auto init() -> int32_t;
-  static auto valueFromId(struct ReadFormat* Values, uint64_t Id) -> uint64_t;
+  static auto valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t;
   static auto getReading(double* IpcValue, double* FreqValue) -> int32_t;
   static auto getReadingIpc(double* Value) -> int32_t;
   static auto getReadingFreq(double* Value) -> int32_t;
