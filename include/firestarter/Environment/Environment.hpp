@@ -40,7 +40,6 @@ public:
   void setCpuAffinity(unsigned Thread) const;
   void printThreadSummary();
 
-  virtual void evaluateFunctions() = 0;
   virtual void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) = 0;
   virtual void selectInstructionGroups(std::string Groups) = 0;
   virtual void printAvailableInstructionGroups() = 0;

@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class BulldozerConfig final : public X86PlatformConfig {
 public:
-  BulldozerConfig()
+  BulldozerConfig() noexcept
       : X86PlatformConfig("BLD_OPTERON", 21, {1, 2, 3}, {1}, 0, {16384, 1048576, 786432}, 104857600, 1536,
-                          std::make_unique<payload::FMA4Payload>()) {}
+                          std::make_shared<payload::FMA4Payload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

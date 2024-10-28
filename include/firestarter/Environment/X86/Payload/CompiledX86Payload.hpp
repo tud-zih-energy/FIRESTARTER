@@ -24,6 +24,7 @@
 #include "asmjit/core/jitruntime.h"
 #include "firestarter/Environment/Payload/Payload.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include <memory>
 
 namespace firestarter::environment::x86::payload {
 
@@ -47,15 +48,15 @@ public:
   CompiledX86Payload() = delete;
   ~CompiledX86Payload() override = default;
 
-  [[nodiscard]] static auto create(environment::payload::PayloadStats Stats, asmjit::CodeHolder& Code,
-                                   std::unique_ptr<environment::payload::Payload>&& PayloadPtr) -> UniquePtr {
+  template <class DerivedPayload>
+  [[nodiscard]] static auto create(environment::payload::PayloadStats Stats, asmjit::CodeHolder& Code) -> UniquePtr {
     HighLoadFunctionPtr HighLoadFunction{};
     const auto Err = Runtime.add(&HighLoadFunction, &Code);
     if (Err) {
       workerLog::error() << "Asmjit adding Assembler to JitRuntime failed";
     }
 
-    return {new CompiledX86Payload(Stats, std::move(PayloadPtr), HighLoadFunction), deleter};
+    return {new CompiledX86Payload(Stats, std::move(std::make_unique<DerivedPayload>()), HighLoadFunction), deleter};
   }
 };
 

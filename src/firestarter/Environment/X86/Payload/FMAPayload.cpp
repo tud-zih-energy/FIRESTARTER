@@ -399,7 +399,7 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
 
   Cb.finalize();
 
-  auto CompiledPayloadPtr = CompiledX86Payload::create(Stats, Code, clone());
+  auto CompiledPayloadPtr = CompiledX86Payload::create<FMAPayload>(Stats, Code);
 
   // skip if we could not determine cache size
   if (L1iCacheSize != 0) {

@@ -41,7 +41,7 @@ public:
   X86PlatformConfig(std::string Name, unsigned Family, std::initializer_list<unsigned> Models,
                     std::initializer_list<unsigned> Threads, unsigned InstructionCacheSize,
                     std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBuffersize, unsigned Lines,
-                    std::unique_ptr<payload::X86Payload>&& Payload)
+                    std::shared_ptr<payload::X86Payload>&& Payload) noexcept
       : PlatformConfig(std::move(Name), Threads, InstructionCacheSize, DataCacheBufferSize, RamBuffersize, Lines,
                        std::move(Payload))
       , Family(Family)

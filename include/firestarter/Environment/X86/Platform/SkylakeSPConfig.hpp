@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {
 public:
-  SkylakeSPConfig()
+  SkylakeSPConfig() noexcept
       : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0, {32768, 1048576, 1441792}, 1048576000, 1536,
-                          std::make_unique<payload::AVX512Payload>()) {}
+                          std::make_shared<payload::AVX512Payload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},

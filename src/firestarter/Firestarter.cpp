@@ -57,8 +57,6 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
                                 std::to_string(Environment->requestedNumThreads()) + "\n");
   }
 
-  Environment->evaluateFunctions();
-
   if (Cfg.PrintFunctionSummary) {
     Environment->printFunctionSummary();
     std::quick_exit(EXIT_SUCCESS);

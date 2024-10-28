@@ -28,9 +28,9 @@
 namespace firestarter::environment::x86::platform {
 class SandyBridgeEPConfig final : public X86PlatformConfig {
 public:
-  SandyBridgeEPConfig()
+  SandyBridgeEPConfig() noexcept
       : X86PlatformConfig("SNB_XEONEP", 6, {45, 62}, {1, 2}, 0, {32768, 262144, 2621440}, 104857600, 1536,
-                          std::make_unique<payload::AVXPayload>()) {}
+                          std::make_shared<payload::AVXPayload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>(

@@ -361,7 +361,7 @@ auto AVX512Payload::compilePayload(std::vector<std::pair<std::string, unsigned>>
 
   Cb.finalize();
 
-  auto CompiledPayloadPtr = CompiledX86Payload::create(Stats, Code, clone());
+  auto CompiledPayloadPtr = CompiledX86Payload::create<AVX512Payload>(Stats, Code);
 
   // skip if we could not determine cache size
   if (L1iCacheSize != 0) {

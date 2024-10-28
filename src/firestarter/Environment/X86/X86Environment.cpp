@@ -28,17 +28,6 @@
 
 namespace firestarter::environment::x86 {
 
-void X86Environment::evaluateFunctions() {
-  for (const auto& Ctor : PlatformConfigsCtor) {
-    // add asmjit for model and family detection
-    PlatformConfigs.emplace_back(Ctor());
-  }
-
-  for (const auto& Ctor : FallbackPlatformConfigsCtor) {
-    FallbackPlatformConfigs.emplace_back(Ctor());
-  }
-}
-
 void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::string DefaultPayloadName;
@@ -59,13 +48,13 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
         }
         // found function
         SelectedConfig =
-            new ::firestarter::environment::platform::RuntimeConfig(*Config, thread, topology().instructionCacheSize());
+            new ::firestarter::environment::platform::RuntimeConfig(Config, thread, topology().instructionCacheSize());
         return;
       }
       // default function
       if (0 == FunctionId && Config->isDefault(topology())) {
         if (thread == topology().numThreadsPerCore()) {
-          SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, thread,
+          SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(Config, thread,
                                                                                    topology().instructionCacheSize());
           return;
         }
@@ -104,7 +93,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
           SelectedThread = Config->getThreadMap().begin()->first;
           SelectedFunctionName = Config->getThreadMap().begin()->second;
         }
-        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(*Config, SelectedThread,
+        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(Config, SelectedThread,
                                                                                  topology().instructionCacheSize());
         log::warn() << "Using function " << SelectedFunctionName << " as fallback.\n"
                     << "You can use the parameter --function to try other "

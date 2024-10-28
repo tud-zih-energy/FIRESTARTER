@@ -37,10 +37,6 @@ public:
 
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
 
-  [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<AVXPayload>();
-  };
-
 private:
   void init(double* MemoryAddr, uint64_t BufferSize) const override;
 

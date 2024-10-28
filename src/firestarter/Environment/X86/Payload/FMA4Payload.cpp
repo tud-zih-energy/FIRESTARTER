@@ -364,7 +364,7 @@ auto FMA4Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
 
   Cb.finalize();
 
-  auto CompiledPayloadPtr = CompiledX86Payload::create(Stats, Code, clone());
+  auto CompiledPayloadPtr = CompiledX86Payload::create<FMA4Payload>(Stats, Code);
 
   // skip if we could not determine cache size
   if (L1iCacheSize != 0) {

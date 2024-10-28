@@ -119,7 +119,7 @@ protected:
 public:
   Payload() = delete;
 
-  Payload(std::string Name, unsigned RegisterSize, unsigned RegisterCount)
+  Payload(std::string Name, unsigned RegisterSize, unsigned RegisterCount) noexcept
       : Name(std::move(Name))
       , RegisterSize(RegisterSize)
       , RegisterCount(RegisterCount) {}
@@ -142,8 +142,6 @@ public:
                                             unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
                                             bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
-
-  [[nodiscard]] virtual auto clone() const -> std::unique_ptr<Payload> = 0;
 };
 
 } // namespace firestarter::environment::payload

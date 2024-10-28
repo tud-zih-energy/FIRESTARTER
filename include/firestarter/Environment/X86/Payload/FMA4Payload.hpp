@@ -27,7 +27,7 @@ namespace firestarter::environment::x86::payload {
 
 class FMA4Payload final : public X86Payload {
 public:
-  FMA4Payload()
+  FMA4Payload() noexcept
       : X86Payload({asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA4}, "FMA4", 4, 16) {}
 
   [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
@@ -39,10 +39,6 @@ public:
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> override;
 
   void init(double* MemoryAddr, uint64_t BufferSize) const override;
-
-  [[nodiscard]] auto clone() const -> std::unique_ptr<firestarter::environment::payload::Payload> override {
-    return std::make_unique<FMA4Payload>();
-  };
 
 private:
   const std::map<std::string, unsigned> InstructionFlops = {

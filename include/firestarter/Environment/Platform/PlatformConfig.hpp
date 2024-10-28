@@ -46,7 +46,7 @@ public:
 
   PlatformConfig(std::string Name, std::list<unsigned> Threads, unsigned InstructionCacheSize,
                  std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBufferSize, unsigned Lines,
-                 std::shared_ptr<payload::Payload>&& Payload)
+                 std::shared_ptr<payload::Payload>&& Payload) noexcept
       : Name(std::move(Name))
       , Threads(std::move(Threads))
       , Payload(std::move(Payload))
@@ -54,6 +54,7 @@ public:
       , DataCacheBufferSize(DataCacheBufferSize)
       , RamBufferSize(RamBufferSize)
       , Lines(Lines) {}
+
   virtual ~PlatformConfig() = default;
 
   [[nodiscard]] auto name() const -> const std::string& { return Name; }

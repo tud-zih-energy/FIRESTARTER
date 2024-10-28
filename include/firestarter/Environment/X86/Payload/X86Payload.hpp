@@ -468,7 +468,7 @@ protected:
 
 public:
   X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
-             unsigned RegisterSize, unsigned RegisterCount)
+             unsigned RegisterSize, unsigned RegisterCount) noexcept
       : Payload(std::move(Name), RegisterSize, RegisterCount)
       , FeatureRequests(FeatureRequests) {}
 

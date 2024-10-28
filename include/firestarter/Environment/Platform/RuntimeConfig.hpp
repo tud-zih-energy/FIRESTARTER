@@ -27,9 +27,12 @@
 
 namespace firestarter::environment::platform {
 
+// This is effectivly a wrapper around a PlatformConfig that allow overriding some vairables.
+// TODO: move these functions into the PlatformConfig and make them non const. The default PlatformConfig(s) shall be
+// const.
 class RuntimeConfig {
 private:
-  PlatformConfig const& PlatformConfigRef;
+  std::shared_ptr<PlatformConfig> SelectedPlatformConfig;
   unsigned Thread;
   std::vector<std::pair<std::string, unsigned>> PayloadSettings;
   unsigned InstructionCacheSize;
@@ -38,33 +41,24 @@ private:
   unsigned Lines;
 
 public:
-  RuntimeConfig(PlatformConfig const& PlatformConfigRef, unsigned Thread, unsigned DetectedInstructionCacheSize)
-      : PlatformConfigRef(PlatformConfigRef)
+  RuntimeConfig(const std::shared_ptr<PlatformConfig>& SelectedPlatformConfig, unsigned Thread,
+                unsigned DetectedInstructionCacheSize)
+      : SelectedPlatformConfig(SelectedPlatformConfig)
       , Thread(Thread)
-      , PayloadSettings(PlatformConfigRef.getDefaultPayloadSettings())
-      , InstructionCacheSize(PlatformConfigRef.instructionCacheSize())
-      , DataCacheBufferSize(PlatformConfigRef.dataCacheBufferSize())
-      , RamBufferSize(PlatformConfigRef.ramBufferSize())
-      , Lines(PlatformConfigRef.lines()) {
+      , PayloadSettings(SelectedPlatformConfig->getDefaultPayloadSettings())
+      , InstructionCacheSize(SelectedPlatformConfig->instructionCacheSize())
+      , DataCacheBufferSize(SelectedPlatformConfig->dataCacheBufferSize())
+      , RamBufferSize(SelectedPlatformConfig->ramBufferSize())
+      , Lines(SelectedPlatformConfig->lines()) {
     if (DetectedInstructionCacheSize != 0) {
       this->InstructionCacheSize = DetectedInstructionCacheSize;
     }
   };
 
-  // RuntimeConfig(const RuntimeConfig& Other)
-  //     : PlatformConfigRef(Other.platformConfig())
-  //     , Payload(Other.platformConfig().payload().clone())
-  //     , Thread(Other.thread())
-  //     , PayloadSettings(Other.payloadSettings())
-  //     , InstructionCacheSize(Other.instructionCacheSize())
-  //     , DataCacheBufferSize(Other.dataCacheBufferSize())
-  //     , RamBufferSize(Other.ramBufferSize())
-  //     , Lines(Other.lines()) {}
-
   ~RuntimeConfig() = default;
 
-  [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return PlatformConfigRef; }
-  [[nodiscard]] auto payload() const -> const payload::Payload& { return PlatformConfigRef.payload(); }
+  [[nodiscard]] auto platformConfig() const -> PlatformConfig const& { return *SelectedPlatformConfig; }
+  [[nodiscard]] auto payload() const -> const payload::Payload& { return SelectedPlatformConfig->payload(); }
   [[nodiscard]] auto thread() const -> unsigned { return Thread; }
   [[nodiscard]] auto payloadSettings() const -> const std::vector<std::pair<std::string, unsigned>>& {
     return PayloadSettings;

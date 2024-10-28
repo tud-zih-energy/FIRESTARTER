@@ -27,9 +27,9 @@
 namespace firestarter::environment::x86::platform {
 class NehalemConfig final : public X86PlatformConfig {
 public:
-  NehalemConfig()
+  NehalemConfig() noexcept
       : X86PlatformConfig("NHM_COREI", 6, {30, 37, 23}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536,
-                          std::make_unique<payload::SSE2Payload>()) {}
+                          std::make_shared<payload::SSE2Payload>()) {}
 
   [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
     return std::vector<std::pair<std::string, unsigned>>({{"RAM_P", 1}, {"L1_LS", 70}, {"REG", 2}});
