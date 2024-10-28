@@ -59,14 +59,14 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   if (Cfg.PrintFunctionSummary) {
     Environment->printFunctionSummary();
-    std::quick_exit(EXIT_SUCCESS);
+    safeExit(EXIT_SUCCESS);
   }
 
   Environment->selectFunction(Cfg.FunctionId, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
     Environment->printAvailableInstructionGroups();
-    std::quick_exit(EXIT_SUCCESS);
+    safeExit(EXIT_SUCCESS);
   }
 
   if (!Cfg.InstructionGroups.empty()) {
@@ -84,7 +84,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       if (Cfg.ListMetrics) {
         log::info() << MeasurementWorker->availableMetrics();
-        std::quick_exit(EXIT_SUCCESS);
+        safeExit(EXIT_SUCCESS);
       }
 
       // init all metrics

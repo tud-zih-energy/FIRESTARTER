@@ -235,17 +235,17 @@ Config::Config(int Argc, const char** Argv)
     }
 
     if (static_cast<bool>(Options.count("version"))) {
-      std::quick_exit(EXIT_SUCCESS);
+      safeExit(EXIT_SUCCESS);
     }
 
     if (static_cast<bool>(Options.count("copyright"))) {
       printCopyright();
-      std::quick_exit(EXIT_SUCCESS);
+      safeExit(EXIT_SUCCESS);
     }
 
     if (static_cast<bool>(Options.count("warranty"))) {
       printWarranty();
-      std::quick_exit(EXIT_SUCCESS);
+      safeExit(EXIT_SUCCESS);
     }
 
     firestarter::log::info() << "This program comes with ABSOLUTELY NO WARRANTY; for details run `" << ExecutableName
@@ -257,7 +257,7 @@ Config::Config(int Argc, const char** Argv)
       auto Section = Options["help"].as<std::string>();
 
       printHelp(Parser, Section);
-      std::quick_exit(EXIT_SUCCESS);
+      safeExit(EXIT_SUCCESS);
     }
 
     Timeout = std::chrono::seconds(Options["timeout"].as<unsigned>());

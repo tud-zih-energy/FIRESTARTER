@@ -22,6 +22,7 @@
 #pragma once
 
 #include "FirstWorkerThreadFilter.hpp"
+#include "firestarter/SafeExit.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <nitro/log/attribute/message.hpp>
@@ -55,7 +56,7 @@ public:
 
     // Exit on error or fatal
     if (Severity == nitro::log::severity_level::error || Severity == nitro::log::severity_level::fatal) {
-      std::quick_exit(EXIT_FAILURE);
+      safeExit(EXIT_FAILURE);
     }
   }
 };
