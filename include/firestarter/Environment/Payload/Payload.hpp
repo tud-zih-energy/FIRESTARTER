@@ -23,6 +23,7 @@
 
 #include "firestarter/Constants.hpp"
 #include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/Payload/PayloadSettings.hpp"
 #include "firestarter/Environment/Payload/PayloadStats.hpp"
 #include <chrono>
 #include <list>
@@ -106,11 +107,11 @@ protected:
   };
 
   [[nodiscard]] static auto getL2LoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                           unsigned Size, unsigned Threads) -> unsigned;
+                                           unsigned Size) -> unsigned;
   [[nodiscard]] static auto getL3LoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                           unsigned Size, unsigned Threads) -> unsigned;
+                                           unsigned Size) -> unsigned;
   [[nodiscard]] static auto getRAMLoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                            unsigned Size, unsigned Threads) -> unsigned;
+                                            unsigned Size) -> unsigned;
 
   virtual void init(double* MemoryAddr, uint64_t BufferSize) const = 0;
 
@@ -136,10 +137,7 @@ public:
 
   [[nodiscard]] virtual auto isAvailable(const CPUTopology*) const -> bool = 0;
 
-  [[nodiscard]] virtual auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
-                                            unsigned InstructionCacheSize,
-                                            std::list<unsigned> const& DataCacheBufferSize, unsigned RamBufferSize,
-                                            unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+  [[nodiscard]] virtual auto compilePayload(const PayloadSettings& Settings, bool DumpRegisters,
                                             bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
 };

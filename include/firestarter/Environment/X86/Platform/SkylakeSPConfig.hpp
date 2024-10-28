@@ -28,19 +28,17 @@ namespace firestarter::environment::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {
 public:
   SkylakeSPConfig() noexcept
-      : X86PlatformConfig("SKL_XEONEP", 6, {85}, {1, 2}, 0, {32768, 1048576, 1441792}, 1048576000, 1536,
-                          std::make_shared<payload::AVX512Payload>()) {}
-
-  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
-                                                          {"RAM_P", 1},
-                                                          {"L3_S", 1},
-                                                          {"L3_P", 1},
-                                                          {"L2_S", 4},
-                                                          {"L2_L", 70},
-                                                          {"L1_S", 0},
-                                                          {"L1_L", 40},
-                                                          {"REG", 140}});
-  }
+      : X86PlatformConfig("SKL_XEONEP", 6, {85},
+                          environment::payload::PayloadSettings({1, 2}, {32768, 1048576, 1441792}, 1048576000, 1536,
+                                                                {{"RAM_S", 3},
+                                                                 {"RAM_P", 1},
+                                                                 {"L3_S", 1},
+                                                                 {"L3_P", 1},
+                                                                 {"L2_S", 4},
+                                                                 {"L2_L", 70},
+                                                                 {"L1_S", 0},
+                                                                 {"L1_L", 40},
+                                                                 {"REG", 140}}),
+                          std::make_shared<const payload::AVX512Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

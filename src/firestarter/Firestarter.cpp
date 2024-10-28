@@ -151,7 +151,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, Environment->selectedConfig().payloadItems());
+          Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
 
       Population = firestarter::optimizer::Population(std::move(Prob));
 
@@ -218,7 +218,7 @@ void Firestarter::mainThread() {
       // wait here until optimizer thread terminates
       Firestarter::Optimizer->join();
 
-      auto PayloadItems = Environment->selectedConfig().payloadItems();
+      auto PayloadItems = Environment->config().settings().instructionGroupItems();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 

@@ -73,33 +73,30 @@ auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> con
 }
 
 auto Payload::getL2LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                             const unsigned Size, const unsigned Threads) -> unsigned {
+                             const unsigned Size) -> unsigned {
   if (getL2SequenceCount(Sequence) == 0) {
     return 0;
   }
   return static_cast<unsigned>(
-      (0.8 * Size / 64 / Threads /
-       (getL2SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
+      (0.8 * Size / 64 / (getL2SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines))));
 }
 
 auto Payload::getL3LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                             const unsigned Size, const unsigned Threads) -> unsigned {
+                             const unsigned Size) -> unsigned {
   if (getL3SequenceCount(Sequence) == 0) {
     return 0;
   }
   return static_cast<unsigned>(
-      (0.8 * Size / 64 / Threads /
-       (getL3SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
+      (0.8 * Size / 64 / (getL3SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines))));
 }
 
 auto Payload::getRAMLoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                              const unsigned Size, const unsigned Threads) -> unsigned {
+                              const unsigned Size) -> unsigned {
   if (getRAMSequenceCount(Sequence) == 0) {
     return 0;
   }
   return static_cast<unsigned>(
-      (1.0 * Size / 64 / Threads /
-       (getRAMSequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Threads))));
+      (1.0 * Size / 64 / (getRAMSequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines))));
 }
 
 }; // namespace firestarter::environment::payload

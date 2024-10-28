@@ -25,9 +25,7 @@
 
 namespace firestarter::environment::x86::payload {
 
-auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
-                                 unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
-                                 unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+auto SSE2Payload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
                                  bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Mm = asmjit::x86::Mm;
@@ -37,8 +35,8 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
-  auto Sequence = generateSequence(Proportion);
-  auto Repetitions = getNumberOfSequenceRepetitions(Sequence, NumberOfLines / Thread);
+  auto Sequence = generateSequence(Settings.instructionGroups());
+  auto Repetitions = getNumberOfSequenceRepetitions(Sequence, Settings.linesPerThread());
 
   // compute count of flops and memory access for performance report
   environment::payload::PayloadStats Stats;
@@ -64,19 +62,20 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   Stats.Instructions = Repetitions * Sequence.size() * 2 + 4;
 
   // calculate the buffer sizes
-  const auto L1iCacheSize = InstructionCacheSize / Thread;
-  auto DataCacheBufferSizeIterator = DataCacheBufferSize.begin();
-  const auto L1Size = *DataCacheBufferSizeIterator / Thread;
+  const auto L1iCacheSize = Settings.instructionCacheSizePerThread();
+  const auto DataCacheBufferSizes = Settings.dataCacheBufferSizePerThread();
+  auto DataCacheBufferSizeIterator = DataCacheBufferSizes.begin();
+  const auto L1Size = *DataCacheBufferSizeIterator;
   std::advance(DataCacheBufferSizeIterator, 1);
-  const auto L2Size = *DataCacheBufferSizeIterator / Thread;
+  const auto L2Size = *DataCacheBufferSizeIterator;
   std::advance(DataCacheBufferSizeIterator, 1);
-  const auto L3Size = *DataCacheBufferSizeIterator / Thread;
-  const auto RamSize = RamBufferSize / Thread;
+  const auto L3Size = *DataCacheBufferSizeIterator;
+  const auto RamSize = Settings.ramBufferSizePerThread();
 
   // calculate the reset counters for the buffers
-  const auto L2LoopCount = getL2LoopCount(Sequence, NumberOfLines, L2Size * Thread, Thread);
-  const auto L3LoopCount = getL3LoopCount(Sequence, NumberOfLines, L3Size * Thread, Thread);
-  const auto RamLoopCount = getRAMLoopCount(Sequence, NumberOfLines, RamSize * Thread, Thread);
+  const auto L2LoopCount = getL2LoopCount(Sequence, Settings.linesPerThread(), L2Size);
+  const auto L3LoopCount = getL3LoopCount(Sequence, Settings.linesPerThread(), L3Size);
+  const auto RamLoopCount = getRAMLoopCount(Sequence, Settings.linesPerThread(), RamSize);
 
   asmjit::CodeHolder Code;
   Code.init(asmjit::Environment::host());
@@ -386,15 +385,15 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
   auto CompiledPayloadPtr = CompiledX86Payload::create<SSE2Payload>(Stats, Code);
 
   // skip if we could not determine cache size
-  if (L1iCacheSize != 0) {
+  if (L1iCacheSize) {
     auto LoopSize = Code.labelOffset(FunctionExit) - Code.labelOffset(Loop);
-    auto InstructionCachePercentage = 100 * LoopSize / L1iCacheSize;
+    auto InstructionCachePercentage = 100 * LoopSize / *L1iCacheSize;
 
-    if (LoopSize > L1iCacheSize) {
+    if (LoopSize > *L1iCacheSize) {
       workerLog::warn() << "Work-loop is bigger than the L1i-Cache.";
     }
 
-    workerLog::trace() << "Using " << LoopSize << " of " << L1iCacheSize << " Bytes (" << InstructionCachePercentage
+    workerLog::trace() << "Using " << LoopSize << " of " << *L1iCacheSize << " Bytes (" << InstructionCachePercentage
                        << "%) from the L1i-Cache for the work-loop.";
     workerLog::trace() << "Sequence size: " << Sequence.size();
     workerLog::trace() << "Repetition count: " << Repetitions;

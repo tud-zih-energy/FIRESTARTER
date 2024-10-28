@@ -22,13 +22,7 @@
 #pragma once
 
 #include "../../Platform/PlatformConfig.hpp"
-#include "../Payload/X86Payload.hpp"
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/X86/X86CPUTopology.hpp"
-#include <algorithm>
-#include <memory>
-#include <string>
-#include <vector> // IWYU pragma: keep
 
 namespace firestarter::environment::x86::platform {
 
@@ -38,16 +32,32 @@ private:
   std::list<unsigned> Models;
 
 public:
-  X86PlatformConfig(std::string Name, unsigned Family, std::initializer_list<unsigned> Models,
-                    std::initializer_list<unsigned> Threads, unsigned InstructionCacheSize,
-                    std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBuffersize, unsigned Lines,
-                    std::shared_ptr<payload::X86Payload>&& Payload) noexcept
-      : PlatformConfig(std::move(Name), Threads, InstructionCacheSize, DataCacheBufferSize, RamBuffersize, Lines,
-                       std::move(Payload))
+  X86PlatformConfig(std::string Name, unsigned Family, std::list<unsigned>&& Models,
+                    environment::payload::PayloadSettings&& Settings,
+                    std::shared_ptr<const environment::payload::Payload>&& Payload) noexcept
+      : PlatformConfig(std::move(Name), std::move(Settings), std::move(Payload))
       , Family(Family)
-      , Models(Models) {}
+      , Models(std::move(Models)) {}
 
   [[nodiscard]] auto isDefault(const X86CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+
+  /// Clone a the platform config.
+  [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> final {
+    auto Ptr = std::make_unique<X86PlatformConfig>(name(), Family, std::list<unsigned>(Models),
+                                                   environment::payload::PayloadSettings(settings()),
+                                                   std::shared_ptr(payload()));
+    return Ptr;
+  }
+
+  /// Clone a concreate platform config.
+  /// \arg InstructionCacheSize The detected size of the instructions cache.
+  /// \arg ThreadPerCore The number of threads per pysical CPU.
+  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
+      -> std::unique_ptr<PlatformConfig> final {
+    auto Ptr = clone();
+    Ptr->settings().concretize(InstructionCacheSize, ThreadsPerCore);
+    return Ptr;
+  }
 
 private:
   [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {

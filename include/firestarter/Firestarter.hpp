@@ -104,7 +104,7 @@ private:
     for (auto& Thread : LoadThreads) {
       auto Td = Thread.second;
 
-      Td->config().setPayloadSettings(Setting);
+      Td->config().settings().selectInstructionGroups(Setting);
     }
 
     signalLoadWorkers(LoadThreadState::ThreadSwitch, SwitchLoad::func);

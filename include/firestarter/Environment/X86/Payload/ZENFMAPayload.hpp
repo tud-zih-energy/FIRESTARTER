@@ -29,9 +29,7 @@ public:
   ZENFMAPayload() noexcept
       : X86Payload({asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA}, "ZENFMA", 4, 16) {}
 
-  [[nodiscard]] auto compilePayload(std::vector<std::pair<std::string, unsigned>> const& Proportion,
-                                    unsigned InstructionCacheSize, std::list<unsigned> const& DataCacheBufferSize,
-                                    unsigned RamBufferSize, unsigned Thread, unsigned NumberOfLines, bool DumpRegisters,
+  [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
                                     bool ErrorDetection) const
       -> environment::payload::CompiledPayload::UniquePtr override;
 

@@ -21,9 +21,6 @@
 
 #pragma once
 
-#include <asmjit/asmjit.h>
-#include <memory>
-
 #include "../Environment.hpp"
 #include "Platform/BulldozerConfig.hpp"
 #include "Platform/HaswellConfig.hpp"
@@ -38,7 +35,6 @@
 #include "Platform/SkylakeConfig.hpp"
 #include "Platform/SkylakeSPConfig.hpp"
 #include "Platform/X86PlatformConfig.hpp"
-#include "X86CPUTopology.hpp"
 
 namespace firestarter::environment::x86 {
 

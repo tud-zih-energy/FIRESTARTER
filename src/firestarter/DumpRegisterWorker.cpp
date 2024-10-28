@@ -70,8 +70,8 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
   pthread_setname_np(pthread_self(), "DumpRegWorker");
 #endif
 
-  const auto RegisterCount = Data->LoadWorkerDataPtr->config().payload().registerCount();
-  const auto RegisterSize = Data->LoadWorkerDataPtr->config().payload().registerSize();
+  const auto RegisterCount = Data->LoadWorkerDataPtr->config().payload()->registerCount();
+  const auto RegisterSize = Data->LoadWorkerDataPtr->config().payload()->registerSize();
   const auto Offset = RegisterCount * RegisterSize;
   const std::string RegisterPrefix = registerNameBySize(RegisterSize);
 

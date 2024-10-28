@@ -30,16 +30,17 @@ namespace firestarter::environment::x86 {
 
 void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) {
   unsigned Id = 1;
-  std::string DefaultPayloadName;
+  std::optional<std::string> DefaultPayloadName;
 
   // if functionId is 0 get the default or fallback
-  for (const auto& Config : PlatformConfigs) {
-    for (auto const& [thread, functionName] : Config->getThreadMap()) {
+  for (const auto& PlatformConfigPtr : PlatformConfigs) {
+    for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
       // the selected function
       if (Id == FunctionId) {
-        if (!Config->isAvailable(Topology.get())) {
-          const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" + functionName + "\") requires " +
-                                   Config->payload().name() + ", which is not supported by the processor.";
+        if (!PlatformConfigPtr->isAvailable(Topology.get())) {
+          const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
+                                   PlatformConfigPtr->functionName(ThreadsPerCore) + "\") requires " +
+                                   PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
           if (AllowUnavailablePayload) {
             log::error() << ErrorString;
           } else {
@@ -47,18 +48,16 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
           }
         }
         // found function
-        SelectedConfig =
-            new ::firestarter::environment::platform::RuntimeConfig(Config, thread, topology().instructionCacheSize());
+        Config = PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore);
         return;
       }
       // default function
-      if (0 == FunctionId && Config->isDefault(topology())) {
-        if (thread == topology().numThreadsPerCore()) {
-          SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(Config, thread,
-                                                                                   topology().instructionCacheSize());
+      if (0 == FunctionId && PlatformConfigPtr->isDefault(topology())) {
+        if (ThreadsPerCore == topology().numThreadsPerCore()) {
+          Config = PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore);
           return;
         }
-        DefaultPayloadName = Config->payload().name();
+        DefaultPayloadName = PlatformConfigPtr->payload()->name();
       }
       Id++;
     }
@@ -67,10 +66,10 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
   // no default found
   // use fallback
   if (0 == FunctionId) {
-    if (!DefaultPayloadName.empty()) {
+    if (DefaultPayloadName) {
       // default payload available, but number of threads per core is not
       // supported
-      log::warn() << "No " << DefaultPayloadName << " code path for " << topology().numThreadsPerCore()
+      log::warn() << "No " << *DefaultPayloadName << " code path for " << topology().numThreadsPerCore()
                   << " threads per core!";
     }
     log::warn() << topology().vendor() << " " << topology().model()
@@ -79,23 +78,22 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
 
     // loop over available implementation and check if they are marked as
     // fallback
-    for (const auto& Config : FallbackPlatformConfigs) {
-      if (Config->isAvailable(Topology.get())) {
-        auto SelectedThread = 0U;
-        auto SelectedFunctionName = std::string("");
-        for (auto const& [Thread, FunctionName] : Config->getThreadMap()) {
-          if (Thread == topology().numThreadsPerCore()) {
-            SelectedThread = Thread;
-            SelectedFunctionName = FunctionName;
+    for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
+      if (FallbackPlatformConfigPtr->isAvailable(Topology.get())) {
+        std::optional<unsigned> SelectedThreadsPerCore;
+        // find the fallback implementation with the correct thread per core count
+        for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
+          if (ThreadsPerCore == topology().numThreadsPerCore()) {
+            SelectedThreadsPerCore = ThreadsPerCore;
           }
         }
-        if (SelectedThread == 0) {
-          SelectedThread = Config->getThreadMap().begin()->first;
-          SelectedFunctionName = Config->getThreadMap().begin()->second;
+        // Otherwise select the first available thread per core count
+        if (!SelectedThreadsPerCore) {
+          SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
         }
-        SelectedConfig = new ::firestarter::environment::platform::RuntimeConfig(Config, SelectedThread,
-                                                                                 topology().instructionCacheSize());
-        log::warn() << "Using function " << SelectedFunctionName << " as fallback.\n"
+        Config = FallbackPlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), *SelectedThreadsPerCore);
+        log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
+                    << " as fallback.\n"
                     << "You can use the parameter --function to try other "
                        "functions.";
         return;
@@ -113,7 +111,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
 void X86Environment::selectInstructionGroups(std::string Groups) {
   const auto Delimiter = ',';
   const std::regex Re("^(\\w+):(\\d+)$");
-  const auto AvailableInstructionGroups = selectedConfig().platformConfig().payload().getAvailableInstructions();
+  const auto AvailableInstructionGroups = config().payload()->getAvailableInstructions();
 
   std::stringstream Ss(Groups);
   std::vector<std::pair<std::string, unsigned>> PayloadSettings = {};
@@ -130,7 +128,7 @@ void X86Environment::selectInstructionGroups(std::string Groups) {
                                     "\n       --run-instruction-groups format: multiple INST:VAL "
                                     "pairs comma-seperated");
       }
-      int Num = std::stoul(M[2].str());
+      auto Num = std::stoul(M[2].str());
       if (Num == 0) {
         throw std::invalid_argument("instruction-group VAL may not contain number 0"
                                     "\n       --run-instruction-groups format: multiple INST:VAL "
@@ -144,7 +142,7 @@ void X86Environment::selectInstructionGroups(std::string Groups) {
     }
   }
 
-  selectedConfig().setPayloadSettings(PayloadSettings);
+  config().settings().selectInstructionGroups(PayloadSettings);
 
   log::info() << "  Running custom instruction group: " << Groups;
 }
@@ -152,7 +150,7 @@ void X86Environment::selectInstructionGroups(std::string Groups) {
 void X86Environment::printAvailableInstructionGroups() {
   std::stringstream Ss;
 
-  for (auto const& Item : selectedConfig().platformConfig().payload().getAvailableInstructions()) {
+  for (auto const& Item : config().payload()->getAvailableInstructions()) {
     Ss << Item << ",";
   }
 
@@ -161,14 +159,13 @@ void X86Environment::printAvailableInstructionGroups() {
     S.pop_back();
   }
 
-  log::info() << " available instruction-groups for payload " << selectedConfig().platformConfig().payload().name()
-              << ":\n"
+  log::info() << " available instruction-groups for payload " << config().payload()->name() << ":\n"
               << "  " << S;
 }
 
-void X86Environment::setLineCount(unsigned LineCount) { selectedConfig().setLineCount(LineCount); }
+void X86Environment::setLineCount(unsigned LineCount) { config().settings().setLineCount(LineCount); }
 
-void X86Environment::printSelectedCodePathSummary() { selectedConfig().printCodePathSummary(); }
+void X86Environment::printSelectedCodePathSummary() { config().printCodePathSummary(); }
 
 void X86Environment::printFunctionSummary() {
   log::info() << " available load-functions:\n"
@@ -182,14 +179,14 @@ void X86Environment::printFunctionSummary() {
   auto Id = 1U;
 
   for (auto const& Config : PlatformConfigs) {
-    for (auto const& [thread, functionName] : Config->getThreadMap()) {
+    for (auto const& ThreadsPerCore : Config->settings().threads()) {
       const char* Available = Config->isAvailable(Topology.get()) ? "yes" : "no";
       const char* Fmt = "  %4u | %-30s | %-24s | %s";
-      int Sz = std::snprintf(nullptr, 0, Fmt, Id, functionName.c_str(), Available,
-                             Config->getDefaultPayloadSettingsString().c_str());
+      const auto& FunctionName = Config->functionName(ThreadsPerCore);
+      const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();
+      int Sz = std::snprintf(nullptr, 0, Fmt, Id, FunctionName.c_str(), Available, InstructionGroupsString.c_str());
       std::vector<char> Buf(Sz + 1);
-      std::snprintf(Buf.data(), Buf.size(), Fmt, Id, functionName.c_str(), Available,
-                    Config->getDefaultPayloadSettingsString().c_str());
+      std::snprintf(Buf.data(), Buf.size(), Fmt, Id, FunctionName.c_str(), Available, InstructionGroupsString.c_str());
       log::info() << std::string(Buf.data());
       Id++;
     }

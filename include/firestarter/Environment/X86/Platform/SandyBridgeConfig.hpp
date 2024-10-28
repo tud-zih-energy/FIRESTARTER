@@ -28,12 +28,10 @@ namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
 public:
   SandyBridgeConfig() noexcept
-      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0, {32768, 262144, 1572864}, 104857600, 1536,
-                          std::make_shared<payload::AVXPayload>()) {}
-
-  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}});
-  }
+      : X86PlatformConfig("SNB_COREI", 6, {42, 58},
+                          environment::payload::PayloadSettings(
+                              {1, 2}, {32768, 262144, 1572864}, 104857600, 1536,
+                              {{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}),
+                          std::make_shared<const payload::AVXPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

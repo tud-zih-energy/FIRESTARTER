@@ -22,9 +22,10 @@
 #pragma once
 
 #include "CPUTopology.hpp"
-#include "Platform/RuntimeConfig.hpp"
+#include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace firestarter::environment {
@@ -34,7 +35,7 @@ public:
   Environment() = delete;
   explicit Environment(std::unique_ptr<CPUTopology>&& Topology)
       : Topology(std::move(Topology)) {}
-  virtual ~Environment() { delete SelectedConfig; }
+  virtual ~Environment() = default;
 
   void evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind);
   void setCpuAffinity(unsigned Thread) const;
@@ -47,9 +48,9 @@ public:
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  [[nodiscard]] auto selectedConfig() const -> platform::RuntimeConfig& {
-    assert(SelectedConfig != nullptr && "No RuntimeConfig selected");
-    return *SelectedConfig;
+  [[nodiscard]] auto config() const -> platform::PlatformConfig& {
+    assert(Config && "No PlatformConfig selected");
+    return *Config;
   }
 
   [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }
@@ -60,7 +61,7 @@ public:
   }
 
 protected:
-  platform::RuntimeConfig* SelectedConfig = nullptr;
+  std::unique_ptr<platform::PlatformConfig> Config;
   std::unique_ptr<CPUTopology> Topology;
 
 private:

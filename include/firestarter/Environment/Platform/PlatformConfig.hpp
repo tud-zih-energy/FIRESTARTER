@@ -23,78 +23,82 @@
 
 #include "../Payload/Payload.hpp"
 #include "firestarter/Environment/CPUTopology.hpp"
-#include <initializer_list>
-#include <map>
-#include <sstream>
-#include <string>
-#include <utility>
+#include "firestarter/Environment/Payload/PayloadSettings.hpp"
+#include "firestarter/Logging/Log.hpp"
 
 namespace firestarter::environment::platform {
 
 class PlatformConfig {
 private:
   std::string Name;
-  std::list<unsigned> Threads;
-  std::shared_ptr<payload::Payload> Payload;
-  unsigned InstructionCacheSize;
-  std::list<unsigned> DataCacheBufferSize;
-  unsigned RamBufferSize;
-  unsigned Lines;
+  payload::PayloadSettings Settings;
+  std::shared_ptr<const payload::Payload> Payload;
 
 public:
   PlatformConfig() = delete;
 
-  PlatformConfig(std::string Name, std::list<unsigned> Threads, unsigned InstructionCacheSize,
-                 std::initializer_list<unsigned> DataCacheBufferSize, unsigned RamBufferSize, unsigned Lines,
-                 std::shared_ptr<payload::Payload>&& Payload) noexcept
+  PlatformConfig(std::string Name, payload::PayloadSettings&& Settings,
+                 std::shared_ptr<const payload::Payload>&& Payload) noexcept
       : Name(std::move(Name))
-      , Threads(std::move(Threads))
-      , Payload(std::move(Payload))
-      , InstructionCacheSize(InstructionCacheSize)
-      , DataCacheBufferSize(DataCacheBufferSize)
-      , RamBufferSize(RamBufferSize)
-      , Lines(Lines) {}
+      , Settings(std::move(Settings))
+      , Payload(std::move(Payload)) {}
 
   virtual ~PlatformConfig() = default;
 
-  [[nodiscard]] auto name() const -> const std::string& { return Name; }
-  [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }
-  [[nodiscard]] auto dataCacheBufferSize() const -> const std::list<unsigned>& { return DataCacheBufferSize; }
-  [[nodiscard]] auto ramBufferSize() const -> unsigned { return RamBufferSize; }
-  [[nodiscard]] auto lines() const -> unsigned { return Lines; }
-  [[nodiscard]] auto payload() const -> payload::Payload const& { return *Payload; }
+  /// Getter for the name of the platform.
+  [[nodiscard]] auto name() const -> const auto& { return Name; }
+  /// Getter for the settings of the platform.
+  [[nodiscard]] auto settings() const -> const auto& { return Settings; }
+  /// Reference to the settings. This allows them to be overriden.
+  [[nodiscard]] auto settings() -> auto& { return Settings; }
+  /// Getter for the payload of the platform.
+  [[nodiscard]] auto payload() const -> const auto& { return Payload; }
 
-  [[nodiscard]] auto getThreadMap() const -> std::map<unsigned, std::string> {
-    std::map<unsigned, std::string> ThreadMap;
-
-    for (auto const& Thread : Threads) {
-      std::stringstream FunctionName;
-      FunctionName << "FUNC_" << name() << "_" << payload().name() << "_" << Thread << "T";
-      ThreadMap[Thread] = FunctionName.str();
-    }
-
-    return ThreadMap;
-  }
-
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool { return payload().isAvailable(Topology); }
+  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool { return payload()->isAvailable(Topology); }
 
   [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
 
-  [[nodiscard]] virtual auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> = 0;
+  /// Clone a the platform config.
+  [[nodiscard]] virtual auto clone() const -> std::unique_ptr<PlatformConfig> = 0;
 
-  [[nodiscard]] auto getDefaultPayloadSettingsString() const -> std::string {
-    std::stringstream Ss;
+  /// Clone a concreate platform config.
+  /// \arg InstructionCacheSize The detected size of the instructions cache.
+  /// \arg ThreadPerCore The number of threads per pysical CPU.
+  [[nodiscard]] virtual auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
+      -> std::unique_ptr<PlatformConfig> = 0;
 
-    for (auto const& [name, value] : this->getDefaultPayloadSettings()) {
-      Ss << name << ":" << value << ",";
+  /// The function name for this platform config given a specific thread per core count.
+  /// \arg ThreadsPerCore The number of threads per core.
+  /// \returns The name of the function (a platform name, payload name and a specific thread per core count)
+  [[nodiscard]] auto functionName(unsigned ThreadsPerCore) const -> std::string {
+    return "FUNC_" + Name + "_" + Payload->name() + "_" + std::to_string(ThreadsPerCore) + "T";
+  };
+
+  /// Get the concreate functions name.
+  [[nodiscard]] auto functionName() const -> std::string {
+    assert(Settings.isConcreate() && "Settings must be concreate for a concreate function name");
+    return functionName(Settings.thread());
+  };
+
+  void printCodePathSummary() const {
+    assert(Settings.isConcreate() && "Setting must be concreate to print the code path summary.");
+
+    log::info() << "\n"
+                << "  Taking " << Payload->name() << " path optimized for " << Name << " - " << Settings.thread()
+                << " thread(s) per core\n"
+                << "  Used buffersizes per thread:";
+
+    if (Settings.instructionCacheSizePerThread()) {
+      log::info() << "    - L1i-Cache: " << *Settings.instructionCacheSizePerThread() << " Bytes";
     }
 
-    auto Str = Ss.str();
-    if (!Str.empty()) {
-      Str.pop_back();
+    unsigned I = 1;
+    for (auto const& Bytes : Settings.dataCacheBufferSizePerThread()) {
+      log::info() << "    - L" << I << "d-Cache: " << Bytes << " Bytes";
+      I++;
     }
 
-    return Str;
+    log::info() << "    - Memory: " << Settings.ramBufferSizePerThread() << " Bytes";
   }
 };
 

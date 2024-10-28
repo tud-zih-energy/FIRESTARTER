@@ -28,12 +28,10 @@ namespace firestarter::environment::x86::platform {
 class HaswellEPConfig final : public X86PlatformConfig {
 public:
   HaswellEPConfig() noexcept
-      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79}, {1, 2}, 0, {32768, 262144, 2621440}, 104857600, 1536,
-                          std::make_shared<payload::FMAPayload>()) {}
-
-  [[nodiscard]] auto getDefaultPayloadSettings() const -> std::vector<std::pair<std::string, unsigned>> override {
-    return std::vector<std::pair<std::string, unsigned>>(
-        {{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}});
-  }
+      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79},
+                          environment::payload::PayloadSettings(
+                              {1, 2}, {32768, 262144, 2621440}, 104857600, 1536,
+                              {{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}}),
+                          std::make_shared<const payload::FMAPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

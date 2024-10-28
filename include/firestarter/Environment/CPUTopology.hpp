@@ -53,7 +53,7 @@ public:
   [[nodiscard]] virtual auto model() const -> std::string const& { return Model; }
 
   // get the size of the L1i-cache in bytes
-  [[nodiscard]] auto instructionCacheSize() const -> unsigned { return InstructionCacheSize; }
+  [[nodiscard]] auto instructionCacheSize() const -> const auto& { return InstructionCacheSize; }
 
   // return the cpu clockrate in Hz
   [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
@@ -83,7 +83,7 @@ private:
   unsigned NumPackages;
   std::string Architecture;
   std::string ProcessorName;
-  unsigned InstructionCacheSize = 0;
+  std::optional<unsigned> InstructionCacheSize;
   uint64_t Clockrate = 0;
   hwloc_topology_t Topology{};
 };

@@ -23,10 +23,10 @@
 
 #include "../../../Constants.hpp"          // IWYU pragma: keep
 #include "../../../DumpRegisterStruct.hpp" // IWYU pragma: keep
-#include "../../../LoadWorkerData.hpp"
-#include "../../../Logging/Log.hpp" // IWYU pragma: keep
+#include "../../../Logging/Log.hpp"        // IWYU pragma: keep
 #include "../../Payload/Payload.hpp"
 #include "../X86CPUTopology.hpp"
+#include "firestarter/LoadWorkerMemory.hpp"
 #include <asmjit/x86.h>
 #include <cassert>
 #include <cstdint>

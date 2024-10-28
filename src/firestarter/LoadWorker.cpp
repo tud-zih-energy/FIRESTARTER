@@ -79,12 +79,7 @@ void Firestarter::initLoadWorkers() {
       Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % NumThreads]);
     }
 
-    auto DataCacheSizeIt = Td->config().platformConfig().dataCacheBufferSize().begin();
-    auto RamBufferSize = Td->config().platformConfig().ramBufferSize();
-
-    Td->BuffersizeMem =
-        (*DataCacheSizeIt + *std::next(DataCacheSizeIt, 1) + *std::next(DataCacheSizeIt, 2) + RamBufferSize) /
-        Td->config().thread() / sizeof(uint64_t);
+    Td->BuffersizeMem = Td->config().settings().totalBufferSizePerThread() / sizeof(uint64_t);
 
     // create the thread
     std::thread T(Firestarter::loadThreadWorker, Td);
@@ -272,10 +267,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       Td->environment().setCpuAffinity(Td->id());
 
       // compile payload
-      Td->CompiledPayloadPtr = Td->config().payload().compilePayload(
-          Td->config().payloadSettings(), Td->config().instructionCacheSize(), Td->config().dataCacheBufferSize(),
-          Td->config().ramBufferSize(), Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
-          Td->ErrorDetection);
+      Td->CompiledPayloadPtr =
+          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -361,10 +354,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       break;
     case LoadThreadState::ThreadSwitch:
       // compile payload
-      Td->CompiledPayloadPtr = Td->config().payload().compilePayload(
-          Td->config().payloadSettings(), Td->config().instructionCacheSize(), Td->config().dataCacheBufferSize(),
-          Td->config().ramBufferSize(), Td->config().thread(), Td->config().lines(), Td->DumpRegisters,
-          Td->ErrorDetection);
+      Td->CompiledPayloadPtr =
+          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
 
       // call init function
       Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);

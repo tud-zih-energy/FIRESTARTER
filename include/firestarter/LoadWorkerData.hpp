@@ -21,79 +21,17 @@
 
 #pragma once
 
-#include "AlignedAlloc.hpp"
 #include "Constants.hpp"
-#include "DumpRegisterStruct.hpp"
 #include "Environment/Environment.hpp"
-#include "ErrorDetectionStruct.hpp"
-#include <array>
+#include "LoadWorkerMemory.hpp"
+#include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include <atomic>
 #include <cmath>
-#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <utility>
 
 namespace firestarter {
-
-/// This struct is used to allocate the memory for the high-load routine.
-struct LoadWorkerMemory {
-private:
-  LoadWorkerMemory() = default;
-  ~LoadWorkerMemory() = default;
-
-  /// Function to deallocate the memory for this struct to be used with unique_ptr.
-  /// \arg Ptr The pointer to the memory
-  static void deallocate(void* Ptr) {
-    static_cast<LoadWorkerMemory*>(Ptr)->~LoadWorkerMemory();
-    AlignedAlloc::free(Ptr);
-  }
-
-public:
-  using UniquePtr = std::unique_ptr<LoadWorkerMemory, void (*)(void*)>;
-
-  /// The extra variables that are before the memory used for the calculation in the high-load routine. They are used
-  /// for optional FIRESTARTER features where further communication between the high-load routine is needed e.g., for
-  /// error detection or dumping registers.
-  struct ExtraLoadWorkerVariables {
-    /// The data for the dump registers functionality.
-    DumpRegisterStruct Drs;
-    /// The data for the error detections functionality.
-    ErrorDetectionStruct Eds;
-  } ExtraVars;
-
-  /// A placeholder to extract the address of the memory region with dynamic size which is used for the calculation in
-  /// the high-load routine. Do not write or read to this type directly.
-  EightBytesType DoNotUseAddrMem;
-
-  /// This padding makes shure that we are aligned to a cache line. The allocated memory will most probably reach beyond
-  /// this array.
-  std::array<EightBytesType, 7> DoNotUsePadding;
-
-  /// Get the pointer to the start of the memory use for computations.
-  /// \returns the pointer to the memory.
-  [[nodiscard]] auto getMemoryAddress() -> auto{
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return reinterpret_cast<double*>(&DoNotUseAddrMem);
-  }
-
-  /// Get the offset to the memory which is used by the high-load functions
-  /// \returns the offset to the memory
-  [[nodiscard]] constexpr static auto getMemoryOffset() -> auto{ return offsetof(LoadWorkerMemory, DoNotUseAddrMem); }
-
-  /// Allocate the memory for the high-load thread on 64B cache line boundaries and return a unique_ptr.
-  /// \arg Bytes The number of bytes allocated for the array whoose start address is returned by the getMemoryAddress
-  /// function.
-  /// \returns A unique_ptr to the memory for the high-load thread.
-  [[nodiscard]] static auto allocate(const std::size_t Bytes) -> UniquePtr {
-    // Allocate the memory for the ExtraLoadWorkerVariables (which are 64B aligned) and the data for the high-load
-    // routine which may not be 64B aligned.
-    static_assert(sizeof(ExtraLoadWorkerVariables) % 64 == 0,
-                  "ExtraLoadWorkerVariables is not a multiple of 64B i.e., multiple cachelines.");
-    auto* Ptr = AlignedAlloc::malloc(Bytes + sizeof(ExtraLoadWorkerVariables));
-    return {static_cast<LoadWorkerMemory*>(Ptr), deallocate};
-  }
-};
 
 class LoadWorkerData {
 public:
@@ -118,9 +56,9 @@ public:
       , ErrorDetection(ErrorDetection)
       , Id(Id)
       , Environment(Environment)
-      , Config(new environment::platform::RuntimeConfig(Environment.selectedConfig())) {}
+      , Config(Environment.config().clone()) {}
 
-  ~LoadWorkerData() { delete Config; }
+  ~LoadWorkerData() = default;
 
   void setErrorCommunication(std::shared_ptr<uint64_t> CommunicationLeft,
                              std::shared_ptr<uint64_t> CommunicationRight) {
@@ -130,7 +68,7 @@ public:
 
   [[nodiscard]] auto id() const -> uint64_t { return Id; }
   [[nodiscard]] auto environment() const -> const environment::Environment& { return Environment; }
-  [[nodiscard]] auto config() const -> environment::platform::RuntimeConfig& { return *Config; }
+  [[nodiscard]] auto config() const -> environment::platform::PlatformConfig& { return *Config; }
 
   /// Access the DumpRegisterStruct. Asserts when dumping registers is not enabled.
   /// \returns a reference to the DumpRegisterStruct
@@ -181,7 +119,7 @@ public:
 
   const uint64_t Id;
   const environment::Environment& Environment;
-  environment::platform::RuntimeConfig* Config;
+  std::unique_ptr<environment::platform::PlatformConfig> Config;
 };
 
 } // namespace firestarter
