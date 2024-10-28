@@ -48,7 +48,6 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
 
     if (It == InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
-      std::exit(EXIT_FAILURE);
     }
 
     Stats.Flops += It->second;
@@ -296,7 +295,6 @@ auto AVXPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
         Stats.Instructions++;
       } else {
         workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
-        std::exit(EXIT_FAILURE);
       }
 
       if (ShiftRegs > 1) {
@@ -423,7 +421,7 @@ auto AVXPayload::getAvailableInstructions() const -> std::list<std::string> {
 }
 
 void AVXPayload::init(double* MemoryAddr, uint64_t BufferSize) const {
-  X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
+  X86Payload::initMemory(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
 
 } // namespace firestarter::environment::x86::payload

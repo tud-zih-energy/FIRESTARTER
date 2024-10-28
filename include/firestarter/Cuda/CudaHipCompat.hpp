@@ -387,7 +387,6 @@ template <typename T> void accellSafeCall(T TVal, const char* File, const int Li
   }
 
   firestarter::log::error() << Ss.str();
-  exit(static_cast<int>(TVal));
 }
 
 /// Wrapper to cuInit or hipInit.

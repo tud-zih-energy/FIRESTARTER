@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include <csignal>
+#include <cstdlib>
 #include <firestarter/Environment/X86/X86Environment.hpp>
 #include <firestarter/Firestarter.hpp>
 #include <firestarter/Logging/Log.hpp>
@@ -60,14 +61,14 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   if (Cfg.PrintFunctionSummary) {
     Environment->printFunctionSummary();
-    std::exit(EXIT_SUCCESS);
+    std::quick_exit(EXIT_SUCCESS);
   }
 
   Environment->selectFunction(Cfg.FunctionId, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
     Environment->printAvailableInstructionGroups();
-    std::exit(EXIT_SUCCESS);
+    std::quick_exit(EXIT_SUCCESS);
   }
 
   if (!Cfg.InstructionGroups.empty()) {
@@ -85,7 +86,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       if (Cfg.ListMetrics) {
         log::info() << MeasurementWorker->availableMetrics();
-        std::exit(EXIT_SUCCESS);
+        std::quick_exit(EXIT_SUCCESS);
       }
 
       // init all metrics

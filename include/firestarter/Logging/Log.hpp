@@ -22,6 +22,7 @@
 #pragma once
 
 #include "FirstWorkerThreadFilter.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <nitro/log/attribute/message.hpp>
 #include <nitro/log/attribute/severity.hpp>
@@ -50,6 +51,11 @@ public:
     default:
       std::cout << FormattedRecord << '\n' << std::flush;
       break;
+    }
+
+    // Exit on error or fatal
+    if (Severity == nitro::log::severity_level::error || Severity == nitro::log::severity_level::fatal) {
+      std::quick_exit(EXIT_FAILURE);
     }
   }
 };

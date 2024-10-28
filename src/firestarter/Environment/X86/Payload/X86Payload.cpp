@@ -65,7 +65,7 @@ void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chro
   }
 }
 
-void X86Payload::init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
+void X86Payload::initMemory(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
   uint64_t I = 0;
 
   for (; I < InitBlocksize; I++) {

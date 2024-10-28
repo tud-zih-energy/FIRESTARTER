@@ -53,7 +53,6 @@ public:
     const auto Err = Runtime.add(&HighLoadFunction, &Code);
     if (Err) {
       workerLog::error() << "Asmjit adding Assembler to JitRuntime failed";
-      std::exit(EXIT_FAILURE);
     }
 
     return {new CompiledX86Payload(Stats, std::move(PayloadPtr), HighLoadFunction), deleter};

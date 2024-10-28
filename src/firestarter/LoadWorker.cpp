@@ -285,7 +285,6 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       // exit application on error
       if (Td->Memory == nullptr) {
         workerLog::error() << "Could not allocate memory for CPU load thread " << Td->id() << "\n";
-        exit(ENOMEM);
       }
 
       if (Td->DumpRegisters) {

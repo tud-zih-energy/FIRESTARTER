@@ -125,8 +125,8 @@ public:
       , RegisterCount(RegisterCount) {}
   virtual ~Payload() = default;
 
-  friend void CompiledPayload::init(double*, uint64_t);
-  friend void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType&, std::chrono::microseconds);
+  friend void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize);
+  friend void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period);
 
   [[nodiscard]] auto name() const -> const std::string& { return Name; }
   /// The size of the SIMD registers in units of doubles (8B)

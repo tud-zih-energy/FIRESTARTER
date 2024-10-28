@@ -48,7 +48,6 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
 
     if (It == InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
-      std::exit(EXIT_FAILURE);
     }
 
     Stats.Flops += It->second;
@@ -293,7 +292,6 @@ auto SSE2Payload::compilePayload(std::vector<std::pair<std::string, unsigned>> c
         Stats.Instructions++;
       } else {
         workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
-        std::exit(EXIT_FAILURE);
       }
 
       if constexpr (MovRegs > 0) {
@@ -415,7 +413,7 @@ auto SSE2Payload::getAvailableInstructions() const -> std::list<std::string> {
 }
 
 void SSE2Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
-  X86Payload::init(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
+  X86Payload::initMemory(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
 }
 
 } // namespace firestarter::environment::x86::payload

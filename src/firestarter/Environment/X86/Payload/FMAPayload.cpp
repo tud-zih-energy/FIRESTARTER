@@ -51,7 +51,6 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
 
     if (It == InstructionFlops.end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
-      std::exit(EXIT_FAILURE);
     }
 
     Stats.Flops += It->second;
@@ -309,7 +308,6 @@ auto FMAPayload::compilePayload(std::vector<std::pair<std::string, unsigned>> co
         RamIncrement();
       } else {
         workerLog::error() << "Instruction group " << Item << " not found in " << name() << ".";
-        std::exit(EXIT_FAILURE);
       }
 
       if (Item != "L1_2LS_256" && Item != "L2_2LS_256") {
@@ -431,7 +429,7 @@ auto FMAPayload::getAvailableInstructions() const -> std::list<std::string> {
 }
 
 void FMAPayload::init(double* MemoryAddr, uint64_t BufferSize) const {
-  X86Payload::init(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
+  X86Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
 } // namespace firestarter::environment::x86::payload

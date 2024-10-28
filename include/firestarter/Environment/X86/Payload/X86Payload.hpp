@@ -461,18 +461,7 @@ protected:
     Cb.bind(SkipErrorDetection);
   }
 
-  // A generic implemenation for all x86 payloads
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-  static void init(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
-#pragma GCC diagnostic pop
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+  static void initMemory(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
 
   // use cpuid and usleep as low load
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
