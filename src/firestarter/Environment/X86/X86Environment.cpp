@@ -37,7 +37,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
       // the selected function
       if (Id == FunctionId) {
-        if (!PlatformConfigPtr->isAvailable(Topology.get())) {
+        if (!PlatformConfigPtr->isAvailable(topology())) {
           const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                    PlatformConfigPtr->functionName(ThreadsPerCore) + "\") requires " +
                                    PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
@@ -48,13 +48,13 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
           }
         }
         // found function
-        Config = PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore);
+        setConfig(PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore));
         return;
       }
       // default function
       if (0 == FunctionId && PlatformConfigPtr->isDefault(topology())) {
         if (ThreadsPerCore == topology().numThreadsPerCore()) {
-          Config = PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore);
+          setConfig(PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore));
           return;
         }
         DefaultPayloadName = PlatformConfigPtr->payload()->name();
@@ -79,7 +79,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     // loop over available implementation and check if they are marked as
     // fallback
     for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
-      if (FallbackPlatformConfigPtr->isAvailable(Topology.get())) {
+      if (FallbackPlatformConfigPtr->isAvailable(topology())) {
         std::optional<unsigned> SelectedThreadsPerCore;
         // find the fallback implementation with the correct thread per core count
         for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
@@ -91,7 +91,8 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
         if (!SelectedThreadsPerCore) {
           SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
         }
-        Config = FallbackPlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), *SelectedThreadsPerCore);
+        setConfig(
+            FallbackPlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), *SelectedThreadsPerCore));
         log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
@@ -180,7 +181,7 @@ void X86Environment::printFunctionSummary() {
 
   for (auto const& Config : PlatformConfigs) {
     for (auto const& ThreadsPerCore : Config->settings().threads()) {
-      const char* Available = Config->isAvailable(Topology.get()) ? "yes" : "no";
+      const char* Available = Config->isAvailable(topology()) ? "yes" : "no";
       const char* Fmt = "  %4u | %-30s | %-24s | %s";
       const auto& FunctionName = Config->functionName(ThreadsPerCore);
       const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();

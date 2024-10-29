@@ -135,7 +135,7 @@ public:
   /// The number of SIMD registers used by the payload
   [[nodiscard]] auto registerCount() const -> unsigned { return RegisterCount; }
 
-  [[nodiscard]] virtual auto isAvailable(const CPUTopology*) const -> bool = 0;
+  [[nodiscard]] virtual auto isAvailable(const CPUTopology&) const -> bool = 0;
 
   [[nodiscard]] virtual auto compilePayload(const PayloadSettings& Settings, bool DumpRegisters,
                                             bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;

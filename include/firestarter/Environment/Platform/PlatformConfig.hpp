@@ -35,16 +35,6 @@ private:
   std::shared_ptr<const payload::Payload> Payload;
 
 public:
-  PlatformConfig() = delete;
-
-  PlatformConfig(std::string Name, payload::PayloadSettings&& Settings,
-                 std::shared_ptr<const payload::Payload>&& Payload) noexcept
-      : Name(std::move(Name))
-      , Settings(std::move(Settings))
-      , Payload(std::move(Payload)) {}
-
-  virtual ~PlatformConfig() = default;
-
   /// Getter for the name of the platform.
   [[nodiscard]] auto name() const -> const auto& { return Name; }
   /// Getter for the settings of the platform.
@@ -54,9 +44,27 @@ public:
   /// Getter for the payload of the platform.
   [[nodiscard]] auto payload() const -> const auto& { return Payload; }
 
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool { return payload()->isAvailable(Topology); }
+  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
+
+  [[nodiscard]] auto isDefault(const CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+
+protected:
+  [[nodiscard]] virtual auto isAvailable(const CPUTopology* Topology) const -> bool {
+    return payload()->isAvailable(*Topology);
+  }
 
   [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
+
+public:
+  PlatformConfig() = delete;
+
+  PlatformConfig(std::string Name, payload::PayloadSettings&& Settings,
+                 std::shared_ptr<const payload::Payload>&& Payload) noexcept
+      : Name(std::move(Name))
+      , Settings(std::move(Settings))
+      , Payload(std::move(Payload)) {}
+
+  virtual ~PlatformConfig() = default;
 
   /// Clone a the platform config.
   [[nodiscard]] virtual auto clone() const -> std::unique_ptr<PlatformConfig> = 0;

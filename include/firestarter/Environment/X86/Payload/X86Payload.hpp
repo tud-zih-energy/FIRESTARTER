@@ -43,6 +43,26 @@ private:
   // we can use this to check, if our platform support this payload
   std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
 
+public:
+  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
+             unsigned RegisterSize, unsigned RegisterCount) noexcept
+      : Payload(std::move(Name), RegisterSize, RegisterCount)
+      , FeatureRequests(FeatureRequests) {}
+
+private:
+  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool final {
+    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(&Topology);
+    assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
+
+    bool Available = true;
+
+    for (auto const& Feature : FeatureRequests) {
+      Available &= FinalTopology->featuresAsmjit().has(Feature);
+    }
+
+    return Available;
+  };
+
 protected:
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \arg Vec the type of the vector register used.
@@ -465,28 +485,6 @@ protected:
 
   // use cpuid and usleep as low load
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
-
-public:
-  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
-             unsigned RegisterSize, unsigned RegisterCount) noexcept
-      : Payload(std::move(Name), RegisterSize, RegisterCount)
-      , FeatureRequests(FeatureRequests) {}
-
-  [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
-
-private:
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
-    assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
-
-    bool Available = true;
-
-    for (auto const& Feature : FeatureRequests) {
-      Available &= FinalTopology->featuresAsmjit().has(Feature);
-    }
-
-    return Available;
-  };
 };
 
 } // namespace firestarter::environment::x86::payload

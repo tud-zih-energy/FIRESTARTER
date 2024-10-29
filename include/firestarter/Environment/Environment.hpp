@@ -48,23 +48,31 @@ public:
   virtual void printSelectedCodePathSummary() = 0;
   virtual void printFunctionSummary() = 0;
 
-  [[nodiscard]] auto config() const -> platform::PlatformConfig& {
+  [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }
+
+  [[nodiscard]] virtual auto config() -> platform::PlatformConfig& {
     assert(Config && "No PlatformConfig selected");
     return *Config;
   }
 
-  [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }
+  [[nodiscard]] virtual auto config() const -> const platform::PlatformConfig& {
+    assert(Config && "No PlatformConfig selected");
+    return *Config;
+  }
 
-  [[nodiscard]] auto topology() const -> CPUTopology const& {
-    assert(Topology != nullptr && "Topology is a nullptr");
+  [[nodiscard]] virtual auto topology() const -> const CPUTopology& {
+    assert(Topology && "Topology is a nullptr");
     return *Topology;
   }
 
 protected:
+  /// This function sets the config based on the
+  void setConfig(std::unique_ptr<platform::PlatformConfig>&& Config) { this->Config = std::move(Config); }
+
+private:
   std::unique_ptr<platform::PlatformConfig> Config;
   std::unique_ptr<CPUTopology> Topology;
 
-private:
   uint64_t RequestedNumThreads = 0;
 
   // TODO(Issue #74): Use hwloc for cpu thread affinity.

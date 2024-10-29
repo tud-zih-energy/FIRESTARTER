@@ -22,6 +22,7 @@
 #pragma once
 
 #include "../../Platform/PlatformConfig.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/X86/X86CPUTopology.hpp"
 
 namespace firestarter::environment::x86::platform {
@@ -38,6 +39,8 @@ public:
       : PlatformConfig(std::move(Name), std::move(Settings), std::move(Payload))
       , Family(Family)
       , Models(std::move(Models)) {}
+
+  [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
 
   [[nodiscard]] auto isDefault(const X86CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
 
@@ -60,10 +63,16 @@ public:
   }
 
 private:
+  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
+    return environment::platform::PlatformConfig::isAvailable(Topology);
+  }
+
   [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {
     const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
     assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
 
+    // Check if the family of the topology matches the family of the config, if the model of the topology is contained
+    // in the models list of the config and if the config is available on the current platform.
     return Family == FinalTopology->familyId() &&
            (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) && isAvailable(Topology);
   }
