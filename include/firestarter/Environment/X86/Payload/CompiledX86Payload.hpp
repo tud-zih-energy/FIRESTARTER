@@ -30,6 +30,7 @@ namespace firestarter::environment::x86::payload {
 
 class CompiledX86Payload final : public environment::payload::CompiledPayload {
 private:
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   inline static asmjit::JitRuntime Runtime = asmjit::JitRuntime();
 
   static void deleter(CompiledX86Payload* Payload) {

@@ -53,10 +53,9 @@ auto greaterThanF(double A, double B) -> bool {
     }
     return false; // a > nan
   }
-  if (!std::isnan(B)) {
-    return true; // nan > b
-  }
-  return false; // nan > nan
+  // nan > b -> true
+  // nan > nan -> false
+  return !std::isnan(B);
 }
 
 /// Pareto-dominance
