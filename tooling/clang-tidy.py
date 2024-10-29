@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import glob
 import json
 from pathlib import Path
 import subprocess
@@ -12,28 +11,13 @@ import typing
 import random
 from functools import partial
 
-# Find all source files from the compile commands database that are in a specific directory
+# Find all source files from the compile commands database that are in a specific directory.
 def find_source_files_from_compile_commands(compile_commands_path: Path, sources_dir: Path) -> typing.List[Path]:
     with open(compile_commands_path, 'r') as fp:
         compile_commands = json.loads(fp.read())
         sources = [ entry['file'] for entry in compile_commands ]
         sources = list(filter(lambda file: str(file).startswith(str(sources_dir)), sources))
         return sources
-
-# Find all source and header files in the project root that belong to FIRESTARTER
-def find_source_and_header_files(project_root: Path, build_root: Path) -> typing.List[Path]:
-    src_path = project_root / Path('src')
-    include_path = project_root / Path('include')
-
-    # find all cpp file from the compile commands database
-    compile_commands_path = build_root / Path('compile_commands.json')
-    files = find_source_files_from_compile_commands(compile_commands_path, src_path)
-
-    # find all headers based on glob
-    files += glob.glob(f'{include_path}/**/*.hpp', recursive=True)
-    files += glob.glob(f'{include_path}/**/*.h', recursive=True)
-
-    return files
 
 # Split a list of paths into multiple list of paths
 def split_in_chunks(chunk_size: int, input: typing.List[Path]) -> typing.List[typing.List[Path]]:
@@ -45,7 +29,7 @@ def split_in_chunks(chunk_size: int, input: typing.List[Path]) -> typing.List[ty
 
 # Run clang-tidy on a set of input files and return the stdout
 def run_clang_tidy(files: typing.List[Path], project_root_path: Path, build_root_path: Path, clang_tidy_file_path: Path) -> bytes:
-    command_args = ['clang-tidy', '-extra-arg=-std=c++17', f'-p={build_root_path}', f'--config-file={clang_tidy_file_path}', '--header-filter=include/firestarter/*', '--format-style=file']
+    command_args = ['clang-tidy', '-extra-arg=-std=c++17', f'-p={build_root_path}', f'--config-file={clang_tidy_file_path}', '--format-style=file']
     command_args += files
     print(f'Starting {command_args}')
     p = subprocess.Popen(command_args, stdout=subprocess.PIPE, cwd=project_root_path)
@@ -88,6 +72,7 @@ def check(build_root):
 def clang_tidy_report(project_root, build_root, cores):
     project_root_path = Path(project_root).absolute()
     build_root_path = Path(build_root).absolute()
+    src_path = project_root_path / Path('src')
 
     print(f'Looking for compile_commands.json in {build_root_path}')
     compile_commands_path = build_root_path / Path('compile_commands.json')
@@ -103,7 +88,7 @@ def clang_tidy_report(project_root, build_root, cores):
     else:
         sys.exit("Dind't find .clang-tidy. Aborting.")
 
-    files = find_source_and_header_files(project_root_path, build_root_path)
+    files = find_source_files_from_compile_commands(compile_commands_path, src_path)
     print(f'Found {len(files)} source and header files.')
     
     print(f'Lanching {cores} instances of clang-tidy in project root: {project_root_path}')
@@ -112,6 +97,7 @@ def clang_tidy_report(project_root, build_root, cores):
     files_shuffled = files.copy()
     random.Random(123).shuffle(files_shuffled)
 
+    # Spawn multiple python thread that each start their own instance of clang-tidy. Opening all processes in the same python thread caused problems with github actions.
     with multiprocessing.Pool(cores) as p:
         stdout = p.map(partial(run_clang_tidy, project_root_path=project_root_path, build_root_path=build_root_path, clang_tidy_file_path=clang_tidy_file_path), split_in_chunks(cores, files_shuffled))
 
