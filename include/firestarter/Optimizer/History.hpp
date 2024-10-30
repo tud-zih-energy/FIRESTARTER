@@ -32,6 +32,7 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <vector>
@@ -55,11 +56,13 @@ private:
     }
   }
 
-  inline static int MaxElementPrintCount = 20;
-  inline static std::size_t MinColumnWidth = 10;
+  static constexpr const int MaxElementPrintCount = 20;
+  static constexpr const std::size_t MinColumnWidth = 10;
 
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
   inline static std::vector<Individual> X = {};
   inline static std::vector<std::map<std::string, firestarter::measurement::Summary>> F = {};
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 public:
   static void append(std::vector<unsigned> const& Ind,
@@ -149,7 +152,7 @@ public:
 
       std::stringstream FirstLine;
       std::stringstream SecondLine;
-      std::string Ind = "INDIVIDUAL";
+      std::string const Ind = "INDIVIDUAL";
 
       FirstLine << "  " << Ind;
       padding(FirstLine, Max, Ind.size(), ' ');
@@ -215,6 +218,13 @@ public:
                                 "`--run-instruction-groups=INDIVIDUAL`";
   }
 
+  /// Save the history to a file. This function is not threadsafe as is calls History::getTime.
+  /// \arg Path The folder in which the outfile shall be created. If it is empty the current directory name or /tmp will
+  /// be choosen.
+  /// \arg StartTime The start time as a string which is saved in the json datastructure.
+  /// \arg PayloadItems The Vector of meta instructions which map to the vector of individuals.
+  /// \arg Argc The Argc of the executed programm.
+  /// \arg Argv The Argv of the executed programm.
   static void save(std::string const& Path, std::string const& StartTime, std::vector<std::string> const& PayloadItems,
                    const int Argc, const char** Argv) {
     using json = nlohmann::json;
@@ -231,13 +241,11 @@ public:
       J["metrics"].push_back(Eval);
     }
 
+    // Initialize a string with length of 256 filled with null characters
+    auto Hostname = std::string(256, 0);
     // get the hostname
-    char CHostname[256];
-    std::string Hostname;
-    if (0 != gethostname(CHostname, sizeof(CHostname))) {
+    if (0 != gethostname(Hostname.data(), Hostname.size())) {
       Hostname = "unknown";
-    } else {
-      Hostname = CHostname;
     }
 
     J["hostname"] = Hostname;
@@ -254,20 +262,21 @@ public:
     // save the arguments
     J["args"] = json::array();
     for (int I = 0; I < Argc; ++I) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       J["args"].push_back(Argv[I]);
     }
 
     // dump the output
-    std::string S = J.dump();
+    const auto S = J.dump();
 
     firestarter::log::trace() << S;
 
     std::string Outpath = Path;
     if (Outpath.empty()) {
-      char* Pwd = get_current_dir_name();
-      if (Pwd) {
-        Outpath = Pwd;
-        free(Pwd);
+      // Wrapp get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
+      const std::unique_ptr<char, void (*)(void*)> WrappedPwd = {get_current_dir_name(), free};
+      if (WrappedPwd) {
+        Outpath = *WrappedPwd;
       } else {
         firestarter::log::warn() << "Could not find $PWD.";
         Outpath = "/tmp";
@@ -289,11 +298,14 @@ public:
     Fp.close();
   }
 
+  /// Get the current time in the local timezone as a string formatted by "%F_%T%z". This function is NOT threadsafe.
+  /// \returns The current time in local timezone as a formatted string.
   static auto getTime() -> std::string {
-    auto T = std::time(nullptr);
-    auto Tm = *std::localtime(&T);
+    const auto T = std::time(nullptr);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    const auto* Tm = std::localtime(&T);
     std::stringstream Ss;
-    Ss << std::put_time(&Tm, "%F_%T%z");
+    Ss << std::put_time(Tm, "%F_%T%z");
     return Ss.str();
   }
 };

@@ -37,6 +37,7 @@ public:
   }
 
 private:
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   inline static std::thread::id FirstThread{};
 };
 } // namespace firestarter::logging
