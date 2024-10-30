@@ -74,8 +74,8 @@ public:
     // wait for the measurement to finish
     std::this_thread::sleep_for(Timeout);
 
-    // FIXME: this is an ugly workaround for the ipc-estimate metric
-    // changeing the payload triggers a write of the iteration counter of
+    // TODO(Issue #82): This is an ugly workaround for the ipc-estimate metric.
+    // Changing the payload triggers a write of the iteration counter of
     // the last payload, which we use to estimate the ipc.
     ChangePayloadFunction(Payload);
 
