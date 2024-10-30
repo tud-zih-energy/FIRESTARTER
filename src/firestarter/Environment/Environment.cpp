@@ -134,10 +134,10 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
       std::getline(Ss, Token, Delimiter);
 
       if (std::regex_match(Token, M, Re)) {
-        unsigned long Y = 0;
-        unsigned long S = 0;
+        uint64_t Y = 0;
+        uint64_t S = 0;
 
-        unsigned long X = std::stoul(M[1].str());
+        auto X = std::stoul(M[1].str());
         if (M[2].matched) {
           Y = std::stoul(M[2].str());
         } else {

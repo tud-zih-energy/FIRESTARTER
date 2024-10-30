@@ -64,7 +64,8 @@ auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> con
   for (++It; It != Prop.end(); ++It) {
     for (unsigned I = 0; I < It->second; I++) {
       InsertIt = Sequence.begin();
-      std::advance(InsertIt, 1 + std::floor(I * (Sequence.size() + It->second - I) / static_cast<float>(It->second)));
+      std::advance(InsertIt, 1 + std::floor(static_cast<float>(I * (Sequence.size() + It->second - I)) /
+                                            static_cast<float>(It->second)));
       Sequence.insert(InsertIt, It->first);
     }
   }

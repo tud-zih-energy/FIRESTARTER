@@ -113,41 +113,39 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
 
     if (Cfg.Optimize) {
-      auto ApplySettings = std::bind(
-          [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
-            using Clock = std::chrono::high_resolution_clock;
-            auto Start = Clock::now();
+      auto ApplySettings = [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
+        using Clock = std::chrono::high_resolution_clock;
+        auto Start = Clock::now();
 
-            signalSwitch(Setting);
+        signalSwitch(Setting);
 
-            LoadVar = LoadThreadWorkType::LoadHigh;
+        LoadVar = LoadThreadWorkType::LoadHigh;
 
-            signalWork();
+        signalWork();
 
-            uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
-            uint64_t StopTimestamp = 0;
+        uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
+        uint64_t StopTimestamp = 0;
 
-            for (auto const& Thread : LoadThreads) {
-              auto Td = Thread.second;
+        for (auto const& Thread : LoadThreads) {
+          auto Td = Thread.second;
 
-              StartTimestamp = std::min<uint64_t>(StartTimestamp, Td->LastRun.StartTsc);
-              StopTimestamp = std::max<uint64_t>(StopTimestamp, Td->LastRun.StopTsc);
-            }
+          StartTimestamp = std::min<uint64_t>(StartTimestamp, Td->LastRun.StartTsc);
+          StopTimestamp = std::max<uint64_t>(StopTimestamp, Td->LastRun.StopTsc);
+        }
 
-            for (auto const& Thread : LoadThreads) {
-              auto Td = Thread.second;
-              ipcEstimateMetricInsert(
-                  static_cast<double>(Td->LastRun.Iterations) *
-                  static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
-                  static_cast<double>(StopTimestamp - StartTimestamp));
-            }
+        for (auto const& Thread : LoadThreads) {
+          auto Td = Thread.second;
+          ipcEstimateMetricInsert(
+              static_cast<double>(Td->LastRun.Iterations) *
+              static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
+              static_cast<double>(StopTimestamp - StartTimestamp));
+        }
 
-            auto End = Clock::now();
+        auto End = Clock::now();
 
-            log::trace() << "Switching payload took "
-                         << std::chrono::duration_cast<std::chrono::milliseconds>(End - Start).count() << "ms";
-          },
-          std::placeholders::_1);
+        log::trace() << "Switching payload took "
+                     << std::chrono::duration_cast<std::chrono::milliseconds>(End - Start).count() << "ms";
+      };
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
@@ -176,11 +174,11 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   // add some signal handler for aborting FIRESTARTER
   if constexpr (!firestarter::OptionalFeatures.IsWin32) {
-    std::signal(SIGALRM, Firestarter::sigalrmHandler);
+    (void)std::signal(SIGALRM, Firestarter::sigalrmHandler);
   }
 
-  std::signal(SIGTERM, Firestarter::sigtermHandler);
-  std::signal(SIGINT, Firestarter::sigtermHandler);
+  (void)std::signal(SIGTERM, Firestarter::sigtermHandler);
+  (void)std::signal(SIGINT, Firestarter::sigtermHandler);
 }
 
 void Firestarter::mainThread() {
@@ -226,7 +224,7 @@ void Firestarter::mainThread() {
       firestarter::optimizer::History::printBest(Cfg.OptimizationMetrics, PayloadItems);
 
       // stop all the load threads
-      std::raise(SIGTERM);
+      (void)std::raise(SIGTERM);
     }
   }
 
