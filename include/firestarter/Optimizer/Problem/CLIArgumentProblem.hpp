@@ -54,7 +54,7 @@ public:
   auto metrics(std::vector<unsigned> const& Individual)
       -> std::map<std::string, firestarter::measurement::Summary> override {
     // increment evaluation idx
-    Fevals++;
+    incrementFevals();
 
     // change the payload
     assert(InstructionGroups.size() == Individual.size());
@@ -83,7 +83,7 @@ public:
     return MeasurementWorker->getValues(StartDelta, StopDelta);
   }
 
-  auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries)
+  [[nodiscard]] auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const
       -> std::vector<double> override {
     std::vector<double> Values = {};
 

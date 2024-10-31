@@ -41,6 +41,10 @@ public:
     std::atomic<uint64_t> StopTsc{};
 
     auto operator=(const Metrics& Other) -> Metrics& {
+      if (this == &Other) {
+        return *this;
+      }
+
       Iterations.store(Other.Iterations.load());
       StartTsc.store(Other.StartTsc.load());
       StopTsc.store(Other.StopTsc.load());

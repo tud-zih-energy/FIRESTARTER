@@ -46,9 +46,9 @@ private:
   std::mutex ValuesMutex;
   std::map<std::string, std::vector<TimeValue>> Values;
 
-  static auto dataAcquisitionWorker(void* MeasurementWorker) -> int*;
+  static auto dataAcquisitionWorker(void* MeasurementWorker) -> void*;
 
-  static auto stdinDataAcquisitionWorker(void* MeasurementWorker) -> int*;
+  static auto stdinDataAcquisitionWorker(void* MeasurementWorker) -> void*;
 
   auto findMetricByName(std::string MetricName) -> const MetricInterface*;
 

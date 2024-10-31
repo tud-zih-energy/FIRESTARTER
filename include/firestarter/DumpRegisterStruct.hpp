@@ -42,9 +42,9 @@ constexpr const auto MaxNumberOfDoublesInVectorRegisters = RegisterMaxNum * Regi
 
 // REGISTER_MAX_NUM cachelines
 struct DumpRegisterStruct {
-  std::array<volatile double, MaxNumberOfDoublesInVectorRegisters> RegisterValues;
+  std::array<double, MaxNumberOfDoublesInVectorRegisters> RegisterValues;
   // pad to use a whole cacheline
-  std::array<volatile EightBytesType, 7> Padding;
+  std::array<EightBytesType, 7> Padding;
   volatile DumpVariable DumpVar;
 };
 

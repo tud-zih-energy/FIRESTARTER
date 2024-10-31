@@ -78,7 +78,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
   auto& DumpRegisterStructRef = Data->LoadWorkerDataPtr->Memory->ExtraVars.Drs;
   auto& DumpVar = DumpRegisterStructRef.DumpVar;
   // memory of simd variables is before the padding
-  const auto* DumpMemAddr = static_cast<volatile uint64_t*>(DumpRegisterStructRef.Padding.data()) - Offset;
+  const auto* DumpMemAddr = DumpRegisterStructRef.Padding.data() - Offset;
 
   // allocate continous memory that fits the register contents
   auto Last = std::vector<uint64_t>(Offset);
@@ -125,7 +125,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
 
     auto Current = std::vector<uint64_t>(Offset);
     // copy the register content to minimize the interruption of the load worker
-    std::memcpy(Current.data(), (void*)DumpMemAddr, Current.size() * sizeof(decltype(Current)::value_type));
+    std::memcpy(Current.data(), DumpMemAddr, Current.size() * sizeof(decltype(Current)::value_type));
 
     // skip the first output, as we first have to get some valid values for last
     if (!SkipFirst) {
@@ -138,9 +138,7 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
       DumpFile << TotalHammingDistance << ",";
 
       // dump the hamming distance of each double (last, current) pair
-      for (int I = RegisterCount - 1; I >= 0; I--) {
-        // auto registerNum = registerCount - 1 - i;
-
+      for (int I = static_cast<int>(RegisterCount) - 1; I >= 0; I--) {
         for (auto J = 0U; J < RegisterSize; J++) {
           auto Index = (RegisterSize * I) + J;
           auto Hd = static_cast<uint64_t>(hammingDistance(Current[Index], Last[Index]));

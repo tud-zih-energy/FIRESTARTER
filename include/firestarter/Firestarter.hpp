@@ -70,7 +70,7 @@ private:
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
   std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
 
-  firestarter::optimizer::Population Population;
+  std::unique_ptr<firestarter::optimizer::Population> Population;
 
   inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
 

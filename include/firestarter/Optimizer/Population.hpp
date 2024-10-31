@@ -19,80 +19,73 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef FIRESTARTER_OPTIMIZER_POPULATION_HPP
-#define FIRESTARTER_OPTIMIZER_POPULATION_HPP
+#pragma once
 
 #include "Individual.hpp"
 #include "Problem.hpp"
 #include <cstring>
 #include <memory>
-#include <optional>
-#include <random>
 #include <vector>
 
 namespace firestarter::optimizer {
 
+/// This class models the notion of a population used by the NSGA2 algorithm that contains a number of individuals with
+/// their associated fitness.
 class Population {
 public:
-  // Construct a population from a problem.
-  Population() = default;
+  Population() = delete;
 
+  /// Construct a population from a problem.
   explicit Population(std::shared_ptr<Problem>&& ProblemPtr)
-      : ProblemPtr(std::move(ProblemPtr))
-      , Gen(Rd()) {}
-
-  Population(Population& Pop)
-      : ProblemPtr(Pop.ProblemPtr)
-      , X(Pop.X)
-      , F(Pop.F)
-      , Gen(Rd()) {}
-
-  auto operator=(Population const& Pop) -> Population& {
-    ProblemPtr = Pop.ProblemPtr;
-    X = Pop.X;
-    F = Pop.F;
-    Gen = Pop.Gen;
-
-    return *this;
-  }
+      : ProblemPtr(std::move(ProblemPtr)) {}
 
   ~Population() = default;
 
-  void generateInitialPopulation(std::size_t PopulationSize = 0);
+  /// Generate a supplied number of individuals and save them with their fitness in this datastructure. If the number is
+  /// less then the number of dimensions we fill them with random individuals. If it is at least the number of
+  /// dimension, we first create individuals with one dimension equal to one and the rest equal to zero.
+  /// \arg PopulationSize The number of individuals to generate.
+  void generateInitialPopulation(std::size_t PopulationSize);
 
+  /// The number of individuals in this population.
   [[nodiscard]] auto size() const -> std::size_t;
 
-  // add one individual to the population. fitness will be evaluated.
+  /// Append one individual to the population. If a lookup of the fitness in the history is no successful, the
+  /// individual will be evaluated and the fitness saved.
+  /// \arg Ind The individual to be added to the population.
   void append(Individual const& Ind);
 
+  /// Insert an indiviudal and an associated fitness at a specific index in the population.
+  /// \arg Idx On which index to insert in the population.
+  /// \arg Ind The individual to insert.
+  /// \arg Fit The fitness to insert.
   void insert(std::size_t Idx, Individual const& Ind, std::vector<double> const& Fit);
 
-  // get a random individual inside bounds of problem
-  auto getRandomIndividual() -> Individual;
+  /// Generate a random individual inside the bounds of the problem based on a non-determenistic generator.
+  /// \returns The random individual inside the bounds of the problem.
+  [[nodiscard]] auto getRandomIndividual() const -> Individual;
 
-  // returns the best individual in case of single-objective.
-  // return nothing in case of mutli-objective.
-  [[nodiscard]] auto bestIndividual() const -> std::optional<Individual>;
-
+  /// Const reference to the optimization problem.
   [[nodiscard]] auto problem() const -> Problem const& { return *ProblemPtr; }
 
+  /// Const reference to the vector of individuals.
   [[nodiscard]] auto x() const -> std::vector<Individual> const& { return X; }
+  /// Const reference to the vector of fitnesses.
   [[nodiscard]] auto f() const -> std::vector<std::vector<double>> const& { return F; }
 
 private:
-  // add one individual to the population with a fitness.
+  /// Append one individual with a given fitness to the population.
+  /// \arg Ind The individual to be appended to the population.
+  /// \arg Fit The fitness of the individual.
   void append(Individual const& Ind, std::vector<double> const& Fit);
 
-  // our problem.
+  /// The optimization problem
   std::shared_ptr<Problem> ProblemPtr;
 
+  /// The vector of individuals
   std::vector<Individual> X;
+  /// The vector of fitnesses associated to each individual
   std::vector<std::vector<double>> F;
-
-  std::random_device Rd;
-  std::mt19937 Gen;
 };
 
 } // namespace firestarter::optimizer
-
-#endif

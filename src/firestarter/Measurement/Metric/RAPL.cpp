@@ -33,17 +33,19 @@ extern "C" {
 }
 
 auto RaplMetricData::fini() -> int32_t {
-  Readers.clear();
+  instance().Readers.clear();
 
   return EXIT_SUCCESS;
 }
 
 auto RaplMetricData::init() -> int32_t {
-  ErrorString = "";
+  auto& Instance = instance();
+
+  Instance.ErrorString = "";
 
   DIR* RaplDir = opendir(RaplPath);
   if (RaplDir == nullptr) {
-    ErrorString = "Could not open " + std::string(RaplPath);
+    Instance.ErrorString = "Could not open " + std::string(RaplPath);
     return EXIT_FAILURE;
   }
 
@@ -92,7 +94,7 @@ auto RaplMetricData::init() -> int32_t {
   // paths now contains all interesting nodes
 
   if (Paths.empty()) {
-    ErrorString = "No valid entries in " + std::string(RaplPath);
+    Instance.ErrorString = "No valid entries in " + std::string(RaplPath);
     return EXIT_FAILURE;
   }
 
@@ -101,7 +103,7 @@ auto RaplMetricData::init() -> int32_t {
     EnergyUjPath << Path << "/energy_uj";
     std::ifstream EnergyReadingStream(EnergyUjPath.str());
     if (!EnergyReadingStream.good()) {
-      ErrorString = "Could not read energy_uj";
+      Instance.ErrorString = "Could not read energy_uj";
       break;
     }
 
@@ -109,7 +111,7 @@ auto RaplMetricData::init() -> int32_t {
     MaxEnergyUjRangePath << Path << "/max_energy_range_uj";
     std::ifstream MaxEnergyReadingStream(MaxEnergyUjRangePath.str());
     if (!MaxEnergyReadingStream.good()) {
-      ErrorString = "Could not read max_energy_range_uj";
+      Instance.ErrorString = "Could not read max_energy_range_uj";
       break;
     }
 
@@ -123,10 +125,10 @@ auto RaplMetricData::init() -> int32_t {
 
     auto Def = std::make_unique<ReaderDef>(Path, Max, Reading, 0);
 
-    Readers.emplace_back(std::move(Def));
+    Instance.Readers.emplace_back(std::move(Def));
   }
 
-  if (!ErrorString.empty()) {
+  if (!Instance.ErrorString.empty()) {
     fini();
     return EXIT_FAILURE;
   }
@@ -137,7 +139,7 @@ auto RaplMetricData::init() -> int32_t {
 auto RaplMetricData::getReading(double* Value) -> int32_t {
   double FinalReading = 0.0;
 
-  for (auto& Def : Readers) {
+  for (auto& Def : instance().Readers) {
     std::string Buffer;
 
     std::stringstream EnergyUjPath;
@@ -163,7 +165,7 @@ auto RaplMetricData::getReading(double* Value) -> int32_t {
 }
 
 auto RaplMetricData::getError() -> const char* {
-  const char* ErrorCString = ErrorString.c_str();
+  const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }
 

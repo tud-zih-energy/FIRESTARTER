@@ -99,14 +99,14 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
   std::map<std::string, bool> Available;
 
   for (auto const& Metric : Metrics) {
-    std::string Name(Metric->Name);
+    const std::string Name(Metric->Name);
     MaxLength = MaxLength < Name.size() ? Name.size() : MaxLength;
     auto ReturnCode = Metric->Init();
     Metric->Fini();
     Available[Name] = ReturnCode == EXIT_SUCCESS;
   }
 
-  unsigned Padding = MaxLength > 6 ? MaxLength - 6 : 0;
+  const auto Padding = MaxLength > 6 ? MaxLength - 6 : 0;
   Ss << "  METRIC" << std::string(Padding + 1, ' ') << "| available\n";
   Ss << "  " << std::string(Padding + 7, '-') << "-----------\n";
   for (auto const& [key, value] : Available) {
@@ -116,13 +116,11 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
 
   AvailableMetricsString = Ss.str();
 
-  pthread_create(&WorkerThread, nullptr, reinterpret_cast<void* (*)(void*)>(MeasurementWorker::dataAcquisitionWorker),
-                 this);
+  pthread_create(&WorkerThread, nullptr, MeasurementWorker::dataAcquisitionWorker, this);
 
   // create a worker for getting metric values from stdin
   if (!StdinMetrics.empty()) {
-    pthread_create(&StdinThread, nullptr,
-                   reinterpret_cast<void* (*)(void*)>(MeasurementWorker::stdinDataAcquisitionWorker), this);
+    pthread_create(&StdinThread, nullptr, MeasurementWorker::stdinDataAcquisitionWorker, this);
   }
 }
 
@@ -173,7 +171,7 @@ auto MeasurementWorker::findMetricByName(std::string MetricName) -> const Metric
     return nullptr;
   }
   // metric found
-  return const_cast<const MetricInterface*>(*Metric);
+  return *Metric;
 }
 
 // this must be called by the main thread.
@@ -193,7 +191,7 @@ auto MeasurementWorker::initMetrics(std::vector<std::string> const& MetricNames)
     } else {
       const auto* Metric = findMetricByName(MetricName);
       if (Metric != nullptr) {
-        int ReturnValue = Metric->Init();
+        const auto ReturnValue = Metric->Init();
         if (ReturnValue != EXIT_SUCCESS) {
           log::error() << "Metric " << Metric->Name << ": " << Metric->GetError();
           continue;
@@ -264,7 +262,7 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chr
     auto It = std::copy_if(values.begin(), values.end(), CroppedValues.begin(), FindAll);
     CroppedValues.resize(std::distance(CroppedValues.begin(), It));
 
-    Summary Sum = Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
+    const auto Sum = Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
 
     Measurment[key] = Sum;
   }
@@ -274,11 +272,11 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chr
   return Measurment;
 }
 
-auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> int* {
-
+auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> void* {
+  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
-  auto* This = reinterpret_cast<class MeasurementWorker*>(MeasurementWorker);
+  auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "DataAcquisition");
@@ -373,11 +371,11 @@ auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> int* {
   }
 }
 
-auto MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) -> int* {
-
+auto MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) -> void* {
+  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
-  auto* This = reinterpret_cast<class MeasurementWorker*>(MeasurementWorker);
+  auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "StdinDataAcquis");

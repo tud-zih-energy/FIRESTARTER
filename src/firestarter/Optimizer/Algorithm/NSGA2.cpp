@@ -72,7 +72,7 @@ auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::opti
   auto NP = Pop.size();
   auto Fevals0 = Prob.getFevals();
 
-  this->checkPopulation(const_cast<firestarter::optimizer::Population const&>(Pop), NP);
+  this->checkPopulation(Pop, NP);
 
   std::random_device Rd;
   std::mt19937 Rng(Rd());
@@ -115,8 +115,8 @@ auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::opti
     firestarter::optimizer::Population Popnew(Pop);
 
     // We create some pseudo-random permutation of the poulation indexes
-    std::shuffle(Shuffle1.begin(), Shuffle1.end(), std::mt19937(std::random_device()()));
-    std::shuffle(Shuffle2.begin(), Shuffle2.end(), std::mt19937(std::random_device()()));
+    std::shuffle(Shuffle1.begin(), Shuffle1.end(), Rng);
+    std::shuffle(Shuffle2.begin(), Shuffle2.end(), Rng);
 
     // We compute crowding distance and non dominated rank for the current
     // population
@@ -166,11 +166,12 @@ auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::opti
 
       Popnew.append(Children.first);
       Popnew.append(Children.second);
-    } // popnew now contains 2NP individuals
-    // This method returns the sorted N best individuals in the population
+    }
+    // Popnew now contains 2NP individuals
+
+    // Save the best NP individuals in the population
     // according to the crowded comparison operator
     BestIdx = util::selectBestNMo(Popnew.f(), NP);
-    // We insert into the population
     for (decltype(NP) I = 0; I < NP; ++I) {
       Pop.insert(I, Popnew.x()[BestIdx[I]], Popnew.f()[BestIdx[I]]);
     }

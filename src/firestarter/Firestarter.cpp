@@ -29,6 +29,7 @@
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
 #include <firestarter/WindowsCompat.hpp>
+#include <memory>
 
 namespace firestarter {
 
@@ -135,7 +136,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
         for (auto const& Thread : LoadThreads) {
           auto Td = Thread.second;
-          ipcEstimateMetricInsert(
+          IpcEstimateMetricData::insertValue(
               static_cast<double>(Td->LastRun.Iterations) *
               static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
               static_cast<double>(StopTimestamp - StartTimestamp));
@@ -151,7 +152,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
           Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
 
-      Population = firestarter::optimizer::Population(std::move(Prob));
+      Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
       if (Cfg.OptimizationAlgorithm == "NSGA2") {
         Algorithm =
@@ -160,7 +161,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
         throw std::invalid_argument("Algorithm " + Cfg.OptimizationAlgorithm + " unknown.");
       }
 
-      Algorithm->checkPopulation(static_cast<firestarter::optimizer::Population const&>(Population), Cfg.Individuals);
+      Algorithm->checkPopulation(*Population, Cfg.Individuals);
     }
   }
 
@@ -211,7 +212,7 @@ void Firestarter::mainThread() {
       auto StartTime = optimizer::History::getTime();
 
       Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(
-          std::move(Algorithm), Population, Cfg.OptimizationAlgorithm, Cfg.Individuals, Cfg.Preheat);
+          std::move(Algorithm), std::move(Population), Cfg.OptimizationAlgorithm, Cfg.Individuals, Cfg.Preheat);
 
       // wait here until optimizer thread terminates
       Firestarter::Optimizer->join();

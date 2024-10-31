@@ -22,41 +22,47 @@
 #include <chrono>
 #include <cstdlib>
 #include <firestarter/Measurement/Metric/IPCEstimate.hpp>
-#include <string>
 
 auto IpcEstimateMetricData::fini() -> int32_t {
-  Callback = nullptr;
-  CallbackArg = nullptr;
+  auto& Instance = instance();
+
+  Instance.Callback = nullptr;
+  Instance.CallbackArg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
 auto IpcEstimateMetricData::init() -> int32_t {
-  ErrorString = "";
+  instance().ErrorString = "";
 
   return EXIT_SUCCESS;
 }
 
 auto IpcEstimateMetricData::getError() -> const char* {
-  const char* ErrorCString = ErrorString.c_str();
+  const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }
 
 auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg)
     -> int32_t {
-  Callback = C;
-  CallbackArg = Arg;
+  auto& Instance = instance();
+
+  Instance.Callback = C;
+  Instance.CallbackArg = Arg;
+
   return EXIT_SUCCESS;
 }
 
-void ipcEstimateMetricInsert(double Value) {
-  if (IpcEstimateMetricData::Callback == nullptr || IpcEstimateMetricData::CallbackArg == nullptr) {
+void IpcEstimateMetricData::insertValue(double Value) {
+  auto& Instance = instance();
+
+  if (Instance.Callback == nullptr || Instance.CallbackArg == nullptr) {
     return;
   }
 
-  int64_t T =
+  const int64_t T =
       std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
           .count();
 
-  IpcEstimateMetricData::Callback(IpcEstimateMetricData::CallbackArg, "ipc-estimate", T, Value);
+  Instance.Callback(Instance.CallbackArg, "ipc-estimate", T, Value);
 }

@@ -19,12 +19,11 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <cassert>
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Optimizer/History.hpp>
 #include <firestarter/Optimizer/Population.hpp>
-
-#include <algorithm>
-#include <cassert>
+#include <random>
 
 namespace firestarter::optimizer {
 
@@ -39,9 +38,8 @@ void Population::generateInitialPopulation(std::size_t PopulationSize) {
       Individual Vec(Dims, 0);
       Vec[I] = 1;
       this->append(Vec);
+      Remaining--;
     }
-
-    Remaining -= Dims;
   } else {
     firestarter::log::trace() << "Population size (" << std::to_string(PopulationSize)
                               << ") is less than size of problem dimension (" << std::to_string(Dims) << ")";
@@ -60,7 +58,7 @@ void Population::append(Individual const& Ind) {
   std::map<std::string, firestarter::measurement::Summary> Metrics;
 
   // check if we already evaluated this individual
-  auto OptionalMetric = History::find(Ind);
+  const auto OptionalMetric = History::find(Ind);
   if (OptionalMetric.has_value()) {
     Metrics = OptionalMetric.value();
   } else {
@@ -99,9 +97,12 @@ void Population::insert(std::size_t Idx, Individual const& Ind, std::vector<doub
   F[Idx] = Fit;
 }
 
-auto Population::getRandomIndividual() -> Individual {
+auto Population::getRandomIndividual() const -> Individual {
   auto Dims = this->problem().getDims();
   auto const Bounds = this->problem().getBounds();
+
+  std::random_device Rd;
+  std::mt19937 Rng(Rd());
 
   firestarter::log::trace() << "Generating random individual of size: " << Dims;
 
@@ -111,29 +112,12 @@ auto Population::getRandomIndividual() -> Individual {
     auto const Lb = std::get<0>(Bounds[I]);
     auto const Ub = std::get<1>(Bounds[I]);
 
-    Out[I] = std::uniform_int_distribution<unsigned>(Lb, Ub)(this->Gen);
+    Out[I] = std::uniform_int_distribution<unsigned>(Lb, Ub)(Rng);
 
     firestarter::log::trace() << "  - " << I << ": [" << Lb << "," << Ub << "]: " << Out[I];
   }
 
   return Out;
-}
-
-auto Population::bestIndividual() const -> std::optional<Individual> {
-  // return an empty vector if the problem is multi objective, as there is no
-  // single best individual
-  if (this->problem().isMO()) {
-    return {};
-  }
-
-  // assert that we have individuals
-  assert(!this->X.empty());
-
-  auto Best = std::max_element(this->X.begin(), this->X.end(), [](const auto& A, const auto& B) { return A < B; });
-
-  assert(Best != this->X.end());
-
-  return *Best;
 }
 
 } // namespace firestarter::optimizer

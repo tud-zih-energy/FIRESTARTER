@@ -25,13 +25,28 @@
 #include <string>
 
 struct IpcEstimateMetricData {
-  inline static std::string ErrorString;
-  inline static void (*Callback)(void*, const char*, int64_t, double);
-  inline static void* CallbackArg;
+private:
+  IpcEstimateMetricData() = default;
+
+  std::string ErrorString;
+  void (*Callback)(void*, const char*, int64_t, double){};
+  void* CallbackArg{};
+
+public:
+  IpcEstimateMetricData(IpcEstimateMetricData const&) = delete;
+  void operator=(IpcEstimateMetricData const&) = delete;
+
+  static auto instance() -> IpcEstimateMetricData& {
+    static IpcEstimateMetricData Instance;
+    return Instance;
+  }
+
   static auto fini() -> int32_t;
   static auto init() -> int32_t;
   static auto getError() -> const char*;
   static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t;
+
+  static void insertValue(double Value);
 };
 
 static constexpr const MetricInterface IpcEstimateMetric{
@@ -48,5 +63,3 @@ static constexpr const MetricInterface IpcEstimateMetric{
     /*GetError=*/IpcEstimateMetricData::getError,
     /*RegisterInsertCallback=*/IpcEstimateMetricData::registerInsertCallback,
 };
-
-void ipcEstimateMetricInsert(double Value);

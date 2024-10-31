@@ -27,10 +27,11 @@
 namespace firestarter::optimizer {
 
 OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
-                                 firestarter::optimizer::Population& Population, std::string OptimizationAlgorithm,
-                                 unsigned Individuals, std::chrono::seconds const& Preheat)
+                                 std::unique_ptr<firestarter::optimizer::Population>&& Population,
+                                 std::string OptimizationAlgorithm, unsigned Individuals,
+                                 std::chrono::seconds const& Preheat)
     : Algorithm(std::move(Algorithm))
-    , Population(Population)
+    , Population(std::move(Population))
     , OptimizationAlgorithm(std::move(OptimizationAlgorithm))
     , Individuals(Individuals)
     , Preheat(Preheat) {
@@ -63,10 +64,10 @@ auto OptimizerWorker::optimizerThread(void* OptimizerWorker) -> void* {
 
   // For NSGA2 we start with a initial population
   if (This->OptimizationAlgorithm == "NSGA2") {
-    This->Population.generateInitialPopulation(This->Individuals);
+    This->Population->generateInitialPopulation(This->Individuals);
   }
 
-  This->Algorithm->evolve(This->Population);
+  This->Algorithm->evolve(*This->Population);
 
   return nullptr;
 }

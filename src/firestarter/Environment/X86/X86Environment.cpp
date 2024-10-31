@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <iomanip>
 #include <regex>
 
 namespace firestarter::environment::x86 {
@@ -182,13 +183,11 @@ void X86Environment::printFunctionSummary() {
   for (auto const& Config : PlatformConfigs) {
     for (auto const& ThreadsPerCore : Config->settings().threads()) {
       const char* Available = Config->isAvailable(topology()) ? "yes" : "no";
-      const char* Fmt = "  %4u | %-30s | %-24s | %s";
       const auto& FunctionName = Config->functionName(ThreadsPerCore);
       const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();
-      int Sz = std::snprintf(nullptr, 0, Fmt, Id, FunctionName.c_str(), Available, InstructionGroupsString.c_str());
-      std::vector<char> Buf(Sz + 1);
-      std::snprintf(Buf.data(), Buf.size(), Fmt, Id, FunctionName.c_str(), Available, InstructionGroupsString.c_str());
-      log::info() << std::string(Buf.data());
+
+      log::info() << "  " << std::right << std::setw(4) << Id << " | " << std::left << std::setw(30) << FunctionName
+                  << " | " << std::left << std::setw(24) << Available << " | " << InstructionGroupsString;
       Id++;
     }
   }

@@ -22,27 +22,43 @@
 #pragma once
 
 #include "../MetricInterface.h"
+#include <array>
 #include <string>
 
-struct PerfMetricData {
-  inline static const char* const PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
+class PerfMetricData {
+private:
+  PerfMetricData() = default;
+
+  static const constexpr char* PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
 
   struct ReadFormat {
-    uint64_t Nr;
-    struct {
+    struct ValueAndId {
       uint64_t Value;
       uint64_t Id;
-    } Values[2];
+    };
+
+    uint64_t Nr;
+    std::array<ValueAndId, 2> Values;
   };
 
-  inline static std::string ErrorString;
-  inline static int CpuCyclesFd = -1;
-  inline static int InstructionsFd = -1;
-  inline static uint64_t CpuCyclesId;
-  inline static uint64_t InstructionsId;
-  inline static bool InitDone = false;
-  inline static int32_t InitValue;
-  inline static struct ReadFormat Last;
+  std::string ErrorString;
+  int CpuCyclesFd = -1;
+  int InstructionsFd = -1;
+  uint64_t CpuCyclesId{};
+  uint64_t InstructionsId{};
+  bool InitDone = false;
+  int32_t InitValue{};
+  struct ReadFormat Last {};
+
+public:
+  PerfMetricData(PerfMetricData const&) = delete;
+  void operator=(PerfMetricData const&) = delete;
+
+  static auto instance() -> PerfMetricData& {
+    static PerfMetricData Instance;
+    return Instance;
+  }
+
   static auto fini() -> int32_t;
   static auto init() -> int32_t;
   static auto valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t;

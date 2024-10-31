@@ -30,7 +30,7 @@ namespace firestarter::optimizer {
 class OptimizerWorker {
 public:
   OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
-                  firestarter::optimizer::Population& Population, std::string OptimizationAlgorithm,
+                  std::unique_ptr<firestarter::optimizer::Population>&& Population, std::string OptimizationAlgorithm,
                   unsigned Individuals, std::chrono::seconds const& Preheat);
 
   ~OptimizerWorker() = default;
@@ -43,7 +43,7 @@ private:
   static auto optimizerThread(void* OptimizerWorker) -> void*;
 
   std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
-  firestarter::optimizer::Population Population;
+  std::unique_ptr<firestarter::optimizer::Population> Population;
   std::string OptimizationAlgorithm;
   unsigned Individuals;
   std::chrono::seconds Preheat;

@@ -26,11 +26,7 @@
 #include <string>
 #include <vector>
 
-struct RaplMetricData {
-  inline static const char* const RaplPath = "/sys/class/powercap";
-
-  inline static std::string ErrorString;
-
+class RaplMetricData {
   struct ReaderDef {
     ReaderDef() = delete;
 
@@ -46,7 +42,23 @@ struct RaplMetricData {
     int64_t Max;
   };
 
-  inline static std::vector<std::unique_ptr<ReaderDef>> Readers;
+private:
+  static constexpr const char* RaplPath = "/sys/class/powercap";
+
+  std::string ErrorString;
+
+  std::vector<std::unique_ptr<ReaderDef>> Readers;
+
+  RaplMetricData() = default;
+
+public:
+  RaplMetricData(RaplMetricData const&) = delete;
+  void operator=(RaplMetricData const&) = delete;
+
+  static auto instance() -> RaplMetricData& {
+    static RaplMetricData Instance;
+    return Instance;
+  }
 
   static auto fini() -> int32_t;
   static auto init() -> int32_t;

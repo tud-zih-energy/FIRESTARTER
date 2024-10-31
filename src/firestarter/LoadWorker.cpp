@@ -28,6 +28,7 @@
 #include <firestarter/Logging/Log.hpp>
 #include <iomanip>
 #include <limits>
+#include <sstream>
 
 #if defined(linux) || defined(__linux__)
 #include <firestarter/Measurement/Metric/IPCEstimate.hpp>
@@ -63,7 +64,9 @@ void Firestarter::initLoadWorkers() {
       assert(CommPtr);
       ErrorCommunication.emplace_back(std::shared_ptr<uint64_t>(CommPtr, AlignedAlloc::free));
       log::debug() << "Threads " << (I + NumThreads - 1) % NumThreads << " and " << I << " commPtr = 0x"
-                   << std::setfill('0') << std::setw(sizeof(uint64_t) * 2) << std::hex
+                   << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
+                   << std::hex
+                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                    << reinterpret_cast<uint64_t>(CommPtr);
     }
   }
@@ -203,7 +206,7 @@ void Firestarter::printPerformanceReport() {
   if (Cfg.Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
-      ipcEstimateMetricInsert(
+      IpcEstimateMetricData::insertValue(
           static_cast<double>(Td->LastRun.Iterations) *
           static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
           static_cast<double>(StopTimestamp - StartTimestamp));
@@ -211,14 +214,11 @@ void Firestarter::printPerformanceReport() {
   }
 #endif
 
-  // format runtime, gflops and bandwidth %.2f
+  // format runtime, gflops and bandwidth with two decimal places
   const auto FormatString = [](double Value) -> std::string {
-    const char* Fmt = "%.2f";
-
-    auto Size = std::snprintf(nullptr, 0, Fmt, Value);
-    std::vector<char> CharVec(Size + 1);
-    std::snprintf(CharVec.data(), CharVec.size(), Fmt, Value);
-    return {std::string(CharVec.data())};
+    std::stringstream Ss;
+    Ss << std::fixed << std::setprecision(2) << Value;
+    return Ss.str();
   };
 
   log::debug() << "\n"
@@ -294,7 +294,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
         ErrorDetectionStructRef.Right.Communication = Td->CommunicationRight.get();
 
         // do first touch memset 0 for the communication pointers
-        std::memset((void*)ErrorDetectionStructRef.Left.Communication, 0, sizeof(uint64_t) * 2);
+        std::memset(static_cast<void*>(ErrorDetectionStructRef.Left.Communication), 0, sizeof(uint64_t) * 2);
       }
 
       // call init function

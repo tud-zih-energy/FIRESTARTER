@@ -35,9 +35,16 @@ public:
   auto evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population override;
 
 private:
+  // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+
+  /// The number of generations of the NSGA2 algorithm.
   const unsigned Gen;
+  /// The crossover propability in the range [0,1[.
   const double Cr;
+  /// The mutation propability in the range [0,1].
   const double M;
+
+  // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 };
 
 } // namespace firestarter::optimizer::algorithm

@@ -27,14 +27,14 @@ namespace firestarter {
 struct ErrorDetectionStruct {
   struct OneSide {
     // the pointer to 16B of communication
-    volatile uint64_t* Communication;
+    uint64_t* Communication;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    volatile uint64_t Locals[4];
+    uint64_t Locals[4];
     // if this variable is not 0, an error occured in the comparison with the
     // left thread.
-    volatile uint64_t Error;
+    uint64_t Error;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
-    volatile uint64_t Padding[2];
+    uint64_t Padding[2];
   };
 
   // we have two cache lines (64B) containing each two 16B local variable and
