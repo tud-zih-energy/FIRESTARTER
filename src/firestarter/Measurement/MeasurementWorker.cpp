@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include <cstdarg>
 #include <firestarter/Logging/Log.hpp>
 #include <firestarter/Measurement/MeasurementWorker.hpp>
 #include <queue>
@@ -32,6 +33,20 @@ extern "C" {
 void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, double Value) {
   static_cast<firestarter::measurement::MeasurementWorker*>(Cls)->insertCallback(MetricName, TimeSinceEpoch, Value);
 }
+
+namespace {
+
+// NOLINTBEGIN(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+auto scanStdin(const char* Fmt, int Count, ...) -> bool {
+  va_list Args;
+  va_start(Args, Count);
+  auto ReturnCode = std::vscanf(Fmt, Args);
+  va_end(Args);
+  return ReturnCode == Count;
+}
+// NOLINTEND(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+
+} // namespace
 
 namespace firestarter::measurement {
 
@@ -381,21 +396,23 @@ auto MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) -> v
   pthread_setname_np(pthread_self(), "StdinDataAcquis");
 #endif
 
-  for (std::string Line; std::getline(std::cin, Line);) {
+  for (;;) {
     int64_t Time = 0;
     double Value = NAN;
-    char Name[128];
-    if (std::sscanf(Line.c_str(), "%127s %ld %lf", Name, &Time, &Value) == 3) {
-      auto NameEqual = [&Name](auto const& AllowedName) { return AllowedName == std::string(Name); };
-      auto Item = std::find_if(This->stdinMetrics().begin(), This->stdinMetrics().end(), NameEqual);
-      // metric name is allowed
-      if (Item != This->stdinMetrics().end()) {
-        This->insertCallback(Name, Time, Value);
-      }
+    std::array<char, 128> Name = {0};
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+    if (!scanStdin("%127s %ld %lf", 3, Name.data(), &Time, &Value)) {
+      continue;
+    }
+
+    auto NameEqual = [&Name](auto const& AllowedName) { return AllowedName == std::string(Name.data()); };
+    auto Item = std::find_if(This->stdinMetrics().begin(), This->stdinMetrics().end(), NameEqual);
+    // metric name is allowed
+    if (Item != This->stdinMetrics().end()) {
+      This->insertCallback(Name.data(), Time, Value);
     }
   }
-
-  return nullptr;
 }
 
 } // namespace firestarter::measurement
