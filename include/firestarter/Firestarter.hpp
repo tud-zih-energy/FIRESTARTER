@@ -72,6 +72,10 @@ private:
 
   std::unique_ptr<firestarter::optimizer::Population> Population;
 
+  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
+  // TODO(Issue #85): Currently we support one instance of the Firestarter class. Variables that need to be accessed
+  // from outside the class, e.g. in the sigterm handler are inline static.
+
   inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
 
   // variables to control the termination of the watchdog
@@ -81,6 +85,8 @@ private:
 
   // variable to control the load of the threads
   inline static volatile LoadThreadWorkType LoadVar = LoadThreadWorkType::LoadLow;
+
+  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
   // LoadThreadWorker.cpp
   void initLoadWorkers();

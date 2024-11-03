@@ -36,7 +36,7 @@ void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, d
 
 namespace {
 
-// NOLINTBEGIN(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay,clang-analyzer-valist.Uninitialized)
 auto scanStdin(const char* Fmt, int Count, ...) -> bool {
   va_list Args;
   va_start(Args, Count);
@@ -44,7 +44,7 @@ auto scanStdin(const char* Fmt, int Count, ...) -> bool {
   va_end(Args);
   return ReturnCode == Count;
 }
-// NOLINTEND(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cert-dcl50-cpp,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-pro-bounds-array-to-pointer-decay,clang-analyzer-valist.Uninitialized)
 
 } // namespace
 

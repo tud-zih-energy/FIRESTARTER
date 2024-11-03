@@ -138,10 +138,8 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
   using ClockT = std::chrono::high_resolution_clock;
   using TicksT = std::chrono::microseconds;
 
-  uint64_t TimeDiff = 0;
   uint64_t Clockrate = 0;
-  int NumMeasurements = 0;
-  int MinMeasurements = 0;
+  uint64_t MinMeasurements = 0;
 
   ClockT::time_point StartTime;
   ClockT::time_point EndTime;
@@ -162,9 +160,8 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
   MinMeasurements = 20;
 #endif
 
-  int I = 3;
-
-  do {
+  for (uint64_t NumMeasurements = 0, TimeDiff = 0, Duration = 3; TimeDiff < 10000 || NumMeasurements < MinMeasurements;
+       Duration += 2) {
     uint64_t End1Tsc = 0;
     uint64_t End2Tsc = 0;
 
@@ -173,27 +170,29 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
     StartTime = ClockT::now();
     const uint64_t Start2Tsc = timestamp();
 
-    // waiting
-    do {
+    // busy wait waiting for duration to pass
+    for (; End1Tsc < Start2Tsc + 1000000 * Duration;) {
       End1Tsc = timestamp();
-    } while (End1Tsc < Start2Tsc + 1000000 * I); /* busy waiting */
+    }
 
     // end timestamp
-    do {
-      End1Tsc = timestamp();
-      EndTime = ClockT::now();
-      End2Tsc = timestamp();
+    End1Tsc = timestamp();
+    EndTime = ClockT::now();
+    End2Tsc = timestamp();
 
-      TimeDiff = std::chrono::duration_cast<TicksT>(EndTime - StartTime).count();
-    } while (0 == TimeDiff);
+    TimeDiff = std::chrono::duration_cast<TicksT>(EndTime - StartTime).count();
 
-    const uint64_t ClockLowerBound = (((End1Tsc - Start2Tsc) * 1000000) / (TimeDiff));
-    const uint64_t ClockUpperBound = (((End2Tsc - Start1Tsc) * 1000000) / (TimeDiff));
+    // measurement not long enough
+    if (TimeDiff <= 2000) {
+      continue;
+    }
 
     // if both values differ significantly, the measurement could have been
     // interrupted between 2 rdtsc's
-    if ((static_cast<double>(ClockLowerBound) > ((static_cast<double>(ClockUpperBound)) * 0.999)) &&
-        ((TimeDiff) > 2000)) {
+    const uint64_t ClockLowerBound = (((End1Tsc - Start2Tsc) * 1000000) / (TimeDiff));
+    const uint64_t ClockUpperBound = (((End2Tsc - Start1Tsc) * 1000000) / (TimeDiff));
+
+    if (static_cast<double>(ClockLowerBound) > ((static_cast<double>(ClockUpperBound)) * 0.999)) {
       NumMeasurements++;
       const uint64_t Clock = (ClockLowerBound + ClockUpperBound) / 2;
       const bool ClockrateUpdateCondition = Clockrate == 0 ||
@@ -206,8 +205,7 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
         Clockrate = Clock;
       }
     }
-    I += 2;
-  } while (((TimeDiff) < 10000) || (NumMeasurements < MinMeasurements));
+  }
 
   return Clockrate;
 }
