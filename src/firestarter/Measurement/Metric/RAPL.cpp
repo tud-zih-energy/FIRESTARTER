@@ -60,9 +60,14 @@ auto RaplMetricData::init() -> int32_t {
   std::vector<std::string> Paths = {};
 
   struct dirent* Dir = nullptr;
+
+  // As long as the DIR object (named RaplDir here) is not shared between threads this call is thread-safe:
+  // https://www.gnu.org/software/libc/manual/html_node/Reading_002fClosing-Directory.html
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   while ((Dir = readdir(RaplDir)) != nullptr) {
     std::stringstream Path;
     std::stringstream NamePath;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Path << RaplPath << "/" << Dir->d_name;
     NamePath << Path.str() << "/name";
 

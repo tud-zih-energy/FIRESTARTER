@@ -68,6 +68,7 @@ void X86Payload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chro
 void X86Payload::initMemory(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue) {
   uint64_t I = 0;
 
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   for (; I < InitBlocksize; I++) {
     MemoryAddr[I] = 0.25 + static_cast<double>(I) * 8.0 * FirstValue;
   }
@@ -77,6 +78,7 @@ void X86Payload::initMemory(double* MemoryAddr, uint64_t BufferSize, double Firs
   for (; I < BufferSize; I++) {
     MemoryAddr[I] = 0.25 + static_cast<double>(I) * 8.0 * LastValue;
   }
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }; // namespace firestarter::environment::x86::payload
