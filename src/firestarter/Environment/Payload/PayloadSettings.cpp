@@ -21,18 +21,12 @@
 
 #include <algorithm>
 #include <cmath>
-
-#include <firestarter/Environment/Payload/Payload.hpp>
+#include <firestarter/Environment/Payload/PayloadSettings.hpp>
 
 namespace firestarter::environment::payload {
 
-void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize) { PayloadPtr->init(MemoryAddr, BufferSize); }
-
-void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
-  PayloadPtr->lowLoadFunction(LoadVar, Period);
-};
-
-auto Payload::getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start) -> unsigned {
+auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start)
+    -> unsigned {
   unsigned I = 0;
 
   for (const auto& Item : Sequence) {
@@ -44,7 +38,7 @@ auto Payload::getSequenceStartCount(const std::vector<std::string>& Sequence, co
   return I;
 }
 
-auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> const& Proportions)
+auto PayloadSettings::generateSequence(std::vector<std::pair<std::string, unsigned>> const& Proportions)
     -> std::vector<std::string> {
   std::vector<std::pair<std::string, unsigned>> Prop = Proportions;
 
@@ -73,8 +67,8 @@ auto Payload::generateSequence(std::vector<std::pair<std::string, unsigned>> con
   return Sequence;
 }
 
-auto Payload::getL2LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                             const unsigned Size) -> unsigned {
+auto PayloadSettings::getL2LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                                     const unsigned Size) -> unsigned {
   if (getL2SequenceCount(Sequence) == 0) {
     return 0;
   }
@@ -82,8 +76,8 @@ auto Payload::getL2LoopCount(const std::vector<std::string>& Sequence, const uns
       (0.8 * Size / 64 / (getL2SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines))));
 }
 
-auto Payload::getL3LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                             const unsigned Size) -> unsigned {
+auto PayloadSettings::getL3LoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                                     const unsigned Size) -> unsigned {
   if (getL3SequenceCount(Sequence) == 0) {
     return 0;
   }
@@ -91,8 +85,8 @@ auto Payload::getL3LoopCount(const std::vector<std::string>& Sequence, const uns
       (0.8 * Size / 64 / (getL3SequenceCount(Sequence) * getNumberOfSequenceRepetitions(Sequence, NumberOfLines))));
 }
 
-auto Payload::getRAMLoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
-                              const unsigned Size) -> unsigned {
+auto PayloadSettings::getRAMLoopCount(const std::vector<std::string>& Sequence, const unsigned NumberOfLines,
+                                      const unsigned Size) -> unsigned {
   if (getRAMSequenceCount(Sequence) == 0) {
     return 0;
   }

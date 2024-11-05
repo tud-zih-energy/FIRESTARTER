@@ -29,7 +29,6 @@
 #include <list>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace firestarter::environment::payload {
 
@@ -44,89 +43,7 @@ private:
   /// The number of SIMD registers used by the payload
   unsigned RegisterCount = 0;
 
-  /// Get the number of items in the sequence that start with a given string.
-  /// \arg Sequence The sequence that is analyzed.
-  /// \arg Start The string that contains the start of the item names that should be counted in the sequence.
-  /// \returns The number of items in the sequence that start with the supplied strings.
-  [[nodiscard]] static auto getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start)
-      -> unsigned;
-
 protected:
-  /// Generate a sequence of items interleaved with one another based on a supplied number how many times each items
-  /// should appear in the resulting sequence.
-  /// \arg Proportion The mapping of items defined by a string and the number of times this item should apear in the
-  /// resuling sequence.
-  /// \returns The sequence that is generated from the supplied propotions
-  [[nodiscard]] static auto generateSequence(const std::vector<std::pair<std::string, unsigned>>& Proportion)
-      -> std::vector<std::string>;
-
-  /// Get the number of items in the sequence that start with "L2".
-  /// \arg Sequence The sequence that is analyzed.
-  /// \returns The number of items items in the sequence that start with "L2".
-  [[nodiscard]] static auto getL2SequenceCount(const std::vector<std::string>& Sequence) -> unsigned {
-    return getSequenceStartCount(Sequence, "L2");
-  };
-
-  /// Get the number of items in the sequence that start with "L3".
-  /// \arg Sequence The sequence that is analyzed.
-  /// \returns The number of items items in the sequence that start with "L3".
-  [[nodiscard]] static auto getL3SequenceCount(const std::vector<std::string>& Sequence) -> unsigned {
-    return getSequenceStartCount(Sequence, "L3");
-  };
-
-  /// Get the number of items in the sequence that start with "RAM".
-  /// \arg Sequence The sequence that is analyzed.
-  /// \returns The number of items items in the sequence that start with "RAM".
-  [[nodiscard]] static auto getRAMSequenceCount(const std::vector<std::string>& Sequence) -> unsigned {
-    return getSequenceStartCount(Sequence, "RAM");
-  };
-
-  /// Get the maximum number of repetitions of the the supplied sequence so that the size of the sequence times the
-  /// number of repetitions is smaller equal to the number of lines. The number of repetitions is a unsigned number.
-  /// \arg Sequence The reference to the sequence that should be repeated multiple times
-  /// \arg NumberOfLines The maximum number of entries in the repeated sequence
-  /// \returns The number of repetitions of the sequence.
-  [[nodiscard]] static auto getNumberOfSequenceRepetitions(const std::vector<std::string>& Sequence,
-                                                           const unsigned NumberOfLines) -> unsigned {
-    if (Sequence.empty()) {
-      return 0;
-    }
-    return NumberOfLines / Sequence.size();
-  };
-
-  /// Get the number of accesses that can be made to 80% of the L2 cache size (each incrementing the pointer to the
-  /// cache) before the pointer need to be reseted to the original value. This assumes that each L2 item in the sequence
-  /// increments the pointer by one cache line (64B). It is also assumed that the number of accesses fit at least once
-  /// into this cache. This should always be the case on modern CPUs.
-  /// \arg Sequence The reference to the sequence.
-  /// \arg NumberOfLines The maximum number of entries in the repeated sequence.
-  /// \arg Size The size of the L2 Cache.
-  /// \returns The maximum number of iterations of the repeated sequence to fill up to 80% of the L2 cache.
-  [[nodiscard]] static auto getL2LoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                           unsigned Size) -> unsigned;
-
-  /// Get the number of accesses that can be made to 80% of the L3 cache size (each incrementing the pointer to the
-  /// cache) before the pointer need to be reseted to the original value. This assumes that each L3 item in the sequence
-  /// increments the pointer by one cache line (64B). See the note about assumptions on the size of the cache in the
-  /// documentation of getL2LoopCount.
-  /// \arg Sequence The reference to the sequence.
-  /// \arg NumberOfLines The maximum number of entries in the repeated sequence.
-  /// \arg Size The size of the L3 Cache.
-  /// \returns The maximum number of iterations of the repeated sequence to fill up to 80% of the L3 cache.
-  [[nodiscard]] static auto getL3LoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                           unsigned Size) -> unsigned;
-
-  /// Get the number of accesses that can be made to 100% of the RAM size (each incrementing the pointer to the ram)
-  /// before the pointer need to be reseted to the original value. This assumes that each RAM item in the sequence
-  /// increments the pointer by one cache line (64B). See the note about assumptions on the size of the cache in the
-  /// documentation of getL2LoopCount.
-  /// \arg Sequence The reference to the sequence.
-  /// \arg NumberOfLines The maximum number of entries in the repeated sequence.
-  /// \arg Size The size of the RAM.
-  /// \returns The maximum number of iterations of the repeated sequence to fill up to 100% of the RAM.
-  [[nodiscard]] static auto getRAMLoopCount(const std::vector<std::string>& Sequence, unsigned NumberOfLines,
-                                            unsigned Size) -> unsigned;
-
   /// Function to initialize the memory used by the high load function.
   /// \arg MemoryAddr The pointer to the memory.
   /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.

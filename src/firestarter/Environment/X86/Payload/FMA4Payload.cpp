@@ -36,8 +36,9 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
 
   // Compute the sequence of instruction groups and the number of its repetions
   // to reach the desired size
-  auto Sequence = generateSequence(Settings.instructionGroups());
-  auto Repetitions = getNumberOfSequenceRepetitions(Sequence, Settings.linesPerThread());
+  auto Sequence = Settings.sequence();
+  auto Repetitions =
+      environment::payload::PayloadSettings::getNumberOfSequenceRepetitions(Sequence, Settings.linesPerThread());
 
   // compute count of flops and memory access for performance report
   environment::payload::PayloadStats Stats;
@@ -74,9 +75,12 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
   const auto RamSize = Settings.ramBufferSizePerThread();
 
   // calculate the reset counters for the buffers
-  const auto L2LoopCount = getL2LoopCount(Sequence, Settings.linesPerThread(), L2Size);
-  const auto L3LoopCount = getL3LoopCount(Sequence, Settings.linesPerThread(), L3Size);
-  const auto RamLoopCount = getRAMLoopCount(Sequence, Settings.linesPerThread(), RamSize);
+  const auto L2LoopCount =
+      environment::payload::PayloadSettings::getL2LoopCount(Sequence, Settings.linesPerThread(), L2Size);
+  const auto L3LoopCount =
+      environment::payload::PayloadSettings::getL3LoopCount(Sequence, Settings.linesPerThread(), L3Size);
+  const auto RamLoopCount =
+      environment::payload::PayloadSettings::getRAMLoopCount(Sequence, Settings.linesPerThread(), RamSize);
 
   asmjit::CodeHolder Code;
   Code.init(asmjit::Environment::host());
@@ -300,7 +304,7 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
   }
 
   Cb.movq(TempReg, IterReg); // restore iteration counter
-  if (getRAMSequenceCount(Sequence) > 0) {
+  if (environment::payload::PayloadSettings::getRAMSequenceCount(Sequence) > 0) {
     // reset RAM counter
     auto NoRamReset = Cb.newLabel();
 
@@ -314,7 +318,7 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
     Stats.Instructions += 2;
   }
   Cb.inc(TempReg); // increment iteration counter
-  if (getL2SequenceCount(Sequence) > 0) {
+  if (environment::payload::PayloadSettings::getL2SequenceCount(Sequence) > 0) {
     // reset L2-Cache counter
     auto NoL2Reset = Cb.newLabel();
 
@@ -328,7 +332,7 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
     Stats.Instructions += 2;
   }
   Cb.movq(IterReg, TempReg); // store iteration counter
-  if (getL3SequenceCount(Sequence) > 0) {
+  if (environment::payload::PayloadSettings::getL3SequenceCount(Sequence) > 0) {
     // reset L3-Cache counter
     auto NoL3Reset = Cb.newLabel();
 

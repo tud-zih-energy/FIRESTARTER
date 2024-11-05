@@ -11,7 +11,8 @@ SET(FIRESTARTER_FILES
 
 	firestarter/Environment/Environment.cpp
 	firestarter/Environment/CPUTopology.cpp
-	firestarter/Environment/Payload/Payload.cpp
+	firestarter/Environment/Payload/CompiledPayload.cpp
+	firestarter/Environment/Payload/PayloadSettings.cpp
 
 	# here starts the x86 specific code
 	firestarter/Environment/X86/X86Environment.cpp
