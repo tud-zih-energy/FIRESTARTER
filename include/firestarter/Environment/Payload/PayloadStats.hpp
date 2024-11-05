@@ -23,10 +23,15 @@
 
 namespace firestarter::environment::payload {
 
+/// This struct represents the stats a compiled payload has.
 struct PayloadStats {
+  /// The number of flops computed per iteration of the high load routine.
   unsigned Flops = 0;
+
+  /// The number of bytes accessed to the main memory per iteration of the high load routine.
   unsigned Bytes = 0;
-  // number of instructions in load loop
+
+  /// The number of instructions in load loop
   unsigned Instructions = 0;
 };
 

@@ -38,7 +38,7 @@ auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequ
   return I;
 }
 
-auto PayloadSettings::generateSequence(std::vector<std::pair<std::string, unsigned>> const& Proportions)
+auto PayloadSettings::generateSequence(std::vector<PayloadSettings::InstructionWithProportion> const& Proportions)
     -> std::vector<std::string> {
   std::vector<std::pair<std::string, unsigned>> Prop = Proportions;
 

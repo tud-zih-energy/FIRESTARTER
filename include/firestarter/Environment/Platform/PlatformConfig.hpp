@@ -28,31 +28,56 @@
 
 namespace firestarter::environment::platform {
 
+/// The payload in combination with settings and a short hand name for the specific microarchitecture this payload is
+/// designed for.
 class PlatformConfig {
 private:
+  /// The name of this platform. This is usually a short hand for the CPU microarchitecture e.g., HSW_COREI or
+  /// HSW_XEONEP.
   std::string Name;
+
+  /// The settings for the associated payload.
   payload::PayloadSettings Settings;
+
+  /// The payload this platfrom should execute.
   std::shared_ptr<const payload::Payload> Payload;
 
 public:
   /// Getter for the name of the platform.
   [[nodiscard]] auto name() const -> const auto& { return Name; }
+
   /// Getter for the settings of the platform.
   [[nodiscard]] auto settings() const -> const auto& { return Settings; }
+
   /// Reference to the settings. This allows them to be overriden.
   [[nodiscard]] auto settings() -> auto& { return Settings; }
+
   /// Getter for the payload of the platform.
   [[nodiscard]] auto payload() const -> const auto& { return Payload; }
 
+  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
+  /// available for the payload that is used.
+  /// \arg Topology The reference to the CPUTopology that is used to check agains if this platform is supported.
+  /// \returns true if the platform is supported on the given CPUTopology.
   [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
 
+  /// Check if this platform is available and the default on the current system.
+  /// \arg Topology The reference to the CPUTopology that is used to check agains if this payload is supported.
+  /// \returns true if the platform is the default one for a given CPUTopology.
   [[nodiscard]] auto isDefault(const CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
 
 protected:
+  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
+  /// available for the payload that is used.
+  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
+  /// \returns true if the platform is supported on the given CPUTopology.
   [[nodiscard]] virtual auto isAvailable(const CPUTopology* Topology) const -> bool {
     return payload()->isAvailable(*Topology);
   }
 
+  /// Check if this platform is available and the default on the current system.
+  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
+  /// \returns true if the platform is the default one for a given CPUTopology.
   [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
 
 public:
@@ -88,6 +113,7 @@ public:
     return functionName(Settings.thread());
   };
 
+  /// Print a summary for the selected platform/payload with given settings.
   void printCodePathSummary() const {
     assert(Settings.isConcreate() && "Setting must be concreate to print the code path summary.");
 

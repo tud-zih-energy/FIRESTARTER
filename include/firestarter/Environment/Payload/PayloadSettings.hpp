@@ -32,6 +32,7 @@
 
 namespace firestarter::environment::payload {
 
+/// This class represents the settings that can be changed in the high load routine of a payload.
 struct PayloadSettings {
 public:
   using InstructionWithProportion = std::pair<std::string, unsigned>;
@@ -40,10 +41,21 @@ private:
   /// The number of threads for which this payload is available. Multiple ones may exsists. The PayloadSettings are
   /// concreate once this is set to contain only one element.
   std::list<unsigned> Threads;
+
+  /// The size of the L1i cache per physical CPU core. This value may be empty.
   std::optional<unsigned> InstructionCacheSize;
+
+  /// The size of the L1d,L2,...,L3 caches per physical CPU core.
   std::list<unsigned> DataCacheBufferSize;
+
+  /// The selected size of the buffer that is in the RAM on the physical CPU core.
   unsigned RamBufferSize;
+
+  /// The maximum number of instructions that should appear inside the high load routine.
   unsigned Lines;
+
+  /// This represents the instructions in combination with the number of times they should appear in the generated
+  /// sequence.
   std::vector<InstructionWithProportion> InstructionGroups;
 
   /// Get the number of items in the sequence that start with a given string.
@@ -69,7 +81,7 @@ public:
   /// \arg Proportion The mapping of items defined by a string and the number of times this item should apear in the
   /// resuling sequence.
   /// \returns The sequence that is generated from the supplied propotions
-  [[nodiscard]] static auto generateSequence(const std::vector<std::pair<std::string, unsigned>>& Proportion)
+  [[nodiscard]] static auto generateSequence(const std::vector<InstructionWithProportion>& Proportion)
       -> std::vector<std::string>;
 
   /// Get the number of items in the sequence that start with "L2".
@@ -154,10 +166,13 @@ public:
 
   /// The available instruction cache size. This refers to the L1i-Cache on the physical CPU core.
   [[nodiscard]] auto instructionCacheSize() const -> const auto& { return InstructionCacheSize; }
+
   /// The size of the L1d,L2,...,L3 caches per physical CPU core.
   [[nodiscard]] auto dataCacheBufferSize() const -> const auto& { return DataCacheBufferSize; }
+
   /// The selected size of the buffer that is in the RAM on the physical CPU core.
   [[nodiscard]] auto ramBufferSize() const -> auto{ return RamBufferSize; }
+
   /// Return the total buffer size for the data caches and the ram per physical CPU core.
   [[nodiscard]] auto totalBufferSize() const -> std::size_t {
     std::size_t Total = 0;
@@ -167,6 +182,7 @@ public:
     Total += RamBufferSize;
     return Total;
   }
+
   /// The number of instruction groups which should be used in the payload per physical CPU core.
   [[nodiscard]] auto lines() const -> auto{ return Lines; }
 
@@ -178,6 +194,7 @@ public:
     }
     return {};
   }
+
   /// The size of the L1d,L2,...,L3 caches per thread on the physical CPU core.
   [[nodiscard]] auto dataCacheBufferSizePerThread() const -> std::list<unsigned> {
     auto DataCacheBufferSizePerThread = DataCacheBufferSize;
@@ -186,10 +203,13 @@ public:
     }
     return DataCacheBufferSizePerThread;
   }
+
   /// The selected size of the buffer that is in the RAM per thread on the physical CPU core.
   [[nodiscard]] auto ramBufferSizePerThread() const -> auto{ return RamBufferSize / thread(); }
+
   /// Return the total buffer size for the data caches and the ram per thread on the physical CPU core.
   [[nodiscard]] auto totalBufferSizePerThread() const -> std::size_t { return totalBufferSize() / thread(); }
+
   /// The number of instruction groups which should be used in the payload per thread on the physical CPU core.
   [[nodiscard]] auto linesPerThread() const -> auto{ return Lines / thread(); }
 
@@ -200,7 +220,7 @@ public:
   /// \returns The sequence that is generated from the supplied propotions in the instruction groups.
   [[nodiscard]] auto sequence() const -> std::vector<std::string> { return generateSequence(instructionGroups()); }
 
-  /// The vector of instructions that are saved in the instruction groups
+  /// The vector of used instructions that are saved in the instruction groups
   [[nodiscard]] auto instructionGroupItems() const -> std::vector<std::string> {
     std::vector<std::string> Items;
     Items.reserve(InstructionGroups.size());
@@ -210,6 +230,8 @@ public:
     return Items;
   }
 
+  /// Get the string that represents the instructions in combination with the number of times they should appear in the
+  /// sequence.
   [[nodiscard]] auto getInstructionGroupsString() const -> std::string {
     std::stringstream Ss;
 
