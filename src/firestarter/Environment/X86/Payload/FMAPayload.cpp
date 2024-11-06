@@ -46,17 +46,17 @@ auto FMAPayload::compilePayload(const environment::payload::PayloadSettings& Set
   environment::payload::PayloadStats Stats;
 
   for (const auto& Item : Sequence) {
-    auto It = InstructionFlops.find(Item);
+    auto It = instructionFlops().find(Item);
 
-    if (It == InstructionFlops.end()) {
+    if (It == instructionFlops().end()) {
       workerLog::error() << "Instruction group " << Item << " undefined in " << name() << ".";
     }
 
     Stats.Flops += It->second;
 
-    It = InstructionMemory.find(Item);
+    It = instructionMemory().find(Item);
 
-    if (It != InstructionMemory.end()) {
+    if (It != instructionMemory().end()) {
       Stats.Bytes += It->second;
     }
   }
@@ -420,15 +420,6 @@ auto FMAPayload::compilePayload(const environment::payload::PayloadSettings& Set
   }
 
   return CompiledPayloadPtr;
-}
-
-auto FMAPayload::getAvailableInstructions() const -> std::list<std::string> {
-  std::list<std::string> Instructions;
-
-  transform(InstructionFlops.begin(), InstructionFlops.end(), back_inserter(Instructions),
-            [](const auto& Item) { return Item.first; });
-
-  return Instructions;
 }
 
 void FMAPayload::init(double* MemoryAddr, uint64_t BufferSize) const {

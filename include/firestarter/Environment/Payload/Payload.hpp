@@ -58,6 +58,10 @@ protected:
 public:
   Payload() = delete;
 
+  /// Abstract construction for the payload.
+  /// \arg Name The name of this payload. It is usally named by the CPU extension this payload uses e.g., SSE2 or FMA.
+  /// \arg RegisterSize The size of the SIMD registers in units of doubles (8B).
+  /// \arg RegisterCount The number of SIMD registers used by the payload.
   Payload(std::string Name, unsigned RegisterSize, unsigned RegisterCount) noexcept
       : Name(std::move(Name))
       , RegisterSize(RegisterSize)

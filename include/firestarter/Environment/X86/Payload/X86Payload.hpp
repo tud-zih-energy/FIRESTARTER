@@ -40,14 +40,34 @@ namespace firestarter::environment::x86::payload {
 
 class X86Payload : public environment::payload::Payload {
 private:
-  // we can use this to check, if our platform support this payload
+  /// This list contains the features (cpu extenstions) that are requied to execute the payload.
   std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
 
+  /// The mapping from instructions to the number of flops per instruction. This map is required to have an entry for
+  /// every instruction.
+  std::map<std::string, unsigned> InstructionFlops;
+
+  /// The mapping from instructions to the size of main memory accesses for this instuction. This map is not required to
+  /// contain all instructions.
+  std::map<std::string, unsigned> InstructionMemory;
+
 public:
+  /// Abstract constructor for a payload on X86 CPUs.
+  /// \arg FeatureRequests This list with features (cpu extenstions) that are requied to execute the payload.
+  /// \arg Name The name of this payload. It is usally named by the CPU extension this payload uses e.g., SSE2 or FMA.
+  /// \arg RegisterSize The size of the SIMD registers in units of doubles (8B).
+  /// \arg RegisterCount The number of SIMD registers used by the payload.
+  /// \arg InstructionFlops The mapping from instructions to the number of flops per instruction. This map is required
+  /// to have an entry for every instruction.
+  /// \arg InstructionMemory The mapping from instructions to the size of main memory accesses for this instuction. This
+  /// map is not required to contain all instructions.
   X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
-             unsigned RegisterSize, unsigned RegisterCount) noexcept
+             unsigned RegisterSize, unsigned RegisterCount, std::map<std::string, unsigned>&& InstructionFlops,
+             std::map<std::string, unsigned>&& InstructionMemory) noexcept
       : Payload(std::move(Name), RegisterSize, RegisterCount)
-      , FeatureRequests(FeatureRequests) {}
+      , FeatureRequests(FeatureRequests)
+      , InstructionFlops(std::move(InstructionFlops))
+      , InstructionMemory(std::move(InstructionMemory)) {}
 
 private:
   [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool final {
@@ -483,8 +503,24 @@ protected:
 
   static void initMemory(double* MemoryAddr, uint64_t BufferSize, double FirstValue, double LastValue);
 
-  // use cpuid and usleep as low load
+  /// Function to produce a low load on the cpu.
+  /// \arg LoadVar The variable that controls the load. If this variable changes from LoadThreadWorkType::LowLoad to
+  /// something else this function will return.
+  /// \arg Period The period of the low/high load switching. This function will sleep 1% of the Period and check if the
+  /// LoadVar changed.
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
+
+  /// Get the available instruction items that are supported by this payload.
+  /// \returns The available instruction items that are supported by this payload.
+  [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> final;
+
+  /// Get the mapping from instructions to the number of flops per instruction. This map is required to have an entry
+  /// for every instruction.
+  [[nodiscard]] auto instructionFlops() const -> const auto& { return InstructionFlops; }
+
+  /// Get the mapping from instructions to the size of main memory accesses for this instuction. This map is not
+  /// required to contain all instructions.
+  [[nodiscard]] auto instructionMemory() const -> const auto& { return InstructionMemory; }
 };
 
 } // namespace firestarter::environment::x86::payload

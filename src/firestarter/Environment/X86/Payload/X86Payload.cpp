@@ -81,4 +81,13 @@ void X86Payload::initMemory(double* MemoryAddr, uint64_t BufferSize, double Firs
   // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
+auto X86Payload::getAvailableInstructions() const -> std::list<std::string> {
+  std::list<std::string> Instructions;
+
+  transform(InstructionFlops.begin(), InstructionFlops.end(), back_inserter(Instructions),
+            [](const auto& Item) { return Item.first; });
+
+  return Instructions;
+}
+
 }; // namespace firestarter::environment::x86::payload
