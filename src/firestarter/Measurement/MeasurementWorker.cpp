@@ -208,7 +208,7 @@ auto MeasurementWorker::initMetrics(std::vector<std::string> const& MetricNames)
       if (Metric != nullptr) {
         const auto ReturnValue = Metric->Init();
         if (ReturnValue != EXIT_SUCCESS) {
-          log::error() << "Metric " << Metric->Name << ": " << Metric->GetError();
+          log::warn() << "Metric " << Metric->Name << ": " << Metric->GetError();
           continue;
         }
       }
