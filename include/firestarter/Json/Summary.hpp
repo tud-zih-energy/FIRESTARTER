@@ -23,6 +23,7 @@
 
 #include "../Measurement/Summary.hpp"
 
+/// Json serializer and deserializer for the firestarter::measurement::Summary struct
 namespace nlohmann {
 template <> struct adl_serializer<firestarter::measurement::Summary> {
   // functions for nlohmann json do not follow LLVM code style

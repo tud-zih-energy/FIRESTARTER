@@ -40,6 +40,8 @@ namespace firestarter {
 
 namespace logging {
 
+/// Formatter to log Records with severity warn, error and fatal to stderr and all other Records to stdout. If a record
+/// has severity error or fatal we abort the program.
 class StdOut {
 public:
   static void sink(nitro::log::severity_level Severity, const std::string& FormattedRecord) {
@@ -73,6 +75,7 @@ template <typename Record>
 // The class may not be named Formater since this is used as a template argument name in nitro which will cause errors
 // when compiling with MSC. We will also write it with lower case and the correct spelling in case it gets renamed
 // correctly there.
+/// Format Record and add a string representing the severity in front.
 class formatter {
   // NOLINTEND(readability-identifier-naming)
 public:

@@ -25,6 +25,7 @@
 
 namespace firestarter::measurement {
 
+/// This struct models a value that was captured at a specific timepoint.
 struct TimeValue {
   TimeValue() = default;
 

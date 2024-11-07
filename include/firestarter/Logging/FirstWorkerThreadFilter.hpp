@@ -26,12 +26,18 @@
 
 namespace firestarter::logging {
 
+/// Logging filter for nitro to discard values that do not match a specific thread id.
 template <typename Record> class FirstWorkerThreadFilter {
 public:
   using record_type = Record;
 
+  /// Set the thread id from which records should not be discarded.
+  /// \arg NewFirstThread The specified thread.
   static void setFirstThread(std::thread::id NewFirstThread) { FirstThread = NewFirstThread; }
 
+  /// Filter records. We keep record if they are from the specified thread or if the severity is at least error.
+  /// \arg R The record to filter.
+  /// \returns true if the record should be kept.
   auto filter(Record& R) const -> bool {
     return R.std_thread_id() == FirstThread || R.severity() >= nitro::log::severity_level::error;
   }

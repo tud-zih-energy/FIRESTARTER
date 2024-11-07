@@ -21,67 +21,77 @@
 
 #pragma once
 
+/// This file provides a C style interface to write metrics for FIRESTARTER and provide them as shared libraries.
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <cstdint>
 // NOLINTBEGIN(modernize-use-using)
+
+/// Describe the type of the metric and how values need to be accumulated. Per default metrics are of pulling type where
+/// FIRESTARTER will pull the values through the GetReading function.
 typedef struct {
   uint32_t
-      // metric value is absolute
+      /// Set this to 1 if the metric values provided are absolute.
       Absolute : 1,
-      // metric value accumulates
+      /// Set this to 1 if the metric values provided are accumulative.
       Accumalative : 1,
-      // Set to divide metric values by thread count.
+      /// Set this to 1 if the metric value needs to be divided by the number of threads.
       DivideByThreadCount : 1,
-      // Set to insert time-value pairs via callback function passed by
-      // register_insert_callback.
+      /// Set this to 1 if the metric will provide time-value data in a pushing way trough the RegisterInsertCallback
+      /// function.
       InsertCallback : 1,
-      // ignore the start and stop delta set by the user
+      /// Set this to 1 if the accumulation of the metric should ignore the start/stop delta which are specified by the
+      /// user of FIRESTARTER.
       IgnoreStartStopDelta : 1,
-      // Reserved space to round up to 32 bits
+      /// Reserved space to fill 32 bits
       Reserved : 27;
 } MetricType;
 
-// Define `metric_interface_t metric` inside your shared library to be able to
-// load it during runtime.
+/// Define `MetricInterface Metric` inside your shared library to be able to load it during runtime.
 typedef struct {
-  // the name of the metric
+  /// The name of the metric
   const char* Name;
 
-  // metric type with bitfield from metric_type_t
+  /// Describes what the value of the metrics represents and how it needs to be accumulated.
   MetricType Type;
 
-  // the unit of the metric
+  /// The unit of the metric
   const char* Unit;
 
+  /// The time in usecs after which the callback should be called again. Set to 0 to disable.
   uint64_t CallbackTime;
 
-  // This function will be called every `callback_time` usecs. Disable by
-  // setting `callback_time` to 0.
+  /// This function will be called every `CallbackTime` usecs. Disable by setting `CallbackTime` to 0.
   void (*Callback)();
 
-  // init the metric.
-  // returns EXIT_SUCCESS on success.
+  /// init the metric.
+  /// \returns EXIT_SUCCESS on success.
   int32_t (*Init)();
 
-  // deinit the metric.
-  // returns EXIT_SUCCESS on success.
+  /// deinit the metric.
+  /// \returns EXIT_SUCCESS on success.
   int32_t (*Fini)();
 
-  // Get a reading of the metric
-  // Return EXIT_SUCCESS if we got a new value.
-  // Set this function pointer to NULL if METRIC_INSERT_CALLBACK is specified.
+  /// Get a reading of the metric. Set this function pointer to null if MetricType::InsertCallback is specified in the
+  /// Type.
+  /// \arg Value The pointer to which the value will be saved.
+  /// \returns EXIT_SUCCESS if we got a new value.
   int32_t (*GetReading)(double* Value);
 
-  // Get error in case return code not being EXIT_SUCCESS
+  /// Get error in case return code not being EXIT_SUCCESS.
+  /// \returns The error string.
   const char* (*GetError)();
 
-  // If METRIC_INSERT_CALLBACK is set in the type, this function will be passed
-  // a callback and the first argument for the callback.
-  // Further arguments of callback are the metric name, an unix timestamp (time
-  // since epoch) and a metric value.
+  /// If MetricType::InsertCallback is specified in the Type this function will be used to pass the metric a callback
+  /// and the first argument to this callback.
+  /// The first argument is the function pointer to the callback. The first argument to this function pointer needs to
+  /// be filled with the second argument to this function.
+  /// The supplied function pointer needs to be called with the metric name for the second, an unix timestamp (time
+  /// since epoch) for the third and a metric value for the forth argument. This allows the metric to provide values in
+  /// a pushing way in contract to the pulling way of the GetReading function.
   int32_t (*RegisterInsertCallback)(void (*)(void*, const char*, int64_t, double), void*);
 
 } MetricInterface;
