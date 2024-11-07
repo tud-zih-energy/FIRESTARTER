@@ -28,10 +28,13 @@ namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
 public:
   SandyBridgeConfig() noexcept
-      : X86PlatformConfig("SNB_COREI", 6, {42, 58},
-                          environment::payload::PayloadSettings(
-                              {1, 2}, {32768, 262144, 1572864}, 104857600, 1536,
-                              {{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}),
-                          std::make_shared<const payload::AVXPayload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"SNB_COREI", /*Family=*/6, /*Models=*/{42, 58},
+            /*Settings=*/
+            environment::payload::PayloadSettings(
+                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,
+                /*Lines=*/1536,
+                /*InstructionGroups=*/{{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}),
+            /*Payload=*/std::make_shared<const payload::AVXPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

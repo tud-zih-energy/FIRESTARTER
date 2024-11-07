@@ -29,11 +29,14 @@ namespace firestarter::environment::x86::platform {
 class SkylakeConfig final : public X86PlatformConfig {
 public:
   SkylakeConfig() noexcept
-      : X86PlatformConfig("SKL_COREI", 6, {78, 94},
+      : X86PlatformConfig(/*Name=*/"SKL_COREI", /*Family=*/6, /*Models=*/{78, 94},
+                          /*Settings=*/
                           environment::payload::PayloadSettings(
-                              {1, 2}, {32768, 262144, 1572864}, 104857600, 1536,
+                              /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
+                              /*RamBufferSize=*/104857600, /*Lines=*/1536,
+                              /*InstructionGroups=*/
                               {{"RAM_L", 3}, {"L3_LS_256", 5}, {"L2_LS_256", 18}, {"L1_2LS_256", 78}, {"REG", 40}}),
-                          std::make_shared<const payload::FMAPayload>()) {}
+                          /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform
 

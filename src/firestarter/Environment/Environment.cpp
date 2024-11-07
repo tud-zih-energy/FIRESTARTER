@@ -42,7 +42,7 @@ auto Environment::cpuSet(unsigned Id) -> int {
   return sched_setaffinity(0, sizeof(cpu_set_t), &Mask);
 }
 
-auto Environment::cpuAllowed(unsigned Id) -> int {
+auto Environment::cpuAllowed(unsigned Id) -> bool {
   cpu_set_t Mask;
 
   CPU_ZERO(&Mask);
@@ -51,7 +51,7 @@ auto Environment::cpuAllowed(unsigned Id) -> int {
     return CPU_ISSET(Id, &Mask);
   }
 
-  return 0;
+  return false;
 }
 
 void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
@@ -72,10 +72,6 @@ void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
 #endif
 
 void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind) {
-#if not((defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY))
-  (void)CpuBind;
-#endif
-
   if (RequestedNumThreads > 0 && RequestedNumThreads > topology().numThreads()) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
@@ -122,6 +118,8 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
       }
     }
   } else {
+    RequestedNumThreads = 0;
+
     // parse CPULIST for binding
     const auto Delimiter = ',';
     const std::regex Re(R"(^(?:(\d+)(?:-([1-9]\d*)(?:\/([1-9]\d*))?)?)$)");
@@ -160,24 +158,26 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
       }
     }
   }
-#else
-  if (RequestedNumThreads == 0) {
-    RequestedNumThreads = topology().maxNumThreads();
-  }
-#endif
 
   if (RequestedNumThreads == 0) {
     throw std::invalid_argument("Found no usable CPUs!");
   }
 
-#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
+  // Save the ids of the threads.
   for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
     if (CPU_ISSET(I, &Cpuset)) {
       this->CpuBind.push_back(I);
     }
   }
+#else
+  (void)CpuBind;
+
+  if (RequestedNumThreads == 0) {
+    RequestedNumThreads = topology().maxNumThreads();
+  }
 #endif
 
+  // Limit the number of thread to the maximum on the CPU.
   this->RequestedNumThreads = (std::min)(RequestedNumThreads, topology().maxNumThreads());
 }
 

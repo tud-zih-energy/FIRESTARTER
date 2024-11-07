@@ -28,10 +28,13 @@ namespace firestarter::environment::x86::platform {
 class HaswellEPConfig final : public X86PlatformConfig {
 public:
   HaswellEPConfig() noexcept
-      : X86PlatformConfig("HSW_XEONEP", 6, {63, 79},
-                          environment::payload::PayloadSettings(
-                              {1, 2}, {32768, 262144, 2621440}, 104857600, 1536,
-                              {{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}}),
-                          std::make_shared<const payload::FMAPayload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"HSW_XEONEP", /*Family=*/6, /*Models=*/{63, 79},
+            /*Settings=*/
+            environment::payload::PayloadSettings(
+                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 2621440},
+                /*RamBufferSize=*/104857600, /*Lines=*/1536,
+                /*InstructionGroups=*/{{"RAM_L", 8}, {"L3_LS", 1}, {"L2_LS", 29}, {"L1_LS", 100}, {"REG", 100}}),
+            /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

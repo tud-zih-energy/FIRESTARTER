@@ -28,9 +28,12 @@ namespace firestarter::environment::x86::platform {
 class KnightsLandingConfig final : public X86PlatformConfig {
 public:
   KnightsLandingConfig() noexcept
-      : X86PlatformConfig("KNL_XEONPHI", 6, {87},
-                          environment::payload::PayloadSettings({4}, {32768, 524288, 236279125}, 26214400, 1536,
-                                                                {{"RAM_P", 3}, {"L2_S", 8}, {"L1_L", 40}, {"REG", 10}}),
-                          std::make_shared<const payload::AVX512Payload>()) {}
+      : X86PlatformConfig(/*Name=*/"KNL_XEONPHI", /*Family=*/6, /*Models=*/{87},
+                          /*Settings=*/
+                          environment::payload::PayloadSettings(
+                              /*Threads=*/{4}, /*DataCacheBufferSize=*/{32768, 524288, 236279125},
+                              /*RamBufferSize=*/26214400, /*Lines=*/1536,
+                              /*InstructionGroups=*/{{"RAM_P", 3}, {"L2_S", 8}, {"L1_L", 40}, {"REG", 10}}),
+                          /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

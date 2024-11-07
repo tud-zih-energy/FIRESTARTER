@@ -29,9 +29,12 @@ class BulldozerConfig final : public X86PlatformConfig {
 public:
   BulldozerConfig() noexcept
       : X86PlatformConfig(
-            "BLD_OPTERON", 21, {1, 2, 3},
-            environment::payload::PayloadSettings({1}, {16384, 1048576, 786432}, 104857600, 1536,
-                                                  {{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}}),
-            std::make_shared<const payload::FMA4Payload>()) {}
+            /*Name=*/"BLD_OPTERON", /*Family=*/21, /*Models=*/{1, 2, 3},
+            /*Settings=*/
+            environment::payload::PayloadSettings(
+                /*Threads=*/{1}, /*DataCacheBufferSize=*/{16384, 1048576, 786432}, /*RamBufferSize=*/104857600,
+                /*Lines=*/1536,
+                /*InstructionGroups=*/{{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}}),
+            /*Payload=*/std::make_shared<const payload::FMA4Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

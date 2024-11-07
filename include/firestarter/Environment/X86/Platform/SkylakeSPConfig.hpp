@@ -28,8 +28,12 @@ namespace firestarter::environment::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {
 public:
   SkylakeSPConfig() noexcept
-      : X86PlatformConfig("SKL_XEONEP", 6, {85},
-                          environment::payload::PayloadSettings({1, 2}, {32768, 1048576, 1441792}, 1048576000, 1536,
+      : X86PlatformConfig(/*Name=*/"SKL_XEONEP", /*Family=*/6, /*Models=*/{85},
+                          /*Settings=*/
+                          environment::payload::PayloadSettings(/*Threads=*/{1, 2},
+                                                                /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
+                                                                /*RamBufferSize=*/1048576000, /*Lines=*/1536,
+                                                                /*InstructionGroups=*/
                                                                 {{"RAM_S", 3},
                                                                  {"RAM_P", 1},
                                                                  {"L3_S", 1},
@@ -39,6 +43,6 @@ public:
                                                                  {"L1_S", 0},
                                                                  {"L1_L", 40},
                                                                  {"REG", 140}}),
-                          std::make_shared<const payload::AVX512Payload>()) {}
+                          /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

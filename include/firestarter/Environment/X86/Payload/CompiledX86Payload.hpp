@@ -60,7 +60,7 @@ public:
   ~CompiledX86Payload() override = default;
 
   /// Create a unique pointer to a compiled payload from payload stats and assembly in a code holder.
-  /// \targ DerivedPayload The payload class from which the CodeHolder with the assembly was created from.
+  /// \tparam DerivedPayload The payload class from which the CodeHolder with the assembly was created from.
   /// \arg Stats The stats of the payload that is contained in the CodeHolder.
   /// \arg Code The CodeHolder that contains the assembly instruction making up the payload. This will be added to the
   /// JitRuntime and a pointer to the function will be provided to the CompiledPayload class.

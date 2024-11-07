@@ -28,10 +28,13 @@ namespace firestarter::environment::x86::platform {
 class NaplesConfig final : public X86PlatformConfig {
 public:
   NaplesConfig() noexcept
-      : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24},
-                          environment::payload::PayloadSettings(
-                              {1, 2}, {65536, 524288, 2097152}, 104857600, 1536,
-                              {{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}),
-                          std::make_shared<const payload::ZENFMAPayload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"ZEN_EPYC", /*Family=*/23, /*Models=*/{1, 8, 17, 24},
+            /*Settings=*/
+            environment::payload::PayloadSettings(
+                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{65536, 524288, 2097152}, /*RamBufferSize=*/104857600,
+                /*Lines=*/1536,
+                /*InstructionGroups=*/{{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}),
+            /*Payload=*/std::make_shared<const payload::ZENFMAPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

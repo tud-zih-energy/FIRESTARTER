@@ -43,7 +43,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
                                    PlatformConfigPtr->functionName(ThreadsPerCore) + "\") requires " +
                                    PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
           if (AllowUnavailablePayload) {
-            log::error() << ErrorString;
+            log::warn() << ErrorString;
           } else {
             throw std::invalid_argument(ErrorString);
           }

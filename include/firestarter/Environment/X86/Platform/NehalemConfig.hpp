@@ -28,9 +28,12 @@ namespace firestarter::environment::x86::platform {
 class NehalemConfig final : public X86PlatformConfig {
 public:
   NehalemConfig() noexcept
-      : X86PlatformConfig("NHM_COREI", 6, {30, 37, 23},
-                          environment::payload::PayloadSettings({1, 2}, {32768, 262144, 1572864}, 104857600, 1536,
-                                                                {{"RAM_P", 1}, {"L1_LS", 70}, {"REG", 2}}),
-                          std::make_shared<const payload::SSE2Payload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"NHM_COREI", /*Family=*/6, /*Models=*/{30, 37, 23},
+            /*Settings=*/
+            environment::payload::PayloadSettings(/*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
+                                                  /*RamBufferSize=*/104857600, /*Lines=*/1536,
+                                                  /*InstructionGroups=*/{{"RAM_P", 1}, {"L1_LS", 70}, {"REG", 2}}),
+            /*Payload=*/std::make_shared<const payload::SSE2Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

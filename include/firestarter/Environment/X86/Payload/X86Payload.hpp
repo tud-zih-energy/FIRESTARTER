@@ -36,6 +36,7 @@
 
 constexpr const auto InitBlocksize = 1024;
 
+/// This abstract class models a payload that can be compiled with settings and executed for X86 CPUs.
 namespace firestarter::environment::x86::payload {
 
 class X86Payload : public environment::payload::Payload {
@@ -70,6 +71,10 @@ public:
       , InstructionMemory(std::move(InstructionMemory)) {}
 
 private:
+  /// Check if this payload is available on the current system. This is equivalent to checking if the supplied Topology
+  /// contains all features that are in FeatureRequests.
+  /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
+  /// \returns true if the payload is supported on the given CPUTopology.
   [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool final {
     const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(&Topology);
     assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
@@ -85,7 +90,7 @@ private:
 
 protected:
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
-  /// \arg Vec the type of the vector register used.
+  /// \tparam Vec the type of the vector register used.
   /// \arg Cb The asmjit code builder that is used to emit the assembler code.
   /// \arg PointerReg the register containing the pointer into memory in LoadWorkerMemory that is used in the high-load
   /// routine.
@@ -118,8 +123,23 @@ protected:
     Cb.bind(SkipRegistersDump);
   }
 
-  // add MM regs to dirty regs
-  // zmm31 is used for backup if VectorReg is of type asmjit::x86::Zmm
+  /// Emit the code to detect errors between this and two other threads that execute the same payload concurrently. We
+  /// backup the registers in Mm2...Mm7. We will check every 0x3fff iterations. If the check did not succeed we write
+  /// the LoadThreadWorkType::LoadStop flag in the AddrHighReg and therefore abort as soon as we pass the check in the
+  /// high-load routine.
+  /// \tparam MaybeConstIterRegT The type of the iteration register. If this is Mm, we assume that Mm0 is used by the
+  /// payload and the other Mm1...Mm7 are free to use. If they are free we will use them to backup rax, rbx, rcx, rdx,
+  /// r8 and r9. Otherwise we push them on the stack.
+  /// \tparam MaybeConstVectorRegT This is the type of the vector register. It can be either Xmm, Ymm or Zmm. In case of
+  /// Xmm we backup xmm0 on the stack, in case of Ymm we backup ymm0 im Mm4...Mm7 and in case of Zmm we use zmm31 for
+  /// the backup. This register may not be used in the payload.
+  /// \arg Cb The asmjit code builder that is used to emit the assembler code.
+  /// \arg IterReg The register that holds the iteration counter of the high-load loop.
+  /// \arg AddrHighReg The register contains the pointer to the memory address where the LoadThreadWorkType is saved.
+  /// \arg PointerReg The register contains the pointer into memory in LoadWorkerMemory that is used in the high-load
+  /// routine.
+  /// \arg TempReg The first register that can be used to store temporary values.
+  /// \arg TempReg2 The second register that can be used to store temporary values.
   template <class MaybeConstIterRegT, class MaybeConstVectorRegT>
   void emitErrorDetectionCode(asmjit::x86::Builder& Cb, MaybeConstIterRegT& IterReg,
                               const asmjit::x86::Gpq& AddrHighReg, const asmjit::x86::Gpq& PointerReg,

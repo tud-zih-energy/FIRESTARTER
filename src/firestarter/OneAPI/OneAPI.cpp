@@ -38,7 +38,7 @@ namespace firestarter::oneapi {
 namespace {
 
 /// Helper function to generate random floating point values between 0 and 1 in an array.
-/// \targ FloatingPointType The type of floating point value of the array. Either float or double.
+/// \tparam FloatingPointType The type of floating point value of the array. Either float or double.
 /// \arg NumberOfElems The number of elements of the array.
 /// \arg Array The array of floating point values which should be initilized with random data between 0 and 1.
 template <typename FloatingPointType> void fillArrayWithRandomFloats(size_t NumberOfElems, FloatingPointType* Array) {
