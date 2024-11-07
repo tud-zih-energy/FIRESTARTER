@@ -38,22 +38,36 @@ namespace firestarter::measurement {
 
 class MeasurementWorker {
 private:
+  /// The thread that handles the values that are read from metrics
   pthread_t WorkerThread{};
+  /// The thread that handles the metric values that are read from stdin
   pthread_t StdinThread{};
 
+  /// The vector of metrics that are available. Currently the following metrics are builtin: sysfs-powercap-rapl,
+  /// perf-ipc, perf-freq and ipc-estimate. Metric provided through shared libraries are added to this list.
   std::vector<const MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
 
+  /// Mutex to access the Values map.
   std::mutex ValuesMutex;
+  /// Map from metric name to the vector of timevalues of this metric.
   std::map<std::string, std::vector<TimeValue>> Values;
 
+  /// The thread function handles the timed polling of the metric values and saves them to the Value datastructure.
   static auto dataAcquisitionWorker(void* MeasurementWorker) -> void*;
 
+  /// The thread function that handles the acquisition of the metric values from stdin and saves them to the Value
+  /// datastructure.
   static auto stdinDataAcquisitionWorker(void* MeasurementWorker) -> void*;
 
+  /// Return the pointer to a metric from the Metrics vector that matches the supplied name.
+  /// \arg MetricName The name of the metric
+  /// \returns the pointer to the metric with the specified name or a nullptr
   auto findMetricByName(std::string MetricName) -> const MetricInterface*;
 
+  /// We poll the values of all the metrics after this number of milliseconds.
   std::chrono::milliseconds UpdateInterval;
 
+  /// The start time of the measurement that should be summarized with the getValues function.
   std::chrono::high_resolution_clock::time_point StartTime;
 
   // some metric values have to be devided by this
@@ -62,9 +76,12 @@ private:
   std::string AvailableMetricsString;
 
 #ifndef FIRESTARTER_LINK_STATIC
+  /// The pointer to the metrics that are used for dynamic libraries. We need to save them seperately here to call
+  /// dlclose later.
   std::vector<void*> MetricDylibs;
 #endif
 
+  /// The name of the metrics that are supplied from stdin.
   std::vector<std::string> StdinMetrics;
 
 public:
@@ -80,7 +97,7 @@ public:
 
   auto stdinMetrics() -> std::vector<std::string> const& { return StdinMetrics; }
 
-  // returns a list of metrics
+  /// Get the name of the metrics. This includes all metrics, builins, from dynamic libraries and metrics from stdin.
   auto metricNames() -> std::vector<std::string>;
 
   // setup the selected metrics
@@ -90,10 +107,13 @@ public:
   // callback function for metrics
   void insertCallback(const char* MetricName, int64_t TimeSinceEpoch, double Value);
 
-  // start the measurement
+  /// Set the StartTime to the current timestep
   void startMeasurement();
 
-  // get the measurement values begining from measurement start until now.
+  /// Get the measurement values begining from measurement start (set with startMeasurement) until the measurement stop
+  /// (now).
+  /// \arg StartDelta The time to skip from the measurement start
+  /// \arg StopDelta The time to skip from the measurement stop
   auto getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
                  std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero())
       -> std::map<std::string, Summary>;
