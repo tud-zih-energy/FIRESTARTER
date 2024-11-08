@@ -128,7 +128,7 @@ auto RaplMetricData::init() -> int32_t {
     std::getline(MaxEnergyReadingStream, Buffer);
     const auto Max = std::stoul(Buffer);
 
-    auto Def = std::make_unique<ReaderDef>(Path, Max, Reading, 0);
+    auto Def = std::make_unique<ReaderDef>(/*Path=*/Path, /*LastReading=*/Reading, /*Overflow=*/0, /*Max=*/Max);
 
     Instance.Readers.emplace_back(std::move(Def));
   }
