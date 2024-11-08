@@ -44,7 +44,7 @@ private:
   /// UseDouble is set the precision will be choosen automatically.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
-  /// \arg Gpus Select the number of gpus to stress or 0 for all.
+  /// \arg Gpus Select the number of gpus to stress or -1 for all.
   static void initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
                        bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
 
@@ -57,7 +57,7 @@ public:
   /// UseDouble is set the precision will be choosen automatically.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
-  /// \arg Gpus Select the number of gpus to stress or 0 for all.
+  /// \arg Gpus Select the number of gpus to stress or -1 for all.
   Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
        int Gpus)
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
