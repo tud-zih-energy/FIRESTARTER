@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include <firestarter/Optimizer/OptimizerWorker.hpp>
 
 #include <thread>
@@ -27,12 +28,10 @@
 namespace firestarter::optimizer {
 
 OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
-                                 std::unique_ptr<firestarter::optimizer::Population>&& Population,
-                                 std::string OptimizationAlgorithm, unsigned Individuals,
+                                 std::unique_ptr<firestarter::optimizer::Population>&& Population, unsigned Individuals,
                                  std::chrono::seconds const& Preheat)
     : Algorithm(std::move(Algorithm))
     , Population(std::move(Population))
-    , OptimizationAlgorithm(std::move(OptimizationAlgorithm))
     , Individuals(Individuals)
     , Preheat(Preheat) {
   pthread_create(&this->WorkerThread, nullptr, OptimizerWorker::optimizerThread, this);
@@ -63,7 +62,7 @@ auto OptimizerWorker::optimizerThread(void* OptimizerWorker) -> void* {
   std::this_thread::sleep_for(This->Preheat);
 
   // For NSGA2 we start with a initial population
-  if (This->OptimizationAlgorithm == "NSGA2") {
+  if (dynamic_cast<algorithm::NSGA2*>(This->Algorithm.get())) {
     This->Population->generateInitialPopulation(This->Individuals);
   }
 

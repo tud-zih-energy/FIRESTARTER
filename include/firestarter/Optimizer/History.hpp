@@ -39,38 +39,60 @@
 
 namespace firestarter::optimizer {
 
+/// Singleton that handle keeping track of the history of evaluated indivudals and their associated metric summaries.
 struct History {
 private:
-  // https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of/17074810#17074810
+  /// Find the permuation of a vector when sorting it with a supplied comparison function.
+  /// \tparam T The type of the vector elements
+  /// \tparam CompareT The type of the comparison function.
+  /// \arg Vec The const reference to vector that will be sorted.
+  /// \arg Compare The comparision function which will be used to sort the vector.
+  /// \returns The indices of how the vector would be sorted according to the comparison function.
   template <typename T, typename CompareT>
   static auto sortPermutation(const std::vector<T>& Vec, CompareT& Compare) -> std::vector<std::size_t> {
+    // https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of/17074810#17074810
     std::vector<std::size_t> P(Vec.size());
     std::iota(P.begin(), P.end(), 0);
     std::sort(P.begin(), P.end(), [&](std::size_t I, std::size_t J) { return Compare(Vec[I], Vec[J]); });
     return P;
   }
 
+  /// Add padding to a stingstream to fill it up to a maximum width.
+  /// \arg Ss The stringstream to add padding to.
+  /// \arg Width The maximum width until which should be padded.
+  /// \arg Taken The number of characters that are already filled up.
+  /// \arg C The character that should be used for padding.
   static void padding(std::stringstream& Ss, std::size_t Width, std::size_t Taken, char C) {
     for (std::size_t I = 0; I < (std::max)(Width, Taken) - Taken; ++I) {
       Ss << C;
     }
   }
 
+  /// The maximum number of elements that will be printed.
   static constexpr const int MaxElementPrintCount = 20;
+  /// The minimum width of columns that are printed.
   static constexpr const std::size_t MinColumnWidth = 10;
 
   // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
+  /// The vector of individuals that have been evaluated. This vector has the same size as F.
   inline static std::vector<Individual> X = {};
+  /// The vector of metric summaries associated to the evaluated individuals. This vector has the same size as X.
   inline static std::vector<std::map<std::string, firestarter::measurement::Summary>> F = {};
   // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 public:
+  /// Append an evaluated individual to the history.
+  /// \arg Ind The individual to add.
+  /// \arg Metric The metric summaries for this individual.
   static void append(std::vector<unsigned> const& Ind,
                      std::map<std::string, firestarter::measurement::Summary> const& Metric) {
     X.push_back(Ind);
     F.push_back(Metric);
   }
 
+  /// Loopup an indiviudal in the history and return the metric summaries if it is in the history.
+  /// \arg Individual The individual which may already be evaluated.
+  /// \returns The metric summaries if the individual is in the history or std::nullopt otherwise.
   static auto find(std::vector<unsigned> const& Individual)
       -> std::optional<std::map<std::string, firestarter::measurement::Summary>> {
     auto FindEqual = [&Individual](auto const& Ind) { return Ind == Individual; };
@@ -82,6 +104,10 @@ public:
     return F[Dist];
   }
 
+  /// Print the best individuals per metric. This will print a table with the average metric value and indiviudals per
+  /// metric.
+  /// \arg OptimizationMetrics The metrics for which the best individual should be printed.
+  /// \arg PayloadItems The instruction of the associated instruction groups used in the optimization.
   static void printBest(std::vector<std::string> const& OptimizationMetrics,
                         std::vector<std::string> const& PayloadItems) {
     // TODO(Issue #76): print paretto front

@@ -31,8 +31,39 @@
 
 namespace firestarter::optimizer::problem {
 
+/// This class models the problem of optimizing firestarter on the fly. The evaluation of metrics is done by switching
+/// the settings of the high load routine and measuring the metric in the specified runtime.
 class CLIArgumentProblem final : public firestarter::optimizer::Problem {
+private:
+  /// The function which takes instruction groups and switches the payload in the high load function to the supplied
+  /// ones.
+  std::function<void(std::vector<std::pair<std::string, unsigned>> const&)> ChangePayloadFunction;
+  /// The shared pointer to the measurement infrastructure which will be used to get metric values.
+  std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
+  /// The metrics that are used in the optimization. They may have a dash at the start to allow them to be changed from
+  /// maximization to minimization.
+  std::vector<std::string> Metrics;
+  /// The duration of the measurement.
+  std::chrono::seconds Timeout;
+  /// The time to skip from the measurement start
+  std::chrono::milliseconds StartDelta;
+  /// The time to skip from the measurement stop
+  std::chrono::milliseconds StopDelta;
+  /// The vector of instruction that is used in the optimization for the payload.
+  std::vector<std::string> InstructionGroups;
+
 public:
+  /// Constructor for the problem of optimizing firestarter on the fly.
+  /// \arg ChangePayloadFunction The function which takes instruction groups and switches the payload in the high load
+  /// function to the supplied ones.
+  /// \arg MeasurementWorker The shared pointer to the measurement infrastructure which will be used to get metric
+  /// values
+  /// \arg Metrics The metrics that are used in the optimization. They may have a dash at the start to allow them to be
+  /// changed from maximization to minimization.
+  /// \arg Timeout The duration of the measurement.
+  /// \arg StartDelta The time to skip from the measurement start
+  /// \arg StopDelta The time to skip from the measurement stop
+  /// \arg InstructionGroups The vector of instruction that is used in the optimization for the payload.
   CLIArgumentProblem(std::function<void(std::vector<std::pair<std::string, unsigned>> const&)>&& ChangePayloadFunction,
                      std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker,
                      std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
@@ -50,7 +81,9 @@ public:
 
   ~CLIArgumentProblem() override = default;
 
-  // return all available metrics for the individual
+  /// Evaluate the given individual by switching the current payload, doing the measurement and returning the results.
+  /// \arg Individual The indivudal that should be measured.
+  /// \returns The map from all metrics to their respective summaries for the measured individual.
   auto metrics(std::vector<unsigned> const& Individual)
       -> std::map<std::string, firestarter::measurement::Summary> override {
     // increment evaluation idx
@@ -83,6 +116,11 @@ public:
     return MeasurementWorker->getValues(StartDelta, StopDelta);
   }
 
+  /// Calculate the fitness based on the metric summaries of an individual. This will select the metrics that are
+  /// required for the optimization, round them and potentially invert the results if the optimization metric name
+  /// starts with a dash ('-').
+  /// \arg Summaries The metric values for all metrics for an individual
+  /// \return The vector containing the fitness for that metrics that are used in the optimization.
   [[nodiscard]] auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const
       -> std::vector<double> override {
     std::vector<double> Values = {};
@@ -113,7 +151,8 @@ public:
     return Values;
   }
 
-  // get the bounds of the problem
+  /// Get the bounds of the problem. We currently set these bounds fix to a range from 0 to 100 for every instruction.
+  /// \returns A vector the size of the number of instruction groups containing a tuple(0, 100).
   [[nodiscard]] auto getBounds() const -> std::vector<std::tuple<unsigned, unsigned>> override {
     std::vector<std::tuple<unsigned, unsigned>> Vec(InstructionGroups.size(),
                                                     std::make_tuple<unsigned, unsigned>(0, 100));
@@ -121,17 +160,8 @@ public:
     return Vec;
   }
 
-  // get the number of objectives.
+  /// Get the number of optimization objectives.
   [[nodiscard]] auto getNobjs() const -> std::size_t override { return Metrics.size(); }
-
-private:
-  std::function<void(std::vector<std::pair<std::string, unsigned>> const&)> ChangePayloadFunction;
-  std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
-  std::vector<std::string> Metrics;
-  std::chrono::seconds Timeout;
-  std::chrono::milliseconds StartDelta;
-  std::chrono::milliseconds StopDelta;
-  std::vector<std::string> InstructionGroups;
 };
 
 } // namespace firestarter::optimizer::problem

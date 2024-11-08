@@ -34,7 +34,7 @@ public:
   /// Check if the population size and the problem matches the requirements of the algorithm. Asserts if this checks
   /// fail.
   /// \arg Prob The poblem that should be optimized with this algorithm
-  /// \arg The initial PopulationSize that is used
+  /// \arg PopulationSize The initial size of the population that is used
   virtual void check(Problem const& Prob, std::size_t PopulationSize) = 0;
 
   /// Evolve the population across multiple iterations.

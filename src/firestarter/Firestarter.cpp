@@ -211,8 +211,8 @@ void Firestarter::mainThread() {
     if (Cfg.Optimize) {
       auto StartTime = optimizer::History::getTime();
 
-      Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(
-          std::move(Algorithm), std::move(Population), Cfg.OptimizationAlgorithm, Cfg.Individuals, Cfg.Preheat);
+      Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(std::move(Algorithm), std::move(Population),
+                                                                            Cfg.Individuals, Cfg.Preheat);
 
       // wait here until optimizer thread terminates
       Firestarter::Optimizer->join();
