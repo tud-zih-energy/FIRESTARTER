@@ -26,7 +26,11 @@
 #include <string>
 #include <vector>
 
+/// The wrapper for the C interface to the RaplMetric metric.
 class RaplMetricData {
+private:
+  /// Datastructure to hold the path of the sysfs rapl entry, the last reading (improtant to detect overflows), the
+  /// counter of the number of overflows and the maximum value that the reading will have.
   struct ReaderDef {
     ReaderDef() = delete;
 
@@ -42,11 +46,13 @@ class RaplMetricData {
     int64_t Max;
   };
 
-private:
+  /// The path to the sysfs rapl entries
   static constexpr const char* RaplPath = "/sys/class/powercap";
 
+  /// The error string of this metric
   std::string ErrorString;
 
+  /// The vector of readers that hold the path and read values from the sysfs rapl
   std::vector<std::unique_ptr<ReaderDef>> Readers;
 
   RaplMetricData() = default;
@@ -55,6 +61,7 @@ public:
   RaplMetricData(RaplMetricData const&) = delete;
   void operator=(RaplMetricData const&) = delete;
 
+  /// Get the instance of this metric
   static auto instance() -> RaplMetricData& {
     static RaplMetricData Instance;
     return Instance;
