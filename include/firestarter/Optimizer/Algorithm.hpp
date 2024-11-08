@@ -25,13 +25,21 @@
 
 namespace firestarter::optimizer {
 
+/// Abstract class to provide an interface for evolutionary optimization algorithms.
 class Algorithm {
 public:
   Algorithm() = default;
   virtual ~Algorithm() = default;
 
-  virtual void checkPopulation(Population const& Pop, std::size_t PopulationSize) = 0;
+  /// Check if the population size and the problem matches the requirements of the algorithm. Asserts if this checks
+  /// fail.
+  /// \arg Prob The poblem that should be optimized with this algorithm
+  /// \arg The initial PopulationSize that is used
+  virtual void check(Problem const& Prob, std::size_t PopulationSize) = 0;
 
+  /// Evolve the population across multiple iterations.
+  /// \arg Pop The initial population
+  /// \returns The final population after the optimization has run
   virtual auto evolve(Population& Pop) -> Population = 0;
 };
 

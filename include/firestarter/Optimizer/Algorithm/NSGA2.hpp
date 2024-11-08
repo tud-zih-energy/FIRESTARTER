@@ -30,7 +30,7 @@ public:
   NSGA2(unsigned Gen, double Cr, double M);
   ~NSGA2() override = default;
 
-  void checkPopulation(firestarter::optimizer::Population const& Pop, std::size_t PopulationSize) override;
+  void check(firestarter::optimizer::Problem const& Prob, std::size_t PopulationSize) override;
 
   auto evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population override;
 

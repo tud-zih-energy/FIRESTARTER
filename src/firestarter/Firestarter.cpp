@@ -161,7 +161,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
         throw std::invalid_argument("Algorithm " + Cfg.OptimizationAlgorithm + " unknown.");
       }
 
-      Algorithm->checkPopulation(*Population, Cfg.Individuals);
+      Algorithm->check(Population->problem(), Cfg.Individuals);
     }
   }
 

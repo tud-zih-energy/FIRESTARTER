@@ -49,9 +49,7 @@ NSGA2::NSGA2(unsigned Gen, double Cr, double M)
   }
 }
 
-void NSGA2::checkPopulation(firestarter::optimizer::Population const& Pop, std::size_t PopulationSize) {
-  const auto& Prob = Pop.problem();
-
+void NSGA2::check(firestarter::optimizer::Problem const& Prob, std::size_t PopulationSize) {
   if (!Prob.isMO()) {
     throw std::invalid_argument("NSGA2 is a multiobjective algorithms, while number of objectives is " +
                                 std::to_string(Prob.getNobjs()));
@@ -72,7 +70,7 @@ auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::opti
   auto NP = Pop.size();
   auto Fevals0 = Prob.getFevals();
 
-  this->checkPopulation(Pop, NP);
+  this->check(Prob, NP);
 
   std::random_device Rd;
   std::mt19937 Rng(Rd());
