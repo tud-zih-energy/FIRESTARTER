@@ -47,51 +47,76 @@ extern "C" {
 
 namespace firestarter {
 
+/// This is the main class of firestarter and handles the execution of the programm.
 class Firestarter {
 public:
   Firestarter() = delete;
 
+  /// Read the config, validate and throw on problems with config. Setup everything that is required for the execution
+  /// of firestarter.
+  /// \arg ProvidedConfig The config for the execution of Firestarter
   explicit Firestarter(Config&& ProvidedConfig);
 
   ~Firestarter() = default;
 
+  /// This function takes care of the execution of firestarter. It will start the load on CPUs and GPUs.
   void mainThread();
 
 private:
   const Config Cfg;
 
+  /// The class that handles setting up the payload for firestarter
   std::unique_ptr<environment::Environment> Environment;
+  /// The class for execution of the gemm routine on Cuda or HIP GPUs.
   std::unique_ptr<cuda::Cuda> Cuda;
+  /// The class for execution of the gemm routine on OneAPI GPUs.
   std::unique_ptr<oneapi::OneAPI> Oneapi;
+  /// The pointer to the optimization algorithm that is used by the optimization functionality.
   std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
+  /// The thread that is used to dump register contents to a file.
   std::thread DumpRegisterWorkerThread;
+  /// The shared pointer to the datastructure that handles the management of metrics, acquisition of metric data and
+  /// provids summaries of a time range of metric values.
   std::shared_ptr<measurement::MeasurementWorker> MeasurementWorker;
 
+  /// The vector of thread handles for the load workers and shared pointer to the their respective data.
   std::vector<std::pair<std::thread, std::shared_ptr<LoadWorkerData>>> LoadThreads;
+  /// The vector of communication data, where each element is shared between two neighbouring threads for the error
+  /// detection feature.
   std::vector<std::shared_ptr<uint64_t>> ErrorCommunication;
 
+  /// The population holding the problem that is used for the optimization feature.
   std::unique_ptr<firestarter::optimizer::Population> Population;
 
   // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
   // TODO(Issue #85): Currently we support one instance of the Firestarter class. Variables that need to be accessed
   // from outside the class, e.g. in the sigterm handler are inline static.
 
+  /// The instance of the optimization worker that handles the execution of the optimization.
   inline static std::unique_ptr<optimizer::OptimizerWorker> Optimizer;
 
-  // variables to control the termination of the watchdog
+  /// Variable to control the termination of the watchdog
   inline static bool WatchdogTerminate = false;
+  /// Condition variable for the WatchdogTerminate to allow notifying when sleeping for a specific time.
   inline static std::condition_variable WatchdogTerminateAlert;
+  /// Mutex to guard access to WatchdogTerminate.
   inline static std::mutex WatchdogTerminateMutex;
 
-  // variable to control the load of the threads
+  /// Variable to control the load of the threads
   inline static volatile LoadThreadWorkType LoadVar = LoadThreadWorkType::LoadLow;
 
   // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
-  // LoadThreadWorker.cpp
+  /// Spawn the load workers and initialize them.
   void initLoadWorkers();
+
+  /// Wait for the load worker to join
   void joinLoadWorkers();
+
+  /// Print the error report for the error detection feature.
   void printThreadErrorReport();
+
+  /// Print the performance report. It contains the estimation of the FLOPS and main memory bandwidth.
   void printPerformanceReport();
 
   /// Set the load workers to the ThreadInit state.
@@ -124,20 +149,37 @@ private:
   /// before we wait for the acknowledgement of the thread.
   void signalLoadWorkers(LoadThreadState State, void (*Function)() = nullptr);
 
+  /// The function that is executed for each load thread.
+  /// \arg Td The shared pointer to the data that is required in this thread.
   static void loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td);
 
-  // WatchdogWorker.cpp
+  /// This function handels switching the load from high to low in a loop and stopping the execution if a timeout was
+  /// set.
+  /// \arg Period The period of the high/low switch. Set to zero to disable switching between a high and low load.
+  /// \arg Load The time of the period where high load is applied.
+  /// \arg Timeout The timeout after which firestarter stops. Set to zero to disable.
   static void watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
                              std::chrono::seconds Timeout);
 
-  // DumpRegisterWorker.cpp
+  /// Start the thread to dump the registers of the first load thread to a file.
   void initDumpRegisterWorker();
+
+  /// Wait for the dump register thread to terminate.
   void joinDumpRegisterWorker();
+
+  /// The thread that dumps the registers of the first thread to a file.
+  /// \arg Data The data that is required for the worker thread to dump the register contents to a file.
   static void dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data);
 
+  /// Set the load var to a specific value and update it with a memory fence across threads.
+  /// \arg Value The new load value.
   static void setLoad(LoadThreadWorkType Value);
 
+  /// Sigalarm handler does nothing.
   static void sigalrmHandler(int Signum);
+
+  /// Sigterm handler stops the execution of firestarter
+  /// \arg Signum The signal number is ignored.
   static void sigtermHandler(int Signum);
 };
 
