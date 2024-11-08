@@ -60,16 +60,30 @@ public:
     return Instance;
   }
 
+  /// Deinit the metric.
+  /// \returns EXIT_SUCCESS on success.
   static auto fini() -> int32_t;
+
+  /// Init the metric.
+  /// \returns EXIT_SUCCESS on success.
   static auto init() -> int32_t;
 
+  /// Get a reading of the sysfs-powercap-rapl metric.
+  /// \arg Value The pointer to which the value will be saved.
+  /// \returns EXIT_SUCCESS if we got a new value.
   static auto getReading(double* Value) -> int32_t;
 
+  /// Get error in case return code not being EXIT_SUCCESS.
+  /// \returns The error string.
   static auto getError() -> const char*;
 
+  /// This function should be called every 30s. It will make shure that we do not miss an overflow of a counter and
+  /// therefore get a wrong reading.
   static void callback();
 };
 
+/// This metric provides power measurements through the RAPL interface. Either psys measurement is choosen or if this is
+/// not available the sum of packages and drams.
 static constexpr const MetricInterface RaplMetric{
     /*Name=*/"sysfs-powercap-rapl",
     /*Type=*/

@@ -58,8 +58,8 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
 
 #ifndef FIRESTARTER_LINK_STATIC
   // open dylibs and find metric symbol.
-  // create an entry in _metricDylibs with handle from dlopen and
-  // metric_interface_t structure. add this structe as a pointer to metrics.
+  // create an entry in MetricDylibs with handle from dlopen and
+  // MetricInterface structure. add this structe as a pointer to metrics.
   for (auto const& Dylib : MetricDylibsNames) {
     void* Handle = nullptr;
     const char* Filename = Dylib.c_str();
