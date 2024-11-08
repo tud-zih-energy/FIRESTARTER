@@ -24,22 +24,26 @@
 #include <cstdint>
 namespace firestarter {
 
+/// This struct is used for the error detection feature. The error detection works between two threads. The current one
+/// and one on the left. Analogous for the thread on the right. We hash the contents of the vector registers and compare
+/// them with the current iteration counter aginst the other threads.
 struct ErrorDetectionStruct {
   struct OneSide {
-    // the pointer to 16B of communication
+    /// The pointer to 16B of communication between the two threads which is used with lock cmpxchg16b
     uint64_t* Communication;
+    /// The local variables that are used for the error detection algorithm
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     uint64_t Locals[4];
-    // if this variable is not 0, an error occured in the comparison with the
-    // left thread.
+    /// If this variable is not 0, an error occured in the comparison with the other thread.
     uint64_t Error;
+    /// Padding to fill up a cache line.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     uint64_t Padding[2];
   };
 
-  // we have two cache lines (64B) containing each two 16B local variable and
-  // one ptr (8B)
+  /// The data that is used for the error detection algorithm between the current and the thread left to it.
   OneSide Left;
+  /// The data that is used for the error detection algorithm between the current and the thread right to it.
   OneSide Right;
 };
 

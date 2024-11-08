@@ -30,14 +30,29 @@ using EightBytesType = uint64_t;
 // We want enum to have the size of 8B. Disable the warnings for bigger enum size than needed.
 // NOLINTBEGIN(performance-enum-size)
 
-enum class LoadThreadState : EightBytesType { ThreadWait = 1, ThreadWork = 2, ThreadInit = 3, ThreadSwitch = 4 };
+/// This enum describes the state of the load workers.
+enum class LoadThreadState : EightBytesType {
+  /// Idle
+  ThreadWait = 1,
+  /// Work loop (both low and high load)
+  ThreadWork = 2,
+  /// Init the thread
+  ThreadInit = 3,
+  /// Tell the thread to recompile the payload and reinitialize the data.
+  ThreadSwitch = 4
+};
 
+/// This enum describes the Load that should be applied by firestarter.
 enum class LoadThreadWorkType : EightBytesType {
   /* DO NOT CHANGE! the asm load-loop tests if load-variable is == 0 */
+  /// Apply low load
   LoadLow = 0,
   /* DO NOT CHANGE! the asm load-loop continues until the load-variable is != 1 */
+  /// Apply hugh load
   LoadHigh = 1,
+  /// Exit the load loop and stop the execution of firestarter.
   LoadStop = 2,
+  /// Exit the load loop.
   LoadSwitch = 4
 };
 // NOLINTEND(performance-enum-size)

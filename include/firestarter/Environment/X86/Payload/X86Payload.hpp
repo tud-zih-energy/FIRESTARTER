@@ -386,12 +386,15 @@ protected:
       auto L0 = Cb.newLabel();
       Cb.bind(L0);
 
+      // Atomically ompare the data in the communicaton with the local data.
       Cb.lock();
       Cb.cmpxchg16b(asmjit::x86::ptr(asmjit::x86::r8));
 
       auto L1 = Cb.newLabel();
       Cb.jnz(L1);
 
+      // Communication had the same data as saved in locals 0 and 1. rcx, rbx saved in communication.
+      // Save written data rcx, rbx in locals 0 and 1.
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local0Offset), asmjit::x86::rcx);
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local1Offset), asmjit::x86::rbx);
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::Imm(0));
@@ -404,38 +407,51 @@ protected:
 
       Cb.bind(L1);
 
+      // Communication had differnt data as saved in locals 0 and 1. rdx, rax contains the data in communication.
+      // Compare the iteration counter of this and the other thread
       Cb.cmp(asmjit::x86::rcx, asmjit::x86::rdx);
 
       auto L2 = Cb.newLabel();
       Cb.jle(L2);
 
+      // The current iteration counter is bigger than the counter of the other thread.
+      // Save the current counter and hash into our local storage.
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local0Offset), asmjit::x86::rcx);
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local1Offset), asmjit::x86::rbx);
 
+      // Repeat the lock cmpxchg16b routine until the other thread catches up.
       Cb.jmp(L0);
 
       Cb.bind(L2);
 
+      // The current iteration counter is smaller equal than the iteration counter of the other thread.
+
       auto L3 = Cb.newLabel();
 
+      // Check if the read value from the other thread is saved locally.
       Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::Imm(0));
       Cb.jne(L3);
       Cb.cmp(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::Imm(0));
       Cb.jne(L3);
 
+      // Save the last read value from the other thread into the local storage.
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset), asmjit::x86::rdx);
       Cb.mov(asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset), asmjit::x86::rax);
 
       Cb.bind(L3);
 
-      Cb.cmp(asmjit::x86::rcx, asmjit::x86::ptr_64(asmjit::x86::r9, 16));
+      // Check if the id of the two threads are equal
+      Cb.cmp(asmjit::x86::rcx, asmjit::x86::ptr_64(asmjit::x86::r9, Local2Offset));
       Cb.mov(asmjit::x86::rax, asmjit::Imm(4));
+      // If the iteration counter of this thread is smaller, skip this check. The other thread will wait for this one.
       Cb.jne(L6);
 
-      Cb.cmp(asmjit::x86::rbx, asmjit::x86::ptr_64(asmjit::x86::r9, 24));
+      // Compare the hashes and write teh result
+      Cb.cmp(asmjit::x86::rbx, asmjit::x86::ptr_64(asmjit::x86::r9, Local3Offset));
       auto L4 = Cb.newLabel();
       Cb.jne(L4);
 
+      // Hash check succeeded.
       Cb.mov(asmjit::x86::rax, asmjit::Imm(0));
 
       auto L5 = Cb.newLabel();
@@ -443,6 +459,7 @@ protected:
 
       Cb.bind(L4);
 
+      // Hash check failed
       Cb.mov(asmjit::x86::rax, asmjit::Imm(1));
 
       Cb.bind(L5);
