@@ -280,7 +280,7 @@ void Cuda::initGpus(std::condition_variable& WaitForInitCv, const volatile fires
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
 
-  if (Gpus) {
+  if (Gpus != 0) {
     compat::accellSafeCall(compat::init(0), __FILE__, __LINE__);
 
     int DevCount{};

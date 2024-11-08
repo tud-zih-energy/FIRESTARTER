@@ -260,7 +260,7 @@ void OneAPI::initGpus(std::condition_variable& WaitForInitCv, const volatile fir
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
 
-  if (Gpus) {
+  if (Gpus != 0) {
     auto Platforms = sycl::platform::get_platforms();
 
     if (Platforms.empty()) {
