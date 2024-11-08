@@ -30,8 +30,8 @@
 
 namespace firestarter {
 
-auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
-                                 std::chrono::seconds Timeout) -> int {
+void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::microseconds Load,
+                                 std::chrono::seconds Timeout) {
 
   using clock = std::chrono::high_resolution_clock;
   using nsec = std::chrono::nanoseconds;
@@ -85,7 +85,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
         WatchdogTerminateAlert.wait_for(Lk, LoadNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
         if (WatchdogTerminate) {
-          return EXIT_SUCCESS;
+          return;
         }
       }
 #ifdef ENABLE_VTRACING
@@ -114,7 +114,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
         WatchdogTerminateAlert.wait_for(Lk, IdleNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
         if (WatchdogTerminate) {
-          return EXIT_SUCCESS;
+          return;
         }
       }
 #ifdef ENABLE_VTRACING
@@ -133,7 +133,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
         if (WatchdogTerminate || (Timeout > sec::zero() && (Time > Timeout))) {
           setLoad(LoadThreadWorkType::LoadStop);
 
-          return EXIT_SUCCESS;
+          return;
         }
       }
     }
@@ -149,11 +149,7 @@ auto Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
     }
 
     setLoad(LoadThreadWorkType::LoadStop);
-
-    return EXIT_SUCCESS;
   }
-
-  return EXIT_SUCCESS;
 }
 
 } // namespace firestarter
