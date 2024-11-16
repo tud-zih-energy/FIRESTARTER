@@ -274,6 +274,11 @@ public:
       Hostname = "unknown";
     }
 
+    // Strip away any remaining null terminators
+    if (const auto Pos = Hostname.find('\0'); Pos != std::string::npos) {
+      Hostname.erase(Pos);
+    }
+
     J["hostname"] = Hostname;
 
     J["startTime"] = StartTime;
@@ -299,10 +304,11 @@ public:
 
     std::string Outpath = Path;
     if (Outpath.empty()) {
-      // Wrapp get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
+      // Wrap get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
       const std::unique_ptr<char, void (*)(void*)> WrappedPwd = {get_current_dir_name(), free};
       if (WrappedPwd) {
-        Outpath = *WrappedPwd;
+        // Get the pointer captured in the WrappedPwd (not only the first char as would be with *WrappedPwd)
+        Outpath = WrappedPwd.get();
       } else {
         firestarter::log::warn() << "Could not find $PWD.";
         Outpath = "/tmp";
