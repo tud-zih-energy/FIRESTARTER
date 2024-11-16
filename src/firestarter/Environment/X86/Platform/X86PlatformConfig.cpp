@@ -23,3 +23,5 @@
 // for header files based on the source file with the best matching score. This file should be the best score for the
 // included header. Therefore we should not see any errors in this file for missing includes. For more infomation
 // look in the LLVM code base: clang/lib/Tooling/InterpolatingCompilationDatabase.cpp
+
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
