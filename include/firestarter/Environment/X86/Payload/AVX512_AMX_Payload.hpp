@@ -44,6 +44,10 @@ public:
     return new AVX512_AMX_Payload(this->supportedFeatures());
   };
 
+  static void create_AMX_config(__tilecfg *tileinfo);
+  static void request_permission();
+  static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
+
 private:
   const std::map<std::string, unsigned> instructionFlops = {
       {"REG", 32},   {"L1_L", 32},  {"L1_BROADCAST", 16}, {"L1_S", 16},

@@ -51,10 +51,6 @@ typedef struct __tile_config
   uint8_t rows[16];
 } __tilecfg;
 
-void create_AMX_config(__tilecfg *tileinfo);
-void request_permission();
-void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
-
 int AVX512_AMX_Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
@@ -519,7 +515,7 @@ void AVX512_AMX_Payload::init(unsigned long long *memoryAddr,
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void create_AMX_config(__tilecfg *tileinfo){
+void AVX512_AMX_Payload::create_AMX_config(__tilecfg *tileinfo){
   // Create tile_cfg, fill it and return 
 
   int i;
@@ -537,31 +533,31 @@ void create_AMX_config(__tilecfg *tileinfo){
 }
 
 
-void request_permission(){
+void AVX512_AMX_Payload::request_permission(){
 
   long rc;
   unsigned long bitmask;
   rc = syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA);
 
   if(rc){
-  	printf("XTILE_DATA request failed: %ld", rc);
+    workerLog::error() << "XTILE_DATA request failed: " << rc;
   }
   
   rc = syscall(SYS_arch_prctl, ARCH_GET_XCOMP_PERM, &bitmask);
   if (rc){
-    printf("prctl(ARCH_GET_XCOMP_PERM) error: %ld", rc);
+    workerLog::error() << "prctl(ARCH_GET_XCOMP_PERM) error: " << rc;
   }
   if (bitmask & XFEATURE_MASK_XTILE){
-    //printf("ARCH_REQ_XCOMP_PERM XTILE_DATA successful.\n");
+    workerLog::trace() << "ARCH_REQ_XCOMP_PERM XTILE_DATA successful.";
   }
   else{
-      printf("[ERROR] ARCH_REQ_XCOMP_PERM XTILE_DATA unsuccessful!\n");
+    workerLog::error() << "[ERROR] ARCH_REQ_XCOMP_PERM XTILE_DATA unsuccessful!";
   }
 
 
 }
 
-void init_buffer_rand(uintptr_t src1, uintptr_t src2){
+void AVX512_AMX_Payload::init_buffer_rand(uintptr_t src1, uintptr_t src2){
 
   // Initialize buffer with random values
   // Multiplication always produces either 1 or -1
