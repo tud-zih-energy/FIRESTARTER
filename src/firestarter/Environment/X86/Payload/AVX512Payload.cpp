@@ -51,7 +51,7 @@ typedef struct __tile_config
   uint8_t rows[16];
 } __tilecfg;
 
-int AVX512_Payload::compilePayload(
+int AVX512Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
     std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
@@ -511,7 +511,7 @@ int AVX512_Payload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AVX512_Payload::getAvailableInstructions() const {
+std::list<std::string> AVX512Payload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),
@@ -521,12 +521,12 @@ std::list<std::string> AVX512_Payload::getAvailableInstructions() const {
   return instructions;
 }
 
-void AVX512_Payload::init(unsigned long long *memoryAddr,
+void AVX512Payload::init(unsigned long long *memoryAddr,
                          unsigned long long bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
-}src/firestarter/Environment/X86/Payload/AVX512_Payload.cpp
+}
 
-void AVX512_Payload::create_AMX_config(void *tileinfo){
+void AVX512Payload::create_AMX_config(void *tileinfo){
   // Create tile_cfg, fill it and return 
   __tilecfg* cfg = static_cast<__tilecfg*>(tileinfo);
   int i;
@@ -544,7 +544,7 @@ void AVX512_Payload::create_AMX_config(void *tileinfo){
 }
 
 
-void AVX512_Payload::request_permission(){
+void AVX512Payload::request_permission(){
 
   long rc;
   unsigned long bitmask;
@@ -568,7 +568,7 @@ void AVX512_Payload::request_permission(){
 
 }
 
-void AVX512_Payload::init_buffer_rand(uintptr_t src1, uintptr_t src2){
+void AVX512Payload::init_buffer_rand(uintptr_t src1, uintptr_t src2){
 
   // Initialize buffer with random values
   // Multiplication always produces either 1 or -1
