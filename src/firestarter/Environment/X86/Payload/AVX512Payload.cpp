@@ -18,7 +18,7 @@
  *
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
-#include <firestarter/Environment/X86/Payload/AVX512_Payload.hpp>
+#include <firestarter/Environment/X86/Payload/AVX512Payload.hpp>
 #include <sys/syscall.h>
 #include <immintrin.h>
 #include <asm/prctl.h>        /* Definition of ARCH_* constants */
@@ -524,7 +524,7 @@ std::list<std::string> AVX512_Payload::getAvailableInstructions() const {
 void AVX512_Payload::init(unsigned long long *memoryAddr,
                          unsigned long long bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
-}
+}src/firestarter/Environment/X86/Payload/AVX512_Payload.cpp
 
 void AVX512_Payload::create_AMX_config(void *tileinfo){
   // Create tile_cfg, fill it and return 
