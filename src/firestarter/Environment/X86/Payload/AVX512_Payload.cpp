@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,40 @@
  *
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
+#include <firestarter/Environment/X86/Payload/AVX512_Payload.hpp>
+#include <sys/syscall.h>
+#include <immintrin.h>
+#include <asm/prctl.h>        /* Definition of ARCH_* constants */
 
-#include <firestarter/Environment/X86/Payload/AVX512Payload.hpp>
+#define XFEATURE_XTILECFG   17
+#define XFEATURE_XTILEDATA  18
+#define XFEATURE_MASK_XTILECFG  (1 << XFEATURE_XTILECFG)
+#define XFEATURE_MASK_XTILEDATA (1 << XFEATURE_XTILEDATA)
+#define XFEATURE_MASK_XTILE (XFEATURE_MASK_XTILECFG | XFEATURE_MASK_XTILEDATA)
+
+#define ARCH_GET_XCOMP_PERM 0x1022
+#define ARCH_REQ_XCOMP_PERM 0x1023
+
+#define MAX 1024
+#define MAX_ROWS 16
+#define MAX_COLS 64
+
 
 using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-int AVX512Payload::compilePayload(
+// Define struct that is used as config and loaded through ldtilecfg()
+typedef struct __tile_config
+{
+  uint8_t palette_id;
+  uint8_t start_row;
+  uint8_t reserved_0[14];
+  uint16_t colsb[16];
+  uint8_t rows[16];
+} __tilecfg;
+
+int AVX512_Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
     std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
@@ -37,6 +63,17 @@ int AVX512Payload::compilePayload(
   auto sequence = this->generateSequence(proportion);
   auto repetitions =
       this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
+
+  // Check if AMX is in instruction mix and supported by CPU
+  if (std::find(sequence.begin(), sequence.end(), "AMX") != sequence.end()) {
+    if(this->supportedFeatures().x86().hasAMX_BF16()){
+      workerLog::trace() << "AMX BF16 operations are supported by this processor.";
+    }
+    else{
+      workerLog::error() << "[ERROR] AMX BF16 operations are not supported by this processor.";
+      return EXIT_FAILURE;
+    }
+  }
 
   // compute count of flops and memory access for performance report
   unsigned flops = 0;
@@ -164,6 +201,42 @@ int AVX512Payload::compilePayload(
   for (auto const &reg : shift_reg32) {
     cb.mov(reg, Imm(0xAAAAAAAA));
   }
+
+
+  // Init AMX registers and config 
+  __tilecfg tile_data = {0};
+  request_permission();
+  create_AMX_config(&tile_data); // Create tilecfg and fill it
+
+  static bool init = true;
+  uintptr_t src1, src2;
+  uint64_t src3;
+  unsigned int aligned_alloc_size = static_cast<unsigned int>(MAX*sizeof(__bfloat16));
+  if(aligned_alloc_size % 1024){ // aligned_alloc expects size to be multiple of alignment (aka 1024)
+    aligned_alloc_size = aligned_alloc_size + (1024 - (aligned_alloc_size % 1024));
+  }
+  src1 = (uintptr_t) aligned_alloc(1024, aligned_alloc_size);
+  src2 = (uintptr_t) aligned_alloc(1024, aligned_alloc_size);
+  src3 = (uint64_t) aligned_alloc(1024, aligned_alloc_size);
+  if(((void*)src1 == nullptr) || (void*)src2 == nullptr || (void*)src3 == nullptr){ // uintptr_t garantuees we can cast it to void* and back
+    std::cout << "[ERROR]: Allocation of source and target buffer for AMX failed. Aborting...\n";
+    exit(1);
+  }
+  
+  //Init buffers
+  init_buffer_rand(src1, src2);
+  memset((void*) src3, 0, aligned_alloc_size);
+
+  cb.tileloaddt1(tmm6, zmmword_ptr(src1));
+  cb.tileloaddt1(tmm7, zmmword_ptr(src2)); // Ensure no overflows through loading x and -x in src2
+
+  cb.tileloaddt1(tmm0, zmmword_ptr(src3)); // Preload with 0
+  cb.tileloaddt1(tmm1, zmmword_ptr(src3));
+  cb.tileloaddt1(tmm2, zmmword_ptr(src3));
+  cb.tileloaddt1(tmm3, zmmword_ptr(src3));
+  cb.tileloaddt1(tmm4, zmmword_ptr(src3));
+  cb.tileloaddt1(tmm5, zmmword_ptr(src3));
+
   // Initialize AVX512-Registers for FMA Operations
   cb.vmovapd(zmm0, zmmword_ptr(pointer_reg));
   cb.vmovapd(zmm1, zmmword_ptr(pointer_reg, 64));
@@ -212,6 +285,7 @@ int AVX512Payload::compilePayload(
   auto mov_dst = trans_start;
   auto mov_src = mov_dst + 1;
   unsigned l1_offset = 0;
+  int counter=0;
 
 #define L1_INCREMENT()                                                         \
   l1_offset += 64;                                                             \
@@ -296,6 +370,9 @@ int AVX512Payload::compilePayload(
         cb.vfmadd231pd(Zmm(add_dest), zmm0, zmmword_ptr(l1_addr, 64));
         cb.prefetcht2(ptr(ram_addr));
         RAM_INCREMENT();
+      } else if (item == "AMX") {
+      	    cb.tdpbf16ps(Tmm(counter%6), tmm6, tmm7);
+            counter++;
       } else {
         workerLog::error() << "Instruction group " << item << " not found in "
                            << this->name() << ".";
@@ -434,7 +511,7 @@ int AVX512Payload::compilePayload(
   return EXIT_SUCCESS;
 }
 
-std::list<std::string> AVX512Payload::getAvailableInstructions() const {
+std::list<std::string> AVX512_Payload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
   transform(this->instructionFlops.begin(), this->instructionFlops.end(),
@@ -444,7 +521,79 @@ std::list<std::string> AVX512Payload::getAvailableInstructions() const {
   return instructions;
 }
 
-void AVX512Payload::init(unsigned long long *memoryAddr,
+void AVX512_Payload::init(unsigned long long *memoryAddr,
                          unsigned long long bufferSize) {
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
+
+void AVX512_Payload::create_AMX_config(void *tileinfo){
+  // Create tile_cfg, fill it and return 
+  __tilecfg* cfg = static_cast<__tilecfg*>(tileinfo);
+  int i;
+  cfg->palette_id = 1;
+  cfg->start_row = 0;
+
+
+  for (i = 0; i < 8; ++i)
+  {
+    cfg->colsb[i] = MAX_COLS;
+    cfg->rows[i] =  MAX_ROWS;
+  }
+
+  _tile_loadconfig(cfg);
+}
+
+
+void AVX512_Payload::request_permission(){
+
+  long rc;
+  unsigned long bitmask;
+  rc = syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA);
+
+  if(rc){
+    workerLog::error() << "XTILE_DATA request failed: " << rc;
+  }
+  
+  rc = syscall(SYS_arch_prctl, ARCH_GET_XCOMP_PERM, &bitmask);
+  if (rc){
+    workerLog::error() << "prctl(ARCH_GET_XCOMP_PERM) error: " << rc;
+  }
+  if (bitmask & XFEATURE_MASK_XTILE){
+    workerLog::trace() << "ARCH_REQ_XCOMP_PERM XTILE_DATA successful.";
+  }
+  else{
+    workerLog::error() << "[ERROR] ARCH_REQ_XCOMP_PERM XTILE_DATA unsuccessful!";
+  }
+
+
+}
+
+void AVX512_Payload::init_buffer_rand(uintptr_t src1, uintptr_t src2){
+
+  // Initialize buffer with random values
+  // Multiplication always produces either 1 or -1
+  // Accumulation operation always on (1 + -1) = 0 ensures stable values 
+
+  __bfloat16 *buf1 = (__bfloat16*) src1;
+  __bfloat16 *buf2 = (__bfloat16*) src2;
+  
+  // TODO: Change MAX_ROWS/MAXC_COLS from constant to maximum size check by asmJit
+  //	   Currently not supported by asmJit
+  //	   Alternative: Manually parse CPUID
+  
+  for(int i = 0; i<MAX_ROWS; i++){
+    __bfloat16 random_init = (__bfloat16) (rand() % 65536); // Limit maximum size as 1/x needs to fit bfloat16
+    for(int j = 0; j<MAX_COLS; j++){
+      buf1[i*MAX_COLS+j] = (__bfloat16) (random_init);
+      if(!(j%2)){
+        buf2[i*MAX_COLS+j] = (__bfloat16) ((-1) / random_init);
+      }
+      else if(j%2){
+        buf2[i*MAX_COLS+j] = (__bfloat16) (1 / random_init);
+      }
+    }
+  }
+
+}
+
+

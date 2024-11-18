@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/AVX512_AMX_Payload.hpp>
+#include <firestarter/Environment/X86/Payload/AVX512_Payload.hpp>
 #include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
