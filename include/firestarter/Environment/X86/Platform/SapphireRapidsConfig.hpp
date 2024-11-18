@@ -33,7 +33,7 @@ public:
       : X86PlatformConfig("SPR_XEONEP", 6, {143}, {1, 2}, 0,
                           {32768, 1048576, 1441792}, 1048576000, 1536, family,
                           model, threads,
-                          new payload::AVX512_AMX_Payload(supportedFeatures)) {}
+                          new payload::AVX512Payload(supportedFeatures)) {}
 
   std::vector<std::pair<std::string, unsigned>>
   getDefaultPayloadSettings() const override {
