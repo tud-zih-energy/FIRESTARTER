@@ -53,8 +53,8 @@ private:
       {"REG", 32},   {"L1_L", 32},  {"L1_BROADCAST", 16}, {"L1_S", 16},
       {"L1_LS", 16}, {"L2_L", 32},  {"L2_S", 16},         {"L2_LS", 16},
       {"L3_L", 32},  {"L3_S", 16},  {"L3_LS", 16},        {"L3_P", 16},
-      {"RAM_L", 32}, {"RAM_S", 16}, {"RAM_LS", 16},       {"RAM_P", 16}},
-      {"AMX", 512};
+      {"RAM_L", 32}, {"RAM_S", 16}, {"RAM_LS", 16},       {"RAM_P", 16},
+      {"AMX", 512}};
 
   const std::map<std::string, unsigned> instructionMemory = {
       {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
