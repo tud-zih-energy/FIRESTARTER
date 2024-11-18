@@ -64,6 +64,17 @@ int AVX512_AMX_Payload::compilePayload(
   auto repetitions =
       this->getNumberOfSequenceRepetitions(sequence, numberOfLines / thread);
 
+  // Check if AMX is in instruction mix and supported by CPU
+  if (std::find(sequence.begin(), sequence.end(), "AMX") != sequence.end()) {
+    if(this->supportedFeatures().x86().hasAMX_BF16()){
+      workerLog::trace() << "AMX BF16 operations are supported by this processor.";
+    }
+    else{
+      workerLog::error() << "[ERROR] AMX BF16 operations are not supported by this processor.";
+      return EXIT_FAILURE;
+    }
+  }
+
   // compute count of flops and memory access for performance report
   unsigned flops = 0;
   unsigned bytes = 0;
@@ -467,7 +478,7 @@ int AVX512_AMX_Payload::compilePayload(
 
   cb.movq(rax, iter_reg);
 
-  cb.emitEpilog(frame);
+  cb.emitEpilog(frame);instruction is selection during the compilePayload ste
 
   cb.finalize();
 
