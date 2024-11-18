@@ -39,7 +39,7 @@ git_submodule_update()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mamx-int8 -mamx-tile -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mamx-tile -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
