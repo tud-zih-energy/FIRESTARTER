@@ -22,9 +22,6 @@
 #pragma once
 
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
-#include <sys/syscall.h>
-#include <immintrin.h>
-#include <asm/prctl.h>        /* Definition of ARCH_* constants */
 
 namespace firestarter::environment::x86::payload {
 class AVX512_AMX_Payload final : public X86Payload {
@@ -47,7 +44,7 @@ public:
     return new AVX512_AMX_Payload(this->supportedFeatures());
   };
 
-  static void create_AMX_config(__tilecfg *tileinfo);
+  static void create_AMX_config(void *tileinfo);
   static void request_permission();
   static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
 

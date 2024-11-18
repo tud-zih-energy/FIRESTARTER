@@ -19,7 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 #include <firestarter/Environment/X86/Payload/AVX512_AMX_Payload.hpp>
-
+#include <sys/syscall.h>
+#include <immintrin.h>
+#include <asm/prctl.h>        /* Definition of ARCH_* constants */
 
 #define XFEATURE_XTILECFG   17
 #define XFEATURE_XTILEDATA  18
@@ -513,21 +515,21 @@ void AVX512_AMX_Payload::init(unsigned long long *memoryAddr,
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void AVX512_AMX_Payload::create_AMX_config(__tilecfg *tileinfo){
+void AVX512_AMX_Payload::create_AMX_config(void *tileinfo){
   // Create tile_cfg, fill it and return 
-
+  __tilecfg* cfg = static_cast<__tilecfg*>(tileinfo);
   int i;
-  tileinfo->palette_id = 1;
-  tileinfo->start_row = 0;
+  cfg->palette_id = 1;
+  cfg->start_row = 0;
 
 
   for (i = 0; i < 8; ++i)
   {
-    tileinfo->colsb[i] = MAX_COLS;
-    tileinfo->rows[i] =  MAX_ROWS;
+    cfg->colsb[i] = MAX_COLS;
+    cfg->rows[i] =  MAX_ROWS;
   }
 
-  _tile_loadconfig(tileinfo);
+  _tile_loadconfig(cfg);
 }
 
 
