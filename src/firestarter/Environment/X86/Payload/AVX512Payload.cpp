@@ -41,16 +41,6 @@ using namespace firestarter::environment::x86::payload;
 using namespace asmjit;
 using namespace asmjit::x86;
 
-// Define struct that is used as config and loaded through ldtilecfg()
-typedef struct __tile_config
-{
-  uint8_t palette_id;
-  uint8_t start_row;
-  uint8_t reserved_0[14];
-  uint16_t colsb[16];
-  uint8_t rows[16];
-} __tilecfg;
-
 int AVX512Payload::compilePayload(
     std::vector<std::pair<std::string, unsigned>> const &proportion,
     unsigned instructionCacheSize,
@@ -526,21 +516,20 @@ void AVX512Payload::init(unsigned long long *memoryAddr,
   X86Payload::init(memoryAddr, bufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void AVX512Payload::create_AMX_config(void *tileinfo){
+void AVX512Payload::create_AMX_config(__tilecfg *tileinfo){
   // Create tile_cfg, fill it and return 
-  __tilecfg* cfg = static_cast<__tilecfg*>(tileinfo);
   int i;
-  cfg->palette_id = 1;
-  cfg->start_row = 0;
+  tileinfo->palette_id = 1;
+  tileinfo->start_row = 0;
 
 
   for (i = 0; i < 8; ++i)
   {
-    cfg->colsb[i] = MAX_COLS;
-    cfg->rows[i] =  MAX_ROWS;
+    tileinfo->colsb[i] = MAX_COLS;
+    tileinfo->rows[i] =  MAX_ROWS;
   }
 
-  _tile_loadconfig(cfg);
+  _tile_loadconfig(tileinfo);
 }
 
 

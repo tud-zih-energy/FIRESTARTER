@@ -24,6 +24,17 @@
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
+
+// Define struct that is used as config and loaded through ldtilecfg()
+typedef struct __tile_config
+{
+  uint8_t palette_id;
+  uint8_t start_row;
+  uint8_t reserved_0[14];
+  uint16_t colsb[16];
+  uint8_t rows[16];
+} __tilecfg;
+
 class AVX512Payload final : public X86Payload {
 public:
   AVX512Payload(asmjit::CpuFeatures const &supportedFeatures)
@@ -44,7 +55,7 @@ public:
     return new AVX512Payload(this->supportedFeatures());
   };
 
-  static void create_AMX_config(void *tileinfo);
+  static void create_AMX_config(__tilecfg *tileinfo);
   static void request_permission();
   static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
 
