@@ -14,8 +14,8 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/X86CPUTopology.cpp
 
 	firestarter/Environment/X86/Payload/X86Payload.cpp
-	firestarter/Environment/X86/Payload/AVX512Payload.cpp
-	firestarter/Environment/X86/Payload/AVX512_AMX_Payload.cpp
+	firestarter/Environment/X86/Payload/AVX512_Payload.cpp
+#	firestarter/Environment/X86/Payload/AVX512_AMX_Payload.cpp
 	firestarter/Environment/X86/Payload/FMA4Payload.cpp
 	firestarter/Environment/X86/Payload/FMAPayload.cpp
 	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
