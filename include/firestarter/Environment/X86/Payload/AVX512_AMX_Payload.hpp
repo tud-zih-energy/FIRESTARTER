@@ -22,6 +22,9 @@
 #pragma once
 
 #include <firestarter/Environment/X86/Payload/X86Payload.hpp>
+#include <sys/syscall.h>
+#include <immintrin.h>
+#include <asm/prctl.h>        /* Definition of ARCH_* constants */
 
 namespace firestarter::environment::x86::payload {
 class AVX512_AMX_Payload final : public X86Payload {

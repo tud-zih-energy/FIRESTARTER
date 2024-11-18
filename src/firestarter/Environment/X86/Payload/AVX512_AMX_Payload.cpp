@@ -18,10 +18,8 @@
  *
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
-#include <asm/prctl.h>        /* Definition of ARCH_* constants */
 #include <firestarter/Environment/X86/Payload/AVX512_AMX_Payload.hpp>
-#include <sys/syscall.h>
-#include <immintrin.h>
+
 
 #define XFEATURE_XTILECFG   17
 #define XFEATURE_XTILEDATA  18
