@@ -368,12 +368,13 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
 auto CPUTopology::highestPhysicalIndex() const -> unsigned {
   unsigned Max = 0;
 
-  // There might be more then one kind of cores
+  // Get the number of different kinds of CPUs
   const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
 
-  // fallback in case this did not work ... can happen on some platforms
-  // already printed a warning earlier
-  if (NrCpukinds < 1) {
+  assert(NrCpukinds >= 0 && "flags to hwloc_cpukinds_get_nr is invalid");
+
+  // No information about the cpukinds found. Go through all PUs and save the biggest os index.
+  if (NrCpukinds == 0) {
     auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
     unsigned Max = 0;
 
@@ -382,23 +383,27 @@ auto CPUTopology::highestPhysicalIndex() const -> unsigned {
       Max = (std::max)(Max, Obj->os_index);
     }
 
-    return Max + 1;
+    return Max;
   }
 
   // Allocate bitmap to get CPUs later
   hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
   if (Bitmap == nullptr) {
+    // Error should abort, otherwise return zero.
     log::error() << "Could not allocate memory for CPU bitmap";
-    return 1;
+    return 0;
   }
 
-  // Find CPUs per kind
+  // Go through all cpukinds and save the biggest os index.
   for (int KindIndex = 0; KindIndex < NrCpukinds; KindIndex++) {
     const auto Result = hwloc_cpukinds_get_info(Topology, KindIndex, Bitmap, nullptr, nullptr, nullptr, 0);
     if (Result) {
       log::warn() << "Could not get information for CPU kind " << KindIndex;
     }
-    Max += hwloc_bitmap_last(Bitmap);
+    auto MaxIndex = hwloc_bitmap_last(Bitmap);
+    assert(MaxIndex >= 0 && "bitmap is full or bitmap is not infinitely set");
+
+    Max = (std::max)(Max, static_cast<unsigned>(MaxIndex));
   }
 
   hwloc_bitmap_free(Bitmap);
