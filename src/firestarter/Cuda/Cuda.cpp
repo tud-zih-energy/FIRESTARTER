@@ -224,7 +224,7 @@ void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitC
     firestarter::log::info() << "   GPU " << DeviceIndex << "\n"
                              << "    name:           " << Properties.name << "\n"
                              << "    memory:         " << ToMiB(MemoryAvail) << "/" << ToMiB(MemoryTotal)
-                             << " iB available (using " << ToMiB(UseBytes) << " iB)\n"
+                             << " MiB available (using " << ToMiB(UseBytes) << " MiB)\n"
                              << "    matrix size:    " << MatrixSize << "\n"
                              << "    used precision: "
                              << ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single");
