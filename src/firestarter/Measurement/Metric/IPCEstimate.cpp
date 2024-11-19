@@ -19,9 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+
 #include <chrono>
 #include <cstdlib>
-#include <firestarter/Measurement/Metric/IPCEstimate.hpp>
 
 auto IpcEstimateMetricData::fini() -> int32_t {
   auto& Instance = instance();

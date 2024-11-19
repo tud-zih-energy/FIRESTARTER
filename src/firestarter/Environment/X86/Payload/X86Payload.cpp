@@ -19,11 +19,12 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Environment/X86/Payload/X86Payload.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/WindowsCompat.hpp"
+
 #include <cassert>
 #include <chrono>
-#include <firestarter/Constants.hpp>
-#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
-#include <firestarter/WindowsCompat.hpp>
 #include <thread>
 
 namespace firestarter::environment::x86::payload {

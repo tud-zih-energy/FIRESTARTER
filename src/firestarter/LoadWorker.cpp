@@ -21,17 +21,13 @@
 
 #include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/Constants.hpp"
+#include "firestarter/ErrorDetectionStruct.hpp"
+#include "firestarter/Firestarter.hpp"
 #include "firestarter/LoadWorkerData.hpp"
-#include <cstdint>
-#include <firestarter/ErrorDetectionStruct.hpp>
-#include <firestarter/Firestarter.hpp>
-#include <firestarter/Logging/Log.hpp>
-#include <iomanip>
-#include <limits>
-#include <sstream>
+#include "firestarter/Logging/Log.hpp"
 
 #if defined(linux) || defined(__linux__)
-#include <firestarter/Measurement/Metric/IPCEstimate.hpp>
+#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #endif
 
 #ifdef ENABLE_VTRACING
@@ -42,7 +38,11 @@
 #endif
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <iomanip>
+#include <limits>
+#include <sstream>
 #include <thread>
 
 namespace firestarter {

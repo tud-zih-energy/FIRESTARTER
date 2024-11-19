@@ -21,10 +21,10 @@
 
 // This file borrows a lot of code from https://github.com/esa/pagmo2
 
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
-#include <firestarter/Optimizer/Util/MultiObjective.hpp>
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
+#include "firestarter/Optimizer/Util/MultiObjective.hpp"
 
 #include <algorithm>
 #include <iomanip>

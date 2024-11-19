@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Measurement/Summary.hpp>
+#include "firestarter/Measurement/Summary.hpp"
 
 #include <cassert>
 #include <cmath>

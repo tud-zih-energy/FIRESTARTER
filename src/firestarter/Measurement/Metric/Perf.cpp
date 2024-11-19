@@ -19,12 +19,12 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Measurement/Metric/Perf.hpp"
+
 #include <array>
 #include <cassert>
 #include <cstring>
 #include <string>
-
-#include <firestarter/Measurement/Metric/Perf.hpp>
 
 extern "C" {
 #include <linux/perf_event.h>

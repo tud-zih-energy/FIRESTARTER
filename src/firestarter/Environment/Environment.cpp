@@ -19,8 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Environment/Environment.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "firestarter/Environment/Environment.hpp"
+#include "firestarter/Logging/Log.hpp"
+
 #include <regex>
 #include <stdexcept>
 #include <string>

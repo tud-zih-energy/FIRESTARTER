@@ -19,10 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <array>
-#include <firestarter/Environment/CPUTopology.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Logging/Log.hpp"
 
+#include <array>
 #include <fstream>
 #include <regex>
 #include <utility>

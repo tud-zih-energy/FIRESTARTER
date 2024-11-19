@@ -19,8 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Environment/X86/X86Environment.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "firestarter/Environment/X86/X86Environment.hpp"
+#include "firestarter/Logging/Log.hpp"
 
 #include <algorithm>
 #include <cstdio>

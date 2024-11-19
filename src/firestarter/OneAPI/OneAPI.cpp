@@ -22,15 +22,15 @@
 /* OneAPI for GPUs, based on CUDA component
  *****************************************************************************/
 
-#include <firestarter/LoadWorkerData.hpp>
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/OneAPI/OneAPI.hpp>
+#include "firestarter/OneAPI/OneAPI.hpp"
+#include "firestarter/Logging/Log.hpp"
 
 #include <oneapi/mkl.hpp>
 #include <sycl/sycl.hpp>
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <type_traits>
 
 namespace firestarter::oneapi {

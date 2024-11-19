@@ -19,9 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Measurement/Metric/RAPL.hpp"
+
 #include <cstdio>
 #include <cstring>
-#include <firestarter/Measurement/Metric/RAPL.hpp>
 #include <fstream>
 #include <memory>
 #include <sstream>

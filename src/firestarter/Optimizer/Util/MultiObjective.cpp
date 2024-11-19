@@ -21,7 +21,7 @@
 
 // This file borrows a lot of code from https://github.com/esa/pagmo2
 
-#include <firestarter/Optimizer/Util/MultiObjective.hpp>
+#include "firestarter/Optimizer/Util/MultiObjective.hpp"
 
 #include <algorithm>
 #include <stdexcept>

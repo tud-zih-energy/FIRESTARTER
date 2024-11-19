@@ -19,16 +19,16 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Firestarter.hpp"
+#include "firestarter/Environment/X86/X86Environment.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
+#include "firestarter/Optimizer/History.hpp"
+#include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+
 #include <csignal>
 #include <cstdlib>
-#include <firestarter/Environment/X86/X86Environment.hpp>
-#include <firestarter/Firestarter.hpp>
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Measurement/Metric/IPCEstimate.hpp>
-#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
-#include <firestarter/Optimizer/History.hpp>
-#include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
-#include <firestarter/WindowsCompat.hpp>
 #include <memory>
 
 namespace firestarter {

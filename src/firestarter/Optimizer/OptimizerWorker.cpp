@@ -19,8 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Optimizer/OptimizerWorker.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
-#include <firestarter/Optimizer/OptimizerWorker.hpp>
 
 #include <thread>
 #include <utility>

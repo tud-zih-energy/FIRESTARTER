@@ -19,10 +19,11 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Optimizer/History.hpp"
+
 #include <cassert>
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Optimizer/History.hpp>
-#include <firestarter/Optimizer/Population.hpp>
 #include <random>
 
 namespace firestarter::optimizer {

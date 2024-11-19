@@ -19,10 +19,11 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Config.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Logging/Log.hpp"
+
 #include <cxxopts.hpp>
-#include <firestarter/Config.hpp>
-#include <firestarter/Constants.hpp>
-#include <firestarter/Logging/Log.hpp>
 
 namespace {
 

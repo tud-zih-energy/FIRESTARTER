@@ -19,7 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/SafeExit.hpp>
+#include "firestarter/SafeExit.hpp"
+
 #include <mutex>
 
 [[noreturn]] void firestarter::safeExit(const int Status) {

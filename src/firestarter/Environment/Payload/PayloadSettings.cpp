@@ -19,9 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Environment/Payload/PayloadSettings.hpp"
+
 #include <algorithm>
 #include <cmath>
-#include <firestarter/Environment/Payload/PayloadSettings.hpp>
 
 namespace firestarter::environment::payload {
 

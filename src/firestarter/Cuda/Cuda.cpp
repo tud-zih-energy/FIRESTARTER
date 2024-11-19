@@ -24,12 +24,13 @@
  * http://wili.cc/blog/gpu-burn.html
  *****************************************************************************/
 
+#include "firestarter/Cuda/Cuda.hpp"
+#include "firestarter/Cuda/CudaHipCompat.hpp"
+#include "firestarter/Logging/Log.hpp"
+
 #include <atomic>
+#include <cmath>
 #include <cstddef>
-#include <firestarter/Cuda/Cuda.hpp>
-#include <firestarter/Cuda/CudaHipCompat.hpp>
-#include <firestarter/LoadWorkerData.hpp>
-#include <firestarter/Logging/Log.hpp>
 #include <type_traits>
 
 namespace firestarter::cuda {

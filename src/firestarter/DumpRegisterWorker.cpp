@@ -19,8 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Firestarter.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "firestarter/Firestarter.hpp"
 
 #include <fstream>
 #include <sstream>

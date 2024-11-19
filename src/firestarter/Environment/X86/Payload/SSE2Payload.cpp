@@ -19,9 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "asmjit/core/environment.h"
-#include <firestarter/Environment/X86/Payload/CompiledX86Payload.hpp>
-#include <firestarter/Environment/X86/Payload/SSE2Payload.hpp>
+#include "firestarter/Environment/X86/Payload/SSE2Payload.hpp"
+#include "firestarter/Environment/X86/Payload/CompiledX86Payload.hpp"
 
 namespace firestarter::environment::x86::payload {
 
