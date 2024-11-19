@@ -44,9 +44,8 @@ public:
 
   /// The total number of hardware threads.
   [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
-  /// The maximum os_index of all PUs plus 1 if we cannot determine the number of cpu kinds. Otherwise the maximum
-  /// number of PUs.
-  [[nodiscard]] auto maxNumThreads() const -> unsigned;
+  /// The hightest physical index in the hwloc cpuset.
+  [[nodiscard]] auto highestPhysicalIndex() const -> unsigned;
   /// Assuming we have a consistent number of threads per core. The number of thread per core.
   [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
   /// The total number of cores.

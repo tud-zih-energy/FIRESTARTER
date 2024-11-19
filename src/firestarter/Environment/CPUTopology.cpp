@@ -365,7 +365,7 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   return {};
 }
 
-auto CPUTopology::maxNumThreads() const -> unsigned {
+auto CPUTopology::highestPhysicalIndex() const -> unsigned {
   unsigned Max = 0;
 
   // There might be more then one kind of cores
@@ -398,7 +398,7 @@ auto CPUTopology::maxNumThreads() const -> unsigned {
     if (Result) {
       log::warn() << "Could not get information for CPU kind " << KindIndex;
     }
-    Max += hwloc_bitmap_weight(Bitmap);
+    Max += hwloc_bitmap_last(Bitmap);
   }
 
   hwloc_bitmap_free(Bitmap);
