@@ -216,6 +216,7 @@ void Firestarter::mainThread() {
 
       // wait here until optimizer thread terminates
       Firestarter::Optimizer->join();
+      Firestarter::Optimizer.reset();
 
       auto PayloadItems = Environment->config().settings().instructionGroupItems();
 
