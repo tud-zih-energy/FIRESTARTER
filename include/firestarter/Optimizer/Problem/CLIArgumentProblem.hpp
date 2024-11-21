@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "../../Measurement/MeasurementWorker.hpp"
-#include "../Problem.hpp"
+#include "firestarter/Measurement/MeasurementWorker.hpp"
+#include "firestarter/Optimizer/Problem.hpp"
+
 #include <cassert>
 #include <functional>
 #include <thread>

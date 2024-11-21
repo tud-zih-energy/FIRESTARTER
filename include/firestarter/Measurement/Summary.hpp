@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "MetricInterface.h"
-#include "TimeValue.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/TimeValue.hpp"
+
 #include <chrono>
 #include <nlohmann/json.hpp>
 #include <vector>

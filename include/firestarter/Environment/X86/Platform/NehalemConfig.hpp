@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "../Payload/SSE2Payload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/SSE2Payload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class NehalemConfig final : public X86PlatformConfig {

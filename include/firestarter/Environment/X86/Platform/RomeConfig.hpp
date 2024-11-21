@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "../Payload/FMAPayload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/FMAPayload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class RomeConfig final : public X86PlatformConfig {

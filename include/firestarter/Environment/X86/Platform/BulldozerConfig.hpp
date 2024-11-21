@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "../Payload/FMA4Payload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/FMA4Payload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class BulldozerConfig final : public X86PlatformConfig {

@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "../Payload/AVX512Payload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {

@@ -21,9 +21,10 @@
 
 #pragma once
 
-#include "LoadWorkerData.hpp"
-#include "Logging/Log.hpp"
-#include "WindowsCompat.hpp" // IWYU pragma: keep
+#include "firestarter/LoadWorkerData.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
+
 #include <chrono>
 #include <utility>
 

@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+
 #include <array>
 
 namespace firestarter {

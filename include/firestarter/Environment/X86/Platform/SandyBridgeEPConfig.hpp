@@ -22,8 +22,8 @@
 #ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SANDYBRIDGEEPCONFIG_H
 #define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SANDYBRIDGEEPCONFIG_H
 
-#include "../Payload/AVXPayload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/AVXPayload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class SandyBridgeEPConfig final : public X86PlatformConfig {

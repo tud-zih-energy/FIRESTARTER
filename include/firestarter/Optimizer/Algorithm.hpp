@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "Population.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 
 namespace firestarter::optimizer {
 

@@ -21,9 +21,10 @@
 
 #pragma once
 
-#include "AlignedAlloc.hpp"
-#include "DumpRegisterStruct.hpp"
-#include "ErrorDetectionStruct.hpp"
+#include "firestarter/AlignedAlloc.hpp"
+#include "firestarter/DumpRegisterStruct.hpp"
+#include "firestarter/ErrorDetectionStruct.hpp"
+
 #include <memory>
 
 namespace firestarter {

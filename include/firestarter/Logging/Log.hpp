@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "FirstWorkerThreadFilter.hpp"
+#include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/SafeExit.hpp"
+
 #include <cstdlib>
 #include <iostream>
 #include <nitro/log/attribute/message.hpp>

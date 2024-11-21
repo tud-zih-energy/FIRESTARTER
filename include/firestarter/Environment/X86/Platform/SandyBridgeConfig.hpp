@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "../Payload/AVXPayload.hpp"
-#include "X86PlatformConfig.hpp"
+#include "firestarter/Environment/X86/Payload/AVXPayload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {

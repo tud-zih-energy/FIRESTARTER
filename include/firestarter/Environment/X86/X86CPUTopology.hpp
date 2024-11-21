@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include <asmjit/asmjit.h>
+#include "firestarter/Environment/CPUTopology.hpp"
 
-#include "../CPUTopology.hpp"
+#include <asmjit/asmjit.h>
 
 namespace firestarter::environment::x86 {
 

@@ -29,9 +29,10 @@
 
 #pragma once
 
+#include "firestarter/Logging/Log.hpp"
+
 #include <cassert>
 #include <cstddef>
-#include <firestarter/Logging/Log.hpp>
 #include <optional>
 #include <sstream>
 #include <type_traits>

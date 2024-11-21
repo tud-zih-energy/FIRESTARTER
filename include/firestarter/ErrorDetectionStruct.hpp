@@ -22,6 +22,7 @@
 #pragma once
 
 #include <cstdint>
+
 namespace firestarter {
 
 /// This struct is used for the error detection feature. The error detection works between two threads. The current one

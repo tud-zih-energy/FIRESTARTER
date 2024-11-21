@@ -21,13 +21,14 @@
 
 #pragma once
 
-#include "Metric/IPCEstimate.hpp"
-#include "Metric/Perf.hpp"
-#include "Metric/RAPL.hpp"
-#include "MetricInterface.h"
-#include "Summary.hpp"
-#include "TimeValue.hpp"
+#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/Measurement/Metric/Perf.hpp"
+#include "firestarter/Measurement/Metric/RAPL.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Measurement/TimeValue.hpp"
 #include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
+
 #include <chrono>
 #include <map>
 #include <mutex>

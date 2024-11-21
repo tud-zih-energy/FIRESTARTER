@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "../Measurement/Summary.hpp"
+#include "firestarter/Measurement/Summary.hpp"
 
 /// Json serializer and deserializer for the firestarter::measurement::Summary struct
 namespace nlohmann {

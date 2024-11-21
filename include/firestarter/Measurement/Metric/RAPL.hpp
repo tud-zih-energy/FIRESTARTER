@@ -21,7 +21,8 @@
 
 #pragma once
 
-#include "../MetricInterface.h"
+#include "firestarter/Measurement/MetricInterface.h"
+
 #include <memory>
 #include <string>
 #include <vector>

@@ -21,16 +21,16 @@
 
 #pragma once
 
-#include "Config.hpp"
-#include "Constants.hpp"
-#include "Cuda/Cuda.hpp"
-#include "DumpRegisterWorkerData.hpp"
-#include "LoadWorkerData.hpp"
-#include "Measurement/MeasurementWorker.hpp"
-#include "OneAPI/OneAPI.hpp"
-#include "Optimizer/Algorithm.hpp"
-#include "Optimizer/OptimizerWorker.hpp"
-#include "Optimizer/Population.hpp"
+#include "firestarter/Config.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Cuda/Cuda.hpp"
+#include "firestarter/DumpRegisterWorkerData.hpp"
+#include "firestarter/LoadWorkerData.hpp"
+#include "firestarter/Measurement/MeasurementWorker.hpp"
+#include "firestarter/OneAPI/OneAPI.hpp"
+#include "firestarter/Optimizer/Algorithm.hpp"
+#include "firestarter/Optimizer/OptimizerWorker.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 
 #include <chrono>
 #include <condition_variable>

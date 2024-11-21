@@ -21,11 +21,12 @@
 
 #pragma once
 
-#include "../Json/Summary.hpp" // IWYU pragma: keep
-#include "../Logging/Log.hpp"
-#include "../Measurement/Summary.hpp"
-#include "Individual.hpp"
+#include "firestarter/Json/Summary.hpp" // IWYU pragma: keep
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
 #include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>

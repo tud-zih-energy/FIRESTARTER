@@ -21,10 +21,11 @@
 
 #pragma once
 
-#include "Constants.hpp"
-#include "Environment/Environment.hpp"
-#include "LoadWorkerMemory.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Environment/Environment.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
+#include "firestarter/LoadWorkerMemory.hpp"
+
 #include <atomic>
 #include <cmath>
 #include <memory>

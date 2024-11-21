@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "Individual.hpp"
-#include "Problem.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
+#include "firestarter/Optimizer/Problem.hpp"
+
 #include <cstring>
 #include <memory>
 #include <vector>

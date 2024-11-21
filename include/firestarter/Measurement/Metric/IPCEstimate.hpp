@@ -21,7 +21,8 @@
 
 #pragma once
 
-#include "../MetricInterface.h"
+#include "firestarter/Measurement/MetricInterface.h"
+
 #include <string>
 
 /// The wrapper for the C interface to the IpcEstimateMetric metric.

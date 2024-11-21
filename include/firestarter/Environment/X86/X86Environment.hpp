@@ -21,20 +21,20 @@
 
 #pragma once
 
-#include "../Environment.hpp"
-#include "Platform/BulldozerConfig.hpp"
-#include "Platform/HaswellConfig.hpp"
-#include "Platform/HaswellEPConfig.hpp"
-#include "Platform/KnightsLandingConfig.hpp"
-#include "Platform/NaplesConfig.hpp"
-#include "Platform/NehalemConfig.hpp"
-#include "Platform/NehalemEPConfig.hpp"
-#include "Platform/RomeConfig.hpp"
-#include "Platform/SandyBridgeConfig.hpp"
-#include "Platform/SandyBridgeEPConfig.hpp"
-#include "Platform/SkylakeConfig.hpp"
-#include "Platform/SkylakeSPConfig.hpp"
-#include "Platform/X86PlatformConfig.hpp"
+#include "firestarter/Environment/Environment.hpp"
+#include "firestarter/Environment/X86/Platform/BulldozerConfig.hpp"
+#include "firestarter/Environment/X86/Platform/HaswellConfig.hpp"
+#include "firestarter/Environment/X86/Platform/HaswellEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NaplesConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NehalemConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NehalemEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/RomeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SandyBridgeEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SkylakeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SkylakeSPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86 {
 

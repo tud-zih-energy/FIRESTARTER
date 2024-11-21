@@ -21,12 +21,13 @@
 
 #pragma once
 
-#include "../../../Constants.hpp"          // IWYU pragma: keep
-#include "../../../DumpRegisterStruct.hpp" // IWYU pragma: keep
-#include "../../../Logging/Log.hpp"        // IWYU pragma: keep
-#include "../../Payload/Payload.hpp"
-#include "../X86CPUTopology.hpp"
+#include "firestarter/Constants.hpp"          // IWYU pragma: keep
+#include "firestarter/DumpRegisterStruct.hpp" // IWYU pragma: keep
+#include "firestarter/Environment/Payload/Payload.hpp"
+#include "firestarter/Environment/X86/X86CPUTopology.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
+#include "firestarter/Logging/Log.hpp" // IWYU pragma: keep
+
 #include <asmjit/x86.h>
 #include <cassert>
 #include <cstdint>

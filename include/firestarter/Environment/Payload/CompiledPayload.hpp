@@ -23,6 +23,7 @@
 
 #include "firestarter/Constants.hpp"
 #include "firestarter/Environment/Payload/PayloadStats.hpp"
+
 #include <chrono>
 #include <memory>
 #include <utility>

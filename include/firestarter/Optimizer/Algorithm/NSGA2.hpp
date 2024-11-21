@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "../Algorithm.hpp"
+#include "firestarter/Optimizer/Algorithm.hpp"
 
 namespace firestarter::optimizer::algorithm {
 

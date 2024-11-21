@@ -19,9 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "Algorithm.hpp"
-#include "Population.hpp"
+#include "firestarter/Optimizer/Algorithm.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 #include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
+
 #include <chrono>
 #include <memory>
 

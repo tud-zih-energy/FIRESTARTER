@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "CPUTopology.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
+
 #include <cassert>
 #include <cstdint>
 #include <memory>

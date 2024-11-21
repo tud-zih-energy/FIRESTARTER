@@ -21,9 +21,10 @@
 
 #pragma once
 
-#include "asmjit/core/jitruntime.h"
 #include "firestarter/Environment/Payload/CompiledPayload.hpp"
 #include "firestarter/Logging/Log.hpp"
+
+#include <asmjit/asmjit.h>
 #include <memory>
 
 namespace firestarter::environment::x86::payload {
