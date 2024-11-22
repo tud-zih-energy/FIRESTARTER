@@ -41,8 +41,7 @@ public:
       : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX512_F}, /*Name=*/"AVX512", /*RegisterSize=*/8,
                    /*RegisterCount=*/32,
                    /*InstructionFlops=*/
-                   {{"AMX", 512},
-                    {"REG", 32},
+                   {{"REG", 32},
                     {"L1_L", 32},
                     {"L1_BROADCAST", 16},
                     {"L1_S", 16},
