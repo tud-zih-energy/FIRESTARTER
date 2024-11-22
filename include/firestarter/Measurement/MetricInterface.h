@@ -27,7 +27,9 @@
 extern "C" {
 #endif
 
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <stdint.h>
+
 // NOLINTBEGIN(modernize-use-using)
 
 /// Describe the type of the metric and how values need to be accumulated. Per default metrics are of pulling type where
