@@ -174,7 +174,7 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
   (void)CpuBind;
 
   if (RequestedNumThreads == 0) {
-    RequestedNumThreads = topology().highestPhysicalIndex() + 1
+    RequestedNumThreads = topology().highestPhysicalIndex() + 1;
   }
 #endif
 
