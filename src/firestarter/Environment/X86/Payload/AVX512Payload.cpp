@@ -272,8 +272,7 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
     for (const auto& Item : Sequence) {
       if (Item == "AMX") {
         Cb.tdpbf16ps(Tmm(AmxRegisterCounter++ % 6), tmm6, tmm7);
-      }
-      if (Item == "REG") {
+      } else if (Item == "REG") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vfmadd231pd(Zmm(MovDst), zmm2, zmm1);
         Cb.xor_(ShiftReg[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg);
