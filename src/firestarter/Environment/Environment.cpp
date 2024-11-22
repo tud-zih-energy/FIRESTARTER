@@ -59,7 +59,7 @@ void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
   if (cpuAllowed(Cpu)) {
     CPU_SET(Cpu, &Mask);
   } else {
-    if (Cpu >= topology().hardwareThreadsInfo().MaxPhysicalIndex) {
+    if (Cpu > topology().hardwareThreadsInfo().MaxPhysicalIndex) {
       throw std::invalid_argument("The given bind argument (-b/--bind) includes CPU " + std::to_string(Cpu) +
                                   " that is not available on this system.");
     }
