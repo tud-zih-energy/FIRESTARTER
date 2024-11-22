@@ -52,8 +52,8 @@ public:
     return *X86PlatformConfig;
   }
 
-  /// Const getter for the current platform config containing the payload, settings, the associated name and the
-  /// default X86 family and models.
+  /// Const getter for the current platform config containing the payload, settings, the associated name and the default
+  /// X86 family and models.
   [[nodiscard]] auto config() const -> const platform::X86PlatformConfig& final {
     const auto* X86PlatformConfig = dynamic_cast<const platform::X86PlatformConfig*>(&Environment::config());
     assert(X86PlatformConfig && "X86PlatformConfig is a nullptr");
@@ -107,11 +107,11 @@ private:
       std::make_shared<platform::SapphireRapidsConfig>()};
 
   /// The list of configs that are fallbacks. If none of the PlatformConfigs is the default one on the current CPU, we
-  /// select the first one from this list that is available on the current system. If multiple configs can be
-  /// available on one system the one with higher priority should be at the top of this list. Modern X86 CPUs will
-  /// support SSE2 therefore it is the last on the list. CPUs that support AVX512 will most certainly also support FMA
-  /// and AVX, AVX512 takes precedence. This list should contain one entry for each of the supported CPU extensions by
-  /// the FIRESTARTER payloads.
+  /// select the first one from this list that is available on the current system. If multiple configs can be available
+  /// on one system the one with higher priority should be at the top of this list. Modern X86 CPUs will support SSE2
+  /// therefore it is the last on the list. CPUs that support AVX512 will most certainly also support FMA and AVX,
+  /// AVX512 takes precedence. This list should contain one entry for each of the supported CPU extensions by the
+  /// FIRESTARTER payloads.
   const std::list<std::shared_ptr<platform::X86PlatformConfig>> FallbackPlatformConfigs = {
       std::make_shared<platform::SapphireRapidsConfig>(), // AVX512 with AMX
       std::make_shared<platform::SkylakeSPConfig>(),      // AVX512
