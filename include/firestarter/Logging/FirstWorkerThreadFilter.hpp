@@ -21,31 +21,29 @@
 
 #pragma once
 
-#include <nitro/log/log.hpp>
 #include <nitro/log/severity.hpp>
-
 #include <thread>
 
-namespace firestarter {
+namespace firestarter::logging {
 
-namespace logging {
-
+/// Logging filter for nitro to discard values that do not match a specific thread id.
 template <typename Record> class FirstWorkerThreadFilter {
 public:
-  typedef Record record_type;
+  using record_type = Record;
 
-  static void setFirstThread(std::thread::id newFirstThread) {
-    firstThread = newFirstThread;
-  }
+  /// Set the thread id from which records should not be discarded.
+  /// \arg NewFirstThread The specified thread.
+  static void setFirstThread(std::thread::id NewFirstThread) { FirstThread = NewFirstThread; }
 
-  bool filter(Record &r) const {
-    return r.std_thread_id() == firstThread ||
-           r.severity() >= nitro::log::severity_level::error;
+  /// Filter records. We keep record if they are from the specified thread or if the severity is at least error.
+  /// \arg R The record to filter.
+  /// \returns true if the record should be kept.
+  auto filter(Record& R) const -> bool {
+    return R.std_thread_id() == FirstThread || R.severity() >= nitro::log::severity_level::error;
   }
 
 private:
-  inline static std::thread::id firstThread{};
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  inline static std::thread::id FirstThread{};
 };
-} // namespace logging
-
-} // namespace firestarter
+} // namespace firestarter::logging

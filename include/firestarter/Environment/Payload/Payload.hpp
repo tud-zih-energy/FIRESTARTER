@@ -21,93 +21,86 @@
 
 #pragma once
 
-#include <initializer_list>
+#include "firestarter/Constants.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/Payload/CompiledPayload.hpp"
+#include "firestarter/Environment/Payload/PayloadSettings.hpp"
+
+#include <chrono>
 #include <list>
 #include <string>
-#include <vector>
+#include <utility>
 
 namespace firestarter::environment::payload {
 
 class Payload {
 private:
-  std::string _name;
-  unsigned getSequenceStartCount(const std::vector<std::string> &sequence,
-                                 const std::string start);
+  /// The name of this payload. It is usally named by the CPU extension this payload uses e.g., SSE2 or FMA.
+  std::string Name;
+
+  /// The size of the SIMD registers in units of doubles (8B)
+  unsigned RegisterSize = 0;
+
+  /// The number of SIMD registers used by the payload
+  unsigned RegisterCount = 0;
 
 protected:
-  unsigned _flops;
-  unsigned _bytes;
-  // number of instructions in load loop
-  unsigned _instructions;
-  // size of used simd registers in bytes
-  unsigned _registerSize;
-  // number of used simd registers
-  unsigned _registerCount;
+  /// Function to initialize the memory used by the high load function.
+  /// \arg MemoryAddr The pointer to the memory.
+  /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.
+  virtual void init(double* MemoryAddr, uint64_t BufferSize) const = 0;
 
-  std::vector<std::string> generateSequence(
-      const std::vector<std::pair<std::string, unsigned>> &proportion);
-  unsigned getL2SequenceCount(const std::vector<std::string> &sequence) {
-    return getSequenceStartCount(sequence, "L2");
-  };
-  unsigned getL3SequenceCount(const std::vector<std::string> &sequence) {
-    return getSequenceStartCount(sequence, "L3");
-  };
-  unsigned getRAMSequenceCount(const std::vector<std::string> &sequence) {
-    return getSequenceStartCount(sequence, "RAM");
-  };
-
-  unsigned
-  getNumberOfSequenceRepetitions(const std::vector<std::string> &sequence,
-                                 const unsigned numberOfLines) {
-    if (sequence.size() == 0) {
-      return 0;
-    }
-    return numberOfLines / sequence.size();
-  };
-
-  unsigned getL2LoopCount(const std::vector<std::string> &sequence,
-                          const unsigned numberOfLines, const unsigned size,
-                          const unsigned threads);
-  unsigned getL3LoopCount(const std::vector<std::string> &sequence,
-                          const unsigned numberOfLines, const unsigned size,
-                          const unsigned threads);
-  unsigned getRAMLoopCount(const std::vector<std::string> &sequence,
-                           const unsigned numberOfLines, const unsigned size,
-                           const unsigned threads);
+  /// Function to produce a low load on the cpu.
+  /// \arg LoadVar The variable that controls the load. If this variable changes from LoadThreadWorkType::LowLoad to
+  /// something else this function will return.
+  /// \arg Period The period of the low/high load switching. This function may sleep a fraction of this period.
+  virtual void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const = 0;
 
 public:
-  Payload(std::string name, unsigned registerSize, unsigned registerCount)
-      : _name(name), _registerSize(registerSize),
-        _registerCount(registerCount) {}
-  virtual ~Payload() {}
+  Payload() = delete;
 
-  const std::string &name() const { return _name; }
-  unsigned flops() const { return _flops; }
-  unsigned bytes() const { return _bytes; }
-  unsigned instructions() const { return _instructions; }
-  unsigned registerSize() const { return _registerSize; }
-  unsigned registerCount() const { return _registerCount; }
+  /// Abstract construction for the payload.
+  /// \arg Name The name of this payload. It is usally named by the CPU extension this payload uses e.g., SSE2 or FMA.
+  /// \arg RegisterSize The size of the SIMD registers in units of doubles (8B).
+  /// \arg RegisterCount The number of SIMD registers used by the payload.
+  Payload(std::string Name, unsigned RegisterSize, unsigned RegisterCount) noexcept
+      : Name(std::move(Name))
+      , RegisterSize(RegisterSize)
+      , RegisterCount(RegisterCount) {}
+  virtual ~Payload() = default;
 
-  virtual bool isAvailable() const = 0;
+  // Allow init and lowLoadFunction functions to be accessed by the CompiledPayload class.
+  friend void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize);
+  friend void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period);
 
-  virtual void lowLoadFunction(volatile unsigned long long *addrHigh,
-                               unsigned long long period) = 0;
+  /// Get the name of this payload. It is usally named by the CPU extension this payload uses e.g., SSE2 or FMA.
+  [[nodiscard]] auto name() const -> const std::string& { return Name; }
 
-  virtual int compilePayload(
-      std::vector<std::pair<std::string, unsigned>> const &proportion,
-      unsigned instructionCacheSize,
-      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-      unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-      bool errorDetection) = 0;
-  virtual std::list<std::string> getAvailableInstructions() const = 0;
-  virtual void init(unsigned long long *memoryAddr,
-                    unsigned long long bufferSize) = 0;
-  virtual unsigned long long
-  highLoadFunction(unsigned long long *addrMem,
-                   volatile unsigned long long *addrHigh,
-                   unsigned long long iterations) = 0;
+  /// The size of the SIMD registers in units of doubles (8B)
+  [[nodiscard]] auto registerSize() const -> unsigned { return RegisterSize; }
 
-  virtual Payload *clone() const = 0;
+  /// The number of SIMD registers used by the payload
+  [[nodiscard]] auto registerCount() const -> unsigned { return RegisterCount; }
+
+  /// Check if this payload is available on the current system. This usally translates if the cpu extensions are
+  /// available.
+  /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
+  /// \returns true if the payload is supported on the given CPUTopology.
+  [[nodiscard]] virtual auto isAvailable(const CPUTopology& Topology) const -> bool = 0;
+
+  /// Compile this payload with supplied settings and optional features.
+  /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.
+  /// \arg DumpRegisters Should the code to support dumping registers be baked into the high load routine of the
+  /// compiled payload.
+  /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
+  /// of the compiled payload.
+  /// \returns The compiled payload that provides access to the init and load functions.
+  [[nodiscard]] virtual auto compilePayload(const PayloadSettings& Settings, bool DumpRegisters,
+                                            bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;
+
+  /// Get the available instruction items that are supported by this payload.
+  /// \returns The available instruction items that are supported by this payload.
+  [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
 };
 
 } // namespace firestarter::environment::payload

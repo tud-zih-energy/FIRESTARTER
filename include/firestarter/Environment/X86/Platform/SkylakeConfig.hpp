@@ -19,32 +19,22 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#ifndef INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SKYLAKECONFIG_H
-#define INCLUDE_FIRESTARTER_ENVIRONMENT_X86_PLATFORM_SKYLAKECONFIG_H
+#pragma once
 
-#include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "firestarter/Environment/X86/Payload/FMAPayload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class SkylakeConfig final : public X86PlatformConfig {
-
 public:
-  SkylakeConfig(asmjit::CpuFeatures const &supportedFeatures, unsigned family,
-                unsigned model, unsigned threads)
-      : X86PlatformConfig("SKL_COREI", 6, {78, 94}, {1, 2}, 0,
-                          {32768, 262144, 1572864}, 104857600, 1536, family,
-                          model, threads,
-                          new payload::FMAPayload(supportedFeatures)) {}
-
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
-                                                          {"L3_LS_256", 5},
-                                                          {"L2_LS_256", 18},
-                                                          {"L1_2LS_256", 78},
-                                                          {"REG", 40}});
-  }
+  SkylakeConfig() noexcept
+      : X86PlatformConfig(/*Name=*/"SKL_COREI", /*Family=*/6, /*Models=*/{78, 94},
+                          /*Settings=*/
+                          environment::payload::PayloadSettings(
+                              /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
+                              /*RamBufferSize=*/104857600, /*Lines=*/1536,
+                              /*InstructionGroups=*/
+                              {{"RAM_L", 3}, {"L3_LS_256", 5}, {"L2_LS_256", 18}, {"L1_2LS_256", 78}, {"REG", 40}}),
+                          /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform
-
-#endif

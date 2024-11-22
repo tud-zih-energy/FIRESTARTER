@@ -21,26 +21,31 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace firestarter {
 
+/// This struct is used for the error detection feature. The error detection works between two threads. The current one
+/// and one on the left. Analogous for the thread on the right. We hash the contents of the vector registers and compare
+/// them with the current iteration counter aginst the other threads.
 struct ErrorDetectionStruct {
-  // we have two cache lines (64B) containing each two 16B local variable and
-  // one ptr (8B)
+  struct OneSide {
+    /// The pointer to 16B of communication between the two threads which is used with lock cmpxchg16b
+    uint64_t* Communication;
+    /// The local variables that are used for the error detection algorithm
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    uint64_t Locals[4];
+    /// If this variable is not 0, an error occured in the comparison with the other thread.
+    uint64_t Error;
+    /// Padding to fill up a cache line.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+    uint64_t Padding[2];
+  };
 
-  // the pointer to 16B of communication
-  volatile unsigned long long *communicationLeft;
-  volatile unsigned long long localsLeft[4];
-  // if this variable is not 0, an error occured in the comparison with the left
-  // thread.
-  volatile unsigned long long errorLeft;
-  volatile unsigned long long paddingLeft[2];
-
-  volatile unsigned long long *communicationRight;
-  volatile unsigned long long localsRight[4];
-  // if this variable is not 0, an error occured in the comparison with the
-  // right thread.
-  volatile unsigned long long errorRight;
-  volatile unsigned long long paddingRight[2];
+  /// The data that is used for the error detection algorithm between the current and the thread left to it.
+  OneSide Left;
+  /// The data that is used for the error detection algorithm between the current and the thread right to it.
+  OneSide Right;
 };
 
 } // namespace firestarter

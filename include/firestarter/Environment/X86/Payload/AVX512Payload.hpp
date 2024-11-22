@@ -21,53 +21,64 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
+#include "firestarter/Environment/X86/Payload/X86Payload.hpp"
 
 namespace firestarter::environment::x86::payload {
 
 // Define struct that is used as config and loaded through ldtilecfg()
-typedef struct __tile_config
-{
+using __tilecfg = struct __tile_config {
   uint8_t palette_id;
   uint8_t start_row;
   uint8_t reserved_0[14];
   uint16_t colsb[16];
   uint8_t rows[16];
-} __tilecfg;
+};
 
+/// This payload is designed for the AVX512 foundation CPU extension.
 class AVX512Payload final : public X86Payload {
 public:
-  AVX512Payload(asmjit::CpuFeatures const &supportedFeatures)
-      : X86Payload(supportedFeatures, {asmjit::CpuFeatures::X86::kAVX512_F},
-                   "AVX512", 8, 32) {}
+  AVX512Payload() noexcept
+      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX512_F}, /*Name=*/"AVX512", /*RegisterSize=*/8,
+                   /*RegisterCount=*/32,
+                   /*InstructionFlops=*/
+                   {{"AMX", 512},
+                    {"REG", 32},
+                    {"L1_L", 32},
+                    {"L1_BROADCAST", 16},
+                    {"L1_S", 16},
+                    {"L1_LS", 16},
+                    {"L2_L", 32},
+                    {"L2_S", 16},
+                    {"L2_LS", 16},
+                    {"L3_L", 32},
+                    {"L3_S", 16},
+                    {"L3_LS", 16},
+                    {"L3_P", 16},
+                    {"RAM_L", 32},
+                    {"RAM_S", 16},
+                    {"RAM_LS", 16},
+                    {"RAM_P", 16}},
+                   /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
 
-  int compilePayload(
-      std::vector<std::pair<std::string, unsigned>> const &proportion,
-      unsigned instructionCacheSize,
-      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
-      unsigned thread, unsigned numberOfLines, bool dumpRegisters,
-      bool errorDetection) override;
-  std::list<std::string> getAvailableInstructions() const override;
-  void init(unsigned long long *memoryAddr,
-            unsigned long long bufferSize) override;
+  /// Compile this payload with supplied settings and optional features.
+  /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.
+  /// \arg DumpRegisters Should the code to support dumping registers be baked into the high load routine of the
+  /// compiled payload.
+  /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
+  /// of the compiled payload.
+  /// \returns The compiled payload that provides access to the init and load functions.
+  [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
+                                    bool ErrorDetection) const
+      -> environment::payload::CompiledPayload::UniquePtr override;
 
-  firestarter::environment::payload::Payload *clone() const override {
-    return new AVX512Payload(this->supportedFeatures());
-  };
-
-  static void create_AMX_config(__tilecfg *tileinfo);
+private:
+  static void create_AMX_config(__tilecfg* tileinfo);
   static void request_permission();
   static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
 
-private:
-  const std::map<std::string, unsigned> instructionFlops = {
-      {"REG", 32},   {"L1_L", 32},  {"L1_BROADCAST", 16}, {"L1_S", 16},
-      {"L1_LS", 16}, {"L2_L", 32},  {"L2_S", 16},         {"L2_LS", 16},
-      {"L3_L", 32},  {"L3_S", 16},  {"L3_LS", 16},        {"L3_P", 16},
-      {"RAM_L", 32}, {"RAM_S", 16}, {"RAM_LS", 16},       {"RAM_P", 16},
-      {"AMX", 512}};
-
-  const std::map<std::string, unsigned> instructionMemory = {
-      {"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}};
+  /// Function to initialize the memory used by the high load function.
+  /// \arg MemoryAddr The pointer to the memory.
+  /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.
+  void init(double* MemoryAddr, uint64_t BufferSize) const override;
 };
 } // namespace firestarter::environment::x86::payload

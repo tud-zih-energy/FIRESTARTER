@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,32 +21,29 @@
 
 #pragma once
 
-#include <firestarter/Environment/X86/Payload/AVX512Payload.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
+#include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
 class SapphireRapidsConfig final : public X86PlatformConfig {
-
 public:
-  SapphireRapidsConfig(asmjit::CpuFeatures const &supportedFeatures,
-                  unsigned family, unsigned model, unsigned threads)
-      : X86PlatformConfig("SPR_XEONEP", 6, {143}, {1, 2}, 0,
-                          {32768, 1048576, 1441792}, 1048576000, 1536, family,
-                          model, threads,
-                          new payload::AVX512Payload(supportedFeatures)) {}
-
-  std::vector<std::pair<std::string, unsigned>>
-  getDefaultPayloadSettings() const override {
-    return std::vector<std::pair<std::string, unsigned>>({{"RAM_S", 3},
-                                                          {"RAM_P", 1},
-                                                          {"L3_S", 1},
-                                                          {"L3_P", 1},
-                                                          {"L2_S", 4},
-                                                          {"L2_L", 70},
-                                                          {"L1_S", 0},
-                                                          {"L1_L", 40},
-                                                          {"REG", 140},
-							  {"AMX", 1}});
-  }
+  SapphireRapidsConfig() noexcept
+      : X86PlatformConfig(/*Name=*/"SPR_XEONEP", /*Family=*/6, /*Models=*/{143},
+                          /*Settings=*/
+                          environment::payload::PayloadSettings(/*Threads=*/{1, 2},
+                                                                /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
+                                                                /*RamBufferSize=*/1048576000, /*Lines=*/1536,
+                                                                /*InstructionGroups=*/
+                                                                {{"RAM_S", 3},
+                                                                 {"RAM_P", 1},
+                                                                 {"L3_S", 1},
+                                                                 {"L3_P", 1},
+                                                                 {"L2_S", 4},
+                                                                 {"L2_L", 70},
+                                                                 {"L1_S", 0},
+                                                                 {"L1_L", 40},
+                                                                 {"REG", 140},
+                                                                 {"AMX", 1}}),
+                          /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
 };
 } // namespace firestarter::environment::x86::platform

@@ -19,42 +19,52 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Optimizer/Algorithm.hpp>
-#include <firestarter/Optimizer/Population.hpp>
+#include "firestarter/Optimizer/Algorithm.hpp"
+#include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 
 #include <chrono>
 #include <memory>
 
-extern "C" {
-#include <pthread.h>
-}
-
 namespace firestarter::optimizer {
 
+/// Class to run the optimization in another thread.
 class OptimizerWorker {
 public:
-  OptimizerWorker(
-      std::unique_ptr<firestarter::optimizer::Algorithm> &&algorithm,
-      firestarter::optimizer::Population &population,
-      std::string const &optimizationAlgorithm, unsigned individuals,
-      std::chrono::seconds const &preheat);
+  /// Start the optimization in another thread.
+  /// \arg Algorithm The algorithm that is used to optimize FIRESTARTER.
+  /// \arg Population The population containing the problem that will be used to optimize FIRESTARTER.
+  /// \arg Individuals The number of individuals for the intial population.
+  /// \arg Preheat The time we preheat before starting the optimization.
+  OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
+                  std::unique_ptr<firestarter::optimizer::Population>&& Population, unsigned Individuals,
+                  std::chrono::seconds const& Preheat);
 
-  ~OptimizerWorker() {}
+  ~OptimizerWorker() = default;
 
-  void join();
+  /// Join the optimization thread.
+  void join() const;
 
-  void kill();
+  /// Kill the optimization thread.
+  void kill() const;
 
 private:
-  static void *optimizerThread(void *optimizerWorker);
+  /// The thread worker that does the optimization.
+  /// \arg OptimizerWorker The pointer to the OptimizerWorker (this) datastructure.
+  /// \returns a nullptr
+  static auto optimizerThread(void* OptimizerWorker) -> void*;
 
-  std::unique_ptr<firestarter::optimizer::Algorithm> _algorithm;
-  firestarter::optimizer::Population _population;
-  std::string _optimizationAlgorithm;
-  unsigned _individuals;
-  std::chrono::seconds _preheat;
+  /// The algorithm that is used to optimize FIRESTARTER.
+  std::unique_ptr<firestarter::optimizer::Algorithm> Algorithm;
+  /// The population containing the problem that will be used to optimize FIRESTARTER.
+  std::unique_ptr<firestarter::optimizer::Population> Population;
+  /// The number of individuals for the intial population.
+  unsigned Individuals;
+  /// The time we preheat before starting the optimization.
+  std::chrono::seconds Preheat;
 
-  pthread_t workerThread;
+  /// The pthread that is used for the optimization.
+  pthread_t WorkerThread{};
 };
 
 } // namespace firestarter::optimizer

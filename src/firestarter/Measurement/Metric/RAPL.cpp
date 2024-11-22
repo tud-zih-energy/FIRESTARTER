@@ -19,55 +19,34 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Measurement/Metric/RAPL.hpp"
+
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <vector>
 
 extern "C" {
-#include <firestarter/Measurement/Metric/RAPL.h>
-#include <firestarter/Measurement/MetricInterface.h>
-
 #include <dirent.h>
+}
 
-#define RAPL_PATH "/sys/class/powercap"
-
-static std::string errorString = "";
-
-struct reader_def {
-  char *path;
-  long long int last_reading;
-  long long int overflow;
-  long long int max;
-};
-
-struct reader_def_free {
-  void operator()(struct reader_def *def) {
-    if (def != nullptr) {
-      if (((void *)def->path) != nullptr) {
-        free((void *)def->path);
-      }
-      free((void *)def);
-    }
-  }
-};
-
-static std::vector<std::shared_ptr<struct reader_def>> readers = {};
-
-static int32_t fini(void) {
-  readers.clear();
+auto RaplMetricData::fini() -> int32_t {
+  instance().Readers.clear();
 
   return EXIT_SUCCESS;
 }
 
-static int32_t init(void) {
-  errorString = "";
+auto RaplMetricData::init() -> int32_t {
+  auto& Instance = instance();
 
-  DIR *raplDir = opendir(RAPL_PATH);
-  if (raplDir == NULL) {
-    errorString = "Could not open " RAPL_PATH;
+  Instance.ErrorString = "";
+
+  DIR* RaplDir = opendir(RaplPath);
+  if (RaplDir == nullptr) {
+    Instance.ErrorString = "Could not open " + std::string(RaplPath);
     return EXIT_FAILURE;
   }
 
@@ -76,111 +55,86 @@ static int32_t init(void) {
   // and finally package only.
 
   // contains an empty path if it is not found
-  std::string psysPath = "";
+  std::string PsysPath;
 
   // a vector of all paths to package and dram
-  std::vector<std::string> paths = {};
+  std::vector<std::string> Paths = {};
 
-  struct dirent *dir;
-  while ((dir = readdir(raplDir)) != NULL) {
-    std::stringstream path;
-    std::stringstream namePath;
-    path << RAPL_PATH << "/" << dir->d_name;
-    namePath << path.str() << "/name";
+  struct dirent* Dir = nullptr;
 
-    std::ifstream nameStream(namePath.str());
-    if (!nameStream.good()) {
+  // As long as the DIR object (named RaplDir here) is not shared between threads this call is thread-safe:
+  // https://www.gnu.org/software/libc/manual/html_node/Reading_002fClosing-Directory.html
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  while ((Dir = readdir(RaplDir)) != nullptr) {
+    std::stringstream Path;
+    std::stringstream NamePath;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    Path << RaplPath << "/" << Dir->d_name;
+    NamePath << Path.str() << "/name";
+
+    std::ifstream NameStream(NamePath.str());
+    if (!NameStream.good()) {
       // an error opening the file occured
       continue;
     }
 
-    std::string name;
-    std::getline(nameStream, name);
+    std::string Name;
+    std::getline(NameStream, Name);
 
-    if (name == "psys") {
+    if (Name == "psys") {
       // found psys
-      psysPath = path.str();
-    } else if (0 == name.rfind("package", 0) || name == "dram") {
+      PsysPath = Path.str();
+    } else if (0 == Name.rfind("package", 0) || Name == "dram") {
       // find all package and dram
-      paths.push_back(path.str());
+      Paths.push_back(Path.str());
     }
   }
-  closedir(raplDir);
+  closedir(RaplDir);
 
   // make psys the only value if available
-  if (!psysPath.empty()) {
-    paths.clear();
-    paths.push_back(psysPath);
+  if (!PsysPath.empty()) {
+    Paths.clear();
+    Paths.push_back(PsysPath);
   }
 
   // paths now contains all interesting nodes
 
-  if (paths.size() == 0) {
-    errorString = "No valid entries in " RAPL_PATH;
+  if (Paths.empty()) {
+    Instance.ErrorString = "No valid entries in " + std::string(RaplPath);
     return EXIT_FAILURE;
   }
 
-  for (auto const &path : paths) {
-    std::stringstream energyUjPath;
-    energyUjPath << path << "/energy_uj";
-    std::ifstream energyReadingStream(energyUjPath.str());
-    if (!energyReadingStream.good()) {
-      errorString = "Could not read energy_uj";
+  for (auto const& Path : Paths) {
+    std::stringstream EnergyUjPath;
+    EnergyUjPath << Path << "/energy_uj";
+    std::ifstream EnergyReadingStream(EnergyUjPath.str());
+    if (!EnergyReadingStream.good()) {
+      Instance.ErrorString = "Could not read energy_uj";
       break;
     }
 
-    std::stringstream maxEnergyUjRangePath;
-    maxEnergyUjRangePath << path << "/max_energy_range_uj";
-    std::ifstream maxEnergyReadingStream(maxEnergyUjRangePath.str());
-    if (!maxEnergyReadingStream.good()) {
-      errorString = "Could not read max_energy_range_uj";
+    std::stringstream MaxEnergyUjRangePath;
+    MaxEnergyUjRangePath << Path << "/max_energy_range_uj";
+    std::ifstream MaxEnergyReadingStream(MaxEnergyUjRangePath.str());
+    if (!MaxEnergyReadingStream.good()) {
+      Instance.ErrorString = "Could not read max_energy_range_uj";
       break;
     }
 
-    unsigned long long reading;
-    unsigned long long max;
-    std::string buffer;
-    int read;
+    std::string Buffer;
 
-    std::getline(energyReadingStream, buffer);
-    read = std::sscanf(buffer.c_str(), "%llu", &reading);
+    std::getline(EnergyReadingStream, Buffer);
+    const auto Reading = std::stoul(Buffer);
 
-    if (read == 0) {
-      std::stringstream ss;
-      ss << "Contents in file " << energyUjPath.str()
-         << " do not conform to mask (unsigned long long)";
-      errorString = ss.str();
-      break;
-    }
+    std::getline(MaxEnergyReadingStream, Buffer);
+    const auto Max = std::stoul(Buffer);
 
-    std::getline(maxEnergyReadingStream, buffer);
-    read = std::sscanf(buffer.c_str(), "%llu", &max);
+    auto Def = std::make_unique<ReaderDef>(/*Path=*/Path, /*LastReading=*/Reading, /*Overflow=*/0, /*Max=*/Max);
 
-    if (read == 0) {
-      std::stringstream ss;
-      ss << "Contents in file " << maxEnergyUjRangePath.str()
-         << " do not conform to mask (unsigned long long)";
-      errorString = ss.str();
-      break;
-    }
-
-    std::shared_ptr<struct reader_def> def(
-        reinterpret_cast<struct reader_def *>(
-            malloc(sizeof(struct reader_def))),
-        reader_def_free());
-    auto pathName = path.c_str();
-    size_t size = (strlen(pathName) + 1) * sizeof(char);
-    void *name = malloc(size);
-    memcpy(name, pathName, size);
-    def->path = (char *)name;
-    def->max = max;
-    def->last_reading = reading;
-    def->overflow = 0;
-
-    readers.push_back(def);
+    Instance.Readers.emplace_back(std::move(Def));
   }
 
-  if (errorString.size() != 0) {
+  if (!Instance.ErrorString.empty()) {
     fini();
     return EXIT_FAILURE;
   }
@@ -188,60 +142,39 @@ static int32_t init(void) {
   return EXIT_SUCCESS;
 }
 
-static int32_t get_reading(double *value) {
-  double finalReading = 0.0;
+auto RaplMetricData::getReading(double* Value) -> int32_t {
+  double FinalReading = 0.0;
 
-  for (auto &def : readers) {
-    long long int reading;
-    std::string buffer;
+  for (auto& Def : instance().Readers) {
+    std::string Buffer;
 
-    std::stringstream energyUjPath;
-    energyUjPath << def->path << "/energy_uj";
-    std::ifstream energyReadingStream(energyUjPath.str());
-    std::getline(energyReadingStream, buffer);
-    std::sscanf(buffer.c_str(), "%llu", &reading);
+    std::stringstream EnergyUjPath;
+    EnergyUjPath << Def->Path << "/energy_uj";
+    std::ifstream EnergyReadingStream(EnergyUjPath.str());
+    std::getline(EnergyReadingStream, Buffer);
+    const auto Reading = std::stoll(Buffer);
 
-    if (reading < def->last_reading) {
-      def->overflow += 1;
+    if (Reading < Def->LastReading) {
+      Def->Overflow += 1;
     }
 
-    def->last_reading = reading;
+    Def->LastReading = Reading;
 
-    finalReading +=
-        1.0E-6 * (double)(def->overflow * def->max + def->last_reading);
+    FinalReading += 1.0E-6 * static_cast<double>((Def->Overflow * Def->Max) + Def->LastReading);
   }
 
-  if (value != nullptr) {
-    *value = finalReading;
+  if (Value != nullptr) {
+    *Value = FinalReading;
   }
 
   return EXIT_SUCCESS;
 }
 
-static const char *get_error(void) {
-  const char *errorCString = errorString.c_str();
-  return errorCString;
+auto RaplMetricData::getError() -> const char* {
+  const char* ErrorCString = instance().ErrorString.c_str();
+  return ErrorCString;
 }
 
 // this function will be called periodically to make sure we do not miss an
 // overflow of the counter
-static void callback(void) { get_reading(nullptr); }
-}
-
-metric_interface_t rapl_metric = {
-    .name = "sysfs-powercap-rapl",
-    .type = {.absolute = 0,
-             .accumalative = 1,
-             .divide_by_thread_count = 0,
-             .insert_callback = 0,
-             .ignore_start_stop_delta = 0,
-             .__reserved = 0},
-    .unit = "J",
-    .callback_time = 30000000,
-    .callback = callback,
-    .init = init,
-    .fini = fini,
-    .get_reading = get_reading,
-    .get_error = get_error,
-    .register_insert_callback = nullptr,
-};
+void RaplMetricData::callback() { getReading(nullptr); }
