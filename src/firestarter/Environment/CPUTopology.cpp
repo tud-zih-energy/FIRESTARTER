@@ -371,7 +371,9 @@ auto CPUTopology::highestPhysicalIndex() const -> unsigned {
   // Get the number of different kinds of CPUs
   const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
 
-  assert(NrCpukinds >= 0 && "flags to hwloc_cpukinds_get_nr is invalid");
+  if (NrCpukinds < 0) {
+    log::fatal() << "flags to hwloc_cpukinds_get_nr is invalid. This is not expected.";
+  }
 
   // No information about the cpukinds found. Go through all PUs and save the biggest os index.
   if (NrCpukinds == 0) {
