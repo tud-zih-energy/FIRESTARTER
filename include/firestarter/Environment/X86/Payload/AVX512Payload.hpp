@@ -35,7 +35,7 @@ using __tilecfg = struct __tile_config {
 };
 
 /// This payload is designed for the AVX512 foundation CPU extension.
-class AVX512Payload final : public X86Payload {
+class AVX512Payload : public X86Payload {
 public:
   AVX512Payload() noexcept
       : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX512_F}, /*Name=*/"AVX512", /*RegisterSize=*/8,
@@ -69,7 +69,7 @@ public:
   /// \returns The compiled payload that provides access to the init and load functions.
   [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
                                     bool ErrorDetection) const
-      -> environment::payload::CompiledPayload::UniquePtr override;
+      -> environment::payload::CompiledPayload::UniquePtr final;
 
 private:
   static void create_AMX_config(__tilecfg* tileinfo);

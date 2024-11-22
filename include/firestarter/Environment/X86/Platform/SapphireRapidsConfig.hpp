@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
+#include "firestarter/Environment/X86/Payload/AVX512WithAMXPayload.hpp"
 #include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86::platform {
@@ -44,6 +44,6 @@ public:
                                                                  {"L1_L", 40},
                                                                  {"REG", 140},
                                                                  {"AMX", 1}}),
-                          /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
+                          /*Payload=*/std::make_shared<const payload::AVX512WithAMXPayload>()) {}
 };
 } // namespace firestarter::environment::x86::platform
