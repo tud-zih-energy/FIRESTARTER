@@ -365,8 +365,8 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   return {};
 }
 
-auto CPUTopology::highestPhysicalIndex() const -> unsigned {
-  unsigned Max = 0;
+auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
+  HardwareThreadsInfo Infos = {.MaxNumThreads = 0, .MaxPhysicalIndex = 0};
 
   // Get the number of different kinds of CPUs
   const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
@@ -378,22 +378,22 @@ auto CPUTopology::highestPhysicalIndex() const -> unsigned {
   // No information about the cpukinds found. Go through all PUs and save the biggest os index.
   if (NrCpukinds == 0) {
     auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
-    unsigned Max = 0;
+    Infos.MaxNumThreads = Width;
 
     for (int I = 0; I < Width; I++) {
       auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      Max = (std::max)(Max, Obj->os_index);
+      Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, Obj->os_index);
     }
 
-    return Max;
+    return Infos;
   }
 
   // Allocate bitmap to get CPUs later
   hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
   if (Bitmap == nullptr) {
     // Error should abort, otherwise return zero.
-    log::error() << "Could not allocate memory for CPU bitmap";
-    return 0;
+    log::fatal() << "Could not allocate memory for CPU bitmap";
+    return Infos;
   }
 
   // Go through all cpukinds and save the biggest os index.
@@ -402,15 +402,24 @@ auto CPUTopology::highestPhysicalIndex() const -> unsigned {
     if (Result) {
       log::warn() << "Could not get information for CPU kind " << KindIndex;
     }
-    auto MaxIndex = hwloc_bitmap_last(Bitmap);
-    assert(MaxIndex >= 0 && "bitmap is full or bitmap is not infinitely set");
 
-    Max = (std::max)(Max, static_cast<unsigned>(MaxIndex));
+    auto Weight = hwloc_bitmap_weight(Bitmap);
+    if (Weight < 0) {
+      log::fatal() << "bitmap is full or bitmap is not infinitely set";
+    }
+
+    auto MaxIndex = hwloc_bitmap_last(Bitmap);
+    if (MaxIndex < 0) {
+      log::fatal() << "bitmap is full or bitmap is not infinitely set";
+    }
+
+    Infos.MaxNumThreads += Weight;
+    Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, static_cast<unsigned>(MaxIndex));
   }
 
   hwloc_bitmap_free(Bitmap);
 
-  return Max;
+  return Infos;
 }
 
 }; // namespace firestarter::environment

@@ -34,6 +34,15 @@ extern "C" {
 
 namespace firestarter::environment {
 
+/// This struct describes properties of the threads which are used in the Environment class to assign a specific number
+/// of threads and/or use it for cpu binding.
+struct HardwareThreadsInfo {
+  /// The number of hardware threads on this system.
+  unsigned MaxNumThreads;
+  /// The highest physical index on a hardware thread in the system.
+  unsigned MaxPhysicalIndex;
+};
+
 /// This class models the properties of a processor.
 class CPUTopology {
 public:
@@ -42,33 +51,17 @@ public:
 
   friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream&;
 
-  /// The total number of hardware threads.
-  [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
-  /// The hightest physical index in the hwloc cpuset.
-  [[nodiscard]] auto highestPhysicalIndex() const -> unsigned;
   /// Assuming we have a consistent number of threads per core. The number of thread per core.
   [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
-  /// The total number of cores.
-  [[nodiscard]] auto numCoresTotal() const -> unsigned { return NumCoresTotal; }
-  /// The total number of packages.
-  [[nodiscard]] auto numPackages() const -> unsigned { return NumPackages; }
-  /// The CPU architecture e.g., x86_64
-  [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
-  /// The CPU vendor i.e., Intel or AMD.
-  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
-  /// The processor name, this includes the vendor specific name
-  [[nodiscard]] virtual auto processorName() const -> std::string const& { return ProcessorName; }
-  /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
-  [[nodiscard]] virtual auto model() const -> std::string const& = 0;
+
+  /// Get the properties about the hardware threads.
+  [[nodiscard]] auto hardwareThreadsInfo() const -> HardwareThreadsInfo;
 
   /// Getter for the L1i-cache size in bytes
   [[nodiscard]] auto instructionCacheSize() const -> const auto& { return InstructionCacheSize; }
 
   /// Getter for the clockrate in Hz
   [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
-
-  /// Getter for the list of CPU features
-  [[nodiscard]] virtual auto features() const -> std::list<std::string> const& = 0;
 
   /// Get the current hardware timestamp
   [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
@@ -84,6 +77,23 @@ public:
   [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
 
 protected:
+  /// The total number of hardware threads.
+  [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
+  /// The total number of cores.
+  [[nodiscard]] auto numCoresTotal() const -> unsigned { return NumCoresTotal; }
+  /// The total number of packages.
+  [[nodiscard]] auto numPackages() const -> unsigned { return NumPackages; }
+  /// The CPU architecture e.g., x86_64
+  [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
+  /// The CPU vendor i.e., Intel or AMD.
+  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
+  /// The processor name, this includes the vendor specific name
+  [[nodiscard]] virtual auto processorName() const -> std::string const& { return ProcessorName; }
+  /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
+  [[nodiscard]] virtual auto model() const -> std::string const& = 0;
+  /// Getter for the list of CPU features
+  [[nodiscard]] virtual auto features() const -> std::list<std::string> const& = 0;
+
   /// Read the scaling_govenor file of cpu0 on linux and return the contents as a string.
   [[nodiscard]] static auto scalingGovernor() -> std::string;
 
