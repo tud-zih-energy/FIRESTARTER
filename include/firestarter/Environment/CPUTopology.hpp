@@ -37,10 +37,12 @@ namespace firestarter::environment {
 /// This struct describes properties of the threads which are used in the Environment class to assign a specific number
 /// of threads and/or use it for cpu binding.
 struct HardwareThreadsInfo {
+  HardwareThreadsInfo() = default;
+
   /// The number of hardware threads on this system.
-  unsigned MaxNumThreads;
+  unsigned MaxNumThreads = 0;
   /// The highest physical index on a hardware thread in the system.
-  unsigned MaxPhysicalIndex;
+  unsigned MaxPhysicalIndex = 0;
 };
 
 /// This class models the properties of a processor.

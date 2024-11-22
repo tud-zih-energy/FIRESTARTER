@@ -366,7 +366,7 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
 }
 
 auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
-  HardwareThreadsInfo Infos = {.MaxNumThreads = 0, .MaxPhysicalIndex = 0};
+  HardwareThreadsInfo Infos;
 
   // Get the number of different kinds of CPUs
   const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
