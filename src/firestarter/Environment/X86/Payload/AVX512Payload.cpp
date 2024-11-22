@@ -181,7 +181,7 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
   }
 
   // Init AMX registers and config
-  __tilecfg tile_data = {0};
+  TileConfig tile_data = {0};
   request_permission();
   create_AMX_config(&tile_data); // Create tilecfg and fill it
 
@@ -448,7 +448,7 @@ void AVX512Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void AVX512Payload::create_AMX_config(__tilecfg* tileinfo) {
+void AVX512Payload::create_AMX_config(TileConfig* tileinfo) {
   // Create tile_cfg, fill it and return
   int i;
   tileinfo->palette_id = 1;

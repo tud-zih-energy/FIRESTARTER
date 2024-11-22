@@ -26,7 +26,7 @@
 namespace firestarter::environment::x86::payload {
 
 // Define struct that is used as config and loaded through ldtilecfg()
-using __tilecfg = struct __tile_config {
+struct TileConfig {
   uint8_t palette_id;
   uint8_t start_row;
   uint8_t reserved_0[14];
@@ -71,7 +71,7 @@ public:
       -> environment::payload::CompiledPayload::UniquePtr final;
 
 private:
-  static void create_AMX_config(__tilecfg* tileinfo);
+  static void create_AMX_config(TileConfig* tileinfo);
   static void request_permission();
   static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
 
