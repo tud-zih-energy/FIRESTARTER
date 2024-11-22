@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "asmjit/core/cpuinfo.h"
 #include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
+
+#include <asmjit/asmjit.h>
 
 namespace firestarter::environment::x86::payload {
 
