@@ -25,7 +25,8 @@
 namespace firestarter::environment::x86::payload {
 
 auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                   bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
+                                   bool ErrorDetection, bool PrintAssembler) const
+    -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Zmm = asmjit::x86::Zmm;
   // NOLINTBEGIN(readability-identifier-naming)
@@ -363,6 +364,10 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
   Cb.emitEpilog(Frame);
 
   Cb.finalize();
+
+  if (PrintAssembler) {
+    printAssembler(Cb);
+  }
 
   auto CompiledPayloadPtr = CompiledX86Payload::create<AVX512Payload>(Stats, Code);
 

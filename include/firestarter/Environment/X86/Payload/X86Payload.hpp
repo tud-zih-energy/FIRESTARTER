@@ -90,6 +90,16 @@ private:
   };
 
 protected:
+  /// Print the generated assembler Code of asmjit
+  /// \arg Builder The builder that contains the assembler code.
+  static void printAssembler(asmjit::BaseBuilder& Builder) {
+    asmjit::String Sb;
+    asmjit::FormatOptions FormatOptions{};
+
+    asmjit::Formatter::formatNodeList(Sb, FormatOptions, &Builder);
+    log::info() << Sb.data();
+  }
+
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \tparam Vec the type of the vector register used.
   /// \arg Cb The asmjit code builder that is used to emit the assembler code.

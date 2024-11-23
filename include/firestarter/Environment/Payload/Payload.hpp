@@ -94,9 +94,10 @@ public:
   /// compiled payload.
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
+  /// \arg PrintAssembler Should the generated assembler code be logged.
   /// \returns The compiled payload that provides access to the init and load functions.
-  [[nodiscard]] virtual auto compilePayload(const PayloadSettings& Settings, bool DumpRegisters,
-                                            bool ErrorDetection) const -> CompiledPayload::UniquePtr = 0;
+  [[nodiscard]] virtual auto compilePayload(const PayloadSettings& Settings, bool DumpRegisters, bool ErrorDetection,
+                                            bool PrintAssembler) const -> CompiledPayload::UniquePtr = 0;
 
   /// Get the available instruction items that are supported by this payload.
   /// \returns The available instruction items that are supported by this payload.
