@@ -1,8 +1,17 @@
-SET(FIRESTARTER_FILES
+# General linker flags
+if (FIRESTARTER_THREAD_AFFINITY)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
+endif()
+
+if((NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND FIRESTARTER_LINK_STATIC)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_LINK_STATIC")
+endif()
+
+
+# Create the core firestarter library that is used in all builds and tests
+add_library(firestartercore STATIC
 	firestarter/Config.cpp
-	firestarter/Main.cpp
 	firestarter/Firestarter.cpp
-	firestarter/LoadWorker.cpp
 	firestarter/SafeExit.cpp
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
@@ -27,10 +36,18 @@ SET(FIRESTARTER_FILES
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET(FIRESTARTER_FILES 
-		${FIRESTARTER_FILES}
+target_compile_features(firestartercore PRIVATE cxx_std_17)
 
+target_link_libraries(firestartercore
+	hwloc
+	AsmJit::AsmJit
+	Nitro::log
+	)
+
+
+# Create the linux firestarter library that is used for specific linux only features
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	add_library(firestarterlinux STATIC
 		# measurement stuff
 		firestarter/Measurement/MeasurementWorker.cpp
 		firestarter/Measurement/Summary.cpp
@@ -44,14 +61,22 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
 		)
+
+	target_compile_features(firestarterlinux PRIVATE cxx_std_17)
+
+	target_link_libraries(firestarterlinux
+		Nitro::log
+		)
 endif()
 
-SET(FIRESTARTER_LINK_LIBRARIES
+
+SET(FIRESTARTER_FILES
+	firestarter/Main.cpp
+
+	# IpcEstimateMetricData::insertValue is accesses which is part of the firestarterlinux library.
+	# This reference should be removed there and the file moved back to the firestartercore library.
+	firestarter/LoadWorker.cpp
 	)
-
-if (FIRESTARTER_THREAD_AFFINITY)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
-endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	find_package(CUDAToolkit REQUIRED)
@@ -65,18 +90,17 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 	target_compile_features(FIRESTARTER_CUDA PRIVATE cxx_std_17)
 
-	if(FIRESTARTER_BUILD_HWLOC)
-		add_dependencies(FIRESTARTER_CUDA
-			HwlocInstall
-			)
+	target_link_libraries(FIRESTARTER_CUDA
+		firestartercore
+	)
+
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		target_link_libraries(FIRESTARTER_CUDA
+			firestarterlinux
+		)
 	endif()
 
 	target_link_libraries(FIRESTARTER_CUDA
-		hwloc
-		AsmJit::AsmJit
-		Nitro::log
-		nlohmann_json::nlohmann_json
-		Threads::Threads
 		CUDA::cuda_driver
 		CUDA::cudart
 		CUDA::curand
@@ -114,19 +138,16 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 	target_compile_features(FIRESTARTER_ONEAPI PRIVATE cxx_std_17)
 
-	if(FIRESTARTER_BUILD_HWLOC)
-		add_dependencies(FIRESTARTER_ONEAPI
-			HwlocInstall
-			)
+	target_link_libraries(FIRESTARTER_ONEAPI
+		firestartercore
+	)
+
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		target_link_libraries(FIRESTARTER_ONEAPI
+			firestarterlinux
+		)
 	endif()
 
-	target_link_libraries(FIRESTARTER_ONEAPI
-		hwloc
-		AsmJit::AsmJit
-		Nitro::log
-		nlohmann_json::nlohmann_json
-		Threads::Threads
-		)
 	target_link_libraries(FIRESTARTER_ONEAPI
 		mkl_sycl
 		mkl_intel_ilp64
@@ -160,18 +181,17 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 	target_compile_features(FIRESTARTER_HIP PRIVATE cxx_std_17)
 
-	if(FIRESTARTER_BUILD_HWLOC)
-		add_dependencies(FIRESTARTER_HIP
-			HwlocInstall
-			)
+	target_link_libraries(FIRESTARTER_HIP
+		firestartercore
+	)
+
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		target_link_libraries(FIRESTARTER_HIP
+			firestarterlinux
+		)
 	endif()
 
 	target_link_libraries(FIRESTARTER_HIP
-		hwloc
-		AsmJit::AsmJit
-		Nitro::log
-		nlohmann_json::nlohmann_json
-		Threads::Threads
 		hip::host
 		hip::hiprand
 		roc::hipblas
@@ -190,49 +210,51 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
 
+	target_link_libraries(FIRESTARTER
+		firestartercore
+	)
+
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		target_link_libraries(FIRESTARTER
+			firestarterlinux
+		)
+	endif()
+
+	# static linking is not supported on Darwin, see Apple Technical QA1118
+	if((NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND FIRESTARTER_LINK_STATIC)
+		target_link_libraries(FIRESTARTER
+			-static
+			)
+
+		# we are using pthreads
+		# static linking with pthreads and std::condition_variabale is evil and will cause segfaults
+		# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909#c1
+		if(CMAKE_THREAD_LIBS_INIT MATCHES "^.*pthread.*$")
+			target_link_libraries(FIRESTARTER
+				"-Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
+				)
+		endif()
+	endif()
+
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FIRESTARTER_LINK_STATIC)
+		target_link_libraries(FIRESTARTER
+			-ldl
+			)
+	endif()
+
+	if (NOT FIRESTARTER_LINK_STATIC)
+		target_link_libraries(FIRESTARTER
+			Threads::Threads
+			)
+	endif()
+
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
 		find_library( IOKIT_LIBRARY IOKit )
 		target_link_libraries(FIRESTARTER
-			Threads::Threads
 			${COREFOUNDATION_LIBRARY}
 			${IOKIT_LIBRARY}
 			)
-	else()
-		if (FIRESTARTER_LINK_STATIC)
-			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
-			# we are using pthreads
-			# static linking with pthreads and std::condition_variabale is evil and will cause segfaults
-			# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909#c1
-			if(CMAKE_THREAD_LIBS_INIT MATCHES "^.*pthread.*$")
-				target_link_libraries(FIRESTARTER
-					"-Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
-					)
-			endif()
-		else()
-			if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-				target_link_libraries(FIRESTARTER
-					-ldl
-					)
-			endif()
-
-			target_link_libraries(FIRESTARTER
-				Threads::Threads
-				)
-		endif()
 	endif()
-
-	if(FIRESTARTER_BUILD_HWLOC)
-		add_dependencies(FIRESTARTER
-			HwlocInstall
-			)
-	endif()
-
-	target_link_libraries(FIRESTARTER
-		hwloc
-		AsmJit::AsmJit
-		Nitro::log
-		nlohmann_json::nlohmann_json
-		)
 endif()
