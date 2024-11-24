@@ -12,3 +12,4 @@ function(add_ref_test)
 endfunction()
 
 add_subdirectory(DumpPayloads)
+add_subdirectory(X86Functions)
