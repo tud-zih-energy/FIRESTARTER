@@ -558,6 +558,7 @@ protected:
   /// LoadVar changed.
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
 
+public:
   /// Get the available instruction items that are supported by this payload.
   /// \returns The available instruction items that are supported by this payload.
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> final;

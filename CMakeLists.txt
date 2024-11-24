@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 project(FIRESTARTER)
+enable_testing()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -111,3 +112,5 @@ find_package(Threads REQUIRED)
 include(cmake/InstallHwloc.cmake)
 
 add_subdirectory(src)
+
+add_subdirectory(test)
