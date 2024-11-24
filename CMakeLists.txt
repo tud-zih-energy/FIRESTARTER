@@ -111,6 +111,11 @@ find_package(Threads REQUIRED)
 
 include(cmake/InstallHwloc.cmake)
 
+# General linker flags
+if (FIRESTARTER_THREAD_AFFINITY)
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_THREAD_AFFINITY")
+endif()
+
 add_subdirectory(src)
 
 add_subdirectory(test)
