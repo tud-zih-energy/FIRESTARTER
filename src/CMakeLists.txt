@@ -62,6 +62,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
 	target_link_libraries(firestarterlinux
 		Nitro::log
+		nlohmann_json::nlohmann_json
 		)
 endif()
 
