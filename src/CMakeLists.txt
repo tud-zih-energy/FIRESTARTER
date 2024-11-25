@@ -38,6 +38,7 @@ target_link_libraries(firestartercore
 	hwloc
 	AsmJit::AsmJit
 	Nitro::log
+	nlohmann_json::nlohmann_json
 	)
 
 
