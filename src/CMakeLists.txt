@@ -1,9 +1,3 @@
-# General linker flags
-if((NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND FIRESTARTER_LINK_STATIC)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_LINK_STATIC")
-endif()
-
-
 # Create the core firestarter library that is used in all builds and tests
 add_library(firestartercore STATIC
 	firestarter/Config.cpp
@@ -72,11 +66,6 @@ SET(FIRESTARTER_FILES
 	)
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
-	find_package(CUDAToolkit REQUIRED)
-	include_directories(${CUDAToolkit_INCLUDE_DIRS})
-
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_CUDA")
-
 	add_executable(FIRESTARTER_CUDA
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
@@ -111,19 +100,6 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	endif()
 
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
-
-	find_program(ICX_PRESENT icx)
-
-	if(ICX_PRESENT)
-		message(STATUS "Executable found: ${ICX_PRESENT}")
-	else()
-		message(FATAL_ERROR "OneAPI Intel Compiler icx not found")
-	endif()
-	SET(CMAKE_CXX_COMPILER "icx")
-	SET(CMAKE_C_COMPILER "icx")
-
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -DFIRESTARTER_BUILD_ONEAPI")
-
 	add_executable(FIRESTARTER_ONEAPI
 		${FIRESTARTER_FILES}
 		firestarter/OneAPI/OneAPI.cpp
@@ -149,22 +125,6 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 	)
 
 elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
-	if (NOT DEFINED ROCM_PATH )
-		set ( ROCM_PATH "/opt/rocm"  CACHE STRING "Default ROCM installation directory." )
-	endif ()
-	# Search for rocm in common locations
-	list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH}/lib ${ROCM_PATH})
-	find_package(HIP REQUIRED)
-	find_package(rocblas REQUIRED)
-	find_package(rocrand REQUIRED)
-	find_package(hiprand REQUIRED)
-	find_package(hipblas REQUIRED)
-
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_BUILD_HIP")
-
-	set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-	set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
-
 	add_executable(FIRESTARTER_HIP
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
