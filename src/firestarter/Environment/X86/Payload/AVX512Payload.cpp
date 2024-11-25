@@ -22,22 +22,24 @@
 #include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
 #include "firestarter/Environment/X86/Payload/CompiledX86Payload.hpp"
 
-#include <asm/prctl.h> /* Definition of ARCH_* constants */
-#include <immintrin.h>
 #include <sys/syscall.h>
 
-#define XFEATURE_XTILECFG 17
-#define XFEATURE_XTILEDATA 18
-#define XFEATURE_MASK_XTILECFG (1 << XFEATURE_XTILECFG)
-#define XFEATURE_MASK_XTILEDATA (1 << XFEATURE_XTILEDATA)
-#define XFEATURE_MASK_XTILE (XFEATURE_MASK_XTILECFG | XFEATURE_MASK_XTILEDATA)
+enum class XFeature : uint32_t {
+    XTILECFG = 17,
+    XTILEDATA = 18
+};
+constexpr const uint32_t XFEATURE_MASK_XTILEDATA = (1 << static_cast<uint32_t>(XFeature::XTILEDATA));
 
-#define ARCH_GET_XCOMP_PERM 0x1022
-#define ARCH_REQ_XCOMP_PERM 0x1023
+enum class Arch : uint32_t {
+    GET_XCOMP_PERM = 0x1022,
+    REQ_XCOMP_PERM = 0x1023
+};
 
-#define MAX 1024
-#define MAX_ROWS 16
-#define MAX_COLS 64
+enum class MaxSize : uint32_t {
+    ELEMENTS = 1024,
+    ROWS = 16,
+    COLS = 64
+};
 
 namespace firestarter::environment::x86::payload {
 
@@ -185,25 +187,24 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
   request_permission();
   create_AMX_config(&tile_data); // Create tilecfg and fill it
 
-  static bool init = true;
   uintptr_t src1, src2;
   uint64_t src3;
-  unsigned int aligned_alloc_size = static_cast<unsigned int>(MAX * sizeof(__bfloat16));
+  unsigned int aligned_alloc_size = static_cast<unsigned int>(MaxSize::ELEMENTS * sizeof(__bfloat16));
   if (aligned_alloc_size % 1024) { // aligned_alloc expects size to be multiple of alignment (aka 1024)
     aligned_alloc_size = aligned_alloc_size + (1024 - (aligned_alloc_size % 1024));
   }
-  src1 = (uintptr_t)aligned_alloc(1024, aligned_alloc_size);
-  src2 = (uintptr_t)aligned_alloc(1024, aligned_alloc_size);
-  src3 = (uint64_t)aligned_alloc(1024, aligned_alloc_size);
-  if (((void*)src1 == nullptr) || (void*)src2 == nullptr ||
-      (void*)src3 == nullptr) { // uintptr_t garantuees we can cast it to void* and back
+  src1 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
+  src2 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
+  src3 = static_cast<uint64_t>(aligned_alloc(1024, aligned_alloc_size));
+  if ((static_cast<void*>(src1) == nullptr) || static_cast<void*>(src2) == nullptr ||
+      static_cast<void*>(src3) == nullptr) { // uintptr_t garantuees we can cast it to void* and back
     std::cout << "[ERROR]: Allocation of source and target buffer for AMX failed. Aborting...\n";
     exit(1);
   }
 
   // Init buffers
   init_buffer_rand(src1, src2);
-  memset((void*)src3, 0, aligned_alloc_size);
+  memset(static_cast<void*>(src3), 0, aligned_alloc_size);
 
   Cb.tileloaddt1(tmm6, asmjit::x86::ptr(src1));
   Cb.tileloaddt1(tmm7, asmjit::x86::ptr(src2)); // Ensure no overflows through loading x and -x in src2
@@ -455,8 +456,8 @@ void AVX512Payload::create_AMX_config(TileConfig* tileinfo) {
   tileinfo->start_row = 0;
 
   for (i = 0; i < 8; ++i) {
-    tileinfo->colsb[i] = MAX_COLS;
-    tileinfo->rows[i] = MAX_ROWS;
+    tileinfo->colsb[i] = MaxSize::COLS;
+    tileinfo->rows[i] = MaxSize::ROWS;
   }
 
   _tile_loadconfig(tileinfo);
@@ -466,44 +467,43 @@ void AVX512Payload::request_permission() {
 
   long rc;
   unsigned long bitmask;
-  rc = syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA);
-
+  #ifdef __linux__
+  rc = syscall(SYS_arch_prctl, Arch::REQ_XCOMP_PERM, XFeature::XTILEDATA);
+  #else
+  workerLog::fatal() << "AMX feature not supported by OS\n";
+  #endif
   if (rc) {
     workerLog::error() << "XTILE_DATA request failed: " << rc;
   }
-
-  rc = syscall(SYS_arch_prctl, ARCH_GET_XCOMP_PERM, &bitmask);
-  if (rc) {
-    workerLog::error() << "prctl(ARCH_GET_XCOMP_PERM) error: " << rc;
+  if(bitmask & XFEATURE_MASK_XTILEDATA){
+    workerLog::trace() << "XTILE_DATA requested successfully\n";
   }
-  if (bitmask & XFEATURE_MASK_XTILE) {
-    workerLog::trace() << "ARCH_REQ_XCOMP_PERM XTILE_DATA successful.";
-  } else {
-    workerLog::error() << "[ERROR] ARCH_REQ_XCOMP_PERM XTILE_DATA unsuccessful!";
+  else{
+    workerLog::error() << "XTILE_DATA not set\n"; 
   }
 }
 
-void AVX512Payload::init_buffer_rand(uintptr_t src1, uintptr_t src2) {
+void AVX512Payload::init_buffer_rand(__bfloat16* src1, __bfloat16* src2) {
 
   // Initialize buffer with random values
   // Multiplication always produces either 1 or -1
   // Accumulation operation always on (1 + -1) = 0 ensures stable values
 
-  __bfloat16* buf1 = (__bfloat16*)src1;
-  __bfloat16* buf2 = (__bfloat16*)src2;
+  __bfloat16* buf1 = static_cast<__bfloat16*>(src1);
+  __bfloat16* buf2 = static_cast<__bfloat16*>(src2);
 
-  // TODO: Change MAX_ROWS/MAXC_COLS from constant to maximum size check by asmJit
+  // TODO: Change MaxSize::ROWS/MaxSize::COLS from constant to maximum size check by asmJit
   //	   Currently not supported by asmJit
   //	   Alternative: Manually parse CPUID
 
-  for (int i = 0; i < MAX_ROWS; i++) {
-    __bfloat16 random_init = (__bfloat16)(rand() % 65536); // Limit maximum size as 1/x needs to fit bfloat16
-    for (int j = 0; j < MAX_COLS; j++) {
-      buf1[i * MAX_COLS + j] = (__bfloat16)(random_init);
+  for (int i = 0; i < MaxSize::ROWS; i++) {
+    __bfloat16 random_init = static_cast<__bfloat16>((rand() % 65536)); // Limit maximum size as 1/x needs to fit bfloat16
+    for (int j = 0; j < MaxSize::COLS; j++) {
+      buf1[i * MaxSize::COLS + j] = static_cast<__bfloat16>(random_init);
       if (!(j % 2)) {
-        buf2[i * MAX_COLS + j] = (__bfloat16)((-1) / random_init);
+        buf2[i * MaxSize::COLS + j] = static_cast<__bfloat16>(((-1) / random_init));
       } else if (j % 2) {
-        buf2[i * MAX_COLS + j] = (__bfloat16)(1 / random_init);
+        buf2[i * MaxSize::COLS + j] = static_cast<__bfloat16>((1 / random_init));
       }
     }
   }

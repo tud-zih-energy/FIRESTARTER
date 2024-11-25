@@ -31,7 +31,7 @@ public:
       : X86PlatformConfig(/*Name=*/"SPR_XEONEP", /*Family=*/6, /*Models=*/{143},
                           /*Settings=*/
                           environment::payload::PayloadSettings(/*Threads=*/{1, 2},
-                                                                /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
+                                                                /*DataCacheBufferSize=*/{49152, 2097152, 1920000},
                                                                 /*RamBufferSize=*/1048576000, /*Lines=*/1536,
                                                                 /*InstructionGroups=*/
                                                                 {{"RAM_S", 3},

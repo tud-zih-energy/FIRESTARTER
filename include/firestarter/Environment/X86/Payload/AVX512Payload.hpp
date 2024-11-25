@@ -73,7 +73,7 @@ public:
 private:
   static void create_AMX_config(TileConfig* tileinfo);
   static void request_permission();
-  static void init_buffer_rand(uintptr_t buf1, uintptr_t buf2);
+  static void init_buffer_rand(__bfloat16* buf1, __bfloat16* buf2);
 
   /// Function to initialize the memory used by the high load function.
   /// \arg MemoryAddr The pointer to the memory.
