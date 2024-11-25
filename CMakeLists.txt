@@ -57,6 +57,8 @@ endif()
 include(cmake/GitSubmoduleUpdate.cmake)
 git_submodule_update()
 
+include(cmake/DarwinBuild.cmake)
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -fdata-sections -ffunction-sections")

@@ -39,7 +39,6 @@ target_link_libraries(firestartercore
 	nlohmann_json::nlohmann_json
 	)
 
-
 # Create the linux firestarter library that is used for specific linux only features
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	add_library(firestarterlinux STATIC
@@ -209,6 +208,8 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 	endif()
 
+	target_link_libraries_darwin(NAME FIRESTARTER)
+
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if((NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND FIRESTARTER_LINK_STATIC)
 		target_link_libraries(FIRESTARTER
@@ -234,16 +235,6 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	if (NOT FIRESTARTER_LINK_STATIC)
 		target_link_libraries(FIRESTARTER
 			Threads::Threads
-			)
-	endif()
-
-	# static linking is not supported on Darwin, see Apple Technical QA1118
-	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
-		find_library( IOKIT_LIBRARY IOKit )
-		target_link_libraries(FIRESTARTER
-			${COREFOUNDATION_LIBRARY}
-			${IOKIT_LIBRARY}
 			)
 	endif()
 endif()
