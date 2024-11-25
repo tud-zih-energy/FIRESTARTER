@@ -71,8 +71,11 @@ else()
 	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
 endif()
 
-# enable debug features on linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	# enable position independant code on linux
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+	# enable debug features on linux
 	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
 	if (FIRESTARTER_DEBUG_FEATURES)
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_DEBUG_FEATURES")
