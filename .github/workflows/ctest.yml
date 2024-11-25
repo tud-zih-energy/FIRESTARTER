@@ -35,4 +35,4 @@ jobs:
 
     - name: Ctest
       run: |
-        make test
+        ctest
