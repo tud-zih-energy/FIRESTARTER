@@ -189,14 +189,14 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
 
   __bfloat16* src1;
   __bfloat16* src2;
-  uintptr_t src3;
+  void* src3;
   unsigned int aligned_alloc_size = static_cast<unsigned int>(static_cast<uint32_t>(MaxSize::ELEMENTS) * sizeof(__bfloat16));
   if (aligned_alloc_size % 1024) { // aligned_alloc expects size to be multiple of alignment (aka 1024)
     aligned_alloc_size = aligned_alloc_size + (1024 - (aligned_alloc_size % 1024));
   }
   src1 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
   src2 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
-  src3 = static_cast<uint64_t>(aligned_alloc(1024, aligned_alloc_size));
+  src3 = static_cast<void*>(aligned_alloc(1024, aligned_alloc_size));
   if ((static_cast<void*>(src1) == nullptr) || static_cast<void*>(src2) == nullptr ||
       static_cast<void*>(src3) == nullptr) { // uintptr_t garantuees we can cast it to void* and back
     std::cout << "[ERROR]: Allocation of source and target buffer for AMX failed. Aborting...\n";

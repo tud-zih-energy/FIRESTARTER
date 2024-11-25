@@ -20,7 +20,7 @@
  *****************************************************************************/
 
 #pragma once
-
+#include <immintrin.h>
 #include "firestarter/Environment/X86/Payload/X86Payload.hpp"
 namespace firestarter::environment::x86::payload {
 
