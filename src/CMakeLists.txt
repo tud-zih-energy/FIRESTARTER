@@ -32,8 +32,6 @@ add_library(firestartercore STATIC
 	firestarter/Environment/X86/Payload/SSE2Payload.cpp
 	)
 
-target_compile_features(firestartercore PRIVATE cxx_std_17)
-
 target_link_libraries(firestartercore
 	hwloc
 	AsmJit::AsmJit
@@ -58,8 +56,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
 		)
-
-	target_compile_features(firestarterlinux PRIVATE cxx_std_17)
 
 	target_link_libraries(firestarterlinux
 		Nitro::log
@@ -86,7 +82,6 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
 		)
-	target_compile_features(FIRESTARTER_CUDA PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER_CUDA
 		firestartercore
@@ -134,7 +129,6 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		${FIRESTARTER_FILES}
 		firestarter/OneAPI/OneAPI.cpp
 		)
-	target_compile_features(FIRESTARTER_ONEAPI PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
 		firestartercore
@@ -171,13 +165,11 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 
 	set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
 	set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
-	set( CMAKE_CXX_STANDARD 17 )
 
 	add_executable(FIRESTARTER_HIP
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
 		)
-	target_compile_features(FIRESTARTER_HIP PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER_HIP
 		firestartercore
@@ -206,7 +198,6 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
 		)
-	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
 
 	target_link_libraries(FIRESTARTER
 		firestartercore
