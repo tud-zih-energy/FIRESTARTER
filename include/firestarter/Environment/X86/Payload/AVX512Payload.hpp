@@ -22,7 +22,6 @@
 #pragma once
 
 #include "firestarter/Environment/X86/Payload/X86Payload.hpp"
-
 namespace firestarter::environment::x86::payload {
 
 // Define struct that is used as config and loaded through ldtilecfg()
