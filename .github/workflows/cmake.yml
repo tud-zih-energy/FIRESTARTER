@@ -57,7 +57,7 @@ jobs:
           mkdir build
     - name: Run CMake configure (HIP)
       env:
-        C: '/opt/rocm/bin/hipcc'
+        CC: '/opt/rocm/bin/hipcc'
         CXX: '/opt/rocm/bin/hipcc'
       run: |
         export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
@@ -212,7 +212,7 @@ jobs:
         mkdir build
     - name: Run CMake configure (CUDA)
       env:
-        C: 'clang-10'
+        CC: 'clang-10'
         CXX: 'clang++-10'
       if: matrix.CUDA != 'NVHPC-22.5'
       run: |
@@ -229,7 +229,7 @@ jobs:
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Run CMake configure (CUDA with NVHPC)
       env:
-        C: 'clang-10'
+        CC: 'clang-10'
         CXX: 'clang++-10'
       if: matrix.CUDA == 'NVHPC-22.5'
       run: |
@@ -307,7 +307,7 @@ jobs:
         mkdir build
     - name: Run CMake configure (default)
       env:
-        # TODO: set cmake c compiler correctly
+        # We do not set the CC flag as it is not used in the FIRESTARTER build
         CXX: ${{ matrix.compiler }}
       run: |
         cd build
