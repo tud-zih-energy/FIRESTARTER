@@ -165,7 +165,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-    - name: Install CUDA runtime (if needed)
+    - name: Install clang++-10
+      run: |
+        sudo apt install clang-10
+    - name: Install CUDA runtime
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -206,7 +209,7 @@ jobs:
         export CUDAToolkit_ROOT=${CUDA_ROOT}
   
         cd build
-        cmake  -DCMAKE_C_COMPILER=nvcc -DCMAKE_CXX_COMPILER=nvcc -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Run CMake configure (CUDA with NVHPC)
       if: matrix.CUDA == 'NVHPC-22.5'
       run: |
@@ -235,6 +238,11 @@ jobs:
     - name: UnInstall CUDA runtime (if needed)
       run: |
         sudo rm -rf ${CUDA_ROOT}
+    - name: UnInstall clang++-10
+      run: |
+        sudo apt remove clang-10
+        sudo apt autoremove
+
       
   build-linux:
     strategy:
