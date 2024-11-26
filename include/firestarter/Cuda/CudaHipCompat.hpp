@@ -370,7 +370,7 @@ template <typename T> void accellSafeCall(T TVal, const char* File, const int Li
     }
   } else if constexpr (std::is_same_v<T, CUresult>) {
 #ifndef FIRESTARTER_BUILD_CUDA
-    static_assert(false, "Tried to call accellSafeCall with CUresult, but not building for CUDA.");
+    assert(false && "Tried to call accellSafeCall with CUresult, but not building for CUDA.");
 #endif
     if (TVal == CUDA_SUCCESS) {
       return;
