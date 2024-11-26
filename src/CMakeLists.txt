@@ -130,6 +130,7 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		mkl_core
 		sycl
 		stdc++
+		Threads::Threads
 	)
 
 elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
