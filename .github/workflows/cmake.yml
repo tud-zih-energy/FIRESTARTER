@@ -7,12 +7,12 @@ on: [push, pull_request]
 #   FIRESTARTER_HIP version 6.2 against the hipcc compiler
 #   FIRESTARTER_ONEAPI versions 2023.2.0 and 2024.0 against icx and icpx
 #   FIRESTARTER_CUDA with cuda versions 8.0, 11.0 and NVHPC-22.5 against clang++-10
-#   FIRESTARTER aginst g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10
+#   FIRESTARTER against g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10
 # On Windows:
 #   FIRESTARTER aginst windows-2019 MSVC and mingw
 #   FIRESTARTER_CUDA against windows-2019 MSVC
 # On MacOS:
-#   FIRESTARTER aginst XCode on MacOS 12 and 13
+#   FIRESTARTER against XCode on MacOS 12 and 13
 
 jobs:
 
