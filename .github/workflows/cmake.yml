@@ -6,7 +6,6 @@ jobs:
 
   build-linux-hip-rocm:
     strategy:
-#      max-parallel: 1 # Sets the limit of jobs to run concurrently
       fail-fast: true
       matrix:
         os: [ubuntu-22.04]
@@ -84,10 +83,6 @@ jobs:
   
     runs-on: ${{ matrix.os }}
 
-    env:
-      CMAKE_C_COMPILER: 'icx'
-      CMAKE_CXX_COMPILER: 'icx'
-
     steps:
     - name: Try to clean up some things
       run: |
@@ -115,13 +110,13 @@ jobs:
       run: |
         . /opt/intel/oneapi/setvars.sh
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+        cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure (OneAPI 2024.0)
       if: matrix.ONEAPI == '2024.0'
       run: |
         . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+        cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Build (OneAPI 2023.2.0)
       if: matrix.ONEAPI == '2023.2.0'
       run: |
