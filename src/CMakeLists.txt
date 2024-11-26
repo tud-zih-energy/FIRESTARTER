@@ -65,7 +65,14 @@ SET(FIRESTARTER_FILES
 	firestarter/LoadWorker.cpp
 	)
 
+get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
+
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
+	message(STATUS "Building FIRESTARTER_CUDA")
 	add_executable(FIRESTARTER_CUDA
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
@@ -100,6 +107,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	endif()
 
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+	message(STATUS "Building FIRESTARTER_ONEAPI")
 	add_executable(FIRESTARTER_ONEAPI
 		${FIRESTARTER_FILES}
 		firestarter/OneAPI/OneAPI.cpp
@@ -125,6 +133,7 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 	)
 
 elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
+	message(STATUS "Building FIRESTARTER_HIP")
 	add_executable(FIRESTARTER_HIP
 		${FIRESTARTER_FILES}
 		firestarter/Cuda/Cuda.cpp
@@ -154,6 +163,7 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 	
 
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
+	message(STATUS "Building FIRESTARTER")
 	add_executable(FIRESTARTER
 		${FIRESTARTER_FILES}
 		)
