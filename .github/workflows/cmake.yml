@@ -200,7 +200,7 @@ jobs:
         export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
         export LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LIBRARY_PATH}
         export CUDA_LIB_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs
-        export PATH=${CUDA_ROOT}:${PATH}
+        export PATH=${CUDA_ROOT}/bin:${PATH}
         export CUDA_HOME=${CUDA_ROOT}
         export CUDA_PATH=${CUDA_ROOT}
         export CUDAToolkit_ROOT=${CUDA_ROOT}
@@ -279,6 +279,7 @@ jobs:
         mkdir build
     - name: Run CMake configure (default)
       env:
+        # TODO: set cmake c compiler correctly
         CXX: ${{ matrix.compiler }}
       run: |
         cd build
