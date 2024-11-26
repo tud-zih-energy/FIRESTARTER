@@ -57,8 +57,8 @@ jobs:
           mkdir build
     - name: Run CMake configure (HIP)
       env:
-        CMAKE_C_COMPILER: '/opt/rocm/bin/hipcc'
-        CMAKE_CXX_COMPILER: '/opt/rocm/bin/hipcc'
+        C: '/opt/rocm/bin/hipcc'
+        CXX: '/opt/rocm/bin/hipcc'
       run: |
         export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
         export LD_LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
