@@ -75,6 +75,81 @@ jobs:
         retention-days: 1
         path: build/src/FIRESTARTER_HIP
 
+  build-linux-oneapi:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-20.04]
+        ONEAPI: ['2023.2.0', '2024.0']
+  
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CMAKE_C_COMPILER: 'icx'
+      CMAKE_CXX_COMPILER: 'icx'
+
+    steps:
+    - name: Try to clean up some things
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - name: Install OneAPI Base-Toolkit
+      run: |
+        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt update
+        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
+    - name: Create build directory
+      run: |
+        mkdir build
+    - name: Run CMake configure (OneAPI 2023.2.0)
+      if: matrix.ONEAPI == '2023.2.0'
+      run: |
+        . /opt/intel/oneapi/setvars.sh
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+    - name: Run CMake configure (OneAPI 2024.0)
+      if: matrix.ONEAPI == '2024.0'
+      run: |
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
+        cd build
+        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+    - name: Build (OneAPI 2023.2.0)
+      if: matrix.ONEAPI == '2023.2.0'
+      run: |
+        . /opt/intel/oneapi/setvars.sh
+        cd build
+        make -j2
+    - name: Build (OneAPI 2024.0)
+      if: matrix.ONEAPI == '2024.0'
+      run: |
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
+        cd build
+        make -j2
+    - name: Strip binary (OneAPI)
+      run: |
+        cd build
+        strip src/FIRESTARTER_ONEAPI
+    - uses: actions/upload-artifact@v4
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
+      with:
+        name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
+        retention-days: 1
+        path: build/src/FIRESTARTER_ONEAPI
+    
+    - name: UnInstall OneAPI Base-Toolkit (if needed)
+      run: |
+        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
+        sudo apt autoremove      
+
   build-linux:
     strategy:
 #      max-parallel: 1 # Sets the limit of jobs to run concurrently
@@ -83,7 +158,6 @@ jobs:
         os: [ubuntu-20.04]
         compiler: [g++-7, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
         CUDA: ['0', '8.0', '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0', '2024.0']
 
     runs-on: ${{ matrix.os }}
 
@@ -124,7 +198,7 @@ jobs:
       with:
         fetch-depth: '0'
     - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == 0
+      if: matrix.CUDA != '0'
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -149,13 +223,6 @@ jobs:
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
 
         esac
-    - name: Install OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt update
-        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
     - name: Create build directory
       run: |
         mkdir build
@@ -195,33 +262,9 @@ jobs:
 
         cd build
         cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
-    - name: Run CMake configure (OneAPI 2023.2.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
-      run: |
-        . /opt/intel/oneapi/setvars.sh
-        cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
-    - name: Run CMake configure (OneAPI 2024.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2024.0'
-      run: |
-        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
-        cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Build (default, CUDA)
       if: matrix.ONEAPI =='0'
       run: |
-        cd build
-        make -j2
-    - name: Build (OneAPI 2023.2.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
-      run: |
-        . /opt/intel/oneapi/setvars.sh
-        cd build
-        make -j2
-    - name: Build (OneAPI 2024.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2024.0'
-      run: |
-        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
         make -j2
     - name: Strip binary (default)
@@ -234,11 +277,6 @@ jobs:
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
-    - name: Strip binary (OneAPI)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        cd build
-        strip src/FIRESTARTER_ONEAPI
     - name: Test FIRESTARTER (default)
       if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
       run: ./build/src/FIRESTARTER -t 1
@@ -254,13 +292,7 @@ jobs:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         retention-days: 1
         path: build/src/FIRESTARTER_CUDA
-    - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
-      with:
-        name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
-        retention-days: 1
-        path: build/src/FIRESTARTER_ONEAPI
-    
+
     - name: UnInstall g++-7 (if needed)
       if: matrix.compiler == 'g++-7'
       run: |
@@ -290,11 +322,7 @@ jobs:
       if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         sudo rm -rf ${CUDA_ROOT}
-    - name: UnInstall OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
-        sudo apt autoremove
+  
   build-windows:
     strategy:
       fail-fast: false
@@ -388,6 +416,7 @@ jobs:
         path: |
           build\src\FIRESTARTER_CUDA.exe
           build\src\libhwloc-15.dll
+
   build-macos:
     strategy:
       fail-fast: false
@@ -434,6 +463,7 @@ jobs:
         retention-days: 1
         name: FIRESTARTER-macOS_13
         path: build/src/FIRESTARTER
+
   create-download:
     name: Create download for Website
     runs-on: ubuntu-latest
