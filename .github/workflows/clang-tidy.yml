@@ -1,0 +1,50 @@
+name: clang-tidy-review
+
+on: [push, pull_request]
+
+env:
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+
+    # Ideally we would want to run the clang-tidy for every kind of build.
+    # This would make shure that we will check all platform dependent code parts.
+    # Here we only test the standard linux build.    
+    - name: Install python3 and libraries
+      run: |
+        sudo apt update
+        sudo apt install python3 python3-pip
+        pip install click
+
+    - name: Create build directory
+      run: |
+        mkdir build
+
+    - name: Run CMake configure (default)
+      run: |
+        cd build
+        cmake ..
+
+    - name: Build
+      run: |
+        cd build
+        make -j4
+
+    - name: Run clang-tidy
+      run: |
+        ./tooling/clang-tidy.py clang-tidy-report --build-root build --cores 4
+
+    - name: Print report
+      run: |
+        cat build/clang-tidy-report.txt
+
+    - name: Check if report is empty
+      run: |
+        ./tooling/clang-tidy.py check --build-root build

@@ -19,54 +19,56 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Optimizer/OptimizerWorker.hpp>
+#include "firestarter/Optimizer/OptimizerWorker.hpp"
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 
 #include <thread>
+#include <utility>
 
-using namespace firestarter::optimizer;
+namespace firestarter::optimizer {
 
-OptimizerWorker::OptimizerWorker(
-    std::unique_ptr<firestarter::optimizer::Algorithm> &&algorithm,
-    firestarter::optimizer::Population &population,
-    std::string const &optimizationAlgorithm, unsigned individuals,
-    std::chrono::seconds const &preheat)
-    : _algorithm(std::move(algorithm)), _population(population),
-      _optimizationAlgorithm(optimizationAlgorithm), _individuals(individuals),
-      _preheat(preheat) {
-  pthread_create(
-      &this->workerThread, NULL,
-      reinterpret_cast<void *(*)(void *)>(OptimizerWorker::optimizerThread),
-      this);
+OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorithm>&& Algorithm,
+                                 std::unique_ptr<firestarter::optimizer::Population>&& Population, unsigned Individuals,
+                                 std::chrono::seconds const& Preheat)
+    : Algorithm(std::move(Algorithm))
+    , Population(std::move(Population))
+    , Individuals(Individuals)
+    , Preheat(Preheat) {
+  pthread_create(&this->WorkerThread, nullptr, OptimizerWorker::optimizerThread, this);
 }
 
-void OptimizerWorker::kill() {
+void OptimizerWorker::kill() const {
   // we ignore ESRCH errno if thread already exited
-  pthread_cancel(this->workerThread);
+  pthread_cancel(WorkerThread);
 }
 
-void OptimizerWorker::join() {
+void OptimizerWorker::join() const {
   // we ignore ESRCH errno if thread already exited
-  pthread_join(this->workerThread, NULL);
+  pthread_join(WorkerThread, nullptr);
 }
 
-void *OptimizerWorker::optimizerThread(void *optimizerWorker) {
-  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+auto OptimizerWorker::optimizerThread(void* OptimizerWorker) -> void* {
+  // NOLINTBEGIN(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+  // NOLINTEND(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
 
-  auto _this = reinterpret_cast<OptimizerWorker *>(optimizerWorker);
+  auto* This = static_cast<class OptimizerWorker*>(OptimizerWorker);
 
 #ifndef __APPLE__
   pthread_setname_np(pthread_self(), "Optimizer");
 #endif
 
   // heat the cpu before attempting to optimize
-  std::this_thread::sleep_for(_this->_preheat);
+  std::this_thread::sleep_for(This->Preheat);
 
   // For NSGA2 we start with a initial population
-  if (_this->_optimizationAlgorithm == "NSGA2") {
-    _this->_population.generateInitialPopulation(_this->_individuals);
+  if (dynamic_cast<algorithm::NSGA2*>(This->Algorithm.get())) {
+    This->Population->generateInitialPopulation(This->Individuals);
   }
 
-  _this->_algorithm->evolve(_this->_population);
+  This->Algorithm->evolve(*This->Population);
 
-  return NULL;
+  return nullptr;
 }
+
+} // namespace firestarter::optimizer

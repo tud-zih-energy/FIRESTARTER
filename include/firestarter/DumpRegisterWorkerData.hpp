@@ -21,42 +21,53 @@
 
 #pragma once
 
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/LoadWorkerData.hpp>
+#include "firestarter/LoadWorkerData.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 
 #include <chrono>
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
+#include <utility>
 
 namespace firestarter {
 
+/// This class holds the data that is required for the worker thread that dumps the register contents to a file.
 class DumpRegisterWorkerData {
 public:
-  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> loadWorkerData,
-                         std::chrono::seconds dumpTimeDelta,
-                         std::string dumpFilePath)
-      : loadWorkerData(loadWorkerData), dumpTimeDelta(dumpTimeDelta) {
+  DumpRegisterWorkerData() = delete;
 
-    if (dumpFilePath.empty()) {
-      char cwd[PATH_MAX];
-      if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        this->dumpFilePath = cwd;
+  /// Initialize the DumpRegisterWorkerData.
+  /// \arg LoadWorkerDataPtr The shared pointer to the data of the thread were registers should be dummped. We need it
+  /// to access the memory to which the registers are dumped as well as getting the size and count of registers.
+  /// \arg DumpTimeDelta Every this number of seconds the register content will be dumped.
+  /// \arg DumpFilePath The folder that is used to dump registers to. If the string is empty the current directory will
+  /// be choosen. If it cannot be determined /tmp is used. In this directory a file called hamming_distance.csv will be
+  /// created.
+  DumpRegisterWorkerData(std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr, std::chrono::seconds DumpTimeDelta,
+                         const std::string& DumpFilePath)
+      : LoadWorkerDataPtr(std::move(LoadWorkerDataPtr))
+      , DumpTimeDelta(DumpTimeDelta) {
+    if (DumpFilePath.empty()) {
+      char* Pwd = get_current_dir_name();
+      if (Pwd) {
+        this->DumpFilePath = Pwd;
       } else {
         log::error() << "getcwd() failed. Set --dump-registers-outpath to /tmp";
-        this->dumpFilePath = "/tmp";
+        this->DumpFilePath = "/tmp";
       }
     } else {
-      this->dumpFilePath = dumpFilePath;
+      this->DumpFilePath = DumpFilePath;
     }
   }
 
-  ~DumpRegisterWorkerData() {}
+  ~DumpRegisterWorkerData() = default;
 
-  std::shared_ptr<LoadWorkerData> loadWorkerData;
-  const std::chrono::seconds dumpTimeDelta;
-  std::string dumpFilePath;
+  /// The shared pointer to the data of the thread were registers should be dummped. We need it to access the memory to
+  /// which the registers are dumped as well as getting the size and count of registers.
+  std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr;
+  /// Every this number of seconds the register content will be dumped.
+  const std::chrono::seconds DumpTimeDelta;
+  /// The folder in which the hamming_distance.csv file will be created.
+  std::string DumpFilePath;
 };
 
 } // namespace firestarter
-
-#endif

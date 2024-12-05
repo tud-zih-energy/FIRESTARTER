@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,10 @@
 
 #pragma once
 
-#include <firestarter/Measurement/MetricInterface.h>
+namespace firestarter {
 
-extern metric_interface_t rapl_metric;
+/// A thread safe wrapper to std::exit
+/// \arg Status The status passed to std::exit
+[[noreturn]] void safeExit(int Status);
+
+} // namespace firestarter

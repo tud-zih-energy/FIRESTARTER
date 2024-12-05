@@ -21,165 +21,161 @@
 
 // This file borrows a lot of code from https://github.com/esa/pagmo2
 
-#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
-#include <firestarter/Optimizer/Util/MultiObjective.hpp>
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
+#include "firestarter/Optimizer/Util/MultiObjective.hpp"
 
 #include <algorithm>
+#include <iomanip>
+#include <random>
 #include <stdexcept>
 
-using namespace firestarter::optimizer::algorithm;
+namespace firestarter::optimizer::algorithm {
 
-NSGA2::NSGA2(unsigned gen, double cr, double m)
-    : Algorithm(), _gen(gen), _cr(cr), _m(m) {
-  if (cr >= 1. || cr < 0.) {
+NSGA2::NSGA2(unsigned Gen, double Cr, double M)
+    : Gen(Gen)
+    , Cr(Cr)
+    , M(M) {
+  if (Cr >= 1. || Cr < 0.) {
     throw std::invalid_argument("The crossover probability must be in the "
                                 "[0,1[ range, while a value of " +
-                                std::to_string(cr) + " was detected");
+                                std::to_string(Cr) + " was detected");
   }
-  if (m < 0. || m > 1.) {
+  if (M < 0. || M > 1.) {
     throw std::invalid_argument("The mutation probability must be in the [0,1] "
                                 "range, while a value of " +
-                                std::to_string(m) + " was detected");
+                                std::to_string(M) + " was detected");
   }
 }
 
-void NSGA2::checkPopulation(firestarter::optimizer::Population const &pop,
-                            std::size_t populationSize) {
-  const auto &prob = pop.problem();
-
-  if (!prob.isMO()) {
-    throw std::invalid_argument(
-        "NSGA2 is a multiobjective algorithms, while number of objectives is " +
-        std::to_string(prob.getNobjs()));
+void NSGA2::check(firestarter::optimizer::Problem const& Prob, std::size_t PopulationSize) {
+  if (!Prob.isMO()) {
+    throw std::invalid_argument("NSGA2 is a multiobjective algorithms, while number of objectives is " +
+                                std::to_string(Prob.getNobjs()));
   }
 
-  if (populationSize < 5u || (populationSize % 4 != 0u)) {
+  if (PopulationSize < 5U || (PopulationSize % 4 != 0U)) {
     throw std::invalid_argument("for NSGA-II at least 5 individuals in the "
                                 "population are needed and the "
                                 "population size must be a multiple of 4. "
                                 "Detected input population size is: " +
-                                std::to_string(populationSize));
+                                std::to_string(PopulationSize));
   }
 }
 
-firestarter::optimizer::Population
-NSGA2::evolve(firestarter::optimizer::Population &pop) {
-  const auto &prob = pop.problem();
-  const auto bounds = prob.getBounds();
-  auto NP = pop.size();
-  auto fevals0 = prob.getFevals();
+auto NSGA2::evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population {
+  const auto& Prob = Pop.problem();
+  const auto Bounds = Prob.getBounds();
+  auto NP = Pop.size();
+  auto Fevals0 = Prob.getFevals();
 
-  this->checkPopulation(
-      const_cast<firestarter::optimizer::Population const &>(pop), NP);
+  this->check(Prob, NP);
 
-  std::random_device rd;
-  std::mt19937 rng(rd());
+  std::random_device Rd;
+  std::mt19937 Rng(Rd());
 
-  std::vector<Individual::size_type> best_idx(NP), shuffle1(NP), shuffle2(NP);
-  Individual::size_type parent1_idx, parent2_idx;
-  std::pair<Individual, Individual> children;
+  std::vector<Individual::size_type> BestIdx(NP);
+  std::vector<Individual::size_type> Shuffle1(NP);
+  std::vector<Individual::size_type> Shuffle2(NP);
+  Individual::size_type Parent1Idx = 0;
+  Individual::size_type Parent2Idx = 0;
+  std::pair<Individual, Individual> Children;
 
-  std::iota(shuffle1.begin(), shuffle1.end(), Individual::size_type(0));
-  std::iota(shuffle2.begin(), shuffle2.end(), Individual::size_type(0));
+  std::iota(Shuffle1.begin(), Shuffle1.end(), static_cast<Individual::size_type>(0));
+  std::iota(Shuffle2.begin(), Shuffle2.end(), static_cast<Individual::size_type>(0));
 
   {
-    std::stringstream ss;
+    std::stringstream Ss;
 
-    ss << std::endl << std::setw(7) << "Gen:" << std::setw(15) << "Fevals:";
-    for (decltype(prob.getNobjs()) i = 0; i < prob.getNobjs(); ++i) {
-      ss << std::setw(15) << "ideal" << std::to_string(i + 1u) << ":";
+    Ss << '\n' << std::setw(7) << "Gen:" << std::setw(15) << "Fevals:";
+    for (decltype(Prob.getNobjs()) I = 0; I < Prob.getNobjs(); ++I) {
+      Ss << std::setw(15) << "ideal" << std::to_string(I + 1U) << ":";
     }
-    firestarter::log::info() << ss.str();
+    firestarter::log::info() << Ss.str();
   }
 
-  for (decltype(_gen) gen = 1u; gen <= _gen; ++gen) {
+  for (auto I = 1U; I <= Gen; ++I) {
     {
       // Print the logs
-      std::vector<double> idealPoint = util::ideal(pop.f());
-      std::stringstream ss;
+      const auto IdealPoint = util::ideal(Pop.f());
+      std::stringstream Ss;
 
-      ss << std::setw(7) << gen << std::setw(15) << prob.getFevals() - fevals0;
-      for (decltype(idealPoint.size()) i = 0; i < idealPoint.size(); ++i) {
-        ss << std::setw(15) << idealPoint[i];
+      Ss << std::setw(7) << I << std::setw(15) << Prob.getFevals() - Fevals0;
+      for (const auto I : IdealPoint) {
+        Ss << std::setw(15) << I;
       }
 
-      firestarter::log::info() << ss.str();
+      firestarter::log::info() << Ss.str();
     }
 
     // At each generation we make a copy of the population into popnew
-    firestarter::optimizer::Population popnew(pop);
+    firestarter::optimizer::Population Popnew(Pop);
 
     // We create some pseudo-random permutation of the poulation indexes
-    std::random_shuffle(shuffle1.begin(), shuffle1.end());
-    std::random_shuffle(shuffle2.begin(), shuffle2.end());
+    std::shuffle(Shuffle1.begin(), Shuffle1.end(), Rng);
+    std::shuffle(Shuffle2.begin(), Shuffle2.end(), Rng);
 
     // We compute crowding distance and non dominated rank for the current
     // population
-    auto fnds_res = util::fast_non_dominated_sorting(pop.f());
-    auto ndf =
-        std::get<0>(fnds_res); // non dominated fronts [[0,3,2],[1,5,6],[4],...]
-    std::vector<double> pop_cd(
-        NP); // crowding distances of the whole population
-    auto ndr =
-        std::get<3>(fnds_res); // non domination rank [0,1,0,0,2,1,1, ... ]
-    for (const auto &front_idxs : ndf) {
-      if (front_idxs.size() ==
-          1u) { // handles the case where the front has collapsed to one point
-        pop_cd[front_idxs[0]] = std::numeric_limits<double>::infinity();
-      } else if (front_idxs.size() == 2u) { // handles the case where the front
+    auto FndsRes = util::fastNonDominatedSorting(Pop.f());
+    auto Ndf = std::get<0>(FndsRes); // non dominated fronts [[0,3,2],[1,5,6],[4],...]
+    std::vector<double> PopCd(NP);   // crowding distances of the whole population
+    auto Ndr = std::get<3>(FndsRes); // non domination rank [0,1,0,0,2,1,1, ... ]
+    for (const auto& FrontIdxs : Ndf) {
+      if (FrontIdxs.size() == 1U) { // handles the case where the front has collapsed to one point
+        PopCd[FrontIdxs[0]] = std::numeric_limits<double>::infinity();
+      } else if (FrontIdxs.size() == 2U) { // handles the case where the front
         // has collapsed to one point
-        pop_cd[front_idxs[0]] = std::numeric_limits<double>::infinity();
-        pop_cd[front_idxs[1]] = std::numeric_limits<double>::infinity();
+        PopCd[FrontIdxs[0]] = std::numeric_limits<double>::infinity();
+        PopCd[FrontIdxs[1]] = std::numeric_limits<double>::infinity();
       } else {
-        std::vector<std::vector<double>> front;
-        for (auto idx : front_idxs) {
-          front.push_back(pop.f()[idx]);
+        std::vector<std::vector<double>> Front;
+        Front.reserve(FrontIdxs.size());
+        for (auto Idx : FrontIdxs) {
+          Front.push_back(Pop.f()[Idx]);
         }
-        auto cd = util::crowding_distance(front);
-        for (decltype(cd.size()) i = 0u; i < cd.size(); ++i) {
-          pop_cd[front_idxs[i]] = cd[i];
+        auto Cd = util::crowdingDistance(Front);
+        for (decltype(Cd.size()) I = 0U; I < Cd.size(); ++I) {
+          PopCd[FrontIdxs[I]] = Cd[I];
         }
       }
     }
 
     // We then loop thorugh all individuals with increment 4 to select two pairs
     // of parents that will each create 2 new offspring
-    for (decltype(NP) i = 0u; i < NP; i += 4) {
+    for (decltype(NP) I = 0U; I < NP; I += 4) {
       // We create two offsprings using the shuffled list 1
-      parent1_idx = util::mo_tournament_selection(shuffle1[i], shuffle1[i + 1],
-                                                  ndr, pop_cd, rng);
-      parent2_idx = util::mo_tournament_selection(
-          shuffle1[i + 2], shuffle1[i + 3], ndr, pop_cd, rng);
-      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx],
-                                     _cr, rng);
-      util::polynomial_mutation(children.first, bounds, _m, rng);
-      util::polynomial_mutation(children.second, bounds, _m, rng);
+      Parent1Idx = util::moTournamentSelection(Shuffle1[I], Shuffle1[I + 1], Ndr, PopCd, Rng);
+      Parent2Idx = util::moTournamentSelection(Shuffle1[I + 2], Shuffle1[I + 3], Ndr, PopCd, Rng);
+      Children = util::sbxCrossover(Pop.x()[Parent1Idx], Pop.x()[Parent2Idx], Cr, Rng);
+      util::polynomialMutation(Children.first, Bounds, M, Rng);
+      util::polynomialMutation(Children.second, Bounds, M, Rng);
 
-      popnew.append(children.first);
-      popnew.append(children.second);
+      Popnew.append(Children.first);
+      Popnew.append(Children.second);
 
       // We repeat with the shuffled list 2
-      parent1_idx = util::mo_tournament_selection(shuffle2[i], shuffle2[i + 1],
-                                                  ndr, pop_cd, rng);
-      parent2_idx = util::mo_tournament_selection(
-          shuffle2[i + 2], shuffle2[i + 3], ndr, pop_cd, rng);
-      children = util::sbx_crossover(pop.x()[parent1_idx], pop.x()[parent2_idx],
-                                     _cr, rng);
-      util::polynomial_mutation(children.first, bounds, _m, rng);
-      util::polynomial_mutation(children.second, bounds, _m, rng);
+      Parent1Idx = util::moTournamentSelection(Shuffle2[I], Shuffle2[I + 1], Ndr, PopCd, Rng);
+      Parent2Idx = util::moTournamentSelection(Shuffle2[I + 2], Shuffle2[I + 3], Ndr, PopCd, Rng);
+      Children = util::sbxCrossover(Pop.x()[Parent1Idx], Pop.x()[Parent2Idx], Cr, Rng);
+      util::polynomialMutation(Children.first, Bounds, M, Rng);
+      util::polynomialMutation(Children.second, Bounds, M, Rng);
 
-      popnew.append(children.first);
-      popnew.append(children.second);
-    } // popnew now contains 2NP individuals
-    // This method returns the sorted N best individuals in the population
+      Popnew.append(Children.first);
+      Popnew.append(Children.second);
+    }
+    // Popnew now contains 2NP individuals
+
+    // Save the best NP individuals in the population
     // according to the crowded comparison operator
-    best_idx = util::select_best_N_mo(popnew.f(), NP);
-    // We insert into the population
-    for (decltype(NP) i = 0; i < NP; ++i) {
-      pop.insert(i, popnew.x()[best_idx[i]], popnew.f()[best_idx[i]]);
+    BestIdx = util::selectBestNMo(Popnew.f(), NP);
+    for (decltype(NP) I = 0; I < NP; ++I) {
+      Pop.insert(I, Popnew.x()[BestIdx[I]], Popnew.f()[BestIdx[I]]);
     }
   }
 
-  return pop;
+  return Pop;
 }
+
+} // namespace firestarter::optimizer::algorithm
