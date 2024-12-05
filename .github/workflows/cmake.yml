@@ -274,7 +274,11 @@ jobs:
 
     steps:
     - name: Install compiler (if needed)
-      if: matrix.compiler != 'default'
+      if: startsWith(matrix.compiler, 'gcc')
+      run: |
+        sudo apt install ${{ matrix.cxxcompiler }}
+    - name: Install compiler (if needed)
+      if: startsWith(matrix.compiler, 'clang')
       run: |
         sudo apt install ${{ matrix.compiler }}
     - name: Setup Node.js
@@ -318,7 +322,12 @@ jobs:
         retention-days: 1
         path: build/src/FIRESTARTER
     - name: Uninstall compiler (if needed)
-      if: matrix.compiler != 'default'
+      if: startsWith(matrix.compiler, 'gcc')
+      run: |
+        sudo apt remove ${{ matrix.cxxcompiler }}
+        sudo apt autoremove
+    - name: Uninstall compiler (if needed)
+      if: startsWith(matrix.compiler, 'clang')
       run: |
         sudo apt remove ${{ matrix.compiler }}
         sudo apt autoremove
