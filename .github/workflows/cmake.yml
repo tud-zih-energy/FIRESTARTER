@@ -74,7 +74,7 @@ jobs:
     - name: Build (HIP)
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary (HIP)
       run: |
         cd build
@@ -135,13 +135,13 @@ jobs:
       run: |
         . /opt/intel/oneapi/setvars.sh
         cd build
-        make -j2
+        make -j4
     - name: Build (OneAPI 2024.0)
       if: matrix.ONEAPI == '2024.0'
       run: |
         . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
-        make -j2
+        make -j4
     - name: Strip binary (OneAPI)
       run: |
         cd build
@@ -244,7 +244,7 @@ jobs:
     - name: Build (CUDA)
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary (CUDA)
       run: |
         cd build
@@ -315,7 +315,7 @@ jobs:
     - name: Build (default)
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary (default)
       run: |
         cd build
@@ -416,7 +416,7 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake --build . -j2
+        cmake --build . -j4
     - name: Copy Hwloc DLL
       shell: pwsh
       if: matrix.cfg.MSVC == true
@@ -474,7 +474,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary
       run: |
         cd build
