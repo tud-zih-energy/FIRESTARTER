@@ -9,7 +9,7 @@ on: [push, pull_request]
 #   FIRESTARTER_CUDA with cuda versions 8.0, 11.0 and NVHPC-22.5 against the default compiler on ubuntu24.04
 #   FIRESTARTER against
 #     ubuntu 20.04 gcc-7 and clang-9
-#     ubuntu 24.04 gcc-14 and clang-19
+#     ubuntu 24.04 gcc-14 and clang-18
 #     default compilers on ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
 # On Windows:
 #   FIRESTARTER against windows-2019 MSVC and mingw
@@ -264,7 +264,7 @@ jobs:
           - { os: ubuntu-20.04, compiler: clang-9,  cxxcompiler: clang++-9 }
           # Latest compiler on latest Ubuntu
           - { os: ubuntu-24.04, compiler: gcc-14,   cxxcompiler: g++-14 }
-          - { os: ubuntu-24.04, compiler: clang-19, cxxcompiler: clang++-19 }
+          - { os: ubuntu-24.04, compiler: clang-18, cxxcompiler: clang++-18 }
           # Default compilers on all ubuntu
           - { os: ubuntu-20.04, compiler: default }
           - { os: ubuntu-22.04, compiler: default }
