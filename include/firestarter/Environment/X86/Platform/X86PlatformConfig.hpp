@@ -21,79 +21,38 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
-#include "firestarter/Environment/Platform/PlatformConfig.hpp"
-#include "firestarter/Environment/X86/X86CPUTopology.hpp"
+#include <firestarter/Environment/Platform/PlatformConfig.hpp>
+#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::platform {
 
-/// Models a platform config that is the default based on x86 CPU family and model ids.
 class X86PlatformConfig : public environment::platform::PlatformConfig {
 private:
-  /// The famility id of the processor for which this is the default platform config.
-  unsigned Family;
-  /// The list of model ids in combination with the family for which this is the default platform config.
-  std::list<unsigned> Models;
+  unsigned _family;
+  std::list<unsigned> _models;
+  unsigned _currentFamily;
+  unsigned _currentModel;
+  unsigned _currentThreads;
 
 public:
-  X86PlatformConfig(std::string Name, unsigned Family, std::list<unsigned>&& Models,
-                    environment::payload::PayloadSettings&& Settings,
-                    std::shared_ptr<const environment::payload::Payload>&& Payload) noexcept
-      : PlatformConfig(std::move(Name), std::move(Settings), std::move(Payload))
-      , Family(Family)
-      , Models(std::move(Models)) {}
+  X86PlatformConfig(std::string name, unsigned family,
+                    std::initializer_list<unsigned> models,
+                    std::initializer_list<unsigned> threads,
+                    unsigned instructionCacheSize,
+                    std::initializer_list<unsigned> dataCacheBufferSize,
+                    unsigned ramBuffersize, unsigned lines,
+                    unsigned currentFamily, unsigned currentModel,
+                    unsigned currentThreads, payload::X86Payload *payload)
+      : PlatformConfig(name, threads, instructionCacheSize, dataCacheBufferSize,
+                       ramBuffersize, lines, payload),
+        _family(family), _models(models), _currentFamily(currentFamily),
+        _currentModel(currentModel), _currentThreads(currentThreads) {}
 
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given X86CPUTopology.
-  [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
-
-  /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given X86CPUTopology.
-  [[nodiscard]] auto isDefault(const X86CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
-
-  /// Clone a the platform config.
-  [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> final {
-    auto Ptr = std::make_unique<X86PlatformConfig>(name(), Family, std::list<unsigned>(Models),
-                                                   environment::payload::PayloadSettings(settings()),
-                                                   std::shared_ptr(payload()));
-    return Ptr;
-  }
-
-  /// Clone a concreate platform config.
-  /// \arg InstructionCacheSize The detected size of the instructions cache.
-  /// \arg ThreadPerCore The number of threads per pysical CPU.
-  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
-      -> std::unique_ptr<PlatformConfig> final {
-    auto Ptr = clone();
-    Ptr->settings().concretize(InstructionCacheSize, ThreadsPerCore);
-    return Ptr;
-  }
-
-private:
-  /// Check if this platform is available on the current system. This tranlates to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
-    return environment::platform::PlatformConfig::isAvailable(Topology);
-  }
-
-  /// Check if this platform is available and the default on the current system. This is done by checking if the family
-  /// id in the CPUTopology matches the one saved in Family and if the model id in the CPUTopology is contained in
-  /// Models.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
-    assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
-
-    // Check if the family of the topology matches the family of the config, if the model of the topology is contained
-    // in the models list of the config and if the config is available on the current platform.
-    return Family == FinalTopology->familyId() &&
-           (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) && isAvailable(Topology);
+  bool isDefault() const override {
+    return _family == _currentFamily &&
+           (std::find(_models.begin(), _models.end(), _currentModel) !=
+            _models.end()) &&
+           isAvailable();
   }
 };
 

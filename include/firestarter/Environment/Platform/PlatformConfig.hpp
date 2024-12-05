@@ -21,117 +21,83 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
-#include "firestarter/Environment/Payload/Payload.hpp"
-#include "firestarter/Logging/Log.hpp"
+#include <firestarter/Environment/Payload/Payload.hpp>
+#include <firestarter/Logging/Log.hpp>
+
+#include <algorithm>
+#include <initializer_list>
+#include <map>
+#include <sstream>
+#include <string>
 
 namespace firestarter::environment::platform {
 
-/// The payload in combination with settings and a short hand name for the specific microarchitecture this payload is
-/// designed for.
 class PlatformConfig {
 private:
-  /// The name of this platform. This is usually a short hand for the CPU microarchitecture e.g., HSW_COREI or
-  /// HSW_XEONEP.
-  std::string Name;
-
-  /// The settings for the associated payload.
-  payload::PayloadSettings Settings;
-
-  /// The payload this platfrom should execute.
-  std::shared_ptr<const payload::Payload> Payload;
-
-public:
-  /// Getter for the name of the platform.
-  [[nodiscard]] auto name() const -> const auto& { return Name; }
-
-  /// Getter for the settings of the platform.
-  [[nodiscard]] auto settings() const -> const auto& { return Settings; }
-
-  /// Reference to the settings. This allows them to be overriden.
-  [[nodiscard]] auto settings() -> auto& { return Settings; }
-
-  /// Getter for the payload of the platform.
-  [[nodiscard]] auto payload() const -> const auto& { return Payload; }
-
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The reference to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
-
-  /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The reference to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+  std::string _name;
+  std::list<unsigned> _threads;
+  payload::Payload *_payload;
 
 protected:
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] virtual auto isAvailable(const CPUTopology* Topology) const -> bool {
-    return payload()->isAvailable(*Topology);
-  }
-
-  /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
+  unsigned _instructionCacheSize;
+  std::list<unsigned> _dataCacheBufferSize;
+  unsigned _ramBufferSize;
+  unsigned _lines;
 
 public:
-  PlatformConfig() = delete;
+  PlatformConfig(std::string name, std::list<unsigned> threads,
+                 unsigned instructionCacheSize,
+                 std::initializer_list<unsigned> dataCacheBufferSize,
+                 unsigned ramBufferSize, unsigned lines,
+                 payload::Payload *payload)
+      : _name(name), _threads(threads), _payload(payload),
+        _instructionCacheSize(instructionCacheSize),
+        _dataCacheBufferSize(dataCacheBufferSize),
+        _ramBufferSize(ramBufferSize), _lines(lines) {}
+  virtual ~PlatformConfig() { delete _payload; }
 
-  PlatformConfig(std::string Name, payload::PayloadSettings&& Settings,
-                 std::shared_ptr<const payload::Payload>&& Payload) noexcept
-      : Name(std::move(Name))
-      , Settings(std::move(Settings))
-      , Payload(std::move(Payload)) {}
+  const std::string &name() const { return _name; }
+  unsigned instructionCacheSize() const { return _instructionCacheSize; }
+  const std::list<unsigned> &dataCacheBufferSize() const {
+    return _dataCacheBufferSize;
+  }
+  unsigned ramBufferSize() const { return _ramBufferSize; }
+  unsigned lines() const { return _lines; }
+  payload::Payload const &payload() const { return *_payload; }
 
-  virtual ~PlatformConfig() = default;
+  std::map<unsigned, std::string> getThreadMap() const {
+    std::map<unsigned, std::string> threadMap;
 
-  /// Clone a the platform config.
-  [[nodiscard]] virtual auto clone() const -> std::unique_ptr<PlatformConfig> = 0;
-
-  /// Clone a concreate platform config.
-  /// \arg InstructionCacheSize The detected size of the instructions cache.
-  /// \arg ThreadPerCore The number of threads per pysical CPU.
-  [[nodiscard]] virtual auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
-      -> std::unique_ptr<PlatformConfig> = 0;
-
-  /// The function name for this platform config given a specific thread per core count.
-  /// \arg ThreadsPerCore The number of threads per core.
-  /// \returns The name of the function (a platform name, payload name and a specific thread per core count)
-  [[nodiscard]] auto functionName(unsigned ThreadsPerCore) const -> std::string {
-    return "FUNC_" + Name + "_" + Payload->name() + "_" + std::to_string(ThreadsPerCore) + "T";
-  };
-
-  /// Get the concreate functions name.
-  [[nodiscard]] auto functionName() const -> std::string {
-    assert(Settings.isConcreate() && "Settings must be concreate for a concreate function name");
-    return functionName(Settings.thread());
-  };
-
-  /// Print a summary for the selected platform/payload with given settings.
-  void printCodePathSummary() const {
-    assert(Settings.isConcreate() && "Setting must be concreate to print the code path summary.");
-
-    log::info() << "\n"
-                << "  Taking " << Payload->name() << " path optimized for " << Name << " - " << Settings.thread()
-                << " thread(s) per core\n"
-                << "  Used buffersizes per thread:";
-
-    if (Settings.instructionCacheSizePerThread()) {
-      log::info() << "    - L1i-Cache: " << *Settings.instructionCacheSizePerThread() << " Bytes";
+    for (auto const &thread : _threads) {
+      std::stringstream functionName;
+      functionName << "FUNC_" << name() << "_" << payload().name() << "_"
+                   << thread << "T";
+      threadMap[thread] = functionName.str();
     }
 
-    unsigned I = 1;
-    for (auto const& Bytes : Settings.dataCacheBufferSizePerThread()) {
-      log::info() << "    - L" << I << "d-Cache: " << Bytes << " Bytes";
-      I++;
+    return threadMap;
+  }
+
+  bool isAvailable() const { return payload().isAvailable(); }
+
+  virtual bool isDefault() const = 0;
+
+  virtual std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings() const = 0;
+
+  std::string getDefaultPayloadSettingsString() const {
+    std::stringstream ss;
+
+    for (auto const &[name, value] : this->getDefaultPayloadSettings()) {
+      ss << name << ":" << value << ",";
     }
 
-    log::info() << "    - Memory: " << Settings.ramBufferSizePerThread() << " Bytes";
+    auto str = ss.str();
+    if (str.size() > 0) {
+      str.pop_back();
+    }
+
+    return str;
   }
 };
 

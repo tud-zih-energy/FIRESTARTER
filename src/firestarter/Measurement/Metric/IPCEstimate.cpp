@@ -19,51 +19,72 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
-
 #include <chrono>
 #include <cstdlib>
+#include <string>
 
-auto IpcEstimateMetricData::fini() -> int32_t {
-  auto& Instance = instance();
+extern "C" {
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+#include <firestarter/Measurement/MetricInterface.h>
+}
 
-  Instance.Callback = nullptr;
-  Instance.CallbackArg = nullptr;
+static std::string errorString = "";
+
+static void (*callback)(void *, const char *, int64_t, double) = nullptr;
+static void *callback_arg = nullptr;
+
+static int32_t fini(void) {
+  callback = nullptr;
+  callback_arg = nullptr;
 
   return EXIT_SUCCESS;
 }
 
-auto IpcEstimateMetricData::init() -> int32_t {
-  instance().ErrorString = "";
+static int32_t init(void) {
+  errorString = "";
 
   return EXIT_SUCCESS;
 }
 
-auto IpcEstimateMetricData::getError() -> const char* {
-  const char* ErrorCString = instance().ErrorString.c_str();
-  return ErrorCString;
+static const char *get_error(void) {
+  const char *errorCString = errorString.c_str();
+  return errorCString;
 }
 
-auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg)
-    -> int32_t {
-  auto& Instance = instance();
-
-  Instance.Callback = C;
-  Instance.CallbackArg = Arg;
-
+static int32_t register_insert_callback(void (*c)(void *, const char *, int64_t,
+                                                  double),
+                                        void *arg) {
+  callback = c;
+  callback_arg = arg;
   return EXIT_SUCCESS;
 }
 
-void IpcEstimateMetricData::insertValue(double Value) {
-  auto& Instance = instance();
-
-  if (Instance.Callback == nullptr || Instance.CallbackArg == nullptr) {
+void ipc_estimate_metric_insert(double value) {
+  if (callback == nullptr || callback_arg == nullptr) {
     return;
   }
 
-  const int64_t T =
-      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
-          .count();
+  int64_t t = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                  std::chrono::high_resolution_clock::now().time_since_epoch())
+                  .count();
 
-  Instance.Callback(Instance.CallbackArg, "ipc-estimate", T, Value);
+  callback(callback_arg, "ipc-estimate", t, value);
 }
+
+metric_interface_t ipc_estimate_metric = {
+    .name = "ipc-estimate",
+    .type = {.absolute = 1,
+             .accumalative = 0,
+             .divide_by_thread_count = 0,
+             .insert_callback = 1,
+             .ignore_start_stop_delta = 1,
+             .__reserved = 0},
+    .unit = "IPC",
+    .callback_time = 0,
+    .callback = nullptr,
+    .init = init,
+    .fini = fini,
+    .get_reading = nullptr,
+    .get_error = get_error,
+    .register_insert_callback = register_insert_callback,
+};

@@ -2,4 +2,3 @@ result*
 *.swp
 *.swo
 build*/
-.cache/

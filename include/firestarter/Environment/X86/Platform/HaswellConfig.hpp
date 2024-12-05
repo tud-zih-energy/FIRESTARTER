@@ -21,20 +21,24 @@
 
 #pragma once
 
-#include "firestarter/Environment/X86/Payload/FMAPayload.hpp"
-#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
+#include <firestarter/Environment/X86/Payload/FMAPayload.hpp>
+#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
 class HaswellConfig final : public X86PlatformConfig {
+
 public:
-  HaswellConfig() noexcept
-      : X86PlatformConfig(
-            /*Name=*/"HSW_COREI", /*Family=*/6, /*Models=*/{60, 61, 69, 70, 71},
-            /*Settings=*/
-            environment::payload::PayloadSettings(
-                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,
-                /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 2}, {"L3_LS", 3}, {"L2_LS", 9}, {"L1_LS", 90}, {"REG", 40}}),
-            /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
+  HaswellConfig(asmjit::CpuFeatures const &supportedFeatures, unsigned family,
+                unsigned model, unsigned threads)
+      : X86PlatformConfig("HSW_COREI", 6, {60, 61, 69, 70, 71}, {1, 2}, 0,
+                          {32768, 262144, 1572864}, 104857600, 1536, family,
+                          model, threads,
+                          new payload::FMAPayload(supportedFeatures)) {}
+
+  std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings() const override {
+    return std::vector<std::pair<std::string, unsigned>>(
+        {{"RAM_L", 2}, {"L3_LS", 3}, {"L2_LS", 9}, {"L1_LS", 90}, {"REG", 40}});
+  }
 };
 } // namespace firestarter::environment::x86::platform

@@ -21,11 +21,10 @@
 
 #pragma once
 
-#include "firestarter/Json/Summary.hpp" // IWYU pragma: keep
-#include "firestarter/Logging/Log.hpp"
-#include "firestarter/Measurement/Summary.hpp"
-#include "firestarter/Optimizer/Individual.hpp"
-#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
+#include <firestarter/Json/Summary.hpp>
+#include <firestarter/Logging/Log.hpp>
+#include <firestarter/Measurement/Summary.hpp>
+#include <firestarter/Optimizer/Individual.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -33,313 +32,291 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
-#include <memory>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <tuple>
 #include <vector>
+
+extern "C" {
+#include <unistd.h>
+}
 
 namespace firestarter::optimizer {
 
-/// Singleton that handle keeping track of the history of evaluated indivudals and their associated metric summaries.
 struct History {
 private:
-  /// Find the permuation of a vector when sorting it with a supplied comparison function.
-  /// \tparam T The type of the vector elements
-  /// \tparam CompareT The type of the comparison function.
-  /// \arg Vec The const reference to vector that will be sorted.
-  /// \arg Compare The comparision function which will be used to sort the vector.
-  /// \returns The indices of how the vector would be sorted according to the comparison function.
-  template <typename T, typename CompareT>
-  static auto sortPermutation(const std::vector<T>& Vec, CompareT& Compare) -> std::vector<std::size_t> {
-    // https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of/17074810#17074810
-    std::vector<std::size_t> P(Vec.size());
-    std::iota(P.begin(), P.end(), 0);
-    std::sort(P.begin(), P.end(), [&](std::size_t I, std::size_t J) { return Compare(Vec[I], Vec[J]); });
-    return P;
+  // https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of/17074810#17074810
+  template <typename T, typename Compare>
+  inline static std::vector<std::size_t>
+  sortPermutation(const std::vector<T> &vec, Compare &compare) {
+    std::vector<std::size_t> p(vec.size());
+    std::iota(p.begin(), p.end(), 0);
+    std::sort(p.begin(), p.end(), [&](std::size_t i, std::size_t j) {
+      return compare(vec[i], vec[j]);
+    });
+    return p;
   }
 
-  /// Add padding to a stingstream to fill it up to a maximum width.
-  /// \arg Ss The stringstream to add padding to.
-  /// \arg Width The maximum width until which should be padded.
-  /// \arg Taken The number of characters that are already filled up.
-  /// \arg C The character that should be used for padding.
-  static void padding(std::stringstream& Ss, std::size_t Width, std::size_t Taken, char C) {
-    for (std::size_t I = 0; I < (std::max)(Width, Taken) - Taken; ++I) {
-      Ss << C;
+  inline static void padding(std::stringstream &ss, std::size_t width,
+                             std::size_t taken, char c) {
+    for (std::size_t i = 0; i < (std::max)(width, taken) - taken; ++i) {
+      ss << c;
     }
   }
 
-  /// The maximum number of elements that will be printed.
-  static constexpr const int MaxElementPrintCount = 20;
-  /// The minimum width of columns that are printed.
-  static constexpr const std::size_t MinColumnWidth = 10;
+  inline static int MAX_ELEMENT_PRINT_COUNT = 20;
+  inline static std::size_t MIN_COLUMN_WIDTH = 10;
 
-  // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
-  /// The vector of individuals that have been evaluated. This vector has the same size as F.
-  inline static std::vector<Individual> X = {};
-  /// The vector of metric summaries associated to the evaluated individuals. This vector has the same size as X.
-  inline static std::vector<std::map<std::string, firestarter::measurement::Summary>> F = {};
-  // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
+  inline static std::vector<Individual> _x = {};
+  inline static std::vector<
+      std::map<std::string, firestarter::measurement::Summary>>
+      _f = {};
 
 public:
-  /// Append an evaluated individual to the history.
-  /// \arg Ind The individual to add.
-  /// \arg Metric The metric summaries for this individual.
-  static void append(std::vector<unsigned> const& Ind,
-                     std::map<std::string, firestarter::measurement::Summary> const& Metric) {
-    X.push_back(Ind);
-    F.push_back(Metric);
+  inline static void append(
+      std::vector<unsigned> const &ind,
+      std::map<std::string, firestarter::measurement::Summary> const &metric) {
+    _x.push_back(ind);
+    _f.push_back(metric);
   }
 
-  /// Loopup an indiviudal in the history and return the metric summaries if it is in the history.
-  /// \arg Individual The individual which may already be evaluated.
-  /// \returns The metric summaries if the individual is in the history or std::nullopt otherwise.
-  static auto find(std::vector<unsigned> const& Individual)
-      -> std::optional<std::map<std::string, firestarter::measurement::Summary>> {
-    auto FindEqual = [&Individual](auto const& Ind) { return Ind == Individual; };
-    auto Ind = std::find_if(X.begin(), X.end(), FindEqual);
-    if (Ind == X.end()) {
+  inline static std::optional<
+      std::map<std::string, firestarter::measurement::Summary>>
+  find(std::vector<unsigned> const &individual) {
+    auto findEqual = [individual](auto const &ind) {
+      return ind == individual;
+    };
+    auto ind = std::find_if(_x.begin(), _x.end(), findEqual);
+    if (ind == _x.end()) {
       return {};
     }
-    auto Dist = std::distance(X.begin(), Ind);
-    return F[Dist];
+    auto dist = std::distance(_x.begin(), ind);
+    return _f[dist];
   }
 
-  /// Print the best individuals per metric. This will print a table with the average metric value and indiviudals per
-  /// metric.
-  /// \arg OptimizationMetrics The metrics for which the best individual should be printed.
-  /// \arg PayloadItems The instruction of the associated instruction groups used in the optimization.
-  static void printBest(std::vector<std::string> const& OptimizationMetrics,
-                        std::vector<std::string> const& PayloadItems) {
-    // TODO(Issue #76): print paretto front
+  inline static void
+  printBest(std::vector<std::string> const &optimizationMetrics,
+            std::vector<std::string> const &payloadItems) {
+    // TODO: print paretto front
 
     // print the best 20 individuals for each metric in a format
     // where the user can give it to --run-instruction-groups directly
-    std::map<std::string, std::size_t> ColumnWidth;
+    std::map<std::string, std::size_t> columnWidth;
 
-    for (auto const& Metric : OptimizationMetrics) {
-      ColumnWidth[Metric] = (std::max)(Metric.size(), MinColumnWidth);
-      firestarter::log::trace() << Metric << ": " << ColumnWidth[Metric];
+    for (auto const &metric : optimizationMetrics) {
+      columnWidth[metric] = (std::max)(metric.size(), MIN_COLUMN_WIDTH);
+      firestarter::log::trace() << metric << ": " << columnWidth[metric];
     }
 
-    for (auto const& Metric : OptimizationMetrics) {
-      using SummaryMap = std::map<std::string, firestarter::measurement::Summary>;
-      auto CompareIndividual = [&Metric](SummaryMap const& MapA, SummaryMap const& MapB) {
-        auto SummaryA = MapA.find(Metric);
-        auto SummaryB = MapB.find(Metric);
+    for (auto const &metric : optimizationMetrics) {
+      using SummaryMap =
+          std::map<std::string, firestarter::measurement::Summary>;
+      auto compareIndividual = [&metric](SummaryMap const &mapA,
+                                         SummaryMap const &mapB) {
+        auto summaryA = mapA.find(metric);
+        auto summaryB = mapB.find(metric);
 
-        if (SummaryA == MapA.end() || SummaryB == MapB.end()) {
-          SummaryA = MapA.find(Metric.substr(1));
-          SummaryB = MapB.find(Metric.substr(1));
-          assert(SummaryA != MapA.end());
-          assert(SummaryB != MapB.end());
-          return SummaryA->second.Average < SummaryB->second.Average;
+        if (summaryA == mapA.end() || summaryB == mapB.end()) {
+          summaryA = mapA.find(metric.substr(1));
+          summaryB = mapB.find(metric.substr(1));
+          assert(summaryA != mapA.end());
+          assert(summaryB != mapB.end());
+          return summaryA->second.average < summaryB->second.average;
         }
 
-        assert(SummaryA != MapA.end());
-        assert(SummaryB != MapB.end());
-        return SummaryA->second.Average > SummaryB->second.Average;
+        assert(summaryA != mapA.end());
+        assert(summaryB != mapB.end());
+        return summaryA->second.average > summaryB->second.average;
       };
 
-      auto Perm = sortPermutation(F, CompareIndividual);
+      auto perm = sortPermutation(_f, compareIndividual);
 
-      auto FormatIndividual = [&PayloadItems](std::vector<unsigned> const& Individual) {
-        std::string Result;
-        assert(PayloadItems.size() == Individual.size());
+      auto formatIndividual =
+          [&payloadItems](std::vector<unsigned> const &individual) {
+            std::string result = "";
+            assert(payloadItems.size() == individual.size());
 
-        for (std::size_t I = 0; I < Individual.size(); ++I) {
-          // skip zero values
-          if (Individual[I] == 0) {
-            continue;
-          }
+            for (std::size_t i = 0; i < individual.size(); ++i) {
+              // skip zero values
+              if (individual[i] == 0) {
+                continue;
+              }
 
-          if (!Result.empty()) {
-            Result += ",";
-          }
-          Result += PayloadItems[I] + ":" + std::to_string(Individual[I]);
-        }
+              if (result.size() != 0) {
+                result += ",";
+              }
+              result += payloadItems[i] + ":" + std::to_string(individual[i]);
+            }
 
-        return Result;
-      };
+            return result;
+          };
 
-      auto Begin = Perm.begin();
-      auto End = Perm.end();
+      auto begin = perm.begin();
+      auto end = perm.end();
 
-      // stop printing at a max of MaxElementPrintCount
-      if (std::distance(Begin, End) > MaxElementPrintCount) {
-        End = Perm.begin();
-        std::advance(End, MaxElementPrintCount);
+      // stop printing at a max of MAX_ELEMENT_PRINT_COUNT
+      if (std::distance(begin, end) > MAX_ELEMENT_PRINT_COUNT) {
+        end = perm.begin();
+        std::advance(end, MAX_ELEMENT_PRINT_COUNT);
       }
 
       // print each of the best elements
-      std::size_t Max = 0;
-      for (auto It = Begin; It != End; ++It) {
-        Max = (std::max)(Max, FormatIndividual(X[*It]).size());
+      std::size_t max = 0;
+      for (auto it = begin; it != end; ++it) {
+        max = (std::max)(max, formatIndividual(_x[*it]).size());
       }
 
-      std::stringstream FirstLine;
-      std::stringstream SecondLine;
-      std::string const Ind = "INDIVIDUAL";
+      std::stringstream firstLine;
+      std::stringstream secondLine;
+      std::string ind = "INDIVIDUAL";
 
-      FirstLine << "  " << Ind;
-      padding(FirstLine, Max, Ind.size(), ' ');
+      firstLine << "  " << ind;
+      padding(firstLine, max, ind.size(), ' ');
 
-      SecondLine << "  ";
-      padding(SecondLine, (std::max)(Max, Ind.size()), 0, '-');
+      secondLine << "  ";
+      padding(secondLine, (std::max)(max, ind.size()), 0, '-');
 
-      for (auto const& Metric : OptimizationMetrics) {
-        auto Width = ColumnWidth[Metric];
+      for (auto const &metric : optimizationMetrics) {
+        auto width = columnWidth[metric];
 
-        FirstLine << " | ";
-        SecondLine << "---";
+        firstLine << " | ";
+        secondLine << "---";
 
-        FirstLine << Metric;
-        padding(FirstLine, Width, Metric.size(), ' ');
-        padding(SecondLine, Width, 0, '-');
+        firstLine << metric;
+        padding(firstLine, width, metric.size(), ' ');
+        padding(secondLine, width, 0, '-');
       }
 
-      std::stringstream Ss;
+      std::stringstream ss;
 
-      Ss << "\n Best individuals sorted by metric " << Metric << " "
-         << ((Metric[0] == '-') ? "ascending" : "descending") << ":\n"
-         << FirstLine.str() << "\n"
-         << SecondLine.str() << "\n";
+      ss << "\n Best individuals sorted by metric " << metric << " "
+         << ((metric[0] == '-') ? "ascending" : "descending") << ":\n"
+         << firstLine.str() << "\n"
+         << secondLine.str() << "\n";
 
       // print INDIVIDUAL | metric 1 | metric 2 | ... | metric N
-      for (auto It = Begin; It != End; ++It) {
-        auto const& Fitness = F[*It];
-        auto const Ind = FormatIndividual(X[*It]);
+      for (auto it = begin; it != end; ++it) {
+        auto const fitness = _f[*it];
+        auto const ind = formatIndividual(_x[*it]);
 
-        Ss << "  " << Ind;
-        padding(Ss, Max, Ind.size(), ' ');
+        ss << "  " << ind;
+        padding(ss, max, ind.size(), ' ');
 
-        for (auto const& Metric : OptimizationMetrics) {
-          auto Width = ColumnWidth[Metric];
-          std::string Value;
+        for (auto const &metric : optimizationMetrics) {
+          auto width = columnWidth[metric];
+          std::string value;
 
-          auto FitnessOfMetric = Fitness.find(Metric);
-          auto InvertedMetric = Metric.substr(1);
-          auto FitnessOfInvertedMetric = Fitness.find(InvertedMetric);
+          auto fitnessOfMetric = fitness.find(metric);
+          auto invertedMetric = metric.substr(1);
+          auto fitnessOfInvertedMetric = fitness.find(invertedMetric);
 
-          if (FitnessOfMetric != Fitness.end()) {
-            Value = std::to_string(FitnessOfMetric->second.Average);
-          } else if (FitnessOfInvertedMetric != Fitness.end()) {
-            Value = std::to_string(FitnessOfInvertedMetric->second.Average);
+          if (fitnessOfMetric != fitness.end()) {
+            value = std::to_string(fitnessOfMetric->second.average);
+          } else if (fitnessOfInvertedMetric != fitness.end()) {
+            value = std::to_string(fitnessOfInvertedMetric->second.average);
           } else {
             assert(false);
           }
 
-          Ss << " | " << Value;
-          padding(Ss, Width, Value.size(), ' ');
+          ss << " | " << value;
+          padding(ss, width, value.size(), ' ');
         }
-        Ss << "\n";
+        ss << "\n";
       }
 
-      Ss << "\n";
+      ss << "\n";
 
-      firestarter::log::info() << Ss.str();
+      firestarter::log::info() << ss.str();
     }
 
-    firestarter::log::info() << "To run FIRESTARTER with the best individual of a given metric "
-                                "use the command line argument "
-                                "`--run-instruction-groups=INDIVIDUAL`";
+    firestarter::log::info()
+        << "To run FIRESTARTER with the best individual of a given metric "
+           "use the command line argument "
+           "`--run-instruction-groups=INDIVIDUAL`";
   }
 
-  /// Save the history to a file. This function is not threadsafe as is calls History::getTime.
-  /// \arg Path The folder in which the outfile shall be created. If it is empty the current directory name or /tmp will
-  /// be choosen.
-  /// \arg StartTime The start time as a string which is saved in the json datastructure.
-  /// \arg PayloadItems The Vector of meta instructions which map to the vector of individuals.
-  /// \arg Argc The Argc of the executed programm.
-  /// \arg Argv The Argv of the executed programm.
-  static void save(std::string const& Path, std::string const& StartTime, std::vector<std::string> const& PayloadItems,
-                   const int Argc, const char** Argv) {
+  inline static void save(std::string const &path, std::string const &startTime,
+                          std::vector<std::string> const &payloadItems,
+                          const int argc, const char **argv) {
     using json = nlohmann::json;
 
-    json J = json::object();
+    json j = json::object();
 
-    J["individuals"] = json::array();
-    for (auto const& Ind : X) {
-      J["individuals"].push_back(Ind);
+    j["individuals"] = json::array();
+    for (auto const &ind : _x) {
+      j["individuals"].push_back(ind);
     }
 
-    J["metrics"] = json::array();
-    for (auto const& Eval : F) {
-      J["metrics"].push_back(Eval);
+    j["metrics"] = json::array();
+    for (auto const &eval : _f) {
+      j["metrics"].push_back(eval);
     }
 
-    // Initialize a string with length of 256 filled with null characters
-    auto Hostname = std::string(256, 0);
     // get the hostname
-    if (0 != gethostname(Hostname.data(), Hostname.size())) {
-      Hostname = "unknown";
+    char cHostname[256];
+    std::string hostname;
+    if (0 != gethostname(cHostname, sizeof(cHostname))) {
+      hostname = "unknown";
+    } else {
+      hostname = cHostname;
     }
 
-    // Strip away any remaining null terminators
-    if (const auto Pos = Hostname.find('\0'); Pos != std::string::npos) {
-      Hostname.erase(Pos);
-    }
+    j["hostname"] = hostname;
 
-    J["hostname"] = Hostname;
-
-    J["startTime"] = StartTime;
-    J["endTime"] = getTime();
+    j["startTime"] = startTime;
+    j["endTime"] = getTime();
 
     // save the payload items
-    J["payloadItems"] = json::array();
-    for (auto const& Item : PayloadItems) {
-      J["payloadItems"].push_back(Item);
+    j["payloadItems"] = json::array();
+    for (auto const &item : payloadItems) {
+      j["payloadItems"].push_back(item);
     }
 
     // save the arguments
-    J["args"] = json::array();
-    for (int I = 0; I < Argc; ++I) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      J["args"].push_back(Argv[I]);
+    j["args"] = json::array();
+    for (int i = 0; i < argc; ++i) {
+      j["args"].push_back(argv[i]);
     }
 
     // dump the output
-    const auto S = J.dump();
+    std::string s = j.dump();
 
-    firestarter::log::trace() << S;
+    firestarter::log::trace() << s;
 
-    std::string Outpath = Path;
-    if (Outpath.empty()) {
-      // Wrap get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
-      const std::unique_ptr<char, void (*)(void*)> WrappedPwd = {get_current_dir_name(), free};
-      if (WrappedPwd) {
-        // Get the pointer captured in the WrappedPwd (not only the first char as would be with *WrappedPwd)
-        Outpath = WrappedPwd.get();
+    std::string outpath = path;
+    if (outpath.empty()) {
+      char *pwd = get_current_dir_name();
+      if (pwd) {
+        outpath = pwd;
+        free(pwd);
       } else {
         firestarter::log::warn() << "Could not find $PWD.";
-        Outpath = "/tmp";
+        outpath = "/tmp";
       }
-      Outpath += "/" + Hostname + "_" + StartTime + ".json";
+      outpath += "/" + hostname + "_" + startTime + ".json";
     }
 
-    firestarter::log::info() << "\nDumping output json in " << Outpath;
+    firestarter::log::info() << "\nDumping output json in " << outpath;
 
-    std::ofstream Fp(Outpath);
+    std::ofstream fp(outpath);
 
-    if (Fp.bad()) {
-      firestarter::log::error() << "Could not open " << Outpath;
+    if (fp.bad()) {
+      firestarter::log::error() << "Could not open " << outpath;
       return;
     }
 
-    Fp << S;
+    fp << s;
 
-    Fp.close();
+    fp.close();
   }
 
-  /// Get the current time in the local timezone as a string formatted by "%F_%T%z". This function is NOT threadsafe.
-  /// \returns The current time in local timezone as a formatted string.
-  static auto getTime() -> std::string {
-    const auto T = std::time(nullptr);
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    const auto* Tm = std::localtime(&T);
-    std::stringstream Ss;
-    Ss << std::put_time(Tm, "%F_%T%z");
-    return Ss.str();
+  inline static std::string getTime() {
+    auto t = std::time(nullptr);
+    auto tm = *std::localtime(&t);
+    std::stringstream ss;
+    ss << std::put_time(&tm, "%F_%T%z");
+    return ss.str();
   }
 };
 } // namespace firestarter::optimizer

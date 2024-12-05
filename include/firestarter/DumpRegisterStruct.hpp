@@ -21,41 +21,22 @@
 
 #pragma once
 
-#include "firestarter/Constants.hpp"
-
-#include <array>
-
 namespace firestarter {
 
 /* DO NOT CHANGE! the asm load-loop tests if it should dump the current register
  * content */
-// NOLINTBEGIN(performance-enum-size)
-/// This struct defines the variable the is used to control when the registers should be dumped.
-enum class DumpVariable : EightBytesType {
-  /// Start saving register to memory
-  Start = 0,
-  /// When done when change it to the Wait state. There we do nothing.
-  Wait = 1
-};
-// NOLINTEND(performance-enum-size)
+enum DumpVariable : unsigned long long { Start = 0, Wait = 1 };
 
-// The maximal number of SIMD registers. This is currently 32 for zmm registers.
-constexpr const auto RegisterMaxNum = 32;
-/// The maximal number of doubles in SIMD registers. This is currently 8 for zmm registers.
-constexpr const auto RegisterMaxSize = 8;
-/// The maximum number of doubles in SIMD registers multiplied with the maximum number of vector registers.
-constexpr const auto MaxNumberOfDoublesInVectorRegisters = RegisterMaxNum * RegisterMaxSize;
+#define REGISTER_MAX_NUM 32
 
-/// This struct is used to do the communication between the high-load loop and the part of the program that saves the
-/// dumped registers to a file.
 struct DumpRegisterStruct {
-  /// This array will contain the dumped registers. It has the size of 32 Cachelines. (8B doubles * 8 double in a
-  /// register * 32 registers)
-  std::array<double, MaxNumberOfDoublesInVectorRegisters> RegisterValues;
-  /// Pad the DumpVar to use a whole cacheline
-  std::array<EightBytesType, 7> Padding;
-  /// The variable that controls the execution of the dump register code in the high-load routine.
-  volatile DumpVariable DumpVar;
+  // REGISTER_MAX_NUM cachelines
+  volatile double registerValues[REGISTER_MAX_NUM * 8];
+  // pad to use a whole cacheline
+  volatile unsigned long long padding[7];
+  volatile DumpVariable dumpVar;
 };
+
+#undef REGISTER_MAX_NUM
 
 } // namespace firestarter

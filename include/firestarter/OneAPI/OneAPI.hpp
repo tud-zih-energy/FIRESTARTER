@@ -21,61 +21,30 @@
 
 #pragma once
 
-#include "firestarter/Constants.hpp"
-
 #include <condition_variable>
+#include <mutex>
 #include <thread>
+#include <vector>
 
 namespace firestarter::oneapi {
 
-/// This class handles the workload on OneAPI compatible GPUs. A gemm routine is used to stress them with a
-/// constant high load. This header does not include any OneAPI specific headers to allow us to not guard the
-/// include of this header in other parts of the programm.
 class OneAPI {
 private:
-  /// The thread that is used to initilize the gpus. This thread will wait until each thread that runs the gemm routine
-  /// joins.
-  std::thread InitThread;
+  std::thread _initThread;
+  std::condition_variable _waitForInitCv;
+  std::mutex _waitForInitCvMutex;
 
-  /// Spawns a thread for each of the selected gpus, initilizes them and starts the execution of the gemm in parallel.
-  /// \arg WaitForInitCv The condition variables used to signal that all gpus are initialized.
-  /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
-  /// \arg UseFloat Set to true if we want to stress using single precision floating points.
-  /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
-  /// UseDouble is set the precision will be choosen automatically.
-  /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
-  /// automatic selection.
-  /// \arg Gpus Select the number of gpus to stress or -1 for all.
-  static void initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                       bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
+  static void initGpus(std::condition_variable &cv,
+                       volatile unsigned long long *loadVar, bool useFloat,
+                       bool useDouble, unsigned matrixSize, int gpus);
 
 public:
-  /// Initilize the OneAPI class. This will start a thread running the OneAPI::initGpus function and wait until all gpus
-  /// are inititialized.
-  /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
-  /// \arg UseFloat Set to true if we want to stress using single precision floating points.
-  /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
-  /// UseDouble is set the precision will be choosen automatically.
-  /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
-  /// automatic selection.
-  /// \arg Gpus Select the number of gpus to stress or -1 for all.
-  OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
-         int Gpus)
-#if defined(FIRESTARTER_BUILD_ONEAPI)
-      ;
-#else
-  {
-    (void)&LoadVar;
-    (void)UseFloat;
-    (void)UseDouble;
-    (void)MatrixSize;
-    (void)Gpus;
-  }
-#endif
+  OneAPI(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
+       unsigned matrixSize, int gpus);
 
   ~OneAPI() {
-    if (InitThread.joinable()) {
-      InitThread.join();
+    if (_initThread.joinable()) {
+      _initThread.join();
     }
   }
 };

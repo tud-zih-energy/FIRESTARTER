@@ -19,82 +19,88 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Measurement/Summary.hpp"
+#include <firestarter/Measurement/Summary.hpp>
 
 #include <cassert>
 #include <cmath>
 
-namespace firestarter::measurement {
+using namespace firestarter::measurement;
 
 // this functions borows a lot of code from
 // https://github.com/metricq/metricq-cpp/blob/master/tools/metricq-summary/src/summary.cpp
-auto Summary::calculate(std::vector<TimeValue>::iterator Begin, std::vector<TimeValue>::iterator End,
-                        MetricType MetricType, uint64_t NumThreads) -> Summary {
-  std::vector<TimeValue> Values;
+Summary Summary::calculate(std::vector<TimeValue>::iterator begin,
+                           std::vector<TimeValue>::iterator end,
+                           metric_type_t metricType,
+                           unsigned long long numThreads) {
+  std::vector<TimeValue> values = {};
 
-  if (MetricType.Accumalative) {
-    TimeValue Prev;
+  // TODO: i would really like to make this code a bit more readable, but i
+  // could not find a way yet.
+  if (metricType.accumalative) {
+    TimeValue prev;
 
-    if (Begin != End) {
-      Prev = *Begin++;
-      for (auto It = Begin; It != End; ++It) {
-        auto TimeDiff = 1e-6 * static_cast<double>(
-                                   std::chrono::duration_cast<std::chrono::microseconds>(It->Time - Prev.Time).count());
-        auto ValueDiff = It->Value - Prev.Value;
+    if (begin != end) {
+      prev = *begin++;
+      for (auto it = begin; it != end; ++it) {
+        auto time_diff =
+            1e-6 *
+            (double)std::chrono::duration_cast<std::chrono::microseconds>(
+                it->time - prev.time)
+                .count();
+        auto value_diff = it->value - prev.value;
 
-        double Value = ValueDiff / TimeDiff;
+        double value = value_diff / time_diff;
 
-        if (MetricType.DivideByThreadCount) {
-          Value /= static_cast<double>(NumThreads);
+        if (metricType.divide_by_thread_count) {
+          value /= numThreads;
         }
 
-        Values.emplace_back(Prev.Time, Value);
-        Prev = *It;
+        values.push_back(TimeValue(prev.time, value));
+        prev = *it;
       }
     }
-  } else if (MetricType.Absolute) {
-    for (auto It = Begin; It != End; ++It) {
-      double Value = It->Value;
+  } else if (metricType.absolute) {
+    for (auto it = begin; it != end; ++it) {
+      double value = it->value;
 
-      if (MetricType.DivideByThreadCount) {
-        Value /= static_cast<double>(NumThreads);
+      if (metricType.divide_by_thread_count) {
+        value /= numThreads;
       }
 
-      Values.emplace_back(It->Time, Value);
+      values.push_back(TimeValue(it->time, value));
     }
   } else {
     assert(false);
   }
 
-  Begin = Values.begin();
-  End = Values.end();
+  begin = values.begin();
+  end = values.end();
 
-  Summary SummaryVal{};
+  Summary summary{};
 
-  SummaryVal.NumTimepoints = std::distance(Begin, End);
+  summary.num_timepoints = std::distance(begin, end);
 
-  if (SummaryVal.NumTimepoints > 0) {
+  if (summary.num_timepoints > 0) {
 
-    auto Last = Begin;
-    std::advance(Last, SummaryVal.NumTimepoints - 1);
-    SummaryVal.Duration = std::chrono::duration_cast<std::chrono::milliseconds>(Last->Time - Begin->Time);
+    auto last = begin;
+    std::advance(last, summary.num_timepoints - 1);
+    summary.duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        last->time - begin->time);
 
-    auto SumOverNths = [&Begin, End, SummaryVal](auto Fn) {
-      double Acc = 0.0;
-      for (auto It = Begin; It != End; ++It) {
-        Acc += Fn(It->Value);
+    auto sum_over_nths = [&begin, end, summary](auto fn) {
+      double acc = 0.0;
+      for (auto it = begin; it != end; ++it) {
+        acc += fn(it->value);
       }
-      return Acc / static_cast<double>(SummaryVal.NumTimepoints);
+      return acc / summary.num_timepoints;
     };
 
-    SummaryVal.Average = SumOverNths([](double V) { return V; });
-    SummaryVal.Stddev = std::sqrt(SumOverNths([&SummaryVal](double V) {
-      const auto Centered = V - SummaryVal.Average;
-      return Centered * Centered;
+    summary.average = sum_over_nths([](double v) { return v; });
+    summary.stddev = std::sqrt(sum_over_nths([&summary](double v) {
+      double centered = v - summary.average;
+      return centered * centered;
     }));
   }
 
-  return SummaryVal;
+  return summary;
 }
-
-} // namespace firestarter::measurement

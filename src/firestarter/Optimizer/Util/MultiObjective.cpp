@@ -21,7 +21,7 @@
 
 // This file borrows a lot of code from https://github.com/esa/pagmo2
 
-#include "firestarter/Optimizer/Util/MultiObjective.hpp"
+#include <firestarter/Optimizer/Util/MultiObjective.hpp>
 
 #include <algorithm>
 #include <stdexcept>
@@ -32,30 +32,35 @@ namespace firestarter::optimizer::util {
 // Less than compares floating point types placing nans after inf or before -inf
 // It is a useful function when calling e.g. std::sort to guarantee a weak
 // strict ordering and avoid an undefined behaviour
-auto lessThanF(double A, double B) -> bool {
-  if (!std::isnan(A)) {
-    if (!std::isnan(B)) {
-      return A < B; // a < b
-    }
-    return true; // a < nan
+bool less_than_f(double a, double b) {
+  if (!std::isnan(a)) {
+    if (!std::isnan(b))
+      return a < b; // a < b
+    else
+      return true; // a < nan
+  } else {
+    if (!std::isnan(b))
+      return false; // nan < b
+    else
+      return false; // nan < nan
   }
-  // nan < b or nan < nan
-  return false;
 }
 
 // Greater than compares floating point types placing nans after inf or before
 // -inf It is a useful function when calling e.g. std::sort to guarantee a weak
 // strict ordering and avoid an undefined behaviour
-auto greaterThanF(double A, double B) -> bool {
-  if (!std::isnan(A)) {
-    if (!std::isnan(B)) {
-      return A > B; // a > b
-    }
-    return false; // a > nan
+bool greater_than_f(double a, double b) {
+  if (!std::isnan(a)) {
+    if (!std::isnan(b))
+      return a > b; // a > b
+    else
+      return false; // a > nan
+  } else {
+    if (!std::isnan(b))
+      return true; // nan > b
+    else
+      return false; // nan > nan
   }
-  // nan > b -> true
-  // nan > nan -> false
-  return !std::isnan(B);
 }
 
 /// Pareto-dominance
@@ -76,22 +81,23 @@ auto greaterThanF(double A, double B) -> bool {
  * @throws std::invalid_argument if the dimensions of the two objectives are
  * different
  */
-auto paretoDominance(const std::vector<double>& Obj1, const std::vector<double>& Obj2) -> bool {
-  if (Obj1.size() != Obj2.size()) {
+bool pareto_dominance(const std::vector<double> &obj1,
+                      const std::vector<double> &obj2) {
+  if (obj1.size() != obj2.size()) {
     throw std::invalid_argument(
-        "Different number of objectives found in input fitnesses: " + std::to_string(Obj1.size()) + " and " +
-        std::to_string(Obj2.size()) + ". I cannot define dominance");
+        "Different number of objectives found in input fitnesses: " +
+        std::to_string(obj1.size()) + " and " + std::to_string(obj2.size()) +
+        ". I cannot define dominance");
   }
-  bool FoundStrictlyDominatingDimension = false;
-  for (decltype(Obj1.size()) I = 0U; I < Obj1.size(); ++I) {
-    if (greaterThanF(Obj2[I], Obj1[I])) {
+  bool found_strictly_dominating_dimension = false;
+  for (decltype(obj1.size()) i = 0u; i < obj1.size(); ++i) {
+    if (greater_than_f(obj2[i], obj1[i])) {
       return false;
-    }
-    if (lessThanF(Obj2[I], Obj1[I])) {
-      FoundStrictlyDominatingDimension = true;
+    } else if (less_than_f(obj2[i], obj1[i])) {
+      found_strictly_dominating_dimension = true;
     }
   }
-  return FoundStrictlyDominatingDimension;
+  return found_strictly_dominating_dimension;
 }
 
 /// Fast non dominated sorting
@@ -124,63 +130,67 @@ auto paretoDominance(const std::vector<double>& Obj1, const std::vector<double>&
  *
  * @throws std::invalid_argument If the size of \p points is not at least 2
  */
-auto fastNonDominatedSorting(const std::vector<std::vector<double>>& Points)
-    -> std::tuple<std::vector<std::vector<std::size_t>>, std::vector<std::vector<std::size_t>>,
-                  std::vector<std::size_t>, std::vector<std::size_t>> {
-  auto N = Points.size();
+std::tuple<std::vector<std::vector<std::size_t>>,
+           std::vector<std::vector<std::size_t>>, std::vector<std::size_t>,
+           std::vector<std::size_t>>
+fast_non_dominated_sorting(const std::vector<std::vector<double>> &points) {
+  auto N = points.size();
   // We make sure to have two points at least (one could also be allowed)
-  if (N < 2U) {
-    throw std::invalid_argument("At least two points are needed for fast_non_dominated_sorting: " + std::to_string(N) +
-                                " detected.");
+  if (N < 2u) {
+    throw std::invalid_argument(
+        "At least two points are needed for fast_non_dominated_sorting: " +
+        std::to_string(N) + " detected.");
   }
   // Initialize the return values
-  std::vector<std::vector<std::size_t>> NonDomFronts(1U);
-  std::vector<std::vector<std::size_t>> DomList(N);
-  std::vector<std::size_t> DomCount(N);
-  std::vector<std::size_t> NonDomRank(N);
+  std::vector<std::vector<std::size_t>> non_dom_fronts(1u);
+  std::vector<std::vector<std::size_t>> dom_list(N);
+  std::vector<std::size_t> dom_count(N);
+  std::vector<std::size_t> non_dom_rank(N);
 
   // Start the fast non dominated sort algorithm
-  for (decltype(N) I = 0U; I < N; ++I) {
-    DomList[I].clear();
-    DomCount[I] = 0U;
-    for (decltype(N) J = 0U; J < I; ++J) {
-      if (paretoDominance(Points[I], Points[J])) {
-        DomList[I].push_back(J);
-        ++DomCount[J];
-      } else if (paretoDominance(Points[J], Points[I])) {
-        DomList[J].push_back(I);
-        ++DomCount[I];
+  for (decltype(N) i = 0u; i < N; ++i) {
+    dom_list[i].clear();
+    dom_count[i] = 0u;
+    for (decltype(N) j = 0u; j < i; ++j) {
+      if (pareto_dominance(points[i], points[j])) {
+        dom_list[i].push_back(j);
+        ++dom_count[j];
+      } else if (pareto_dominance(points[j], points[i])) {
+        dom_list[j].push_back(i);
+        ++dom_count[i];
       }
     }
   }
-  for (decltype(N) I = 0U; I < N; ++I) {
-    if (DomCount[I] == 0U) {
-      NonDomRank[I] = 0U;
-      NonDomFronts[0].push_back(I);
+  for (decltype(N) i = 0u; i < N; ++i) {
+    if (dom_count[i] == 0u) {
+      non_dom_rank[i] = 0u;
+      non_dom_fronts[0].push_back(i);
     }
   }
   // we copy dom_count as we want to output its value at this point
-  auto DomCountCopy(DomCount);
-  auto CurrentFront = NonDomFronts[0];
-  std::vector<std::vector<std::size_t>>::size_type FrontCounter(0U);
-  while (!CurrentFront.empty()) {
-    std::vector<std::size_t> NextFront;
-    for (const auto& P : CurrentFront) {
-      for (const auto& Q : DomList[P]) {
-        --DomCountCopy[Q];
-        if (DomCountCopy[Q] == 0U) {
-          NonDomRank[Q] = FrontCounter + 1U;
-          NextFront.push_back(Q);
+  auto dom_count_copy(dom_count);
+  auto current_front = non_dom_fronts[0];
+  std::vector<std::vector<std::size_t>>::size_type front_counter(0u);
+  while (current_front.size() != 0u) {
+    std::vector<std::size_t> next_front;
+    for (decltype(current_front.size()) p = 0u; p < current_front.size(); ++p) {
+      for (decltype(dom_list[current_front[p]].size()) q = 0u;
+           q < dom_list[current_front[p]].size(); ++q) {
+        --dom_count_copy[dom_list[current_front[p]][q]];
+        if (dom_count_copy[dom_list[current_front[p]][q]] == 0u) {
+          non_dom_rank[dom_list[current_front[p]][q]] = front_counter + 1u;
+          next_front.push_back(dom_list[current_front[p]][q]);
         }
       }
     }
-    ++FrontCounter;
-    CurrentFront = NextFront;
-    if (!CurrentFront.empty()) {
-      NonDomFronts.push_back(CurrentFront);
+    ++front_counter;
+    current_front = next_front;
+    if (current_front.size() != 0u) {
+      non_dom_fronts.push_back(current_front);
     }
   }
-  return std::make_tuple(std::move(NonDomFronts), std::move(DomList), std::move(DomCount), std::move(NonDomRank));
+  return std::make_tuple(std::move(non_dom_fronts), std::move(dom_list),
+                         std::move(dom_count), std::move(non_dom_rank));
 }
 
 /// Crowding distance
@@ -208,64 +218,69 @@ auto fastNonDominatedSorting(const std::vector<std::vector<double>>& Points)
  * @throws std::invalid_argument If points in \p non_dom_front do not all have
  * the same dimensionality
  */
-auto crowdingDistance(const std::vector<std::vector<double>>& NonDomFront) -> std::vector<double> {
-  auto N = NonDomFront.size();
+std::vector<double>
+crowding_distance(const std::vector<std::vector<double>> &non_dom_front) {
+  auto N = non_dom_front.size();
   // We make sure to have two points at least
-  if (N < 2U) {
-    throw std::invalid_argument("A non dominated front must contain at least two points: " + std::to_string(N) +
-                                " detected.");
+  if (N < 2u) {
+    throw std::invalid_argument(
+        "A non dominated front must contain at least two points: " +
+        std::to_string(N) + " detected.");
   }
-  auto M = NonDomFront[0].size();
+  auto M = non_dom_front[0].size();
   // We make sure the first point of the input non dominated front contains at
   // least two objectives
-  if (M < 2U) {
+  if (M < 2u) {
     throw std::invalid_argument("Points in the non dominated front must "
                                 "contain at least two objectives: " +
                                 std::to_string(M) + " detected.");
   }
   // We make sure all points contain the same number of objectives
-  if (!std::all_of(NonDomFront.begin(), NonDomFront.end(),
-                   [M](const std::vector<double>& Item) { return Item.size() == M; })) {
+  if (!std::all_of(
+          non_dom_front.begin(), non_dom_front.end(),
+          [M](const std::vector<double> &item) { return item.size() == M; })) {
     throw std::invalid_argument("A non dominated front must contain points of "
                                 "uniform dimensionality. Some "
                                 "different sizes were instead detected.");
   }
-  std::vector<std::size_t> Indexes(N);
-  std::iota(Indexes.begin(), Indexes.end(), static_cast<std::size_t>(0U));
-  std::vector<double> Retval(N, 0.);
-  for (decltype(M) I = 0U; I < M; ++I) {
-    std::sort(Indexes.begin(), Indexes.end(), [I, &NonDomFront](std::size_t Idx1, std::size_t Idx2) {
-      return lessThanF(NonDomFront[Idx1][I], NonDomFront[Idx2][I]);
-    });
-    Retval[Indexes[0]] = std::numeric_limits<double>::infinity();
-    Retval[Indexes[N - 1U]] = std::numeric_limits<double>::infinity();
-    const double Df = NonDomFront[Indexes[N - 1U]][I] - NonDomFront[Indexes[0]][I];
-    for (decltype(N - 2U) J = 1U; J < N - 1U; ++J) {
-      Retval[Indexes[J]] += (NonDomFront[Indexes[J + 1U]][I] - NonDomFront[Indexes[J - 1U]][I]) / Df;
+  std::vector<std::size_t> indexes(N);
+  std::iota(indexes.begin(), indexes.end(), std::size_t(0u));
+  std::vector<double> retval(N, 0.);
+  for (decltype(M) i = 0u; i < M; ++i) {
+    std::sort(indexes.begin(), indexes.end(),
+              [i, &non_dom_front](std::size_t idx1, std::size_t idx2) {
+                return less_than_f(non_dom_front[idx1][i],
+                                   non_dom_front[idx2][i]);
+              });
+    retval[indexes[0]] = std::numeric_limits<double>::infinity();
+    retval[indexes[N - 1u]] = std::numeric_limits<double>::infinity();
+    double df =
+        non_dom_front[indexes[N - 1u]][i] - non_dom_front[indexes[0]][i];
+    for (decltype(N - 2u) j = 1u; j < N - 1u; ++j) {
+      retval[indexes[j]] += (non_dom_front[indexes[j + 1u]][i] -
+                             non_dom_front[indexes[j - 1u]][i]) /
+                            df;
     }
   }
-  return Retval;
+  return retval;
 }
 
 // Multi-objective tournament selection. Requires all sizes to be consistent.
 // Does not check if input is well formed.
-auto moTournamentSelection(std::vector<double>::size_type Idx1, std::vector<double>::size_type Idx2,
-                           const std::vector<std::vector<double>::size_type>& NonDominationRank,
-                           const std::vector<double>& CrowdingD, std::mt19937& Mt) -> std::vector<double>::size_type {
-  if (NonDominationRank[Idx1] < NonDominationRank[Idx2]) {
-    return Idx1;
-  }
-  if (NonDominationRank[Idx1] > NonDominationRank[Idx2]) {
-    return Idx2;
-  }
-  if (CrowdingD[Idx1] > CrowdingD[Idx2]) {
-    return Idx1;
-  }
-  if (CrowdingD[Idx1] < CrowdingD[Idx2]) {
-    return Idx2;
-  }
-  std::uniform_real_distribution<> Drng(0., 1.);
-  return ((Drng(Mt) < 0.5) ? Idx1 : Idx2);
+std::vector<double>::size_type mo_tournament_selection(
+    std::vector<double>::size_type idx1, std::vector<double>::size_type idx2,
+    const std::vector<std::vector<double>::size_type> &non_domination_rank,
+    const std::vector<double> &crowding_d, std::mt19937 &mt) {
+  if (non_domination_rank[idx1] < non_domination_rank[idx2])
+    return idx1;
+  if (non_domination_rank[idx1] > non_domination_rank[idx2])
+    return idx2;
+  if (crowding_d[idx1] > crowding_d[idx2])
+    return idx1;
+  if (crowding_d[idx1] < crowding_d[idx2])
+    return idx2;
+  std::uniform_real_distribution<> drng(0., 1.);
+  return ((drng(mt) < 0.5) ? idx1 : idx2);
 }
 
 // Implementation of the binary crossover.
@@ -273,56 +288,66 @@ auto moTournamentSelection(std::vector<double>::size_type Idx1, std::vector<doub
 // otherwise Requires dimensions of the parent and bounds to be equal -> out of
 // bound reads. nix is the integer dimension (integer alleles assumed at the end
 // of the chromosome)
-auto sbxCrossover(const firestarter::optimizer::Individual& Parent1, const firestarter::optimizer::Individual& Parent2,
-                  const double PCr, std::mt19937& Mt)
-    -> std::pair<firestarter::optimizer::Individual, firestarter::optimizer::Individual> {
+std::pair<firestarter::optimizer::Individual,
+          firestarter::optimizer::Individual>
+sbx_crossover(const firestarter::optimizer::Individual &parent1,
+              const firestarter::optimizer::Individual &parent2,
+              const double p_cr, std::mt19937 &mt) {
   // Decision vector dimensions
-  auto Nix = Parent1.size();
+  auto nix = parent1.size();
+  firestarter::optimizer::Individual::size_type site1, site2;
   // Initialize the child decision vectors
-  firestarter::optimizer::Individual Child1 = Parent1;
-  firestarter::optimizer::Individual Child2 = Parent2;
+  firestarter::optimizer::Individual child1 = parent1;
+  firestarter::optimizer::Individual child2 = parent2;
   // Random distributions
-  std::uniform_real_distribution<> Drng(0.,
+  std::uniform_real_distribution<> drng(0.,
                                         1.); // to generate a number in [0, 1)
 
   // This implements a Simulated Binary Crossover SBX
-  if (Drng(Mt) < PCr) { // No crossever at all will happen with probability p_cr
+  if (drng(mt) <
+      p_cr) { // No crossever at all will happen with probability p_cr
     // This implements two-points crossover and applies it to the integer part
     // of the chromosome.
-    if (Nix > 0U) {
-      std::uniform_int_distribution<firestarter::optimizer::Individual::size_type> RaNum(0, Nix - 1U);
-      auto Site1 = RaNum(Mt);
-      auto Site2 = RaNum(Mt);
-      if (Site1 > Site2) {
-        std::swap(Site1, Site2);
+    if (nix > 0u) {
+      std::uniform_int_distribution<
+          firestarter::optimizer::Individual::size_type>
+          ra_num(0, nix - 1u);
+      site1 = ra_num(mt);
+      site2 = ra_num(mt);
+      if (site1 > site2) {
+        std::swap(site1, site2);
       }
-      for (decltype(Site2) J = Site1; J <= Site2; ++J) {
-        Child1[J] = Parent2[J];
-        Child2[J] = Parent1[J];
+      for (decltype(site2) j = site1; j <= site2; ++j) {
+        child1[j] = parent2[j];
+        child2[j] = parent1[j];
       }
     }
   }
-  return std::make_pair(std::move(Child1), std::move(Child2));
+  return std::make_pair(std::move(child1), std::move(child2));
 }
 
 // Performs polynomial mutation. Requires all sizes to be consistent. Does not
 // check if input is well formed. p_m is the mutation probability
-void polynomialMutation(firestarter::optimizer::Individual& Child,
-                        const std::vector<std::tuple<unsigned, unsigned>>& Bounds, const double PM, std::mt19937& Mt) {
+void polynomial_mutation(
+    firestarter::optimizer::Individual &child,
+    const std::vector<std::tuple<unsigned, unsigned>> &bounds, const double p_m,
+    std::mt19937 &mt) {
   // Decision vector dimensions
-  auto Nix = Child.size();
+  auto nix = child.size();
   // Random distributions
-  std::uniform_real_distribution<> Drng(0.,
+  std::uniform_real_distribution<> drng(0.,
                                         1.); // to generate a number in [0, 1)
   // This implements the integer mutation for an individual
-  for (decltype(Nix) J = 0; J < Nix; ++J) {
-    if (Drng(Mt) < PM) {
+  for (decltype(nix) j = 0; j < nix; ++j) {
+    if (drng(mt) < p_m) {
       // We need to draw a random integer in [lb, ub].
-      auto Lb = std::get<0>(Bounds[J]);
-      auto Ub = std::get<1>(Bounds[J]);
-      std::uniform_int_distribution<firestarter::optimizer::Individual::size_type> Dist(Lb, Ub);
-      auto Mutated = Dist(Mt);
-      Child[J] = Mutated;
+      auto lb = std::get<0>(bounds[j]);
+      auto ub = std::get<1>(bounds[j]);
+      std::uniform_int_distribution<
+          firestarter::optimizer::Individual::size_type>
+          dist(lb, ub);
+      auto mutated = dist(mt);
+      child[j] = mutated;
     }
   }
 }
@@ -359,58 +384,61 @@ void polynomialMutation(firestarter::optimizer::Individual& Child,
  * @throws unspecified all exceptions thrown by
  * pagmo::fast_non_dominated_sorting and pagmo::crowding_distance
  */
-auto selectBestNMo(const std::vector<std::vector<double>>& InputF, std::size_t N) -> std::vector<std::size_t> {
-  if (N == 0U) { // corner case
+std::vector<std::size_t>
+select_best_N_mo(const std::vector<std::vector<double>> &input_f,
+                 std::size_t N) {
+  if (N == 0u) { // corner case
     return {};
   }
-  if (InputF.empty()) { // corner case
+  if (input_f.size() == 0u) { // corner case
     return {};
   }
-  if (InputF.size() == 1U) { // corner case
-    return {0U};
+  if (input_f.size() == 1u) { // corner case
+    return {0u};
   }
-  if (N >= InputF.size()) { // corner case
-    std::vector<std::size_t> Retval(InputF.size());
-    std::iota(Retval.begin(), Retval.end(), static_cast<std::size_t>(0U));
-    return Retval;
+  if (N >= input_f.size()) { // corner case
+    std::vector<std::size_t> retval(input_f.size());
+    std::iota(retval.begin(), retval.end(), std::size_t(0u));
+    return retval;
   }
-  std::vector<std::size_t> Retval;
-  std::vector<std::size_t>::size_type FrontId(0U);
+  std::vector<std::size_t> retval;
+  std::vector<std::size_t>::size_type front_id(0u);
   // Run fast-non-dominated sorting
-  auto Tuple = fastNonDominatedSorting(InputF);
+  auto tuple = fast_non_dominated_sorting(input_f);
   // Insert all non dominated fronts if not more than N
-  for (const auto& Front : std::get<0>(Tuple)) {
-    if (Retval.size() + Front.size() <= N) {
-      for (auto I : Front) {
-        Retval.push_back(I);
+  for (const auto &front : std::get<0>(tuple)) {
+    if (retval.size() + front.size() <= N) {
+      for (auto i : front) {
+        retval.push_back(i);
       }
-      if (Retval.size() == N) {
-        return Retval;
+      if (retval.size() == N) {
+        return retval;
       }
-      ++FrontId;
+      ++front_id;
     } else {
       break;
     }
   }
-  auto Front = std::get<0>(Tuple)[FrontId];
-  std::vector<std::vector<double>> NonDomFits(Front.size());
+  auto front = std::get<0>(tuple)[front_id];
+  std::vector<std::vector<double>> non_dom_fits(front.size());
   // Run crowding distance for the front
-  for (decltype(Front.size()) I = 0U; I < Front.size(); ++I) {
-    NonDomFits[I] = InputF[Front[I]];
+  for (decltype(front.size()) i = 0u; i < front.size(); ++i) {
+    non_dom_fits[i] = input_f[front[i]];
   }
-  std::vector<double> Cds(crowdingDistance(NonDomFits));
+  std::vector<double> cds(crowding_distance(non_dom_fits));
   // We now have front and crowding distance, we sort the front w.r.t. the
   // crowding
-  std::vector<std::size_t> Idxs(Front.size());
-  std::iota(Idxs.begin(), Idxs.end(), static_cast<std::size_t>(0U));
-  std::sort(Idxs.begin(), Idxs.end(), [&Cds](std::size_t Idx1, std::size_t Idx2) {
-    return greaterThanF(Cds[Idx1], Cds[Idx2]);
-  }); // Descending order1
-  auto Remaining = N - Retval.size();
-  for (decltype(Remaining) I = 0U; I < Remaining; ++I) {
-    Retval.push_back(Front[Idxs[I]]);
+  std::vector<std::size_t> idxs(front.size());
+  std::iota(idxs.begin(), idxs.end(), std::size_t(0u));
+  std::sort(idxs.begin(), idxs.end(),
+            [&cds](std::size_t idx1, std::size_t idx2) {
+              return greater_than_f(cds[idx1], cds[idx2]);
+            }); // Descending order1
+  auto remaining = N - retval.size();
+  for (decltype(remaining) i = 0u; i < remaining; ++i) {
+    retval.push_back(front[idxs[i]]);
   }
-  return Retval;
+  return retval;
 }
 
 /// Ideal point
@@ -430,30 +458,31 @@ auto selectBestNMo(const std::vector<std::vector<double>>& InputF, std::size_t N
  * @throws std::invalid_argument if the input objective vectors are not all of
  * the same size
  */
-auto ideal(const std::vector<std::vector<double>>& Points) -> std::vector<double> {
+std::vector<double> ideal(const std::vector<std::vector<double>> &points) {
   // Corner case
-  if (Points.empty()) {
+  if (points.size() == 0u) {
     return {};
   }
 
   // Sanity checks
-  auto M = Points[0].size();
-  for (const auto& F : Points) {
-    if (F.size() != M) {
+  auto M = points[0].size();
+  for (const auto &f : points) {
+    if (f.size() != M) {
       throw std::invalid_argument("Input vector of objectives must contain "
                                   "fitness vector of equal dimension " +
                                   std::to_string(M));
     }
   }
   // Actual algorithm
-  std::vector<double> Retval(M);
-  for (decltype(M) I = 0U; I < M; ++I) {
-    Retval[I] = (*std::min_element(Points.begin(), Points.end(),
-                                   [I](const std::vector<double>& F1, const std::vector<double>& F2) {
-                                     return util::greaterThanF(F1[I], F2[I]);
-                                   }))[I];
+  std::vector<double> retval(M);
+  for (decltype(M) i = 0u; i < M; ++i) {
+    retval[i] = (*std::min_element(
+        points.begin(), points.end(),
+        [i](const std::vector<double> &f1, const std::vector<double> &f2) {
+          return util::greater_than_f(f1[i], f2[i]);
+        }))[i];
   }
-  return Retval;
+  return retval;
 }
 
 } // namespace firestarter::optimizer::util

@@ -21,9 +21,7 @@
 
 #pragma once
 
-#include <cstdint>
 #include <list>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -34,93 +32,54 @@ extern "C" {
 
 namespace firestarter::environment {
 
-/// This class models the properties of a processor.
 class CPUTopology {
 public:
-  explicit CPUTopology(std::string Architecture);
+  CPUTopology(std::string architecture);
   virtual ~CPUTopology();
 
-  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream&;
+  unsigned numThreads() const {
+    return _numThreadsPerCore * _numCoresTotal;
+  }
+  unsigned maxNumThreads() const;
+  unsigned numThreadsPerCore() const { return _numThreadsPerCore; }
+  unsigned numCoresTotal() const { return _numCoresTotal; }
+  unsigned numPackages() const { return _numPackages; }
 
-  /// The total number of hardware threads.
-  [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
-  /// The maximum os_index of all PUs plus 1 if we cannot determine the number of cpu kinds. Otherwise the maximum
-  /// number of PUs.
-  [[nodiscard]] auto maxNumThreads() const -> unsigned;
-  /// Assuming we have a consistent number of threads per core. The number of thread per core.
-  [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
-  /// The total number of cores.
-  [[nodiscard]] auto numCoresTotal() const -> unsigned { return NumCoresTotal; }
-  /// The total number of packages.
-  [[nodiscard]] auto numPackages() const -> unsigned { return NumPackages; }
-  /// The CPU architecture e.g., x86_64
-  [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
-  /// The CPU vendor i.e., Intel or AMD.
-  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
-  /// The processor name, this includes the vendor specific name
-  [[nodiscard]] virtual auto processorName() const -> std::string const& { return ProcessorName; }
-  /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
-  [[nodiscard]] virtual auto model() const -> std::string const& = 0;
+  std::string const &architecture() const { return _architecture; }
+  virtual std::string const &vendor() const { return _vendor; }
+  virtual std::string const &processorName() const { return _processorName; }
+  virtual std::string const &model() const = 0;
 
-  /// Getter for the L1i-cache size in bytes
-  [[nodiscard]] auto instructionCacheSize() const -> const auto& { return InstructionCacheSize; }
+  // get the size of the L1i-cache in bytes
+  unsigned instructionCacheSize() const { return _instructionCacheSize; }
 
-  /// Getter for the clockrate in Hz
-  [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
+  // return the cpu clockrate in Hz
+  virtual unsigned long long clockrate() const { return _clockrate; }
+  // return the cpu features
+  virtual std::list<std::string> const &features() const = 0;
 
-  /// Getter for the list of CPU features
-  [[nodiscard]] virtual auto features() const -> std::list<std::string> const& = 0;
+  // get a timestamp
+  virtual unsigned long long timestamp() const = 0;
 
-  /// Get the current hardware timestamp
-  [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
-
-  /// Get the logical index of the core that housed the PU which is described by the os index.
-  /// \arg Pu The os index of the thread.
-  /// \returns Optionally the logical index of the CPU that houses this hardware thread.
-  [[nodiscard]] auto getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
-
-  /// Get the logical index of the package that housed the PU which is described by the os index.
-  /// \arg Pu The os index of the thread.
-  /// \returns Optionally the logical index of the package that houses this hardware thread.
-  [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
+  int getPkgIdFromPU(unsigned pu) const;
+  int getCoreIdFromPU(unsigned pu) const;
 
 protected:
-  /// Read the scaling_govenor file of cpu0 on linux and return the contents as a string.
-  [[nodiscard]] static auto scalingGovernor() -> std::string;
-
-  /// Print the information about this process to a stream.
-  [[nodiscard]] auto print(std::ostream& Stream) const -> std::ostream&;
+  std::string scalingGovernor() const;
+  std::ostream &print(std::ostream &stream) const;
 
 private:
-  /// The CPU vendor i.e., Intel or AMD.
-  std::string Vendor;
+  static std::stringstream getFileAsStream(std::string const &filePath);
 
-  /// Helper function to open a filepath and return a stringstream with its contents.
-  /// \arg FilePath The file to open
-  /// \returns A stringstream with the contents of the file.
-  [[nodiscard]] static auto getFileAsStream(std::string const& FilePath) -> std::stringstream;
-
-  /// Assuming we have a consistent number of threads per core. The number of thread per core.
-  unsigned NumThreadsPerCore;
-  /// The total number of cores.
-  unsigned NumCoresTotal;
-  /// The total number of packages.
-  unsigned NumPackages;
-
-  /// The CPU architecture e.g., x86_64
-  std::string Architecture;
-  /// The processor name, this includes the vendor specific name
-  std::string ProcessorName;
-  /// The optional size of the instruction cache per core.
-  std::optional<unsigned> InstructionCacheSize;
-  /// Clockrate of the CPU in Hz
-  uint64_t Clockrate = 0;
-  /// The hwloc topology that is used to query information about the processor.
-  hwloc_topology_t Topology{};
+  unsigned _numThreadsPerCore;
+  unsigned _numCoresTotal;
+  unsigned _numPackages;
+  std::string _architecture;
+  std::string _vendor = "";
+  std::string _processorName = "";
+  unsigned _instructionCacheSize = 0;
+  unsigned long long _clockrate = 0;
+  hwloc_topology_t topology;
 };
-
-inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream& {
-  return CpuTopologyRef.print(Stream);
-}
 
 } // namespace firestarter::environment

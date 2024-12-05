@@ -19,117 +19,127 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/CPUTopology.hpp"
-#include "firestarter/Logging/Log.hpp"
+#include <firestarter/Environment/CPUTopology.hpp>
+#include <firestarter/Logging/Log.hpp>
 
 #include <array>
 #include <fstream>
 #include <regex>
-#include <utility>
 
-namespace firestarter::environment {
+extern "C" {
+#include <stdio.h>
+}
 
-auto CPUTopology::print(std::ostream& Stream) const -> std::ostream& {
-  Stream << "  system summary:\n"
-         << "    number of processors:        " << numPackages() << "\n"
-         << "    number of cores (total)):    " << numCoresTotal() << "\n"
-         << "  (this includes only cores in the cgroup)"
+using namespace firestarter::environment;
+
+std::ostream &CPUTopology::print(std::ostream &stream) const {
+  stream << "  system summary:\n"
+         << "    number of processors:        " << this->numPackages() << "\n"
+         << "    number of cores (total)):    " << this->numCoresTotal() << "\n"
+         << "  (this includes only cores in the cgroup)"  << "\n"
+         << "    number of threads per core:  " << this->numThreadsPerCore()
          << "\n"
-         << "    number of threads per core:  " << numThreadsPerCore() << "\n"
-         << "    total number of threads:     " << numThreads() << "\n\n";
+         << "    total number of threads:     " << this->numThreads() << "\n\n";
 
-  std::stringstream Ss;
+  std::stringstream ss;
 
-  for (auto const& Entry : features()) {
-    Ss << Entry << " ";
+  for (auto const &ent : this->features()) {
+    ss << ent << " ";
   }
 
-  Stream << "  processor characteristics:\n"
-         << "    architecture:       " << architecture() << "\n"
-         << "    vendor:             " << vendor() << "\n"
-         << "    processor-name:     " << processorName() << "\n"
-         << "    model:              " << model() << "\n"
-         << "    frequency:          " << clockrate() / 1000000 << " MHz\n"
-         << "    supported features: " << Ss.str() << "\n"
+  stream << "  processor characteristics:\n"
+         << "    architecture:       " << this->architecture() << "\n"
+         << "    vendor:             " << this->vendor() << "\n"
+         << "    processor-name:     " << this->processorName() << "\n"
+         << "    model:              " << this->model() << "\n"
+         << "    frequency:          " << this->clockrate() / 1000000
+         << " MHz\n"
+         << "    supported features: " << ss.str() << "\n"
          << "    Caches:";
 
-  const std::vector<hwloc_obj_type_t> Caches = {
-      HWLOC_OBJ_L1CACHE, HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE, HWLOC_OBJ_L2ICACHE,
-      HWLOC_OBJ_L3CACHE, HWLOC_OBJ_L3ICACHE, HWLOC_OBJ_L4CACHE, HWLOC_OBJ_L5CACHE,
+  std::vector<hwloc_obj_type_t> caches = {
+      HWLOC_OBJ_L1CACHE,  HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE,
+      HWLOC_OBJ_L2ICACHE, HWLOC_OBJ_L3CACHE,  HWLOC_OBJ_L3ICACHE,
+      HWLOC_OBJ_L4CACHE,  HWLOC_OBJ_L5CACHE,
   };
 
-  for (hwloc_obj_type_t const& Cache : Caches) {
-    std::stringstream Ss;
+  std::vector<std::string> cacheStrings = {};
 
-    auto Width = hwloc_get_nbobjs_by_type(Topology, Cache);
+  for (hwloc_obj_type_t const &cache : caches) {
+    int width;
+    char string[128];
+    int shared;
+    hwloc_obj_t cacheObj;
+    std::stringstream ss;
 
-    if (Width >= 1) {
-      Ss << "\n      - ";
+    width = hwloc_get_nbobjs_by_type(this->topology, cache);
 
-      auto* CacheObj = hwloc_get_obj_by_type(Topology, Cache, 0);
-      std::array<char, 128> String{};
-      auto* StringPtr = String.data();
-      hwloc_obj_type_snprintf(StringPtr, sizeof(String), CacheObj, 0);
+    if (width >= 1) {
+      ss << "\n      - ";
 
-      switch (CacheObj->attr->cache.type) {
+      cacheObj = hwloc_get_obj_by_type(this->topology, cache, 0);
+      hwloc_obj_type_snprintf(string, sizeof(string), cacheObj, 0);
+
+      switch (cacheObj->attr->cache.type) {
       case HWLOC_OBJ_CACHE_DATA:
-        Ss << "Level " << CacheObj->attr->cache.depth << " Data";
+        ss << "Level " << cacheObj->attr->cache.depth << " Data";
         break;
       case HWLOC_OBJ_CACHE_INSTRUCTION:
-        Ss << "Level " << CacheObj->attr->cache.depth << " Instruction";
+        ss << "Level " << cacheObj->attr->cache.depth << " Instruction";
         break;
       case HWLOC_OBJ_CACHE_UNIFIED:
       default:
-        Ss << "Unified Level " << CacheObj->attr->cache.depth;
+        ss << "Unified Level " << cacheObj->attr->cache.depth;
         break;
       }
 
-      Ss << " Cache, " << CacheObj->attr->cache.size / 1024 << " KiB, " << CacheObj->attr->cache.linesize
-         << " B Cacheline, ";
+      ss << " Cache, " << cacheObj->attr->cache.size / 1024 << " KiB, "
+         << cacheObj->attr->cache.linesize << " B Cacheline, ";
 
-      switch (CacheObj->attr->cache.associativity) {
+      switch (cacheObj->attr->cache.associativity) {
       case -1:
-        Ss << "full";
+        ss << "full";
         break;
       case 0:
-        Ss << "unknown";
+        ss << "unknown";
         break;
       default:
-        Ss << CacheObj->attr->cache.associativity << "-way set";
+        ss << cacheObj->attr->cache.associativity << "-way set";
         break;
       }
 
-      Ss << " associative, ";
+      ss << " associative, ";
 
-      auto Shared = numThreads() / Width;
+      shared = this->numThreads() / width;
 
-      if (Shared > 1) {
-        Ss << "shared among " << Shared << " threads.";
+      if (shared > 1) {
+        ss << "shared among " << shared << " threads.";
       } else {
-        Ss << "per thread.";
+        ss << "per thread.";
       }
 
-      Stream << Ss.str();
+      stream << ss.str();
     }
   }
 
-  return Stream;
+  return stream;
 }
 
-CPUTopology::CPUTopology(std::string Architecture)
-    : Architecture(std::move(Architecture)) {
+CPUTopology::CPUTopology(std::string architecture)
+    : _architecture(architecture) {
 
-  hwloc_topology_init(&Topology);
+  hwloc_topology_init(&this->topology);
 
   // do not filter icaches
-  hwloc_topology_set_cache_types_filter(Topology, HWLOC_TYPE_FILTER_KEEP_ALL);
+  hwloc_topology_set_cache_types_filter(this->topology,
+                                        HWLOC_TYPE_FILTER_KEEP_ALL);
 
-  hwloc_topology_load(Topology);
+  hwloc_topology_load(this->topology);
 
   // check for hybrid processor
-  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
+  int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
 
-  switch (NrCpukinds) {
+  switch (nr_cpukinds) {
   case -1:
     log::warn() << "Hybrid core check failed";
     break;
@@ -137,273 +147,292 @@ CPUTopology::CPUTopology(std::string Architecture)
     log::warn() << "Hybrid core check read no information";
     break;
   default:
-    log::trace() << "Number of CPU kinds:" << NrCpukinds;
+    log::trace() << "Number of CPU kinds:" << nr_cpukinds;
   }
-  if (NrCpukinds > 1) {
+  if (nr_cpukinds > 1) {
     log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
   }
   // get number of packages
-  int Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PACKAGE);
+  int depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PACKAGE);
 
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumPackages = 1;
+  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
+    this->_numPackages = 1;
     log::warn() << "Could not get number of packages";
   } else {
-    NumPackages = hwloc_get_nbobjs_by_depth(Topology, Depth);
+    this->_numPackages = hwloc_get_nbobjs_by_depth(this->topology, depth);
   }
 
-  log::trace() << "Number of Packages:" << NumPackages;
+    log::trace() << "Number of Packages:" << this->_numPackages;
   // get number of cores per package
-  Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_CORE);
+  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_CORE);
 
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumCoresTotal = 1;
+  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
+    this->_numCoresTotal = 1;
     log::warn() << "Could not get number of cores";
   } else {
-    NumCoresTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
-    if (NumCoresTotal == 0) {
+    this->_numCoresTotal =
+        hwloc_get_nbobjs_by_depth(this->topology, depth);
+    if ( this->_numCoresTotal == 0 ) {
       log::warn() << "Could not get number of cores";
-      NumCoresTotal = 1;
+      this->_numCoresTotal = 1;
     }
   }
-  log::trace() << "Number of Cores:" << NumCoresTotal;
+  log::trace() << "Number of Cores:" << this->_numCoresTotal;
 
   // get number of threads per core
-  Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PU);
+  depth = hwloc_get_type_depth(this->topology, HWLOC_OBJ_PU);
 
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumThreadsPerCore = 1;
+  if (depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
+    this->_numThreadsPerCore = 1;
     log::warn() << "Could not get number of threads";
   } else {
-    NumThreadsPerCore = hwloc_get_nbobjs_by_depth(Topology, Depth) / NumCoresTotal;
-    if (NumThreadsPerCore == 0) {
+    this->_numThreadsPerCore =
+        hwloc_get_nbobjs_by_depth(this->topology, depth) /
+        this->_numCoresTotal ;
+    if ( this->_numThreadsPerCore == 0 ) {
       log::warn() << "Could not get number of threads per core";
-      NumThreadsPerCore = 1;
+      this->_numThreadsPerCore = 1;
     }
   }
 
   // get vendor, processor name and clockrate for linux
 #if defined(linux) || defined(__linux__)
-  {
-    auto ProcCpuinfo = getFileAsStream("/proc/cpuinfo");
-    std::string Line;
-    std::string ClockrateStr = "0";
+  auto procCpuinfo = this->getFileAsStream("/proc/cpuinfo");
+  std::string line;
+  std::string clockrate = "0";
 
-    while (std::getline(ProcCpuinfo, Line, '\n')) {
-      const std::regex VendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
-      const std::regex ModelNameRe("^model name.*:\\s*(.*)\\s*$");
-      const std::regex CpuMHzRe("^cpu MHz.*:\\s*(.*)\\s*$");
-      std::smatch VendorIdMatch;
-      std::smatch ModelNameMatch;
-      std::smatch CpuMHzMatch;
+  while (std::getline(procCpuinfo, line, '\n')) {
+    const std::regex vendorIdRe("^vendor_id.*:\\s*(.*)\\s*$");
+    const std::regex modelNameRe("^model name.*:\\s*(.*)\\s*$");
+    const std::regex cpuMHzRe("^cpu MHz.*:\\s*(.*)\\s*$");
+    std::smatch vendorIdM;
+    std::smatch modelNameM;
+    std::smatch cpuMHzM;
 
-      if (std::regex_match(Line, VendorIdMatch, VendorIdRe)) {
-        Vendor = VendorIdMatch[1].str();
-      }
-
-      if (std::regex_match(Line, ModelNameMatch, ModelNameRe)) {
-        ProcessorName = ModelNameMatch[1].str();
-      }
-
-      if (std::regex_match(Line, CpuMHzMatch, CpuMHzRe)) {
-        ClockrateStr = CpuMHzMatch[1].str();
-      }
+    if (std::regex_match(line, vendorIdM, vendorIdRe)) {
+      this->_vendor = vendorIdM[1].str();
     }
 
-    if (Vendor.empty()) {
-      log::warn() << "Could determine vendor from /proc/cpuinfo";
+    if (std::regex_match(line, modelNameM, modelNameRe)) {
+      this->_processorName = modelNameM[1].str();
     }
 
-    if (ProcessorName.empty()) {
-      log::warn() << "Could determine processor-name from /proc/cpuinfo";
+    if (std::regex_match(line, cpuMHzM, cpuMHzRe)) {
+      clockrate = cpuMHzM[1].str();
     }
+  }
 
-    if (ClockrateStr == "0") {
-      firestarter::log::warn() << "Can't determine clockrate from /proc/cpuinfo";
-    } else {
-      firestarter::log::trace() << "Clockrate from /proc/cpuinfo is " << ClockrateStr;
-      Clockrate = static_cast<uint64_t>(1000000U) * std::stoi(ClockrateStr);
-    }
+  if (this->_vendor == "") {
+    log::warn() << "Could determine vendor from /proc/cpuinfo";
+  }
 
-    auto Governor = scalingGovernor();
-    if (!Governor.empty()) {
+  if (this->_processorName == "") {
+    log::warn() << "Could determine processor-name from /proc/cpuinfo";
+  }
 
-      auto ScalingCurFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq").str();
-      auto CpuinfoCurFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq").str();
-      auto ScalingMaxFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq").str();
-      auto CpuinfoMaxFreq = getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq").str();
+  if (clockrate == "0") {
+    firestarter::log::warn() << "Can't determine clockrate from /proc/cpuinfo";
+  } else {
+    firestarter::log::trace()
+        << "Clockrate from /proc/cpuinfo is " << clockrate;
+    this->_clockrate = 1e6 * std::stoi(clockrate);
+  }
 
-      if (Governor == "performance" || Governor == "powersave") {
-        if (ScalingCurFreq.empty()) {
-          if (!CpuinfoCurFreq.empty()) {
-            ClockrateStr = CpuinfoCurFreq;
-          }
-        } else {
-          ClockrateStr = ScalingCurFreq;
+  auto governor = this->scalingGovernor();
+  if (!governor.empty()) {
+
+    auto scalingCurFreq =
+        this->getFileAsStream(
+                "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
+            .str();
+    auto cpuinfoCurFreq =
+        this->getFileAsStream(
+                "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq")
+            .str();
+    auto scalingMaxFreq =
+        this->getFileAsStream(
+                "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq")
+            .str();
+    auto cpuinfoMaxFreq =
+        this->getFileAsStream(
+                "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq")
+            .str();
+
+    if (governor.compare("performance") || governor.compare("powersave")) {
+      if (scalingCurFreq.empty()) {
+        if (!cpuinfoCurFreq.empty()) {
+          clockrate = cpuinfoCurFreq;
         }
       } else {
-        if (ScalingMaxFreq.empty()) {
-          if (!CpuinfoMaxFreq.empty()) {
-            ClockrateStr = CpuinfoMaxFreq;
-          }
-        } else {
-          ClockrateStr = ScalingMaxFreq;
-        }
+        clockrate = scalingCurFreq;
       }
-
-      Clockrate = static_cast<uint64_t>(1000U) * std::stoi(ClockrateStr);
+    } else {
+      if (scalingMaxFreq.empty()) {
+        if (!cpuinfoMaxFreq.empty()) {
+          clockrate = cpuinfoMaxFreq;
+        }
+      } else {
+        clockrate = scalingMaxFreq;
+      }
     }
+
+    this->_clockrate = 1e3 * std::stoi(clockrate);
   }
 #endif
 
   // try to detect processor name for macos
 #ifdef __APPLE__
-  {
-    // use sysctl to detect the name
-    std::array<char, 128> Buffer{};
-    const auto* Cmd = "sysctl -n machdep.cpu.brand_string";
-    std::unique_ptr<FILE, decltype(&pclose)> Pipe(popen(Cmd, "r"), pclose);
-    if (!Pipe) {
-      log::warn() << "Could not determine processor-name";
-    }
-    if (fgets(Buffer.data(), Buffer.size(), Pipe.get()) != nullptr) {
-      auto Str = std::string(Buffer.data());
-      Str.erase(std::remove(Str.begin(), Str.end(), '\n'), Str.end());
-      ProcessorName = Str;
-    }
+  // use sysctl to detect the name
+  std::array<char, 128> buffer;
+  auto cmd = "sysctl -n machdep.cpu.brand_string";
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  if (!pipe) {
+    log::warn() << "Could not determine processor-name";
+  }
+  if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    auto str = std::string(buffer.data());
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+    this->_processorName = str;
   }
 #endif
 
 // try to detect processor name for windows
 #ifdef _WIN32
-  {
-    // use wmic
-    std::array<char, 128> Buffer{};
-    const auto* Cmd = "wmic cpu get name";
-    std::unique_ptr<FILE, decltype(&_pclose)> Pipe(_popen(Cmd, "r"), _pclose);
-    if (!Pipe) {
-      log::warn() << "Could not determine processor-name";
+  // use wmic
+  std::array<char, 128> buffer;
+  auto cmd = "wmic cpu get name";
+  std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+  if (!pipe) {
+    log::warn() << "Could not determine processor-name";
+  }
+  auto line = 0;
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    if (line != 1) {
+      line++;
+      continue;
     }
-    auto Line = 0;
-    while (fgets(Buffer.data(), Buffer.size(), Pipe.get()) != nullptr) {
-      if (Line != 1) {
-        Line++;
-        continue;
-      }
 
-      auto Str = std::string(Buffer.data());
-      Str.erase(std::remove(Str.begin(), Str.end(), '\n'), Str.end());
-      ProcessorName = Str;
-    }
+    auto str = std::string(buffer.data());
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+    this->_processorName = str;
   }
 #endif
 
   // get L1i-Cache size
-  const auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_L1ICACHE);
+  int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_L1ICACHE);
 
-  if (Width >= 1) {
-    hwloc_obj_t CacheObj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_L1ICACHE, 0);
-    InstructionCacheSize = CacheObj->attr->cache.size;
+  if (width >= 1) {
+    hwloc_obj_t cacheObj =
+        hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_L1ICACHE, 0);
+    this->_instructionCacheSize = cacheObj->attr->cache.size;
   }
 }
 
-CPUTopology::~CPUTopology() { hwloc_topology_destroy(Topology); }
+CPUTopology::~CPUTopology() { hwloc_topology_destroy(this->topology); }
 
-auto CPUTopology::getFileAsStream(std::string const& FilePath) -> std::stringstream {
-  std::ifstream File(FilePath);
-  std::stringstream Ss;
+std::stringstream CPUTopology::getFileAsStream(std::string const &filePath) {
+  std::ifstream file(filePath);
+  std::stringstream ss;
 
-  if (!File.is_open()) {
-    log::trace() << "Could not open " << FilePath;
+  if (!file.is_open()) {
+    log::trace() << "Could not open " << filePath;
   } else {
-    Ss << File.rdbuf();
-    File.close();
+    ss << file.rdbuf();
+    file.close();
   }
 
-  return Ss;
+  return ss;
 }
 
-auto CPUTopology::scalingGovernor() -> std::string {
-  return getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").str();
+std::string CPUTopology::scalingGovernor() const {
+  return this
+      ->getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+      .str();
 }
 
-auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
-  auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
+int CPUTopology::getCoreIdFromPU(unsigned pu) const {
+  int width;
+  hwloc_obj_t obj;
 
-  if (Width >= 1) {
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      if (Obj->os_index == Pu) {
-        for (; Obj; Obj = Obj->parent) {
-          if (Obj->type == HWLOC_OBJ_CORE) {
-            return Obj->logical_index;
+  width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+
+  if (width >= 1) {
+    for (int i = 0; i < width; i++) {
+      obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+      if (obj->os_index == pu) {
+        for (; obj; obj = obj->parent) {
+          if (obj->type == HWLOC_OBJ_CORE) {
+            return obj->logical_index;
           }
         }
       }
     }
   }
 
-  return {};
+  return -1;
 }
 
-auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
-  auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
+int CPUTopology::getPkgIdFromPU(unsigned pu) const {
+  int width;
+  hwloc_obj_t obj;
 
-  if (Width >= 1) {
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      if (Obj->os_index == Pu) {
-        for (; Obj; Obj = Obj->parent) {
-          if (Obj->type == HWLOC_OBJ_PACKAGE) {
-            return Obj->logical_index;
+  width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+
+  if (width >= 1) {
+    for (int i = 0; i < width; i++) {
+      obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+      if (obj->os_index == pu) {
+        for (; obj; obj = obj->parent) {
+          if (obj->type == HWLOC_OBJ_PACKAGE) {
+            return obj->logical_index;
           }
         }
       }
     }
   }
 
-  return {};
+  return -1;
 }
 
-auto CPUTopology::maxNumThreads() const -> unsigned {
-  unsigned Max = 0;
+unsigned CPUTopology::maxNumThreads() const {
+  unsigned max = 0;
 
   // There might be more then one kind of cores
-  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
+  int nr_cpukinds = hwloc_cpukinds_get_nr(this->topology, 0);
 
   // fallback in case this did not work ... can happen on some platforms
   // already printed a warning earlier
-  if (NrCpukinds < 1) {
-    auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
-    unsigned Max = 0;
+  if (nr_cpukinds < 1) {
+    hwloc_obj_t obj;
+    int width = hwloc_get_nbobjs_by_type(this->topology, HWLOC_OBJ_PU);
+    unsigned max = 0;
 
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      Max = (std::max)(Max, Obj->os_index);
+    for (int i = 0; i < width; i++) {
+      obj = hwloc_get_obj_by_type(this->topology, HWLOC_OBJ_PU, i);
+      max = max < obj->os_index ? obj->os_index : max;
     }
 
-    return Max + 1;
+    return max + 1;
   }
 
   // Allocate bitmap to get CPUs later
-  hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
-  if (Bitmap == nullptr) {
+  hwloc_bitmap_t bitmap = hwloc_bitmap_alloc();
+  if (bitmap == NULL) {
     log::error() << "Could not allocate memory for CPU bitmap";
     return 1;
   }
 
   // Find CPUs per kind
-  for (int KindIndex = 0; KindIndex < NrCpukinds; KindIndex++) {
-    const auto Result = hwloc_cpukinds_get_info(Topology, KindIndex, Bitmap, nullptr, nullptr, nullptr, 0);
-    if (Result) {
-      log::warn() << "Could not get information for CPU kind " << KindIndex;
+  for (int kind_index = 0; kind_index < nr_cpukinds; kind_index++) {
+    int result = hwloc_cpukinds_get_info(this->topology, kind_index, bitmap,
+                                         NULL, NULL, NULL, 0);
+    if (result) {
+      log::warn() << "Could not get information for CPU kind " << kind_index;
     }
-    Max += hwloc_bitmap_weight(Bitmap);
+    max += hwloc_bitmap_weight(bitmap);
   }
 
-  hwloc_bitmap_free(Bitmap);
+  hwloc_bitmap_free(bitmap);
 
-  return Max;
+  return max;
 }
-
-}; // namespace firestarter::environment

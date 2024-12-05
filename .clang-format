@@ -1,7 +1,0 @@
----
-BasedOnStyle: LLVM
-Language: Cpp
-BreakConstructorInitializersBeforeComma: 'true'
-AllowShortFunctionsOnASingleLine: All
-PointerAlignment: Left
-ColumnLimit: 120

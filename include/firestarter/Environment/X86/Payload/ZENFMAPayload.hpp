@@ -21,34 +21,35 @@
 
 #pragma once
 
-#include "firestarter/Environment/X86/Payload/X86Payload.hpp"
+#include <firestarter/Environment/X86/Payload/X86Payload.hpp>
 
 namespace firestarter::environment::x86::payload {
-
-/// This payload is designed for the FMA CPU extension in combination with the first generation Zen microarchitecture.
 class ZENFMAPayload final : public X86Payload {
 public:
-  ZENFMAPayload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
-                   /*Name=*/"ZENFMA", /*RegisterSize=*/4, /*RegisterCount=*/16,
-                   /*InstructionFlops=*/{{"REG", 8}, {"L1_LS", 8}, {"L2_L", 8}, {"L3_L", 8}, {"RAM_L", 8}},
-                   /*InstructionMemory=*/{{"RAM_L", 64}}) {}
+  ZENFMAPayload(asmjit::CpuFeatures const &supportedFeatures)
+      : X86Payload(
+            supportedFeatures,
+            {asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
+            "ZENFMA", 4, 16) {}
 
-  /// Compile this payload with supplied settings and optional features.
-  /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.
-  /// \arg DumpRegisters Should the code to support dumping registers be baked into the high load routine of the
-  /// compiled payload.
-  /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
-  /// of the compiled payload.
-  /// \returns The compiled payload that provides access to the init and load functions.
-  [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                    bool ErrorDetection) const
-      -> environment::payload::CompiledPayload::UniquePtr override;
+  int compilePayload(
+      std::vector<std::pair<std::string, unsigned>> const &proportion,
+      unsigned instructionCacheSize,
+      std::list<unsigned> const &dataCacheBufferSize, unsigned ramBufferSize,
+      unsigned thread, unsigned numberOfLines, bool dumpRegisters,
+      bool errorDetection) override;
+  std::list<std::string> getAvailableInstructions() const override;
+  void init(unsigned long long *memoryAddr,
+            unsigned long long bufferSize) override;
+
+  firestarter::environment::payload::Payload *clone() const override {
+    return new ZENFMAPayload(this->supportedFeatures());
+  };
 
 private:
-  /// Function to initialize the memory used by the high load function.
-  /// \arg MemoryAddr The pointer to the memory.
-  /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.
-  void init(double* MemoryAddr, uint64_t BufferSize) const override;
+  const std::map<std::string, unsigned> instructionFlops = {
+      {"REG", 8}, {"L1_LS", 8}, {"L2_L", 8}, {"L3_L", 8}, {"RAM_L", 8}};
+
+  const std::map<std::string, unsigned> instructionMemory = {{"RAM_L", 64}};
 };
 } // namespace firestarter::environment::x86::payload

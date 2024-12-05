@@ -21,46 +21,25 @@
 
 #pragma once
 
-#include "firestarter/Optimizer/Algorithm.hpp"
+#include <firestarter/Optimizer/Algorithm.hpp>
 
 namespace firestarter::optimizer::algorithm {
 
-/// This class implements the NSGA2 evolutionary optimization algorithm.
-/// The NSGA2 algorithm, as described in "A fast and elitist multiobjective genetic algorithm: NSGA-II"
-/// (https://dl.acm.org/doi/10.1109/4235.996017), is a multiobjective algorithm allowing FIRESTARTER to optimize with
-/// two (or more) metrics. This is relevant because adding the IPC (instruction per cycle) metric supports the
-/// optimization algorithm to converge towards higher power consumption.
 class NSGA2 : public Algorithm {
 public:
-  /// Initialize the NSGA2 algorithm.
-  /// \arg Gen The number of generation that the algorithm uses to evolve its population.
-  /// \arg Cr The Crossover probability. Must be in range [0,1[
-  /// \arg M Mutation probability. Must be in range [0,1]
-  NSGA2(unsigned Gen, double Cr, double M);
-  ~NSGA2() override = default;
+  NSGA2(unsigned gen, double cr, double m);
+  ~NSGA2() {}
 
-  /// Check if the problem and population size matches the requirements of NSGA2. We must have a multi-objective problem
-  /// and at least 5 and a multiple of 4 individuals in our population.
-  /// \arg Prob The poblem that should be optimized with this algorithm
-  /// \arg PopulationSize The initial size of the population that is used
-  void check(firestarter::optimizer::Problem const& Prob, std::size_t PopulationSize) override;
+  void checkPopulation(firestarter::optimizer::Population const &pop,
+                       std::size_t populationSize) override;
 
-  /// Evolve the population across multiple iterations.
-  /// \arg Pop The initial population
-  /// \returns The final population after the optimization has run
-  auto evolve(firestarter::optimizer::Population& Pop) -> firestarter::optimizer::Population override;
+  firestarter::optimizer::Population
+  evolve(firestarter::optimizer::Population &pop) override;
 
 private:
-  // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-
-  /// The number of generations of the NSGA2 algorithm.
-  const unsigned Gen;
-  /// The crossover propability in the range [0,1[.
-  const double Cr;
-  /// The mutation propability in the range [0,1].
-  const double M;
-
-  // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+  unsigned _gen;
+  double _cr;
+  double _m;
 };
 
 } // namespace firestarter::optimizer::algorithm

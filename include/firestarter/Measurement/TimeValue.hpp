@@ -25,16 +25,16 @@
 
 namespace firestarter::measurement {
 
-/// This struct models a value that was captured at a specific timepoint.
 struct TimeValue {
+
   TimeValue() = default;
 
-  constexpr TimeValue(std::chrono::high_resolution_clock::time_point Time, double Value)
-      : Time(Time)
-      , Value(Value){};
+  constexpr TimeValue(std::chrono::high_resolution_clock::time_point t,
+                      double v)
+      : time(t), value(v){};
 
-  std::chrono::high_resolution_clock::time_point Time;
-  double Value{};
+  std::chrono::high_resolution_clock::time_point time;
+  double value;
 };
 
 } // namespace firestarter::measurement

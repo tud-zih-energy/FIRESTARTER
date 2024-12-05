@@ -21,20 +21,27 @@
 
 #pragma once
 
-#include "firestarter/Environment/X86/Payload/ZENFMAPayload.hpp"
-#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
+#include <firestarter/Environment/X86/Payload/ZENFMAPayload.hpp>
+#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
 class NaplesConfig final : public X86PlatformConfig {
+
 public:
-  NaplesConfig() noexcept
-      : X86PlatformConfig(
-            /*Name=*/"ZEN_EPYC", /*Family=*/23, /*Models=*/{1, 8, 17, 24},
-            /*Settings=*/
-            environment::payload::PayloadSettings(
-                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{65536, 524288, 2097152}, /*RamBufferSize=*/104857600,
-                /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}),
-            /*Payload=*/std::make_shared<const payload::ZENFMAPayload>()) {}
+  NaplesConfig(asmjit::CpuFeatures const &supportedFeatures, unsigned family,
+               unsigned model, unsigned threads)
+      : X86PlatformConfig("ZEN_EPYC", 23, {1, 8, 17, 24}, {1, 2}, 0,
+                          {65536, 524288, 2097152}, 104857600, 1536, family,
+                          model, threads,
+                          new payload::ZENFMAPayload(supportedFeatures)) {}
+
+  std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings() const override {
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 3},
+                                                          {"L3_L", 14},
+                                                          {"L2_L", 75},
+                                                          {"L1_LS", 81},
+                                                          {"REG", 100}});
+  }
 };
 } // namespace firestarter::environment::x86::platform

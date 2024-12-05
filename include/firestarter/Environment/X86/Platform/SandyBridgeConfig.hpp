@@ -21,20 +21,27 @@
 
 #pragma once
 
-#include "firestarter/Environment/X86/Payload/AVXPayload.hpp"
-#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
+#include <firestarter/Environment/X86/Payload/AVXPayload.hpp>
+#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
 
 namespace firestarter::environment::x86::platform {
 class SandyBridgeConfig final : public X86PlatformConfig {
+
 public:
-  SandyBridgeConfig() noexcept
-      : X86PlatformConfig(
-            /*Name=*/"SNB_COREI", /*Family=*/6, /*Models=*/{42, 58},
-            /*Settings=*/
-            environment::payload::PayloadSettings(
-                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,
-                /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}),
-            /*Payload=*/std::make_shared<const payload::AVXPayload>()) {}
+  SandyBridgeConfig(asmjit::CpuFeatures const &supportedFeatures,
+                    unsigned family, unsigned model, unsigned threads)
+      : X86PlatformConfig("SNB_COREI", 6, {42, 58}, {1, 2}, 0,
+                          {32768, 262144, 1572864}, 104857600, 1536, family,
+                          model, threads,
+                          new payload::AVXPayload(supportedFeatures)) {}
+
+  std::vector<std::pair<std::string, unsigned>>
+  getDefaultPayloadSettings() const override {
+    return std::vector<std::pair<std::string, unsigned>>({{"RAM_L", 2},
+                                                          {"L3_LS", 4},
+                                                          {"L2_LS", 10},
+                                                          {"L1_LS", 90},
+                                                          {"REG", 45}});
+  }
 };
 } // namespace firestarter::environment::x86::platform

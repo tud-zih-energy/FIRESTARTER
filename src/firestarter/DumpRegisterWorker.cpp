@@ -19,25 +19,30 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Firestarter.hpp"
+#ifdef FIRESTARTER_DEBUG_FEATURES
+
+#include <firestarter/Firestarter.hpp>
+#include <firestarter/Logging/Log.hpp>
 
 #include <fstream>
 #include <sstream>
 #include <thread>
 
-namespace {
-auto hammingDistance(uint64_t X, uint64_t Y) -> unsigned {
-  unsigned Dist = 0;
+using namespace firestarter;
 
-  for (uint64_t Val = X ^ Y; Val > 0; Val >>= 1) {
-    Dist += Val & 1;
+namespace {
+static unsigned hammingDistance(unsigned long long x, unsigned long long y) {
+  unsigned dist = 0;
+
+  for (unsigned long long val = x ^ y; val > 0; val >>= 1) {
+    dist += val & 1;
   }
 
-  return Dist;
+  return dist;
 }
 
-auto registerNameBySize(unsigned RegisterSize) -> std::string {
-  switch (RegisterSize) {
+static std::string registerNameBySize(unsigned registerSize) {
+  switch (registerSize) {
   case 2:
     return "xmm";
   case 4:
@@ -50,120 +55,141 @@ auto registerNameBySize(unsigned RegisterSize) -> std::string {
 }
 } // namespace
 
-namespace firestarter {
+int Firestarter::initDumpRegisterWorker(std::chrono::seconds dumpTimeDelta,
+                                        std::string dumpFilePath) {
 
-void Firestarter::initDumpRegisterWorker() {
-  // Create the data for the worker thread. The thread will dump the register contents periodically and calculate the
-  // hamming distance between dumps.
-  auto Data = std::make_unique<DumpRegisterWorkerData>(this->LoadThreads.begin()->second, Cfg.DumpRegistersTimeDelta,
-                                                       Cfg.DumpRegistersOutpath);
+  auto data = std::make_unique<DumpRegisterWorkerData>(
+      this->loadThreads.begin()->second, dumpTimeDelta, dumpFilePath);
 
-  // Spawn the thread.
-  DumpRegisterWorkerThread = std::thread(Firestarter::dumpRegisterWorker, std::move(Data));
+  this->dumpRegisterWorkerThread =
+      std::thread(Firestarter::dumpRegisterWorker, std::move(data));
+
+  return EXIT_SUCCESS;
 }
 
-void Firestarter::joinDumpRegisterWorker() { this->DumpRegisterWorkerThread.join(); }
+void Firestarter::joinDumpRegisterWorker() {
+  this->dumpRegisterWorkerThread.join();
+}
 
-void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data) {
-#if defined(linux) || defined(__linux__)
+void Firestarter::dumpRegisterWorker(
+    std::unique_ptr<DumpRegisterWorkerData> data) {
+
   pthread_setname_np(pthread_self(), "DumpRegWorker");
-#endif
 
-  const auto RegisterCount = Data->LoadWorkerDataPtr->config().payload()->registerCount();
-  const auto RegisterSize = Data->LoadWorkerDataPtr->config().payload()->registerSize();
-  const auto Offset = RegisterCount * RegisterSize;
-  const std::string RegisterPrefix = registerNameBySize(RegisterSize);
+  int registerCount = data->loadWorkerData->config().payload().registerCount();
+  int registerSize = data->loadWorkerData->config().payload().registerSize();
+  std::string registerPrefix = registerNameBySize(registerSize);
+  auto offset = sizeof(DumpRegisterStruct) / sizeof(unsigned long long);
 
-  auto& DumpRegisterStructRef = Data->LoadWorkerDataPtr->Memory->ExtraVars.Drs;
-  auto& DumpVar = DumpRegisterStructRef.DumpVar;
+  auto dumpRegisterStruct = reinterpret_cast<DumpRegisterStruct *>(
+      data->loadWorkerData->addrMem - offset);
+
+  auto dumpVar = reinterpret_cast<volatile unsigned long long *>(
+      &dumpRegisterStruct->dumpVar);
   // memory of simd variables is before the padding
-  const auto* DumpMemAddr = DumpRegisterStructRef.Padding.data() - Offset;
+  volatile unsigned long long *dumpMemAddr =
+      dumpRegisterStruct->padding - registerCount * registerSize;
 
-  // allocate continous memory that fits the register contents
-  auto Last = std::vector<uint64_t>(Offset);
+  // TODO: maybe use aligned_malloc to make memcpy more efficient and don't
+  // interrupt the workload as much?
+  unsigned long long *last = reinterpret_cast<unsigned long long *>(
+      malloc(sizeof(unsigned long long) * offset));
+  unsigned long long *current = reinterpret_cast<unsigned long long *>(
+      malloc(sizeof(unsigned long long) * offset));
 
-  std::stringstream DumpFilePath;
-  DumpFilePath << Data->DumpFilePath;
+  if (last == nullptr || current == nullptr) {
+    log::error() << "Malloc failed in Firestarter::dumpRegisterWorker";
+    exit(ENOMEM);
+  }
+
+  std::stringstream dumpFilePath;
+  dumpFilePath << data->dumpFilePath;
 #if defined(__MINGW32__) || defined(__MINGW64__)
-  DumpFilePath << "\\";
+  dumpFilePath << "\\";
 #else
-  DumpFilePath << "/";
+  dumpFilePath << "/";
 #endif
-  DumpFilePath << "hamming_distance.csv";
-  auto DumpFile = std::ofstream(DumpFilePath.str());
+  dumpFilePath << "hamming_distance.csv";
+  auto dumpFile = std::ofstream(dumpFilePath.str());
 
   // dump the header to the csv file
-  DumpFile << "total_hamming_distance,";
-  for (auto I = 0U; I < RegisterCount; I++) {
-    for (auto J = 0U; J < RegisterSize; J++) {
-      DumpFile << RegisterPrefix << I << "[" << J << "]";
+  dumpFile << "total_hamming_distance,";
+  for (int i = 0; i < registerCount; i++) {
+    for (int j = 0; j < registerSize; j++) {
+      dumpFile << registerPrefix << i << "[" << j << "]";
 
-      if (J != RegisterSize - 1) {
-        DumpFile << ",";
+      if (j != registerSize - 1) {
+        dumpFile << ",";
       }
     }
 
-    if (I != RegisterCount - 1) {
-      DumpFile << ",";
+    if (i != registerCount - 1) {
+      dumpFile << ",";
     }
   }
-  DumpFile << '\n' << std::flush;
+  dumpFile << std::endl << std::flush;
 
   // do not output the hamming distance for the first run
-  bool SkipFirst = true;
+  bool skipFirst = true;
 
   // continue until stop and dump the registers every data->dumpTimeDelta
   // seconds
-  for (; Data->LoadWorkerDataPtr->LoadVar != LoadThreadWorkType::LoadStop;) {
+  for (; *data->loadWorkerData->addrHigh != LOAD_STOP;) {
     // signal the thread to dump its largest SIMD registers
-    DumpVar = DumpVariable::Start;
+    *dumpVar = DumpVariable::Start;
     __asm__ __volatile__("mfence;");
-    while (DumpVar == DumpVariable::Start) {
+    while (*dumpVar == DumpVariable::Start) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    auto Current = std::vector<uint64_t>(Offset);
     // copy the register content to minimize the interruption of the load worker
-    std::memcpy(Current.data(), DumpMemAddr, Current.size() * sizeof(decltype(Current)::value_type));
+    std::memcpy(current, (void *)dumpMemAddr,
+                sizeof(unsigned long long) * offset);
 
     // skip the first output, as we first have to get some valid values for last
-    if (!SkipFirst) {
+    if (!skipFirst) {
       // calculate the total hamming distance
-      auto TotalHammingDistance = 0U;
-      for (auto I = 0U; I < RegisterCount * RegisterSize; I++) {
-        TotalHammingDistance += hammingDistance(Current[I], Last[I]);
+      int totalHammingDistance = 0;
+      for (int i = 0; i < registerCount * registerSize; i++) {
+        totalHammingDistance += hammingDistance(current[i], last[i]);
       }
 
-      DumpFile << TotalHammingDistance << ",";
+      dumpFile << totalHammingDistance << ",";
 
       // dump the hamming distance of each double (last, current) pair
-      for (int I = static_cast<int>(RegisterCount) - 1; I >= 0; I--) {
-        for (auto J = 0U; J < RegisterSize; J++) {
-          auto Index = (RegisterSize * I) + J;
-          auto Hd = static_cast<uint64_t>(hammingDistance(Current[Index], Last[Index]));
+      for (int i = registerCount - 1; i >= 0; i--) {
+        // auto registerNum = registerCount - 1 - i;
 
-          DumpFile << Hd;
-          if (J != RegisterSize - 1) {
-            DumpFile << ",";
+        for (auto j = 0; j < registerSize; j++) {
+          auto index = registerSize * i + j;
+          auto hd = static_cast<unsigned long long>(
+              hammingDistance(current[index], last[index]));
+
+          dumpFile << hd;
+          if (j != registerSize - 1) {
+            dumpFile << ",";
           }
         }
 
-        if (I != 0) {
-          DumpFile << ",";
+        if (i != 0) {
+          dumpFile << ",";
         }
       }
 
-      DumpFile << '\n' << std::flush;
+      dumpFile << std::endl << std::flush;
     } else {
-      SkipFirst = false;
+      skipFirst = false;
     }
 
-    Last = std::move(Current);
+    std::memcpy(last, current, sizeof(unsigned long long) * offset);
 
-    std::this_thread::sleep_for(std::chrono::seconds(Data->DumpTimeDelta));
+    std::this_thread::sleep_for(std::chrono::seconds(data->dumpTimeDelta));
   }
 
-  DumpFile.close();
+  dumpFile.close();
+
+  free(last);
+  free(current);
 }
 
-} // namespace firestarter
+#endif

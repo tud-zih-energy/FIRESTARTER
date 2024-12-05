@@ -19,15 +19,14 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/AlignedAlloc.hpp"
-#include "firestarter/Constants.hpp"
-#include "firestarter/ErrorDetectionStruct.hpp"
-#include "firestarter/Firestarter.hpp"
-#include "firestarter/LoadWorkerData.hpp"
-#include "firestarter/Logging/Log.hpp"
+#include <firestarter/ErrorDetectionStruct.hpp>
+#include <firestarter/Firestarter.hpp>
+#include <firestarter/Logging/Log.hpp>
 
 #if defined(linux) || defined(__linux__)
-#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+extern "C" {
+#include <firestarter/Measurement/Metric/IPCEstimate.h>
+}
 #endif
 
 #ifdef ENABLE_VTRACING
@@ -38,135 +37,146 @@
 #endif
 
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
-#include <iomanip>
-#include <limits>
-#include <sstream>
+#include <functional>
 #include <thread>
 
-namespace firestarter {
+using namespace firestarter;
 
-void Firestarter::initLoadWorkers() {
-  Environment->setCpuAffinity(0);
+auto aligned_free_deleter = [](void *p) { ALIGNED_FREE(p); };
+
+int Firestarter::initLoadWorkers(bool lowLoad, unsigned long long period) {
+  int returnCode;
+
+  if (EXIT_SUCCESS != (returnCode = this->environment().setCpuAffinity(0))) {
+    return EXIT_FAILURE;
+  }
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
-  LoadVar = Cfg.Load == std::chrono::microseconds::zero() ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
+  this->loadVar = lowLoad ? LOAD_LOW : LOAD_HIGH;
 
-  auto NumThreads = Environment->requestedNumThreads();
+  auto numThreads = this->environment().requestedNumThreads();
 
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
-  if (Cfg.ErrorDetection) {
-    for (uint64_t I = 0; I < NumThreads; I++) {
-      auto* CommPtr = static_cast<uint64_t*>(AlignedAlloc::malloc(2 * sizeof(uint64_t)));
-      assert(CommPtr);
-      ErrorCommunication.emplace_back(std::shared_ptr<uint64_t>(CommPtr, AlignedAlloc::free));
-      log::debug() << "Threads " << (I + NumThreads - 1) % NumThreads << " and " << I << " commPtr = 0x"
-                   << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
-                   << std::hex
-                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                   << reinterpret_cast<uint64_t>(CommPtr);
+  if (_errorDetection) {
+    for (unsigned long long i = 0; i < numThreads; i++) {
+      auto commPtr = reinterpret_cast<unsigned long long *>(
+          ALIGNED_MALLOC(2 * sizeof(unsigned long long), 64));
+      assert(commPtr);
+      this->errorCommunication.push_back(
+          std::shared_ptr<unsigned long long>(commPtr, aligned_free_deleter));
+      log::debug() << "Threads " << (i + numThreads - 1) % numThreads << " and "
+                   << i << " commPtr = 0x" << std::setfill('0')
+                   << std::setw(sizeof(unsigned long long) * 2) << std::hex
+                   << (unsigned long long)commPtr;
     }
   }
 
-  for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, std::cref(*Environment), std::ref(LoadVar), Cfg.Period,
-                                               Cfg.DumpRegisters, Cfg.ErrorDetection);
+  for (unsigned long long i = 0; i < numThreads; i++) {
+    auto td = std::make_shared<LoadWorkerData>(i, this->environment(),
+                                               &this->loadVar, period,
+                                               _dumpRegisters, _errorDetection);
 
-    if (Cfg.ErrorDetection) {
+    if (_errorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
       // give this thread the left pointer i and right pointer (i+1) %
       // requestedNumThreads().
-      Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % NumThreads]);
+      td->setErrorCommunication(this->errorCommunication[i],
+                                this->errorCommunication[(i + 1) % numThreads]);
     }
 
-    Td->BuffersizeMem = Td->config().settings().totalBufferSizePerThread() / sizeof(uint64_t);
+    auto dataCacheSizeIt =
+        td->config().platformConfig().dataCacheBufferSize().begin();
+    auto ramBufferSize = td->config().platformConfig().ramBufferSize();
+
+    td->buffersizeMem = (*dataCacheSizeIt + *std::next(dataCacheSizeIt, 1) +
+                         *std::next(dataCacheSizeIt, 2) + ramBufferSize) /
+                        td->config().thread() / sizeof(unsigned long long);
 
     // create the thread
-    std::thread T(Firestarter::loadThreadWorker, Td);
+    std::thread t(Firestarter::loadThreadWorker, td);
 
-    log::trace() << "Created thread #" << I << " with ID: " << T.get_id();
+    log::trace() << "Created thread #" << i << " with ID: " << t.get_id();
 
-    if (I == 0) {
+    if (i == 0) {
       // only show error for all worker threads except first.
-      firestarter::logging::FirstWorkerThreadFilter<firestarter::logging::record>::setFirstThread(T.get_id());
+      firestarter::logging::FirstWorkerThreadFilter<
+          firestarter::logging::record>::setFirstThread(t.get_id());
     }
 
-    LoadThreads.emplace_back(std::move(T), Td);
+    this->loadThreads.push_back(std::make_pair(std::move(t), td));
   }
 
-  signalLoadWorkers(LoadThreadState::ThreadInit);
+  this->signalLoadWorkers(THREAD_INIT);
+
+  return EXIT_SUCCESS;
 }
 
-void Firestarter::signalLoadWorkers(const LoadThreadState State, void (*Function)()) {
-  // aquire the lock on all threads
-  for (auto const& Thread : LoadThreads) {
-    auto Td = Thread.second;
+void Firestarter::signalLoadWorkers(int comm) {
+  bool ack;
 
-    Td->Communication.Mutex.lock();
+  // start the work
+  for (auto const &thread : this->loadThreads) {
+    auto td = thread.second;
+
+    td->mutex.lock();
   }
 
-  // switch the state on all threads
-  for (auto const& Thread : LoadThreads) {
-    auto Td = Thread.second;
+  for (auto const &thread : this->loadThreads) {
+    auto td = thread.second;
 
-    Td->Communication.State = State;
-    Td->Communication.Mutex.unlock();
+    td->comm = comm;
+    td->mutex.unlock();
   }
 
-  // Execute a function after the state in the threads has been updated. This may be required to terminate an inner
-  // loop.
-  if (Function) {
-    Function();
-  }
+  for (auto const &thread : this->loadThreads) {
+    auto td = thread.second;
 
-  // wait for all threads to finish
-  for (auto const& Thread : LoadThreads) {
-    auto Td = Thread.second;
+    do {
+      td->mutex.lock();
+      ack = td->ack;
+      td->mutex.unlock();
+    } while (!ack);
 
-    // Wait until we receive the acknowledge
-    for (bool Ack = false; !Ack;) {
-      Td->Communication.Mutex.lock();
-      Ack = Td->Communication.Ack;
-      Td->Communication.Mutex.unlock();
-    }
-
-    Td->Communication.Mutex.lock();
-    Td->Communication.Ack = false;
-    Td->Communication.Mutex.unlock();
+    td->mutex.lock();
+    td->ack = false;
+    td->mutex.unlock();
   }
 }
 
 void Firestarter::joinLoadWorkers() {
   // wait for threads after watchdog has requested termination
-  for (auto& Thread : LoadThreads) {
-    Thread.first.join();
+  for (auto &thread : this->loadThreads) {
+    thread.first.join();
   }
 }
 
 void Firestarter::printThreadErrorReport() {
-  if (Cfg.ErrorDetection) {
-    auto MaxSize = LoadThreads.size();
+  if (_errorDetection) {
+    auto maxSize = this->loadThreads.size();
 
-    std::vector<bool> Errors(MaxSize, false);
+    std::vector<bool> errors(maxSize, false);
 
-    for (decltype(MaxSize) I = 0; I < MaxSize; I++) {
-      const auto& ErrorDetectionStructPtr = LoadThreads[I].second->errorDetectionStruct();
+    for (decltype(maxSize) i = 0; i < maxSize; i++) {
+      auto errorDetectionStruct =
+          this->loadThreads[i].second->errorDetectionStruct();
 
-      if (ErrorDetectionStructPtr.Left.Error) {
-        Errors[(I + MaxSize - 1) % MaxSize] = true;
+      if (errorDetectionStruct->errorLeft) {
+        errors[(i + maxSize - 1) % maxSize] = true;
       }
-      if (ErrorDetectionStructPtr.Right.Error) {
-        Errors[I] = true;
+      if (errorDetectionStruct->errorRight) {
+        errors[i] = true;
       }
     }
 
-    for (decltype(MaxSize) I = 0; I < MaxSize; I++) {
-      if (Errors[I]) {
-        log::fatal() << "Data mismatch between Threads " << I << " and " << (I + 1) % MaxSize
-                     << ".\n       This may be caused by bit-flips in the hardware.";
+    for (decltype(maxSize) i = 0; i < maxSize; i++) {
+      if (errors[i]) {
+        log::fatal()
+            << "Data mismatch between Threads " << i << " and "
+            << (i + 1) % maxSize
+            << ".\n       This may be caused by bit-flips in the hardware.";
       }
     }
   }
@@ -174,138 +184,168 @@ void Firestarter::printThreadErrorReport() {
 
 void Firestarter::printPerformanceReport() {
   // performance report
-  uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
-  uint64_t StopTimestamp = 0;
+  unsigned long long startTimestamp = 0xffffffffffffffff;
+  unsigned long long stopTimestamp = 0;
 
-  uint64_t Iterations = 0;
+  unsigned long long iterations = 0;
 
   log::debug() << "\nperformance report:\n";
 
-  for (auto const& Thread : LoadThreads) {
-    auto Td = Thread.second;
+  for (auto const &thread : this->loadThreads) {
+    auto td = thread.second;
 
-    log::debug() << "Thread " << Td->id() << ": " << Td->LastRun.Iterations
-                 << " iterations, tsc_delta: " << Td->LastRun.StopTsc - Td->LastRun.StartTsc;
+    log::debug() << "Thread " << td->id() << ": " << td->iterations
+                 << " iterations, tsc_delta: " << td->stopTsc - td->startTsc;
 
-    StartTimestamp = (std::min)(StartTimestamp, Td->LastRun.StartTsc.load());
-    StopTimestamp = (std::max)(StopTimestamp, Td->LastRun.StopTsc.load());
+    if (startTimestamp > td->startTsc) {
+      startTimestamp = td->startTsc;
+    }
+    if (stopTimestamp < td->stopTsc) {
+      stopTimestamp = td->stopTsc;
+    }
 
-    Iterations += Td->LastRun.Iterations.load();
+    iterations += td->iterations;
   }
 
-  double const Runtime =
-      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(Environment->topology().clockrate());
-  double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
-                        0.000000001 * static_cast<double>(Iterations) / Runtime;
-  double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *
-                           0.000000001 * static_cast<double>(Iterations) / Runtime;
+  double runtime = (double)(stopTimestamp - startTimestamp) /
+                   (double)this->environment().topology().clockrate();
+  double gFlops =
+      (double)this->loadThreads.front().second->config().payload().flops() *
+      0.000000001 * (double)iterations / runtime;
+  double bandwidth =
+      (double)this->loadThreads.front().second->config().payload().bytes() *
+      0.000000001 * (double)iterations / runtime;
 
   // insert values for ipc-estimate metric
   // if we are on linux
 #if defined(linux) || defined(__linux__)
-  if (Cfg.Measurement) {
-    for (auto const& Thread : LoadThreads) {
-      auto Td = Thread.second;
-      IpcEstimateMetricData::insertValue(
-          static_cast<double>(Td->LastRun.Iterations) *
-          static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
-          static_cast<double>(StopTimestamp - StartTimestamp));
+  if (_measurement) {
+    for (auto const &thread : this->loadThreads) {
+      auto td = thread.second;
+      ipc_estimate_metric_insert((double)td->iterations *
+                                 (double)this->loadThreads.front()
+                                     .second->config()
+                                     .payload()
+                                     .instructions() /
+                                 (double)(stopTimestamp - startTimestamp));
     }
   }
 #endif
 
-  // format runtime, gflops and bandwidth with two decimal places
-  const auto FormatString = [](double Value) -> std::string {
-    std::stringstream Ss;
-    Ss << std::fixed << std::setprecision(2) << Value;
-    return Ss.str();
-  };
+  // format runtime, gflops and bandwidth %.2f
+  const char *fmt = "%.2f";
+  int size;
 
-  log::debug() << "\n"
-               << "total iterations: " << Iterations << "\n"
-               << "runtime: " << FormatString(Runtime) << " seconds (" << StopTimestamp - StartTimestamp << " cycles)\n"
-               << "\n"
-               << "estimated floating point performance: " << FormatString(GFlops) << " GFLOPS\n"
-               << "estimated memory bandwidth*: " << FormatString(Bandwidth) << " GB/s\n"
-               << "\n"
-               << "* this estimate is highly unreliable if --function is used in order "
-                  "to "
-                  "select\n"
-               << "  a function that is not optimized for your architecture, or if "
-                  "FIRESTARTER is\n"
-               << "  executed on an unsupported architecture!";
+#define FORMAT(input)                                                          \
+  size = std::snprintf(nullptr, 0, fmt, input);                                \
+  std::vector<char> input##Vector(size + 1);                                   \
+  std::snprintf(&input##Vector[0], input##Vector.size(), fmt, input);          \
+  auto input##String = std::string(&input##Vector[0])
+
+  FORMAT(runtime);
+  FORMAT(gFlops);
+  FORMAT(bandwidth);
+
+#undef FORMAT
+
+  log::debug()
+      << "\n"
+      << "total iterations: " << iterations << "\n"
+      << "runtime: " << runtimeString << " seconds ("
+      << stopTimestamp - startTimestamp << " cycles)\n"
+      << "\n"
+      << "estimated floating point performance: " << gFlopsString << " GFLOPS\n"
+      << "estimated memory bandwidth*: " << bandwidthString << " GB/s\n"
+      << "\n"
+      << "* this estimate is highly unreliable if --function is used in order "
+         "to "
+         "select\n"
+      << "  a function that is not optimized for your architecture, or if "
+         "FIRESTARTER is\n"
+      << "  executed on an unsupported architecture!";
 }
 
-void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
+void Firestarter::loadThreadWorker(std::shared_ptr<LoadWorkerData> td) {
 
-  auto OldState = LoadThreadState::ThreadWait;
+  int old = THREAD_WAIT;
 
 #if defined(linux) || defined(__linux__)
   pthread_setname_np(pthread_self(), "LoadWorker");
 #endif
 
   for (;;) {
-    Td->Communication.Mutex.lock();
-    auto CurState = Td->Communication.State;
-    Td->Communication.Mutex.unlock();
+    td->mutex.lock();
+    int comm = td->comm;
+    td->mutex.unlock();
 
-    if (CurState != OldState) {
-      OldState = CurState;
+    if (comm != old) {
+      old = comm;
 
-      Td->Communication.Mutex.lock();
-      Td->Communication.Ack = true;
-      Td->Communication.Mutex.unlock();
+      td->mutex.lock();
+      td->ack = true;
+      td->mutex.unlock();
     } else {
       std::this_thread::sleep_for(std::chrono::microseconds(1));
       continue;
     }
 
-    switch (CurState) {
+    switch (comm) {
     // allocate and initialize memory
-    case LoadThreadState::ThreadInit:
+    case THREAD_INIT:
       // set affinity
-      Td->environment().setCpuAffinity(Td->id());
+      td->environment().setCpuAffinity(td->id());
 
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      td->config().payload().compilePayload(
+          td->config().payloadSettings(), td->config().instructionCacheSize(),
+          td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
+          td->config().thread(), td->config().lines(), td->dumpRegisters,
+          td->errorDetection);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
       // for them.
-      Td->Memory = LoadWorkerMemory::allocate(Td->BuffersizeMem * sizeof(uint64_t));
+      td->addrMem =
+          reinterpret_cast<unsigned long long *>(ALIGNED_MALLOC(
+              (td->buffersizeMem + td->addrOffset) * sizeof(unsigned long long),
+              64)) +
+          td->addrOffset;
 
       // exit application on error
-      if (Td->Memory == nullptr) {
-        workerLog::error() << "Could not allocate memory for CPU load thread " << Td->id() << "\n";
+      if (td->addrMem - td->addrOffset == nullptr) {
+        workerLog::error() << "Could not allocate memory for CPU load thread "
+                           << td->id() << "\n";
+        exit(ENOMEM);
       }
 
-      if (Td->DumpRegisters) {
-        Td->dumpRegisterStruct().DumpVar = DumpVariable::Wait;
+      if (td->dumpRegisters) {
+        reinterpret_cast<DumpRegisterStruct *>(td->addrMem - td->addrOffset)
+            ->dumpVar = DumpVariable::Wait;
       }
 
-      if (Td->ErrorDetection) {
-        auto& ErrorDetectionStructRef = Td->errorDetectionStruct();
+      if (td->errorDetection) {
+        auto errorDetectionStruct = reinterpret_cast<ErrorDetectionStruct *>(
+            td->addrMem - td->addrOffset);
 
-        std::memset(&ErrorDetectionStructRef, 0, sizeof(ErrorDetectionStruct));
+        std::memset(errorDetectionStruct, 0, sizeof(ErrorDetectionStruct));
 
         // distribute left and right communication pointers
-        ErrorDetectionStructRef.Left.Communication = Td->CommunicationLeft.get();
-        ErrorDetectionStructRef.Right.Communication = Td->CommunicationRight.get();
+        errorDetectionStruct->communicationLeft = td->communicationLeft.get();
+        errorDetectionStruct->communicationRight = td->communicationRight.get();
 
         // do first touch memset 0 for the communication pointers
-        std::memset(static_cast<void*>(ErrorDetectionStructRef.Left.Communication), 0, sizeof(uint64_t) * 2);
+        std::memset((void *)errorDetectionStruct->communicationLeft, 0,
+                    sizeof(unsigned long long) * 2);
       }
 
       // call init function
-      Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
+      td->config().payload().init(td->addrMem, td->buffersizeMem);
 
       break;
     // perform stress test
-    case LoadThreadState::ThreadWork:
-      Td->CurrentRun.Iterations = 0;
+    case THREAD_WORK:
       // record threads start timestamp
-      Td->CurrentRun.StartTsc = Td->environment().topology().timestamp();
+      td->startTsc = td->environment().topology().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -314,10 +354,11 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
         VT_USER_START("HIGH_LOAD_FUNC");
 #endif
 #ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
+        SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH",
+                                         SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->CurrentRun.Iterations = Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
-                                                                             Td->LoadVar, Td->CurrentRun.Iterations);
+        td->iterations = td->config().payload().highLoadFunction(
+            td->addrMem, td->addrHigh, td->iterations);
 
         // call low load function
 #ifdef ENABLE_VTRACING
@@ -328,7 +369,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
         SCOREP_USER_REGION_BY_NAME_END("HIGH");
         SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
-        Td->CompiledPayloadPtr->lowLoadFunction(Td->LoadVar, Td->Period);
+        td->config().payload().lowLoadFunction(td->addrHigh, td->period);
 #ifdef ENABLE_VTRACING
         VT_USER_END("LOW_LOAD_FUNC");
 #endif
@@ -337,33 +378,41 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 #endif
 
         // terminate if master signals end of run and record stop timestamp
-        if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
-          Td->LastRun = Td->CurrentRun;
+        if (*td->addrHigh == LOAD_STOP) {
+          td->stopTsc = td->environment().topology().timestamp();
 
           return;
         }
 
-        if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
-          Td->LastRun = Td->CurrentRun;
+        if (*td->addrHigh == LOAD_SWITCH) {
+          td->stopTsc = td->environment().topology().timestamp();
 
           break;
         }
       }
       break;
-    case LoadThreadState::ThreadSwitch:
+    case THREAD_SWITCH:
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      td->config().payload().compilePayload(
+          td->config().payloadSettings(), td->config().instructionCacheSize(),
+          td->config().dataCacheBufferSize(), td->config().ramBufferSize(),
+          td->config().thread(), td->config().lines(), td->dumpRegisters,
+          td->errorDetection);
 
       // call init function
-      Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
+      td->config().payload().init(td->addrMem, td->buffersizeMem);
+
+      // save old iteration count
+      td->lastIterations = td->iterations;
+      td->lastStartTsc = td->startTsc;
+      td->lastStopTsc = td->stopTsc;
+      td->iterations = 0;
       break;
-    case LoadThreadState::ThreadWait:
+    case THREAD_WAIT:
       break;
+    case THREAD_STOP:
+    default:
+      return;
     }
   }
 }
-
-} // namespace firestarter
