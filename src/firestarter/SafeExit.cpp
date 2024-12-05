@@ -19,10 +19,16 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#pragma once
+#include "firestarter/SafeExit.hpp"
 
-#include <firestarter/Measurement/MetricInterface.h>
+#include <mutex>
 
-extern metric_interface_t perf_ipc_metric;
+[[noreturn]] void firestarter::safeExit(const int Status) {
+  // This mutex is shared across all calls to safeExit, therefore also calls between different threads
+  static std::mutex ExitMutex;
 
-extern metric_interface_t perf_freq_metric;
+  ExitMutex.lock();
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  std::exit(Status);
+}

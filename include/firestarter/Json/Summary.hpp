@@ -21,24 +21,27 @@
 
 #pragma once
 
-#include <firestarter/Measurement/Summary.hpp>
+#include "firestarter/Measurement/Summary.hpp"
 
+/// Json serializer and deserializer for the firestarter::measurement::Summary struct
 namespace nlohmann {
 template <> struct adl_serializer<firestarter::measurement::Summary> {
-  static firestarter::measurement::Summary from_json(const json &j) {
-    return {j["num_timepoints"].get<size_t>(),
-            std::chrono::milliseconds(
-                j["duration"].get<std::chrono::milliseconds::rep>()),
-            j["average"].get<double>(), j["stddev"].get<double>()};
+  // functions for nlohmann json do not follow LLVM code style
+  // NOLINTBEGIN(readability-identifier-naming)
+  static auto from_json(const json& J) -> firestarter::measurement::Summary {
+    return {J["num_timepoints"].get<size_t>(),
+            std::chrono::milliseconds(J["duration"].get<std::chrono::milliseconds::rep>()), J["average"].get<double>(),
+            J["stddev"].get<double>()};
   }
 
-  static void to_json(json &j, firestarter::measurement::Summary s) {
-    j = json::object();
+  static void to_json(json& J, firestarter::measurement::Summary S) {
+    J = json::object();
 
-    j["num_timepoints"] = s.num_timepoints;
-    j["duration"] = s.duration.count();
-    j["average"] = s.average;
-    j["stddev"] = s.stddev;
+    J["num_timepoints"] = S.NumTimepoints;
+    J["duration"] = S.Duration.count();
+    J["average"] = S.Average;
+    J["stddev"] = S.Stddev;
   }
+  // NOLINTEND(readability-identifier-naming)
 };
 } // namespace nlohmann

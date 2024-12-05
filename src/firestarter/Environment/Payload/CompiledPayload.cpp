@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2021 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,10 +19,15 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#pragma once
+#include "firestarter/Environment/Payload/CompiledPayload.hpp"
+#include "firestarter/Environment/Payload/Payload.hpp"
 
-#include <firestarter/Measurement/MetricInterface.h>
+namespace firestarter::environment::payload {
 
-extern metric_interface_t ipc_estimate_metric;
+void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize) { PayloadPtr->init(MemoryAddr, BufferSize); }
 
-extern void ipc_estimate_metric_insert(double value);
+void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
+  PayloadPtr->lowLoadFunction(LoadVar, Period);
+};
+
+}; // namespace firestarter::environment::payload

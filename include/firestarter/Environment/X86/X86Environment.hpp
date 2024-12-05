@@ -21,91 +21,102 @@
 
 #pragma once
 
-#include <firestarter/Environment/Environment.hpp>
-#include <firestarter/Environment/X86/X86CPUTopology.hpp>
-
-#include <firestarter/Environment/X86/Platform/BulldozerConfig.hpp>
-#include <firestarter/Environment/X86/Platform/HaswellConfig.hpp>
-#include <firestarter/Environment/X86/Platform/HaswellEPConfig.hpp>
-#include <firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp>
-#include <firestarter/Environment/X86/Platform/NaplesConfig.hpp>
-#include <firestarter/Environment/X86/Platform/NehalemConfig.hpp>
-#include <firestarter/Environment/X86/Platform/NehalemEPConfig.hpp>
-#include <firestarter/Environment/X86/Platform/RomeConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SandyBridgeEPConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SkylakeConfig.hpp>
-#include <firestarter/Environment/X86/Platform/SkylakeSPConfig.hpp>
-#include <firestarter/Environment/X86/Platform/X86PlatformConfig.hpp>
-
-#include <asmjit/asmjit.h>
-
-#include <functional>
-
-#define REGISTER(NAME)                                                         \
-  [](asmjit::CpuFeatures const &supportedFeatures, unsigned family,          \
-     unsigned model, unsigned threads) -> platform::X86PlatformConfig * {      \
-    return new platform::NAME(supportedFeatures, family, model, threads);      \
-  }
+#include "firestarter/Environment/Environment.hpp"
+#include "firestarter/Environment/X86/Platform/BulldozerConfig.hpp"
+#include "firestarter/Environment/X86/Platform/HaswellConfig.hpp"
+#include "firestarter/Environment/X86/Platform/HaswellEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/KnightsLandingConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NaplesConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NehalemConfig.hpp"
+#include "firestarter/Environment/X86/Platform/NehalemEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/RomeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SandyBridgeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SandyBridgeEPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SkylakeConfig.hpp"
+#include "firestarter/Environment/X86/Platform/SkylakeSPConfig.hpp"
+#include "firestarter/Environment/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::environment::x86 {
 
 class X86Environment final : public Environment {
 public:
-  X86Environment() : Environment(new X86CPUTopology()) {}
+  X86Environment()
+      : Environment(std::make_unique<X86CPUTopology>()) {}
 
-  ~X86Environment() {
-    for (auto const &config : platformConfigs) {
-      delete config;
-    }
-    for (auto const &config : fallbackPlatformConfigs) {
-      delete config;
-    }
+  /// Getter (which allows modifying) for the current platform config containing the payload, settings, the
+  /// associated name and the default X86 family and models.
+  [[nodiscard]] auto config() -> platform::X86PlatformConfig& final {
+    auto* X86PlatformConfig = dynamic_cast<platform::X86PlatformConfig*>(&Environment::config());
+    assert(X86PlatformConfig && "X86PlatformConfig is a nullptr");
+    return *X86PlatformConfig;
   }
 
-  X86CPUTopology const &topology() {
-    return *reinterpret_cast<X86CPUTopology *>(this->_topology);
+  /// Const getter for the current platform config containing the payload, settings, the associated name and the default
+  /// X86 family and models.
+  [[nodiscard]] auto config() const -> const platform::X86PlatformConfig& final {
+    const auto* X86PlatformConfig = dynamic_cast<const platform::X86PlatformConfig*>(&Environment::config());
+    assert(X86PlatformConfig && "X86PlatformConfig is a nullptr");
+    return *X86PlatformConfig;
   }
 
-  void evaluateFunctions() override;
-  int selectFunction(unsigned functionId,
-                     bool allowUnavailablePayload) override;
-  int selectInstructionGroups(std::string groups) override;
+  /// Const getter for the current CPU topology with X86 specific modifications.
+  [[nodiscard]] auto topology() const -> const X86CPUTopology& final {
+    const auto* X86Topology = dynamic_cast<const X86CPUTopology*>(&Environment::topology());
+    assert(X86Topology && "X86Topology is a nullptr");
+    return *X86Topology;
+  }
+
+  /// Select a PlatformConfig based on its generated id. This function will throw if a payload is not available or the
+  /// id is incorrect. If id is zero we automatically select a matching PlatformConfig.
+  /// \arg FunctionId The id of the PlatformConfig that should be selected.
+  /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
+  void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) override;
+
+  /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
+  /// invalid.
+  /// \arg Groups The list of instruction groups that is in the format: multiple INSTRUCTION:VALUE pairs
+  /// comma-seperated.
+  void selectInstructionGroups(std::string Groups) override;
+
+  /// Print the available instruction groups of the selected function.
   void printAvailableInstructionGroups() override;
-  void setLineCount(unsigned lineCount) override;
+
+  /// Set the line count in the selected function.
+  /// \arg LineCount The maximum number of instruction that should be in the high-load loop.
+  void setLineCount(unsigned LineCount) override;
+
+  /// Print a summary of the settings of the selected config.
   void printSelectedCodePathSummary() override;
+
+  /// Print a list of available high-load function and if they are available on the current system. This includes all
+  /// PlatformConfigs in combination with all thread per core counts.
   void printFunctionSummary() override;
 
 private:
-  // The available function IDs are generated by iterating through this list of
-  // PlatformConfig. Add new PlatformConfig at the bottom to maintain stable
-  // IDs.
-  const std::list<std::function<platform::X86PlatformConfig *(
-      asmjit::CpuFeatures const &, unsigned, unsigned, unsigned)>>
-      platformConfigsCtor = {
-          REGISTER(KnightsLandingConfig), REGISTER(SkylakeConfig),
-          REGISTER(SkylakeSPConfig),      REGISTER(HaswellConfig),
-          REGISTER(HaswellEPConfig),      REGISTER(SandyBridgeConfig),
-          REGISTER(SandyBridgeEPConfig),  REGISTER(NehalemConfig),
-          REGISTER(NehalemEPConfig),      REGISTER(BulldozerConfig),
-          REGISTER(NaplesConfig),         REGISTER(RomeConfig)};
+  /// The list of availabe platform configs that is printed when supplying the --avail command line argument. The IDs
+  /// for these configs are generated by iterating through this list starting with 1. To maintain stable IDs in
+  /// FIRESTARTER new configs should be added to the bottom of the list.
+  const std::list<std::shared_ptr<platform::X86PlatformConfig>> PlatformConfigs = {
+      std::make_shared<platform::KnightsLandingConfig>(), std::make_shared<platform::SkylakeConfig>(),
+      std::make_shared<platform::SkylakeSPConfig>(),      std::make_shared<platform::HaswellConfig>(),
+      std::make_shared<platform::HaswellEPConfig>(),      std::make_shared<platform::SandyBridgeConfig>(),
+      std::make_shared<platform::SandyBridgeEPConfig>(),  std::make_shared<platform::NehalemConfig>(),
+      std::make_shared<platform::NehalemEPConfig>(),      std::make_shared<platform::BulldozerConfig>(),
+      std::make_shared<platform::NaplesConfig>(),         std::make_shared<platform::RomeConfig>()};
 
-  std::list<platform::X86PlatformConfig *> platformConfigs;
-
-  // List of fallback PlatformConfig. Add one for each x86 extension.
-  const std::list<std::function<platform::X86PlatformConfig *(
-      asmjit::CpuFeatures const &, unsigned, unsigned, unsigned)>>
-      fallbackPlatformConfigsCtor = {
-          REGISTER(SkylakeSPConfig),   // AVX512
-          REGISTER(BulldozerConfig),   // FMA4
-          REGISTER(HaswellConfig),     // FMA
-          REGISTER(SandyBridgeConfig), // AVX
-          REGISTER(NehalemConfig)      // SSE2
-      };
-
-  std::list<platform::X86PlatformConfig *> fallbackPlatformConfigs;
-
-#undef REGISTER
+  /// The list of configs that are fallbacks. If none of the PlatformConfigs is the default one on the current CPU, we
+  /// select the first one from this list that is available on the current system. If multiple configs can be available
+  /// on one system the one with higher priority should be at the top of this list. Modern X86 CPUs will support SSE2
+  /// therefore it is the last on the list. CPUs that support AVX512 will most certainly also support FMA and AVX,
+  /// AVX512 takes precedence. This list should contain one entry for each of the supported CPU extensions by the
+  /// FIRESTARTER payloads.
+  const std::list<std::shared_ptr<platform::X86PlatformConfig>> FallbackPlatformConfigs = {
+      std::make_shared<platform::SkylakeSPConfig>(),   // AVX512
+      std::make_shared<platform::BulldozerConfig>(),   // FMA4
+      std::make_shared<platform::HaswellConfig>(),     // FMA
+      std::make_shared<platform::SandyBridgeConfig>(), // AVX
+      std::make_shared<platform::NehalemConfig>()      // SSE2
+  };
 };
 
 } // namespace firestarter::environment::x86

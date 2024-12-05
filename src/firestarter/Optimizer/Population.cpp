@@ -19,125 +19,106 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Logging/Log.hpp>
-#include <firestarter/Optimizer/Population.hpp>
+#include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Optimizer/History.hpp"
 
-#include <algorithm>
 #include <cassert>
-#include <stdexcept>
+#include <random>
 
-using namespace firestarter::optimizer;
+namespace firestarter::optimizer {
 
-void Population::generateInitialPopulation(std::size_t populationSize) {
-  firestarter::log::trace() << "Generating " << populationSize
-                            << " random individuals for initial population.";
+void Population::generateInitialPopulation(std::size_t PopulationSize) {
+  firestarter::log::trace() << "Generating " << PopulationSize << " random individuals for initial population.";
 
-  auto dims = this->problem().getDims();
-  auto remaining = populationSize;
+  auto Dims = this->problem().getDims();
+  auto Remaining = PopulationSize;
 
-  if (!(populationSize < dims)) {
-    for (decltype(dims) i = 0; i < dims; i++) {
-      Individual vec(dims, 0);
-      vec[i] = 1;
-      this->append(vec);
+  if (!(PopulationSize < Dims)) {
+    for (decltype(Dims) I = 0; I < Dims; I++) {
+      Individual Vec(Dims, 0);
+      Vec[I] = 1;
+      this->append(Vec);
+      Remaining--;
     }
-
-    remaining -= dims;
   } else {
-    firestarter::log::trace()
-        << "Population size (" << std::to_string(populationSize)
-        << ") is less than size of problem dimension (" << std::to_string(dims)
-        << ")";
+    firestarter::log::trace() << "Population size (" << std::to_string(PopulationSize)
+                              << ") is less than size of problem dimension (" << std::to_string(Dims) << ")";
   }
 
-  for (decltype(remaining) i = 0; i < remaining; i++) {
+  for (decltype(Remaining) I = 0; I < Remaining; I++) {
     this->append(this->getRandomIndividual());
   }
 }
 
-std::size_t Population::size() const { return _x.size(); }
+auto Population::size() const -> std::size_t { return X.size(); }
 
-void Population::append(Individual const &ind) {
-  assert(this->problem().getDims() == ind.size());
+void Population::append(Individual const& Ind) {
+  assert(this->problem().getDims() == Ind.size());
 
-  std::map<std::string, firestarter::measurement::Summary> metrics;
+  std::map<std::string, firestarter::measurement::Summary> Metrics;
 
   // check if we already evaluated this individual
-  auto optional_metric = History::find(ind);
-  if (optional_metric.has_value()) {
-    metrics = optional_metric.value();
+  const auto OptionalMetric = History::find(Ind);
+  if (OptionalMetric.has_value()) {
+    Metrics = OptionalMetric.value();
   } else {
-    metrics = this->_problem->metrics(ind);
+    Metrics = this->ProblemPtr->metrics(Ind);
   }
 
-  auto fitness = this->_problem->fitness(metrics);
+  auto Fitness = this->ProblemPtr->fitness(Metrics);
 
-  this->append(ind, fitness);
+  this->append(Ind, Fitness);
 
-  if (!optional_metric.has_value()) {
-    History::append(ind, metrics);
+  if (!OptionalMetric.has_value()) {
+    History::append(Ind, Metrics);
   }
 }
 
-void Population::append(Individual const &ind, std::vector<double> const &fit) {
-  std::stringstream ss;
-  ss << "  - Fitness: ";
-  for (auto const &v : fit) {
-    ss << v << " ";
+void Population::append(Individual const& Ind, std::vector<double> const& Fit) {
+  std::stringstream Ss;
+  Ss << "  - Fitness: ";
+  for (auto const& V : Fit) {
+    Ss << V << " ";
   }
-  firestarter::log::trace() << ss.str();
+  firestarter::log::trace() << Ss.str();
 
-  assert(this->problem().getNobjs() == fit.size());
-  assert(this->problem().getDims() == ind.size());
+  assert(this->problem().getNobjs() == Fit.size());
+  assert(this->problem().getDims() == Ind.size());
 
-  this->_x.push_back(ind);
-  this->_f.push_back(fit);
+  this->X.push_back(Ind);
+  this->F.push_back(Fit);
 }
 
-void Population::insert(std::size_t idx, Individual const &ind,
-                        std::vector<double> const &fit) {
+void Population::insert(std::size_t Idx, Individual const& Ind, std::vector<double> const& Fit) {
   // assert that population is big enough
-  assert(_x.size() > idx);
+  assert(X.size() > Idx);
 
-  _x[idx] = ind;
-  _f[idx] = fit;
+  X[Idx] = Ind;
+  F[Idx] = Fit;
 }
 
-Individual Population::getRandomIndividual() {
-  auto dims = this->problem().getDims();
-  auto const bounds = this->problem().getBounds();
+auto Population::getRandomIndividual() const -> Individual {
+  auto Dims = this->problem().getDims();
+  auto const Bounds = this->problem().getBounds();
 
-  firestarter::log::trace() << "Generating random individual of size: " << dims;
+  std::random_device Rd;
+  std::mt19937 Rng(Rd());
 
-  Individual out(dims);
+  firestarter::log::trace() << "Generating random individual of size: " << Dims;
 
-  for (decltype(dims) i = 0; i < dims; i++) {
-    auto const lb = std::get<0>(bounds[i]);
-    auto const ub = std::get<1>(bounds[i]);
+  Individual Out(Dims);
 
-    out[i] = std::uniform_int_distribution<unsigned>(lb, ub)(this->gen);
+  for (decltype(Dims) I = 0; I < Dims; I++) {
+    auto const Lb = std::get<0>(Bounds[I]);
+    auto const Ub = std::get<1>(Bounds[I]);
 
-    firestarter::log::trace()
-        << "  - " << i << ": [" << lb << "," << ub << "]: " << out[i];
+    Out[I] = std::uniform_int_distribution<unsigned>(Lb, Ub)(Rng);
+
+    firestarter::log::trace() << "  - " << I << ": [" << Lb << "," << Ub << "]: " << Out[I];
   }
 
-  return out;
+  return Out;
 }
 
-std::optional<Individual> Population::bestIndividual() const {
-  // return an empty vector if the problem is multi objective, as there is no
-  // single best individual
-  if (this->problem().isMO()) {
-    return {};
-  }
-
-  // assert that we have individuals
-  assert(this->_x.size() > 0);
-
-  auto best = std::max_element(this->_x.begin(), this->_x.end(),
-                               [](auto a, auto b) { return a < b; });
-
-  assert(best != this->_x.end());
-
-  return *best;
-}
+} // namespace firestarter::optimizer

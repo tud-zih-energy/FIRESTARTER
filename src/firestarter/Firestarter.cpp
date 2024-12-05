@@ -19,438 +19,279 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include <firestarter/Firestarter.hpp>
-#include <firestarter/Logging/Log.hpp>
-#if defined(linux) || defined(__linux__)
-#include <firestarter/Optimizer/Algorithm/NSGA2.hpp>
-#include <firestarter/Optimizer/History.hpp>
-#include <firestarter/Optimizer/Problem/CLIArgumentProblem.hpp>
-extern "C" {
-#include <firestarter/Measurement/Metric/IPCEstimate.h>
-}
-#endif
+#include "firestarter/Firestarter.hpp"
+#include "firestarter/Environment/X86/X86Environment.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
+#include "firestarter/Optimizer/History.hpp"
+#include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
 
 #include <csignal>
-#include <functional>
-#include <thread>
+#include <cstdlib>
+#include <memory>
 
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
+namespace firestarter {
 
-using namespace firestarter;
-
-Firestarter::Firestarter(
-    const int argc, const char **argv, std::chrono::seconds const &timeout,
-    unsigned loadPercent, std::chrono::microseconds const &period,
-    unsigned requestedNumThreads, std::string const &cpuBind,
-    bool printFunctionSummary, unsigned functionId, bool listInstructionGroups,
-    std::string const &instructionGroups, unsigned lineCount,
-    bool allowUnavailablePayload, bool dumpRegisters,
-    std::chrono::seconds const &dumpRegistersTimeDelta,
-    std::string const &dumpRegistersOutpath, bool errorDetection, int gpus,
-    unsigned gpuMatrixSize, bool gpuUseFloat, bool gpuUseDouble,
-    bool listMetrics, bool measurement,
-    std::chrono::milliseconds const &startDelta,
-    std::chrono::milliseconds const &stopDelta,
-    std::chrono::milliseconds const &measurementInterval,
-    std::vector<std::string> const &metricPaths,
-    std::vector<std::string> const &stdinMetrics, bool optimize,
-    std::chrono::seconds const &preheat,
-    std::string const &optimizationAlgorithm,
-    std::vector<std::string> const &optimizationMetrics,
-    std::chrono::seconds const &evaluationDuration, unsigned individuals,
-    std::string const &optimizeOutfile, unsigned generations, double nsga2_cr,
-    double nsga2_m)
-    : _argc(argc), _argv(argv), _timeout(timeout), _loadPercent(loadPercent),
-      _period(period), _dumpRegisters(dumpRegisters),
-      _dumpRegistersTimeDelta(dumpRegistersTimeDelta),
-      _dumpRegistersOutpath(dumpRegistersOutpath),
-      _errorDetection(errorDetection), _gpus(gpus),
-      _gpuMatrixSize(gpuMatrixSize), _gpuUseFloat(gpuUseFloat),
-      _gpuUseDouble(gpuUseDouble), _startDelta(startDelta),
-      _stopDelta(stopDelta), _measurement(measurement), _optimize(optimize),
-      _preheat(preheat), _optimizationAlgorithm(optimizationAlgorithm),
-      _optimizationMetrics(optimizationMetrics),
-      _evaluationDuration(evaluationDuration), _individuals(individuals),
-      _optimizeOutfile(optimizeOutfile), _generations(generations),
-      _nsga2_cr(nsga2_cr), _nsga2_m(nsga2_m) {
-  int returnCode;
-
-  _load = (_period * _loadPercent) / 100;
-  if (_loadPercent == 100 || _load == std::chrono::microseconds::zero()) {
-    _period = std::chrono::microseconds::zero();
+Firestarter::Firestarter(Config&& ProvidedConfig)
+    : Cfg(std::move(ProvidedConfig)) {
+  if constexpr (firestarter::OptionalFeatures.IsX86) {
+    Environment = std::make_unique<environment::x86::X86Environment>();
   }
 
-#if defined(linux) || defined(__linux__)
-#else
-  (void)listMetrics;
-  (void)measurementInterval;
-  (void)metricPaths;
-  (void)stdinMetrics;
-#endif
+  Environment->evaluateCpuAffinity(Cfg.RequestedNumThreads, Cfg.CpuBind);
 
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-  this->_environment = new environment::x86::X86Environment();
-#endif
-
-  if (EXIT_SUCCESS != (returnCode = this->environment().evaluateCpuAffinity(
-                           requestedNumThreads, cpuBind))) {
-    std::exit(returnCode);
-  }
-
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-  // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
-  if (_errorDetection) {
-    if (!_environment->topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
-      throw std::invalid_argument("Option --error-detection requires the crc32 "
-                                  "instruction added with SSE_4_2.\n");
-    }
-  }
-#endif
-
-  if (_errorDetection && this->environment().requestedNumThreads() < 2) {
-    throw std::invalid_argument(
-        "Option --error-detection must run with 2 or more threads. Number of "
-        "threads is " +
-        std::to_string(this->environment().requestedNumThreads()) + "\n");
-  }
-
-  this->environment().evaluateFunctions();
-
-  if (printFunctionSummary) {
-    this->environment().printFunctionSummary();
-    std::exit(EXIT_SUCCESS);
-  }
-
-  if (EXIT_SUCCESS != (returnCode = this->environment().selectFunction(
-                           functionId, allowUnavailablePayload))) {
-    std::exit(returnCode);
-  }
-
-  if (listInstructionGroups) {
-    this->environment().printAvailableInstructionGroups();
-    std::exit(EXIT_SUCCESS);
-  }
-
-  if (!instructionGroups.empty()) {
-    if (EXIT_SUCCESS !=
-        (returnCode =
-             this->environment().selectInstructionGroups(instructionGroups))) {
-      std::exit(returnCode);
+  if constexpr (firestarter::OptionalFeatures.IsX86) {
+    // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
+    if (Cfg.ErrorDetection) {
+      const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
+      if (!X86Env.topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+        throw std::invalid_argument("Option --error-detection requires the crc32 "
+                                    "instruction added with SSE_4_2.\n");
+      }
     }
   }
 
-  if (lineCount != 0) {
-    this->environment().setLineCount(lineCount);
+  if (Cfg.ErrorDetection && Environment->requestedNumThreads() < 2) {
+    throw std::invalid_argument("Option --error-detection must run with 2 or more threads. Number of "
+                                "threads is " +
+                                std::to_string(Environment->requestedNumThreads()) + "\n");
   }
 
-#if defined(linux) || defined(__linux__)
-  if (_measurement || listMetrics || _optimize) {
-    _measurementWorker = std::make_shared<measurement::MeasurementWorker>(
-        measurementInterval, this->environment().requestedNumThreads(),
-        metricPaths, stdinMetrics);
+  if (Cfg.PrintFunctionSummary) {
+    Environment->printFunctionSummary();
+    safeExit(EXIT_SUCCESS);
+  }
 
-    if (listMetrics) {
-      log::info() << _measurementWorker->availableMetrics();
-      std::exit(EXIT_SUCCESS);
+  Environment->selectFunction(Cfg.FunctionId, Cfg.AllowUnavailablePayload);
+
+  if (Cfg.ListInstructionGroups) {
+    Environment->printAvailableInstructionGroups();
+    safeExit(EXIT_SUCCESS);
+  }
+
+  if (!Cfg.InstructionGroups.empty()) {
+    Environment->selectInstructionGroups(Cfg.InstructionGroups);
+  }
+
+  if (Cfg.LineCount != 0) {
+    Environment->setLineCount(Cfg.LineCount);
+  }
+
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    if (Cfg.Measurement || Cfg.ListMetrics || Cfg.Optimize) {
+      MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
+          Cfg.MeasurementInterval, Environment->requestedNumThreads(), Cfg.MetricPaths, Cfg.StdinMetrics);
+
+      if (Cfg.ListMetrics) {
+        log::info() << MeasurementWorker->availableMetrics();
+        safeExit(EXIT_SUCCESS);
+      }
+
+      // init all metrics
+      auto All = MeasurementWorker->metricNames();
+      auto Initialized = MeasurementWorker->initMetrics(All);
+
+      if (Initialized.empty()) {
+        std::invalid_argument("No metrics initialized");
+      }
+
+      // check if selected metrics are initialized
+      for (auto const& OptimizationMetric : Cfg.OptimizationMetrics) {
+        auto NameEqual = [OptimizationMetric](auto const& Name) {
+          auto InvertedName = "-" + Name;
+          return Name == OptimizationMetric || InvertedName == OptimizationMetric;
+        };
+        // metric name is not found
+        if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {
+          std::invalid_argument("Metric \"" + OptimizationMetric + "\" does not exist.");
+        }
+        // metric has not initialized properly
+        if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
+          std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
+        }
+      }
     }
 
-    // init all metrics
-    auto all = _measurementWorker->metricNames();
-    auto initialized = _measurementWorker->initMetrics(all);
+    if (Cfg.Optimize) {
+      auto ApplySettings = [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
+        using Clock = std::chrono::high_resolution_clock;
+        auto Start = Clock::now();
 
-    if (initialized.size() == 0) {
-      log::error() << "No metrics initialized";
-      std::exit(EXIT_FAILURE);
-    }
+        signalSwitch(Setting);
 
-    // check if selected metrics are initialized
-    for (auto const &optimizationMetric : optimizationMetrics) {
-      auto nameEqual = [optimizationMetric](auto const &name) {
-        auto invertedName = "-" + name;
-        return name.compare(optimizationMetric) == 0 ||
-               invertedName.compare(optimizationMetric) == 0;
+        LoadVar = LoadThreadWorkType::LoadHigh;
+
+        signalWork();
+
+        uint64_t StartTimestamp = (std::numeric_limits<uint64_t>::max)();
+        uint64_t StopTimestamp = 0;
+
+        for (auto const& Thread : LoadThreads) {
+          auto Td = Thread.second;
+
+          StartTimestamp = std::min<uint64_t>(StartTimestamp, Td->LastRun.StartTsc);
+          StopTimestamp = std::max<uint64_t>(StopTimestamp, Td->LastRun.StopTsc);
+        }
+
+        for (auto const& Thread : LoadThreads) {
+          auto Td = Thread.second;
+          IpcEstimateMetricData::insertValue(
+              static_cast<double>(Td->LastRun.Iterations) *
+              static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
+              static_cast<double>(StopTimestamp - StartTimestamp));
+        }
+
+        auto End = Clock::now();
+
+        log::trace() << "Switching payload took "
+                     << std::chrono::duration_cast<std::chrono::milliseconds>(End - Start).count() << "ms";
       };
-      // metric name is not found
-      if (std::find_if(all.begin(), all.end(), nameEqual) == all.end()) {
-        log::error() << "Metric \"" << optimizationMetric
-                     << "\" does not exist.";
-        std::exit(EXIT_FAILURE);
+
+      auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
+          std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
+          Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
+
+      Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
+
+      if (Cfg.OptimizationAlgorithm == "NSGA2") {
+        Algorithm =
+            std::make_unique<firestarter::optimizer::algorithm::NSGA2>(Cfg.Generations, Cfg.Nsga2Cr, Cfg.Nsga2M);
+      } else {
+        throw std::invalid_argument("Algorithm " + Cfg.OptimizationAlgorithm + " unknown.");
       }
-      // metric has not initialized properly
-      if (std::find_if(initialized.begin(), initialized.end(), nameEqual) ==
-          initialized.end()) {
-        log::error() << "Metric \"" << optimizationMetric
-                     << "\" failed to initialize.";
-        std::exit(EXIT_FAILURE);
-      }
+
+      Algorithm->check(Population->problem(), Cfg.Individuals);
     }
   }
 
-  if (_optimize) {
-    auto applySettings = std::bind(
-        [this](std::vector<std::pair<std::string, unsigned>> const &setting) {
-          using Clock = std::chrono::high_resolution_clock;
-          auto start = Clock::now();
+  Environment->printSelectedCodePathSummary();
 
-          for (auto &thread : this->loadThreads) {
-            auto td = thread.second;
-
-            td->config().setPayloadSettings(setting);
-          }
-
-          for (auto const &thread : this->loadThreads) {
-            auto td = thread.second;
-
-            td->mutex.lock();
-          }
-
-          for (auto const &thread : this->loadThreads) {
-            auto td = thread.second;
-
-            td->comm = THREAD_SWITCH;
-            td->mutex.unlock();
-          }
-
-          this->loadVar = LOAD_SWITCH;
-
-          for (auto const &thread : this->loadThreads) {
-            auto td = thread.second;
-            bool ack;
-
-            do {
-              td->mutex.lock();
-              ack = td->ack;
-              td->mutex.unlock();
-            } while (!ack);
-
-            td->mutex.lock();
-            td->ack = false;
-            td->mutex.unlock();
-          }
-
-          this->loadVar = LOAD_HIGH;
-
-          this->signalWork();
-
-          unsigned long long startTimestamp = 0xffffffffffffffff;
-          unsigned long long stopTimestamp = 0;
-
-          for (auto const &thread : this->loadThreads) {
-            auto td = thread.second;
-
-            if (startTimestamp > td->lastStartTsc) {
-              startTimestamp = td->lastStartTsc;
-            }
-            if (stopTimestamp < td->lastStopTsc) {
-              stopTimestamp = td->lastStopTsc;
-            }
-          }
-
-          for (auto const &thread : this->loadThreads) {
-            auto td = thread.second;
-            ipc_estimate_metric_insert(
-                (double)td->lastIterations *
-                (double)this->loadThreads.front()
-                    .second->config()
-                    .payload()
-                    .instructions() /
-                (double)(stopTimestamp - startTimestamp));
-          }
-
-          auto end = Clock::now();
-
-          log::trace() << "Switching payload took "
-                       << std::chrono::duration_cast<std::chrono::milliseconds>(
-                              end - start)
-                              .count()
-                       << "ms";
-        },
-        std::placeholders::_1);
-
-    auto prob =
-        std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
-            std::move(applySettings), _measurementWorker, _optimizationMetrics,
-            _evaluationDuration, _startDelta, _stopDelta,
-            this->environment().selectedConfig().payloadItems());
-
-    _population = firestarter::optimizer::Population(std::move(prob));
-
-    if (_optimizationAlgorithm == "NSGA2") {
-      _algorithm = std::make_unique<firestarter::optimizer::algorithm::NSGA2>(
-          _generations, _nsga2_cr, _nsga2_m);
-    } else {
-      throw std::invalid_argument("Algorithm " + _optimizationAlgorithm +
-                                  " unknown.");
-    }
-
-    _algorithm->checkPopulation(
-        static_cast<firestarter::optimizer::Population const &>(_population),
-        _individuals);
-  }
-#endif
-
-  this->environment().printSelectedCodePathSummary();
-
-  log::info() << this->environment().topology();
+  log::info() << Environment->topology();
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  if (EXIT_SUCCESS != (returnCode = this->initLoadWorkers((_loadPercent == 0),
-                                                          _period.count()))) {
-    std::exit(returnCode);
-  }
+  initLoadWorkers();
 
   // add some signal handler for aborting FIRESTARTER
-#ifndef _WIN32
-  std::signal(SIGALRM, Firestarter::sigalrmHandler);
-#endif
+  if constexpr (!firestarter::OptionalFeatures.IsWin32) {
+    (void)std::signal(SIGALRM, Firestarter::sigalrmHandler);
+  }
 
-  std::signal(SIGTERM, Firestarter::sigtermHandler);
-  std::signal(SIGINT, Firestarter::sigtermHandler);
-}
-
-Firestarter::~Firestarter() {
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  _cuda.reset();
-#endif
-#ifdef FIRESTARTER_BUILD_ONEAPI
-  _oneapi.reset();
-#endif
-
-  delete _environment;
+  (void)std::signal(SIGTERM, Firestarter::sigtermHandler);
+  (void)std::signal(SIGINT, Firestarter::sigtermHandler);
 }
 
 void Firestarter::mainThread() {
-  this->environment().printThreadSummary();
+  Environment->printThreadSummary();
 
-#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-  _cuda = std::make_unique<cuda::Cuda>(&this->loadVar, _gpuUseFloat,
-                                       _gpuUseDouble, _gpuMatrixSize, _gpus);
-#endif
+  Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
+  Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
 
-#ifdef FIRESTARTER_BUILD_ONEAPI
-  _oneapi = std::make_unique<oneapi::OneAPI>(&this->loadVar, _gpuUseFloat,
-                                       _gpuUseDouble, _gpuMatrixSize, _gpus);
-#endif
-
-
-#if defined(linux) || defined(__linux__)
-  // if measurement is enabled, start it here
-  if (_measurement) {
-    _measurementWorker->startMeasurement();
-  }
-#endif
-
-  this->signalWork();
-
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  if (_dumpRegisters) {
-    int returnCode;
-    if (EXIT_SUCCESS != (returnCode = this->initDumpRegisterWorker(
-                             _dumpRegistersTimeDelta, _dumpRegistersOutpath))) {
-      std::exit(returnCode);
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    // if measurement is enabled, start it here
+    if (Cfg.Measurement) {
+      MeasurementWorker->startMeasurement();
     }
   }
-#endif
+
+  signalWork();
+
+  if constexpr (firestarter::OptionalFeatures.DumpRegisterEnabled) {
+    if (Cfg.DumpRegisters) {
+      initDumpRegisterWorker();
+    }
+  }
 
   // worker thread for load control
-  this->watchdogWorker(_period, _load, _timeout);
+  watchdogWorker(Cfg.Period, Cfg.Load, Cfg.Timeout);
 
-#if defined(linux) || defined(__linux__)
-  // check if optimization is selected
-  if (_optimize) {
-    auto startTime = optimizer::History::getTime();
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    // check if optimization is selected
+    if (Cfg.Optimize) {
+      auto StartTime = optimizer::History::getTime();
 
-    Firestarter::_optimizer = std::make_unique<optimizer::OptimizerWorker>(
-        std::move(_algorithm), _population, _optimizationAlgorithm,
-        _individuals, _preheat);
+      Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(std::move(Algorithm), std::move(Population),
+                                                                            Cfg.Individuals, Cfg.Preheat);
 
-    // wait here until optimizer thread terminates
-    Firestarter::_optimizer->join();
+      // wait here until optimizer thread terminates
+      Firestarter::Optimizer->join();
+      Firestarter::Optimizer.reset();
 
-    auto payloadItems = this->environment().selectedConfig().payloadItems();
+      auto PayloadItems = Environment->config().settings().instructionGroupItems();
 
-    firestarter::optimizer::History::save(_optimizeOutfile, startTime,
-                                          payloadItems, _argc, _argv);
+      firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 
-    // print the best 20 according to each metric
-    firestarter::optimizer::History::printBest(_optimizationMetrics,
-                                               payloadItems);
+      // print the best 20 according to each metric
+      firestarter::optimizer::History::printBest(Cfg.OptimizationMetrics, PayloadItems);
 
-    // stop all the load threads
-    std::raise(SIGTERM);
-  }
-#endif
-
-  // wait for watchdog to timeout or until user terminates
-  this->joinLoadWorkers();
-#ifdef FIRESTARTER_DEBUG_FEATURES
-  if (_dumpRegisters) {
-    this->joinDumpRegisterWorker();
-  }
-#endif
-
-  if (!_optimize) {
-    this->printPerformanceReport();
-  }
-
-#if defined(linux) || defined(__linux__)
-  // if measurment is enabled, stop it here
-  if (_measurement) {
-    // TODO: clear this up
-    log::info() << "metric,num_timepoints,duration_ms,average,stddev";
-    for (auto const &[name, sum] :
-         _measurementWorker->getValues(_startDelta, _stopDelta)) {
-      log::info() << std::quoted(name) << "," << sum.num_timepoints << ","
-                  << sum.duration.count() << "," << sum.average << ","
-                  << sum.stddev;
+      // stop all the load threads
+      (void)std::raise(SIGTERM);
     }
   }
-#endif
 
-  if (_errorDetection) {
-    this->printThreadErrorReport();
+  // wait for watchdog to timeout or until user terminates
+  joinLoadWorkers();
+  if constexpr (firestarter::OptionalFeatures.DumpRegisterEnabled) {
+    if (Cfg.DumpRegisters) {
+      joinDumpRegisterWorker();
+    }
+  }
+
+  if (!Cfg.Optimize) {
+    printPerformanceReport();
+  }
+
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    // if measurment is enabled, stop it here
+    if (Cfg.Measurement) {
+      // TODO(Issue #77): clear this up
+      log::info() << "metric,num_timepoints,duration_ms,average,stddev";
+      for (auto const& [name, sum] : MeasurementWorker->getValues(Cfg.StartDelta, Cfg.StopDelta)) {
+        log::info() << std::quoted(name) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
+                    << sum.Average << "," << sum.Stddev;
+      }
+    }
+  }
+
+  if (Cfg.ErrorDetection) {
+    printThreadErrorReport();
   }
 }
 
-void Firestarter::setLoad(unsigned long long value) {
+void Firestarter::setLoad(LoadThreadWorkType Value) {
   // signal load change to workers
-  Firestarter::loadVar = value;
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) ||            \
-    defined(_M_X64)
-#ifndef _MSC_VER
-  __asm__ __volatile__("mfence;");
-#else
-  _mm_mfence();
-#endif
-#else
-#error "FIRESTARTER is not implemented for this ISA"
-#endif
+  Firestarter::LoadVar = Value;
+  if constexpr (firestarter::OptionalFeatures.IsX86) {
+    if constexpr (firestarter::OptionalFeatures.IsMsc) {
+      _mm_mfence();
+    } else {
+      __asm__ __volatile__("mfence;");
+    }
+  }
 }
 
-void Firestarter::sigalrmHandler(int signum) { (void)signum; }
+void Firestarter::sigalrmHandler(int Signum) { (void)Signum; }
 
-void Firestarter::sigtermHandler(int signum) {
-  (void)signum;
+void Firestarter::sigtermHandler(int Signum) {
+  (void)Signum;
 
-  Firestarter::setLoad(LOAD_STOP);
+  Firestarter::setLoad(LoadThreadWorkType::LoadStop);
   // exit loop
   // used in case of 0 < load < 100
   // or interrupt sleep for timeout
   {
-    std::lock_guard<std::mutex> lk(Firestarter::_watchdogTerminateMutex);
-    Firestarter::_watchdog_terminate = true;
+    const std::lock_guard<std::mutex> Lk(Firestarter::WatchdogTerminateMutex);
+    Firestarter::WatchdogTerminate = true;
   }
-  Firestarter::_watchdogTerminateAlert.notify_all();
+  Firestarter::WatchdogTerminateAlert.notify_all();
 
-#if defined(linux) || defined(__linux__)
-  // if we have optimization running stop it
-  if (Firestarter::_optimizer) {
-    Firestarter::_optimizer->kill();
+  if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    // if we have optimization running stop it
+    if (Firestarter::Optimizer) {
+      Firestarter::Optimizer->kill();
+    }
   }
-#endif
 }
+
+} // namespace firestarter

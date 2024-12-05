@@ -21,108 +21,146 @@
 
 #pragma once
 
-#include <firestarter/Constants.hpp>
-#include <firestarter/DumpRegisterStruct.hpp>
-#include <firestarter/Environment/Environment.hpp>
-#include <firestarter/ErrorDetectionStruct.hpp>
+#include "firestarter/Constants.hpp"
+#include "firestarter/Environment/Environment.hpp"
+#include "firestarter/Environment/Platform/PlatformConfig.hpp"
+#include "firestarter/LoadWorkerMemory.hpp"
 
 #include <atomic>
+#include <cmath>
 #include <memory>
 #include <mutex>
-
-#define PAD_SIZE(size, align)                                                  \
-  align *(int)std::ceil((double)size / (double)align)
-
-#if defined(__APPLE__)
-#define ALIGNED_MALLOC(size, align) aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE free
-#elif defined(__MINGW64__)
-#define ALIGNED_MALLOC(size, align) _mm_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _mm_free
-#elif defined(_MSC_VER)
-#define ALIGNED_MALLOC(size, align)                                            \
-  _aligned_malloc(PAD_SIZE(size, align), align)
-#define ALIGNED_FREE _aligned_free
-#else
-#define ALIGNED_MALLOC(size, align)                                            \
-  std::aligned_alloc(align, PAD_SIZE(size, align))
-#define ALIGNED_FREE std::free
-#endif
+#include <utility>
 
 namespace firestarter {
 
+/// This class contains the information that is required to execute the load routines and change the payload during
+/// executions.
 class LoadWorkerData {
 public:
-  LoadWorkerData(int id, environment::Environment &environment,
-                 volatile unsigned long long *loadVar,
-                 unsigned long long period, bool dumpRegisters,
-                 bool errorDetection)
-      : addrHigh(loadVar), period(period), dumpRegisters(dumpRegisters),
-        errorDetection(errorDetection), _id(id), _environment(environment),
-        _config(new environment::platform::RuntimeConfig(
-            environment.selectedConfig())) {
-    // use REGISTER_MAX_NUM cache lines for the dumped registers
-    // and another cache line for the control variable.
-    // as we are doing aligned moves we only have the option to waste a whole
-    // cacheline
-    addrOffset = dumpRegisters
-                     ? sizeof(DumpRegisterStruct) / sizeof(unsigned long long)
-                     : 0;
+  /// This struct models parameters acquired during the execution of the high-load routine.
+  struct Metrics {
+    /// The number of iteration the high-load loop was executed.
+    std::atomic<uint64_t> Iterations{};
+    /// The start of the execution of the high-load loop.
+    std::atomic<uint64_t> StartTsc{};
+    /// The stop of the execution of the high-load loop.
+    std::atomic<uint64_t> StopTsc{};
 
-    addrOffset += errorDetection ? sizeof(ErrorDetectionStruct) /
-                                       sizeof(unsigned long long)
-                                 : 0;
-  }
+    auto operator=(const Metrics& Other) -> Metrics& {
+      if (this == &Other) {
+        return *this;
+      }
 
-  ~LoadWorkerData() {
-    delete _config;
-    if (addrMem - addrOffset != nullptr) {
-      ALIGNED_FREE(addrMem - addrOffset);
+      Iterations.store(Other.Iterations.load());
+      StartTsc.store(Other.StartTsc.load());
+      StopTsc.store(Other.StopTsc.load());
+      return *this;
     }
+  };
+
+  /// Create the datastructure that is shared between a load worker thread and firestarter.
+  /// \arg Id The id of the load worker thread. They are counted from 0 to the maximum number of threads - 1.
+  /// \arg Environment The reference to the environment which allows setting the thread affinity and getting the current
+  /// timestamp.
+  /// \arg LoadVar The variable that controls the execution of the load worker.
+  /// \arg Period Is used in combination with the LoadVar for the low load routine.
+  /// \arg DumpRegisters Should the code to support dumping registers be baked into the high load routine of the
+  /// compiled payload.
+  /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
+  /// of the compiled payload.
+  LoadWorkerData(uint64_t Id, const environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
+                 std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
+      : LoadVar(LoadVar)
+      , Period(Period)
+      , DumpRegisters(DumpRegisters)
+      , ErrorDetection(ErrorDetection)
+      , Id(Id)
+      , Environment(Environment)
+      , Config(Environment.config().clone()) {}
+
+  ~LoadWorkerData() = default;
+
+  /// Set the shared pointer to the memory shared between two thread for the communication required for the error
+  /// detection feature.
+  /// \arg CommunicationLeft The memory shared with the left thread.
+  /// \arg CommunicationRight The memory shared with the right thread.
+  void setErrorCommunication(std::shared_ptr<uint64_t> CommunicationLeft,
+                             std::shared_ptr<uint64_t> CommunicationRight) {
+    this->CommunicationLeft = std::move(CommunicationLeft);
+    this->CommunicationRight = std::move(CommunicationRight);
   }
 
-  void setErrorCommunication(
-      std::shared_ptr<unsigned long long> communicationLeft,
-      std::shared_ptr<unsigned long long> communicationRight) {
-    this->communicationLeft = communicationLeft;
-    this->communicationRight = communicationRight;
+  /// Gettter for the id of the thread.
+  [[nodiscard]] auto id() const -> uint64_t { return Id; }
+  /// Const getter for the environment.
+  [[nodiscard]] auto environment() const -> const environment::Environment& { return Environment; }
+  /// Getter for the current platform config.
+  [[nodiscard]] auto config() const -> environment::platform::PlatformConfig& { return *Config; }
+
+  /// Access the DumpRegisterStruct. Asserts when dumping registers is not enabled.
+  /// \returns a reference to the DumpRegisterStruct
+  [[nodiscard]] auto dumpRegisterStruct() const -> DumpRegisterStruct& {
+    assert(DumpRegisters && "Tried to access DumpRegisterStruct, but dumping registers is not enabled.");
+    return Memory->ExtraVars.Drs;
   }
 
-  int id() const { return _id; }
-  environment::Environment &environment() const { return _environment; }
-  environment::platform::RuntimeConfig &config() const { return *_config; }
-
-  const ErrorDetectionStruct *errorDetectionStruct() const {
-    return reinterpret_cast<ErrorDetectionStruct *>(addrMem - addrOffset);
+  /// Access the ErrorDetectionStruct. Asserts when error detections is not enabled.
+  /// \returns a reference to the ErrorDetectionStruct
+  [[nodiscard]] auto errorDetectionStruct() const -> ErrorDetectionStruct& {
+    assert(ErrorDetection && "Tried to access ErrorDetectionStruct, but error detection is not enabled.");
+    return Memory->ExtraVars.Eds;
   }
 
-  int comm = THREAD_WAIT;
-  bool ack = false;
-  std::mutex mutex;
-  unsigned long long *addrMem = nullptr;
-  unsigned long long addrOffset;
-  volatile unsigned long long *addrHigh;
-  unsigned long long buffersizeMem;
-  unsigned long long iterations = 0;
-  // save the last iteration count when switching payloads
-  std::atomic<unsigned long long> lastIterations;
-  unsigned long long flops;
-  unsigned long long startTsc;
-  unsigned long long stopTsc;
-  std::atomic<unsigned long long> lastStartTsc;
-  std::atomic<unsigned long long> lastStopTsc;
+  /// The members in this struct are used for the communication between the main thread and the load thread.
+  struct Communication {
+    /// The state of the load worker.
+    LoadThreadState State = LoadThreadState::ThreadWait;
+    /// This variable will be set to true when the state change was acknowledged by the load thread.
+    bool Ack = false;
+    /// The mutex that is used to lock access to the Ack and State variabels.
+    std::mutex Mutex;
+  } Communication;
+
+  /// The memory which is used by the load worker.
+  LoadWorkerMemory::UniquePtr Memory = {nullptr, nullptr};
+
+  /// The compiled payload which contains the pointers to the specific functions which are executed and some stats.
+  environment::payload::CompiledPayload::UniquePtr CompiledPayloadPtr = {nullptr, nullptr};
+
+  /// The variable that controls the execution of the load worker.
+  volatile LoadThreadWorkType& LoadVar;
+
+  /// The size of the buffer that is allocated in the load worker.
+  uint64_t BuffersizeMem{};
+
+  /// The collected metrics from the current execution of the LoadThreadState::ThreadWork state. Do not read from it.
+  Metrics CurrentRun;
+
+  /// The collected metrics from the last execution of the LoadThreadState::ThreadWork state.
+  Metrics LastRun;
+
   // period in usecs
   // used in low load routine to sleep 1/100th of this time
-  unsigned long long period;
-  bool dumpRegisters;
-  bool errorDetection;
-  std::shared_ptr<unsigned long long> communicationLeft;
-  std::shared_ptr<unsigned long long> communicationRight;
+  std::chrono::microseconds Period;
 
-private:
-  int _id;
-  environment::Environment &_environment;
-  environment::platform::RuntimeConfig *_config;
+  /// Should the code to support dumping registers be baked into the high load routine of the compiled payload.
+  bool DumpRegisters;
+
+  /// Should the code to support error detection between thread be baked into the high load routine of the compiled
+  /// payload.
+  bool ErrorDetection;
+  /// The pointer to the variable that is used for communication to the left thread for the error detection feature.
+  std::shared_ptr<uint64_t> CommunicationLeft;
+  /// The pointer to the variable that is used for communication to the right thread for the error detection feature.
+  std::shared_ptr<uint64_t> CommunicationRight;
+
+  /// The id of this load thread.
+  const uint64_t Id;
+  /// The reference to the environment which allows setting the thread affinity and getting the current timestamp.
+  const environment::Environment& Environment;
+  /// The config that is cloned from the environment for this specfic load worker.
+  std::unique_ptr<environment::platform::PlatformConfig> Config;
 };
 
 } // namespace firestarter

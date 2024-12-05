@@ -1,0 +1,64 @@
+---
+# Configure clang-tidy for this project.
+
+#  -bugprone-narrowing-conversions: too many false positives around
+#      `std::size_t`  vs. `*::difference_type`.
+
+#  -boost-use-ranges: crash of clangd https://github.com/llvm/llvm-project/issues/109037
+
+#  -readability-identifier-length length of at least 3 does not make sense for some variables
+
+#  -cppcoreguidelines-avoid-magic-numbers
+#  -readability-magic-numbers currently we have too may numbers in this code
+
+#  -bugprone-easily-swappable-parameters we are not using strong typedefs
+
+#  -readability-function-cognitive-complexity allow big functions
+
+Checks: >
+  -*,
+  boost-*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  google-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-narrowing-conversions,
+  -cppcoreguidelines-special-member-functions,
+  -boost-use-ranges,
+  -readability-identifier-length,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -bugprone-easily-swappable-parameters,
+  -readability-function-cognitive-complexity
+  
+# Turn all the warnings from the checks above into errors.
+WarningsAsErrors: "*"
+
+HeaderFilterRegex: "include/firestarter/.*\\.(h|hpp)$"
+
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,              value: CamelCase  }
+  - { key: readability-identifier-naming.StructCase,             value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,           value: camelBack  }
+  - { key: readability-identifier-naming.MemberCase,        value: CamelCase }
+  - { key: readability-identifier-naming.VariableCase,           value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase,           value: CamelCase }
+  - { key: readability-identifier-naming.ParameterCase,           value: CamelCase }
+  - { key: readability-identifier-naming.UnionCase,           value: CamelCase }
+  - { key: readability-identifier-naming.IgnoreMainLikeFunctions,  value: 1 }
+  - { key: readability-redundant-member-init.IgnoreBaseInCopyConstructors,  value: 1 }
+  - { key: modernize-use-default-member-init.UseAssignment,  value: 1 }
+  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1 }
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
+  - { key: readability-function-cognitive-complexity.IgnoreMacros,  value: 1 }
+  - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: "true" }
+  # disable warnings is asmjit
+  - { key: 'clang-analyzer-optin.cplusplus.UninitializedObject:IgnoreRecordsWithField', value: 'asmjit::Operand_::Signature' }
