@@ -453,7 +453,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-13]
+        os: [macos-13]
 
     runs-on: ${{ matrix.os }}
 
@@ -483,12 +483,6 @@ jobs:
       run: |
         cd build
         ./src/FIRESTARTER -t 1
-    - uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-12' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
-      with:
-        retention-days: 1
-        name: FIRESTARTER-macOS_12
-        path: build/src/FIRESTARTER
     - uses: actions/upload-artifact@v4
       if: matrix.os == 'macos-13' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
@@ -589,16 +583,6 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_HIP FIRESTARTER_HIP_6.2
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_HIP_6.2
-    - name: Retrieve FIRESTARTER-macOS_12
-      uses: actions/download-artifact@v4
-      with:
-        name: FIRESTARTER-macOS_12
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_12
-        rm -rf FIRESTARTER
-        chmod +x FIRESTARTER-macOS_12
     - name: Retrieve FIRESTARTER-macOS_13
       uses: actions/download-artifact@v4
       with:
