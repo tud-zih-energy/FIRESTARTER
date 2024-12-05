@@ -24,7 +24,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-24.04]
-        HIP: ['6.2']
+        HIP: ['6.3']
     runs-on: ${{ matrix.os }}
 
     env:
@@ -48,9 +48,9 @@ jobs:
     - name: Install HIP runtime (if needed)
       run: |
         case ${{ matrix.HIP }} in
-          6.2)
-            wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb
-            sudo apt install ./amdgpu-install_6.2.60200-1_all.deb
+          6.3)
+            wget https://repo.radeon.com/amdgpu-install/6.3/ubuntu/noble/amdgpu-install_6.3.60300-1_all.deb
+            sudo apt install ./amdgpu-install_6.3.60300-1_all.deb
             sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
             ;;
         esac
