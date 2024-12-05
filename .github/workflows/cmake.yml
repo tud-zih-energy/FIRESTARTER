@@ -256,7 +256,7 @@ jobs:
       
   build-linux:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           # Oldest supported compiler on older Ubuntu
