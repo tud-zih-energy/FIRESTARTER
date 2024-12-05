@@ -252,10 +252,6 @@ jobs:
     - name: UnInstall CUDA runtime (if needed)
       run: |
         sudo rm -rf ${CUDA_ROOT}
-    - name: UnInstall clang++-10
-      run: |
-        sudo apt remove clang-10
-        sudo apt autoremove
 
       
   build-linux:
@@ -264,10 +260,10 @@ jobs:
       matrix:
         include:
           # Oldest supported compiler on older Ubuntu
-          - { os: ubuntu-20.04, compiler: gcc-7, cxxcompiler: g++-7 }
-          - { os: ubuntu-20.04, compiler: clang-9, cxxcompiler: clang++-9 }
+          - { os: ubuntu-20.04, compiler: gcc-7,    cxxcompiler: g++-7 }
+          - { os: ubuntu-20.04, compiler: clang-9,  cxxcompiler: clang++-9 }
           # Latest compiler on latest Ubuntu
-          - { os: ubuntu-24.04, compiler: gcc-14, cxxcompiler: g++-14 }
+          - { os: ubuntu-24.04, compiler: gcc-14,   cxxcompiler: g++-14 }
           - { os: ubuntu-24.04, compiler: clang-19, cxxcompiler: clang++-19 }
           # Default compilers on all ubuntu
           - { os: ubuntu-20.04, compiler: default }
@@ -334,8 +330,8 @@ jobs:
       matrix:
         os: [windows-2019]
         cfg:
-          - { CUDA: '0', ONEAPI: '0', MSVC: true }
-          - { CUDA: '0', ONEAPI: '0', MSVC: false }
+          - { CUDA: '0',    MSVC: true }
+          - { CUDA: '0',    MSVC: false }
           - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
