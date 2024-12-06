@@ -346,13 +346,6 @@ auto getErrorString(CUresult Result) -> const char* {
   accellSafeCall(cuGetErrorName(Result, &ErrorString), __FILE__, __LINE__);
   return ErrorString;
 }
-#else
-// define types to not run into compile errors with if constexpr
-
-enum class CUresult {};
-// NOLINTBEGIN(readability-identifier-naming)
-constexpr const int CUDA_SUCCESS = 0;
-// NOLINTEND(readability-identifier-naming)
 #endif
 
 template <typename T> void accellSafeCall(T TVal, const char* File, const int Line, std::optional<int> DeviceIndex) {
@@ -368,14 +361,15 @@ template <typename T> void accellSafeCall(T TVal, const char* File, const int Li
     if (TVal == RandStatusT::RAND_STATUS_SUCCESS) {
       return;
     }
-  } else if constexpr (std::is_same_v<T, CUresult>) {
-#ifndef FIRESTARTER_BUILD_CUDA
-    static_assert(false, "Tried to call accellSafeCall with CUresult, but not building for CUDA.");
-#endif
+  }
+#ifdef FIRESTARTER_BUILD_CUDA
+  else if constexpr (std::is_same_v<T, CUresult>) {
     if (TVal == CUDA_SUCCESS) {
       return;
     }
-  } else {
+  }
+#endif
+  else {
     assert(false && "Tried to call accellSafeCall with an unknown type.");
   }
 

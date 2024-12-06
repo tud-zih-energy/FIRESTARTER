@@ -1,0 +1,5 @@
+add_executable(DumpPayloads Main.cpp)
+target_link_libraries(DumpPayloads firestartercore)
+target_link_libraries_darwin(NAME DumpPayloads)
+
+add_ref_test(NAME DumpPayloads)

@@ -25,7 +25,8 @@
 namespace firestarter::environment::x86::payload {
 
 auto FMAPayload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
+                                bool ErrorDetection, bool PrintAssembler) const
+    -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   using Ymm = asmjit::x86::Ymm;
@@ -401,6 +402,10 @@ auto FMAPayload::compilePayload(const environment::payload::PayloadSettings& Set
   Cb.emitEpilog(Frame);
 
   Cb.finalize();
+
+  if (PrintAssembler) {
+    printAssembler(Cb);
+  }
 
   auto CompiledPayloadPtr = CompiledX86Payload::create<FMAPayload>(Stats, Code);
 

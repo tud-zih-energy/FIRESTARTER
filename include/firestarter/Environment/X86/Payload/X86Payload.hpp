@@ -90,6 +90,16 @@ private:
   };
 
 protected:
+  /// Print the generated assembler Code of asmjit
+  /// \arg Builder The builder that contains the assembler code.
+  static void printAssembler(asmjit::BaseBuilder& Builder) {
+    asmjit::String Sb;
+    asmjit::FormatOptions FormatOptions{};
+
+    asmjit::Formatter::formatNodeList(Sb, FormatOptions, &Builder);
+    log::info() << Sb.data();
+  }
+
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \tparam Vec the type of the vector register used.
   /// \arg Cb The asmjit code builder that is used to emit the assembler code.
@@ -548,6 +558,7 @@ protected:
   /// LoadVar changed.
   void lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) const final;
 
+public:
   /// Get the available instruction items that are supported by this payload.
   /// \returns The available instruction items that are supported by this payload.
   [[nodiscard]] auto getAvailableInstructions() const -> std::list<std::string> final;

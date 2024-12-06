@@ -90,7 +90,8 @@ public:
 
   /// Print a list of available high-load function and if they are available on the current system. This includes all
   /// PlatformConfigs in combination with all thread per core counts.
-  void printFunctionSummary() override;
+  /// \arg ForceYes Force all functions to be shown as avaialable
+  void printFunctionSummary(bool ForceYes) override;
 
 private:
   /// The list of availabe platform configs that is printed when supplying the --avail command line argument. The IDs

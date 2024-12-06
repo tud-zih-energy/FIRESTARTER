@@ -169,7 +169,7 @@ void X86Environment::setLineCount(unsigned LineCount) { config().settings().setL
 
 void X86Environment::printSelectedCodePathSummary() { config().printCodePathSummary(); }
 
-void X86Environment::printFunctionSummary() {
+void X86Environment::printFunctionSummary(bool ForceYes) {
   log::info() << " available load-functions:\n"
               << "  ID   | NAME                           | available on this "
                  "system | payload default setting\n"
@@ -182,7 +182,7 @@ void X86Environment::printFunctionSummary() {
 
   for (auto const& Config : PlatformConfigs) {
     for (auto const& ThreadsPerCore : Config->settings().threads()) {
-      const char* Available = Config->isAvailable(topology()) ? "yes" : "no";
+      const char* Available = (Config->isAvailable(topology()) || ForceYes) ? "yes" : "no";
       const auto& FunctionName = Config->functionName(ThreadsPerCore);
       const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();
 

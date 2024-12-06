@@ -152,7 +152,12 @@ CMake option                  | Description
 `FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default `ON`
 `FIRESTARTER_THREAD_AFFINITY` | Enable FIRESTARTER to set affinity to hardware threads. Default `ON`
 
-When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel Library (MKL) and the complier `icx` can be found. These will be used to build `FIRESTARTER`, while dependencies will be build with `$CC` and `$CXX` respectively.
+When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel
+Library (MKL) and the compiler `icx` and `icpx` can be found. Please provide
+them through the `CC` and `CXX` environment variables.
+
+When building `FIRESTARTER_HIP` make sure that the compiler `hipcc` can be
+found. Please provide it through the `CC` and `CXX` environment variables.
 
 ## Metrics
 

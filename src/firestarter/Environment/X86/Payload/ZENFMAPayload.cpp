@@ -25,7 +25,8 @@
 namespace firestarter::environment::x86::payload {
 
 auto ZENFMAPayload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                   bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
+                                   bool ErrorDetection, bool PrintAssembler) const
+    -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   using Ymm = asmjit::x86::Ymm;
@@ -351,6 +352,10 @@ auto ZENFMAPayload::compilePayload(const environment::payload::PayloadSettings& 
   Cb.emitEpilog(Frame);
 
   Cb.finalize();
+
+  if (PrintAssembler) {
+    printAssembler(Cb);
+  }
 
   auto CompiledPayloadPtr = CompiledX86Payload::create<ZENFMAPayload>(Stats, Code);
 

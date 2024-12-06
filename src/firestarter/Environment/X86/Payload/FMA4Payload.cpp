@@ -25,7 +25,8 @@
 namespace firestarter::environment::x86::payload {
 
 auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                 bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
+                                 bool ErrorDetection, bool PrintAssembler) const
+    -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   // NOLINTBEGIN(readability-identifier-naming)
@@ -366,6 +367,10 @@ auto FMA4Payload::compilePayload(const environment::payload::PayloadSettings& Se
   Cb.emitEpilog(Frame);
 
   Cb.finalize();
+
+  if (PrintAssembler) {
+    printAssembler(Cb);
+  }
 
   auto CompiledPayloadPtr = CompiledX86Payload::create<FMA4Payload>(Stats, Code);
 

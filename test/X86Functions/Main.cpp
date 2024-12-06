@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,17 +19,14 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/SafeExit.hpp"
+#include "firestarter/Environment/X86/X86Environment.hpp"
 
-#include <cstdlib>
-#include <mutex>
+auto main(int /*argc*/, const char** /*argv*/) -> int {
+  firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
 
-[[noreturn]] void firestarter::safeExit(const int Status) {
-  // This mutex is shared across all calls to safeExit, therefore also calls between different threads
-  static std::mutex ExitMutex;
+  firestarter::environment::x86::X86Environment Env;
 
-  ExitMutex.lock();
+  Env.printFunctionSummary(/*ForceYes=*/true);
 
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  std::exit(Status);
+  return EXIT_SUCCESS;
 }

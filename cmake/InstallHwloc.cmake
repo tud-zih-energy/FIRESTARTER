@@ -17,6 +17,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install
+			BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libhwloc.a
 			)
 
 		SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/install")
@@ -36,6 +37,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND cd <SOURCE_DIR>\\contrib\\windows && MSBuild /p:Configuration=Release /p:Platform=x64 hwloc.sln
 				INSTALL_COMMAND ""
+				BUILD_BYPRODUCTS <SOURCE_DIR>/contrib/windows/x64/Release/libhwloc.lib
 				)
 
 			SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
@@ -55,6 +57,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND ""
 				INSTALL_COMMAND ""
+				BUILD_BYPRODUCTS <SOURCE_DIR>/lib/libhwloc.a
 				)
 
 			SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
@@ -66,4 +69,5 @@ if (FIRESTARTER_BUILD_HWLOC)
 	endif()
 
 	include_directories(${HWLOC_INCLUDE_DIR}/include)
+	add_dependencies(hwloc HwlocInstall)
 endif()
