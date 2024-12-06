@@ -256,7 +256,7 @@ jobs:
       
   build-linux:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           # Oldest supported compiler on older Ubuntu
@@ -335,7 +335,7 @@ jobs:
 
   build-windows:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [windows-2019]
         cfg:
@@ -429,7 +429,7 @@ jobs:
 
   build-macos:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [macos-13]
 
