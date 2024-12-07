@@ -60,7 +60,7 @@ void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
   if (cpuAllowed(Cpu)) {
     CPU_SET(Cpu, &Mask);
   } else {
-    if (Cpu >= topology().numThreads()) {
+    if (Cpu > topology().hardwareThreadsInfo().MaxPhysicalIndex) {
       throw std::invalid_argument("The given bind argument (-b/--bind) includes CPU " + std::to_string(Cpu) +
                                   " that is not available on this system.");
     }
@@ -75,7 +75,7 @@ void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
 
 void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNumThreads,
                                       const std::optional<std::vector<uint64_t>>& CpuBinding) {
-  if (RequestedNumThreads && RequestedNumThreads > topology().numThreads()) {
+  if (RequestedNumThreads && RequestedNumThreads > topology().hardwareThreadsInfo().MaxNumThreads) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
@@ -88,7 +88,8 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
 
   if (RequestedNumThreads) {
     // RequestedNumThreads provided, pin to the first *RequestedNumThreads CPUs.
-    for (unsigned I = 0; I < topology().maxNumThreads() && NumThreads < *RequestedNumThreads; I++) {
+    for (unsigned I = 0; I < topology().hardwareThreadsInfo().MaxPhysicalIndex && NumThreads < *RequestedNumThreads;
+         I++) {
       // skip if cpu is not available
       if (!cpuAllowed(I)) {
         continue;
@@ -113,7 +114,7 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
     NumThreads = CpuBinding->size();
   } else {
     // Neither RequestedNumThreads nor CpuBinding provided, pin to all available CPUs.
-    for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
+    for (unsigned I = 0; I < topology().hardwareThreadsInfo().MaxPhysicalIndex; I++) {
       if (cpuAllowed(I)) {
         addCpuSet(I, Cpuset);
         NumThreads++;
@@ -122,7 +123,7 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
   }
 
   // Save the ids of the threads.
-  for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
+  for (unsigned I = 0; I <= topology().hardwareThreadsInfo().MaxPhysicalIndex; I++) {
     if (CPU_ISSET(I, &Cpuset)) {
       this->CpuBind.push_back(I);
     }
@@ -133,10 +134,10 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
   (void)CpuBinding;
 
   if (!RequestedNumThreads) {
-    this->RequestedNumThreads = topology().maxNumThreads();
+    this->RequestedNumThreads = topology().hardwareThreadsInfo().MaxNumThreads;
   } else {
     // Limit the number of thread to the maximum on the CPU.
-    this->RequestedNumThreads = (std::min)(*RequestedNumThreads, topology().maxNumThreads());
+    this->RequestedNumThreads = (std::min)(*RequestedNumThreads, topology().hardwareThreadsInfo().MaxNumThreads);
   }
 #endif
 }
