@@ -46,11 +46,12 @@ public:
   /// evaluate it and set the number of threads and their affinity accordingly. This is only supported on linux and with
   /// the FIRESTARTER_THREAD_AFFINITY build flag. This function will save the correct number of threads based on the
   /// user input in RequestedNumThreads. It must be called for FIRESTARTER to function properly.
-  /// \arg RequestedNumThreads The number of threads that are requested by a user. If this is zero the number will be
-  /// automatically determined.
-  /// \arg CpuBind If this string following the CPULIST format: "x,y,z", "x-y", "x-y/step", and any combination of the
-  /// above. We select the number of requested CPUs and their cpubind from this string.
-  void evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind);
+  /// \arg RequestedNumThreads The optional number of threads that are requested by a user. If this is std::nullopt the
+  /// number will be automatically determined.
+  /// \arg CpuBinding The optional vector of cpus which are used for FIRESTARTER. It overrides the requested number of
+  /// threads.
+  void evaluateCpuAffinity(const std::optional<unsigned>& RequestedNumThreads,
+                           const std::optional<std::vector<uint64_t>>& CpuBinding);
 
   /// The worker threads are numerated from zero to RequestedNumThreads. Set the cpuaffinity of a calling thread based
   /// on this index to the one that that should be used according to the determined CpuBind list from the call to

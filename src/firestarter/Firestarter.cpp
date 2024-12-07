@@ -39,7 +39,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     Environment = std::make_unique<environment::x86::X86Environment>();
   }
 
-  Environment->evaluateCpuAffinity(Cfg.RequestedNumThreads, Cfg.CpuBind);
+  Environment->evaluateCpuAffinity(Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86

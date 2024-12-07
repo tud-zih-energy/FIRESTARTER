@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "firestarter/Config.hpp"
+#include "firestarter/Config/Config.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
 #include "firestarter/DumpRegisterWorkerData.hpp"

@@ -19,7 +19,8 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Config.hpp"
+#include "firestarter/Config/Config.hpp"
+#include "firestarter/Config/CpuBind.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Logging/Log.hpp"
 
@@ -162,10 +163,10 @@ Config::Config(int Argc, const char** Argv)
     ("p,period", "Set the interval length for CPUs to PERIOD\n(usec), default: 100000, each interval contains\na high load and an idle phase, the percentage\nof high load is defined by -l.",
       cxxopts::value<unsigned>()->default_value("100000"), "PERIOD")
     ("n,threads", "Specify the number of threads. Cannot be\ncombined with -b | --bind, which impicitly\nspecifies the number of threads.",
-      cxxopts::value<unsigned>()->default_value("0"), "COUNT")
+      cxxopts::value<unsigned>(), "COUNT")
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove. Cannot be combined with -n | --threads.",
-      cxxopts::value<std::string>()->default_value(""), "CPULIST")
+      cxxopts::value<std::string>(), "CPULIST")
 #endif
     ("error-detection", "Enable error detection. This aborts execution when the calculated data is corruped by errors. FIRESTARTER must run with 2 or more threads for this feature. Cannot be used with -l | --load and --optimize.");
 
@@ -296,14 +297,17 @@ Config::Config(int Argc, const char** Argv)
       }
     }
 
-    RequestedNumThreads = Options["threads"].as<unsigned>();
+    if (static_cast<bool>(Options.count("threads"))) {
+      RequestedNumThreads = Options["threads"].as<unsigned>();
+    }
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-    CpuBind = Options["bind"].as<std::string>();
-    if (!CpuBind.empty()) {
-      if (RequestedNumThreads != 0) {
-        throw std::invalid_argument("Options -b/--bind and -n/--threads cannot be used together.");
-      }
+    if (static_cast<bool>(Options.count("bind"))) {
+      CpuBinding = CpuBind::fromString(Options["bind"].as<std::string>());
+    }
+
+    if (RequestedNumThreads && CpuBinding) {
+      throw std::invalid_argument("Options -b/--bind and -n/--threads cannot be used together.");
     }
 #endif
 

@@ -22,6 +22,7 @@
 #include "firestarter/Environment/Environment.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <cstdint>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -72,8 +73,9 @@ void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
 }
 #endif
 
-void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::string& CpuBind) {
-  if (RequestedNumThreads > 0 && RequestedNumThreads > topology().numThreads()) {
+void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNumThreads,
+                                      const std::optional<std::vector<uint64_t>>& CpuBinding) {
+  if (RequestedNumThreads && RequestedNumThreads > topology().numThreads()) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
@@ -82,86 +84,41 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
 
   CPU_ZERO(&Cpuset);
 
-  if (CpuBind.empty()) {
-    // no cpu binding defined
+  unsigned NumThreads = 0;
 
-    // use all CPUs if not defined otherwise
-    if (RequestedNumThreads == 0) {
-      for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
-        if (cpuAllowed(I)) {
-          CPU_SET(I, &Cpuset);
-          RequestedNumThreads++;
-        }
+  if (RequestedNumThreads) {
+    // RequestedNumThreads provided, pin to the first *RequestedNumThreads CPUs.
+    for (unsigned I = 0; I < topology().maxNumThreads() && NumThreads < *RequestedNumThreads; I++) {
+      // skip if cpu is not available
+      if (!cpuAllowed(I)) {
+        continue;
       }
-    } else {
-      // if -n / --threads is set
-      unsigned CpuCount = 0;
-      for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
-        // skip if cpu is not available
-        if (!cpuAllowed(I)) {
-          continue;
-        }
-        addCpuSet(I, Cpuset);
-        CpuCount++;
-        // we reached the desired amounts of threads
-        if (CpuCount >= RequestedNumThreads) {
-          break;
-        }
-      }
-      // requested to many threads
-      if (CpuCount < RequestedNumThreads) {
-        throw std::invalid_argument("You are requesting more threads than "
-                                    "there are CPUs available in the given cpuset.\n"
-                                    "This can be caused by the taskset tool, cgrous, "
-                                    "the batch system, or similar mechanisms.\n"
-                                    "Please fix the -n/--threads argument to match the "
-                                    "restrictions.");
-      }
+      addCpuSet(I, Cpuset);
+      NumThreads++;
     }
+    // requested to many threads
+    if (NumThreads < *RequestedNumThreads) {
+      throw std::invalid_argument("You are requesting more threads than "
+                                  "there are CPUs available in the given cpuset.\n"
+                                  "This can be caused by the taskset tool, cgrous, "
+                                  "the batch system, or similar mechanisms.\n"
+                                  "Please fix the -n/--threads argument to match the "
+                                  "restrictions.");
+    }
+  } else if (CpuBinding) {
+    // CpuBinding provided, pin to the specified cpus
+    for (const auto& CpuId : *CpuBinding) {
+      addCpuSet(CpuId, Cpuset);
+    }
+    NumThreads = CpuBinding->size();
   } else {
-    RequestedNumThreads = 0;
-
-    // parse CPULIST for binding
-    const auto Delimiter = ',';
-    const std::regex Re(R"(^(?:(\d+)(?:-([1-9]\d*)(?:\/([1-9]\d*))?)?)$)");
-
-    std::stringstream Ss(CpuBind);
-
-    while (Ss.good()) {
-      std::string Token;
-      std::smatch M;
-      std::getline(Ss, Token, Delimiter);
-
-      if (std::regex_match(Token, M, Re)) {
-        uint64_t Y = 0;
-        uint64_t S = 0;
-
-        auto X = std::stoul(M[1].str());
-        if (M[2].matched) {
-          Y = std::stoul(M[2].str());
-        } else {
-          Y = X;
-        }
-        if (M[3].matched) {
-          S = std::stoul(M[3].str());
-        } else {
-          S = 1;
-        }
-        if (Y < X) {
-          throw std::invalid_argument("y has to be >= x in x-y expressions of CPU list: " + Token);
-        }
-        for (auto I = X; I <= Y; I += S) {
-          addCpuSet(I, Cpuset);
-          RequestedNumThreads++;
-        }
-      } else {
-        throw std::invalid_argument("Invalid symbols in CPU list: " + Token);
+    // Neither RequestedNumThreads nor CpuBinding provided, pin to all available CPUs.
+    for (unsigned I = 0; I < topology().maxNumThreads(); I++) {
+      if (cpuAllowed(I)) {
+        addCpuSet(I, Cpuset);
+        NumThreads++;
       }
     }
-  }
-
-  if (RequestedNumThreads == 0) {
-    throw std::invalid_argument("Found no usable CPUs!");
   }
 
   // Save the ids of the threads.
@@ -170,16 +127,18 @@ void Environment::evaluateCpuAffinity(unsigned RequestedNumThreads, const std::s
       this->CpuBind.push_back(I);
     }
   }
-#else
-  (void)CpuBind;
 
-  if (RequestedNumThreads == 0) {
-    RequestedNumThreads = topology().maxNumThreads();
+  this->RequestedNumThreads = NumThreads;
+#else
+  (void)CpuBinding;
+
+  if (!RequestedNumThreads) {
+    this->RequestedNumThreads = topology().maxNumThreads();
+  } else {
+    // Limit the number of thread to the maximum on the CPU.
+    this->RequestedNumThreads = (std::min)(*RequestedNumThreads, topology().maxNumThreads());
   }
 #endif
-
-  // Limit the number of thread to the maximum on the CPU.
-  this->RequestedNumThreads = (std::min)(RequestedNumThreads, topology().maxNumThreads());
 }
 
 void Environment::printThreadSummary() {
