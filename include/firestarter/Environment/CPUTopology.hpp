@@ -25,9 +25,9 @@
 #include <list>
 #include <optional>
 #include <ostream>
+#include <set>
 #include <sstream>
 #include <string>
-#include <vector>
 
 extern "C" {
 #include <hwloc.h>
@@ -45,7 +45,7 @@ struct HardwareThreadsInfo {
   /// The highest physical index on a hardware thread in the system.
   unsigned MaxPhysicalIndex = 0;
   /// The list of os indices which are available on the system.
-  std::vector<unsigned> OsIndices;
+  std::set<unsigned> OsIndices;
 };
 
 /// This class models the properties of a processor.

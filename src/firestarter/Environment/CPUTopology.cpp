@@ -384,7 +384,7 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
     for (int I = 0; I < Width; I++) {
       auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
       Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, Obj->os_index);
-      Infos.OsIndices.emplace_back(Obj->os_index);
+      Infos.OsIndices.emplace(Obj->os_index);
     }
 
     return Infos;
@@ -421,7 +421,7 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
     {
       unsigned OsIndex{};
       // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
-      hwloc_bitmap_foreach_begin(OsIndex, Bitmap) Infos.OsIndices.emplace_back(OsIndex);
+      hwloc_bitmap_foreach_begin(OsIndex, Bitmap) Infos.OsIndices.emplace(OsIndex);
       hwloc_bitmap_foreach_end();
     }
   }

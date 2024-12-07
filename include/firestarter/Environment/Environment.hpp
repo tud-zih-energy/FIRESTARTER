@@ -127,20 +127,10 @@ private:
 
   // TODO(Issue #74): Use hwloc for cpu thread affinity.
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  /// Check if the Cpu is allowed to be used with the current program.
-  /// \arg Id The if of the CPU which is checked.
-  /// \returns true if the CPU with Id is allowed to be used by the program.
-  static auto cpuAllowed(unsigned Id) -> bool;
-
   /// Set the cpu affinity of the current thread to a specific CPU.
   /// \arg Id The id of the CPU to which to pin the calling thread.
   /// \returns 0 on success. See the man page for. sched_setaffinity.
   static auto cpuSet(unsigned Id) -> int;
-
-  /// Add a CPU to mask if this CPU is available on the current system or throw with an error.
-  /// \arg Cpu The id of the CPU to add to the mask.
-  /// \arg Mask The reference to the mask to add the cpu to.
-  void addCpuSet(unsigned Cpu, cpu_set_t& Mask) const;
 
   /// The list of physical CPU ids that are requested to be used. The length of this list should match the number of
   /// requested threads if it is not zero.

@@ -24,7 +24,6 @@
 
 #include <cstdint>
 #include <stdexcept>
-#include <string>
 
 namespace firestarter::environment {
 
@@ -42,34 +41,6 @@ auto Environment::cpuSet(unsigned Id) -> int {
 
   return sched_setaffinity(0, sizeof(cpu_set_t), &Mask);
 }
-
-auto Environment::cpuAllowed(unsigned Id) -> bool {
-  cpu_set_t Mask;
-
-  CPU_ZERO(&Mask);
-
-  if (!sched_getaffinity(0, sizeof(cpu_set_t), &Mask)) {
-    return CPU_ISSET(Id, &Mask);
-  }
-
-  return false;
-}
-
-void Environment::addCpuSet(unsigned Cpu, cpu_set_t& Mask) const {
-  if (cpuAllowed(Cpu)) {
-    CPU_SET(Cpu, &Mask);
-  } else {
-    if (Cpu > topology().hardwareThreadsInfo().MaxPhysicalIndex) {
-      throw std::invalid_argument("The given bind argument (-b/--bind) includes CPU " + std::to_string(Cpu) +
-                                  " that is not available on this system.");
-    }
-    throw std::invalid_argument("The given bind argument (-b/--bind) cannot "
-                                "be implemented with the cpuset given from the OS\n"
-                                "This can be caused by the taskset tool, cgroups, "
-                                "the batch system, or similar mechanisms.\n"
-                                "Please fix the argument to match the restrictions.");
-  }
-}
 #endif
 
 void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNumThreads,
@@ -79,21 +50,16 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
   }
 
 #if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  cpu_set_t Cpuset;
-
-  CPU_ZERO(&Cpuset);
-
   unsigned NumThreads = 0;
+  std::vector<unsigned> CpuSet;
 
   if (RequestedNumThreads) {
     // RequestedNumThreads provided, pin to the first *RequestedNumThreads CPUs.
-    for (unsigned I = 0; I < topology().hardwareThreadsInfo().MaxPhysicalIndex && NumThreads < *RequestedNumThreads;
-         I++) {
-      // skip if cpu is not available
-      if (!cpuAllowed(I)) {
-        continue;
+    for (const auto& OsIndex : topology().hardwareThreadsInfo().OsIndices) {
+      if (NumThreads == *RequestedNumThreads) {
+        break;
       }
-      addCpuSet(I, Cpuset);
+      CpuSet.emplace_back(OsIndex);
       NumThreads++;
     }
     // requested to many threads
@@ -107,27 +73,30 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
     }
   } else if (CpuBinding) {
     // CpuBinding provided, pin to the specified cpus
-    for (const auto& CpuId : *CpuBinding) {
-      addCpuSet(CpuId, Cpuset);
+    const auto& AllowedOsIndices = topology().hardwareThreadsInfo().OsIndices;
+
+    for (const auto& OsIndex : *CpuBinding) {
+      if (AllowedOsIndices.find(OsIndex) == AllowedOsIndices.cend()) {
+        // Id is not allowed
+        throw std::invalid_argument("The given bind argument (-b/--bind) cannot "
+                                    "be implemented with the cpuset given from the OS\n"
+                                    "This can be caused by the taskset tool, cgroups, "
+                                    "the batch system, or similar mechanisms.\n"
+                                    "Please fix the argument to match the restrictions.");
+      }
+      CpuSet.emplace_back(OsIndex);
     }
     NumThreads = CpuBinding->size();
   } else {
     // Neither RequestedNumThreads nor CpuBinding provided, pin to all available CPUs.
-    for (unsigned I = 0; I < topology().hardwareThreadsInfo().MaxPhysicalIndex; I++) {
-      if (cpuAllowed(I)) {
-        addCpuSet(I, Cpuset);
-        NumThreads++;
-      }
+    for (const auto& OsIndex : topology().hardwareThreadsInfo().OsIndices) {
+      CpuSet.emplace_back(OsIndex);
+      NumThreads++;
     }
   }
 
   // Save the ids of the threads.
-  for (unsigned I = 0; I <= topology().hardwareThreadsInfo().MaxPhysicalIndex; I++) {
-    if (CPU_ISSET(I, &Cpuset)) {
-      this->CpuBind.push_back(I);
-    }
-  }
-
+  this->CpuBind = CpuSet;
   this->RequestedNumThreads = NumThreads;
 #else
   (void)CpuBinding;
