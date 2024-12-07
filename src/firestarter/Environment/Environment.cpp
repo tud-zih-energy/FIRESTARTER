@@ -133,6 +133,7 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
   (void)CpuBinding;
 
   if (!RequestedNumThreads) {
+    // Use all threads if no limit is provided.
     this->RequestedNumThreads = topology().hardwareThreadsInfo().MaxNumThreads;
   } else {
     // Limit the number of thread to the maximum on the CPU.
