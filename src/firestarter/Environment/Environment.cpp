@@ -23,7 +23,6 @@
 #include "firestarter/Logging/Log.hpp"
 
 #include <cstdint>
-#include <regex>
 #include <stdexcept>
 #include <string>
 
