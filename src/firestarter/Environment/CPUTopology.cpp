@@ -21,6 +21,7 @@
 
 #include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "hwloc/bitmap.h"
 
 #include <array>
 #include <fstream>
@@ -383,6 +384,7 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
     for (int I = 0; I < Width; I++) {
       auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
       Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, Obj->os_index);
+      Infos.OsIndices.emplace_back(Obj->os_index);
     }
 
     return Infos;
@@ -415,6 +417,13 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
 
     Infos.MaxNumThreads += Weight;
     Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, static_cast<unsigned>(MaxIndex));
+
+    {
+      unsigned OsIndex{};
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
+      hwloc_bitmap_foreach_begin(OsIndex, Bitmap) Infos.OsIndices.emplace_back(OsIndex);
+      hwloc_bitmap_foreach_end();
+    }
   }
 
   hwloc_bitmap_free(Bitmap);
