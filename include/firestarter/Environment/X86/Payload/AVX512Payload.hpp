@@ -20,13 +20,21 @@
  *****************************************************************************/
 
 #pragma once
-
+#include <immintrin.h>
 #include "firestarter/Environment/X86/Payload/X86Payload.hpp"
-
 namespace firestarter::environment::x86::payload {
 
+// Define struct that is used as config and loaded through ldtilecfg()
+struct TileConfig {
+  uint8_t palette_id;
+  uint8_t start_row;
+  uint8_t reserved_0[14];
+  uint16_t colsb[16];
+  uint8_t rows[16];
+};
+
 /// This payload is designed for the AVX512 foundation CPU extension.
-class AVX512Payload final : public X86Payload {
+class AVX512Payload : public X86Payload {
 public:
   AVX512Payload() noexcept
       : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX512_F}, /*Name=*/"AVX512", /*RegisterSize=*/8,
@@ -59,9 +67,13 @@ public:
   /// \returns The compiled payload that provides access to the init and load functions.
   [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
                                     bool ErrorDetection) const
-      -> environment::payload::CompiledPayload::UniquePtr override;
+      -> environment::payload::CompiledPayload::UniquePtr final;
 
 private:
+  static void create_AMX_config(TileConfig* tileinfo);
+  static void request_permission();
+  static void init_buffer_rand(__bfloat16* buf1, __bfloat16* buf2);
+
   /// Function to initialize the memory used by the high load function.
   /// \arg MemoryAddr The pointer to the memory.
   /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.

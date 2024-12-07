@@ -90,6 +90,20 @@ private:
   };
 
 protected:
+  /// Add another instruction to the InstructionFlops map. This makes shure this instruction is shown in the set of
+  /// available instructions and we can correctly calculate the FLOPS for it. It is required when specializing Payloads
+  /// with new CPU extensions (e.g. AVX512 with newer CPU Extension like AMX).
+  /// \arg InstructionName The name of the instruction.
+  /// \arg Flops The Flops that are computed for this function.
+  void addInstructionFlops(const std::string& InstructionName, unsigned Flops) {
+    InstructionFlops[InstructionName] = Flops;
+  }
+
+  /// Add another feature request of this payload after it has been initialized. This can be used to specialize Payloads
+  /// (e.g. AVX512 with newer CPU Extension like AMX) and add more requested features as needed.
+  /// \arg Request The requested Cpu Feature.
+  void addFeatureRequest(asmjit::CpuFeatures::X86::Id Request) { FeatureRequests.push_back(Request); }
+
   /// Emit the code to dump the xmm, ymm or zmm registers into memory for the dump registers feature.
   /// \tparam Vec the type of the vector register used.
   /// \arg Cb The asmjit code builder that is used to emit the assembler code.

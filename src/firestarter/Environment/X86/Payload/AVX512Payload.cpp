@@ -22,13 +22,36 @@
 #include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
 #include "firestarter/Environment/X86/Payload/CompiledX86Payload.hpp"
 
+#include <sys/syscall.h>
+
+enum class XFeature : uint32_t {
+    XTILECFG = 17,
+    XTILEDATA = 18
+};
+constexpr const uint32_t XFEATURE_MASK_XTILEDATA = (1 << static_cast<uint32_t>(XFeature::XTILEDATA));
+
+enum class Arch : uint32_t {
+    GET_XCOMP_PERM = 0x1022,
+    REQ_XCOMP_PERM = 0x1023
+};
+
+enum class MaxSize : uint32_t {
+    ELEMENTS = 1024,
+    ROWS = 16,
+    COLS = 64
+};
+
 namespace firestarter::environment::x86::payload {
 
 auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
                                    bool ErrorDetection) const -> environment::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
+  using Tmm = asmjit::x86::Tmm;
   using Zmm = asmjit::x86::Zmm;
   // NOLINTBEGIN(readability-identifier-naming)
+  constexpr auto tmm6 = asmjit::x86::tmm6;
+  constexpr auto tmm7 = asmjit::x86::tmm7;
+
   constexpr asmjit::x86::Mem (*zmmword_ptr)(const asmjit::x86::Gp&, int32_t) = asmjit::x86::zmmword_ptr;
   constexpr auto zmm0 = asmjit::x86::zmm0;
   constexpr auto zmm1 = asmjit::x86::zmm1;
@@ -158,6 +181,42 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
   for (auto const& Reg : ShiftReg32) {
     Cb.mov(Reg, Imm(0xAAAAAAAA));
   }
+
+  // Init AMX registers and config
+  TileConfig tile_data = {0};
+  request_permission();
+  create_AMX_config(&tile_data); // Create tilecfg and fill it
+
+  __bfloat16* src1;
+  __bfloat16* src2;
+  void* src3;
+  unsigned int aligned_alloc_size = static_cast<unsigned int>(static_cast<uint32_t>(MaxSize::ELEMENTS) * sizeof(__bfloat16));
+  if (aligned_alloc_size % 1024) { // aligned_alloc expects size to be multiple of alignment (aka 1024)
+    aligned_alloc_size = aligned_alloc_size + (1024 - (aligned_alloc_size % 1024));
+  }
+  src1 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
+  src2 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
+  src3 = static_cast<void*>(aligned_alloc(1024, aligned_alloc_size));
+  if ((static_cast<void*>(src1) == nullptr) || static_cast<void*>(src2) == nullptr ||
+      static_cast<void*>(src3) == nullptr) { // uintptr_t garantuees we can cast it to void* and back
+    std::cout << "[ERROR]: Allocation of source and target buffer for AMX failed. Aborting...\n";
+    exit(1);
+  }
+
+  // Init buffers
+  init_buffer_rand(src1, src2);
+  memset(static_cast<void*>(src3), 0, aligned_alloc_size);
+
+  Cb.tileloaddt1(tmm6, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src1)));
+  Cb.tileloaddt1(tmm7, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src2))); // Ensure no overflows through loading x and -x in src2
+
+  Cb.tileloaddt1(asmjit::x86::tmm0, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3))); // Preload with 0
+  Cb.tileloaddt1(asmjit::x86::tmm1, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+  Cb.tileloaddt1(asmjit::x86::tmm2, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+  Cb.tileloaddt1(asmjit::x86::tmm3, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+  Cb.tileloaddt1(asmjit::x86::tmm4, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+  Cb.tileloaddt1(asmjit::x86::tmm5, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+
   // Initialize AVX512-Registers for FMA Operations
   Cb.vmovapd(zmm0, zmmword_ptr(PointerReg, 0));
   Cb.vmovapd(zmm1, zmmword_ptr(PointerReg, 64));
@@ -196,6 +255,7 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
   auto AddDest = AddStart + 1;
   auto MovDst = TransStart;
   unsigned L1Offset = 0;
+  unsigned AmxRegisterCounter = 0;
 
   const auto L1Increment = [&Cb, &L1Offset, &L1Size, &L1Addr, &OffsetReg, &PointerReg]() {
     L1Offset += 64;
@@ -212,7 +272,9 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
-      if (Item == "REG") {
+      if (Item == "AMX") {
+        Cb.tdpbf16ps(Tmm(AmxRegisterCounter++ % 6), tmm6, tmm7);
+      } else if (Item == "REG") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vfmadd231pd(Zmm(MovDst), zmm2, zmm1);
         Cb.xor_(ShiftReg[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg);
@@ -386,6 +448,66 @@ auto AVX512Payload::compilePayload(const environment::payload::PayloadSettings& 
 
 void AVX512Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
+}
+
+void AVX512Payload::create_AMX_config(TileConfig* tileinfo) {
+  // Create tile_cfg, fill it and return
+  int i;
+  tileinfo->palette_id = 1;
+  tileinfo->start_row = 0;
+
+  for (i = 0; i < 8; ++i) {
+    tileinfo->colsb[i] = static_cast<uint16_t>(MaxSize::COLS);
+    tileinfo->rows[i] = static_cast<uint8_t>(MaxSize::ROWS);
+  }
+
+  _tile_loadconfig(tileinfo);
+}
+
+void AVX512Payload::request_permission() {
+
+  long rc;
+  unsigned long bitmask;
+  #ifdef __linux__
+  rc = syscall(SYS_arch_prctl, Arch::REQ_XCOMP_PERM, XFeature::XTILEDATA);
+  #else
+  workerLog::fatal() << "AMX feature not supported by OS\n";
+  #endif
+  if (rc) {
+    workerLog::error() << "XTILE_DATA request failed: " << rc;
+  }
+  if(bitmask & XFEATURE_MASK_XTILEDATA){
+    workerLog::trace() << "XTILE_DATA requested successfully\n";
+  }
+  else{
+    workerLog::error() << "XTILE_DATA not set\n"; 
+  }
+}
+
+void AVX512Payload::init_buffer_rand(__bfloat16* src1, __bfloat16* src2) {
+
+  // Initialize buffer with random values
+  // Multiplication always produces either 1 or -1
+  // Accumulation operation always on (1 + -1) = 0 ensures stable values
+
+  __bfloat16* buf1 = static_cast<__bfloat16*>(src1);
+  __bfloat16* buf2 = static_cast<__bfloat16*>(src2);
+
+  // TODO: Change MaxSize::ROWS/MaxSize::COLS from constant to maximum size check by asmJit
+  //	   Currently not supported by asmJit
+  //	   Alternative: Manually parse CPUID
+
+  for (int i = 0; i < static_cast<uint8_t>(MaxSize::ROWS); i++) {
+    __bfloat16 random_init = static_cast<__bfloat16>((rand() % 65536)); // Limit maximum size as 1/x needs to fit bfloat16
+    for (int j = 0; j < static_cast<uint16_t>(MaxSize::COLS); j++) {
+      buf1[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>(random_init);
+      if (!(j % 2)) {
+        buf2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>(((-1) / random_init));
+      } else if (j % 2) {
+        buf2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>((1 / random_init));
+      }
+    }
+  }
 }
 
 } // namespace firestarter::environment::x86::payload
