@@ -22,9 +22,9 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Payload/CompiledPayload.hpp"
 #include "firestarter/Environment/Payload/PayloadSettings.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 
 #include <chrono>
 #include <list>

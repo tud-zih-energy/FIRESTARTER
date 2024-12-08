@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 #include "firestarter/Environment/X86/X86CPUTopology.hpp"
 
 namespace firestarter::environment::x86::platform {

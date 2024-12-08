@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 
 #include <asmjit/asmjit.h>
 

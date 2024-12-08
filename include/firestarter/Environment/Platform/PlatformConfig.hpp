@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Payload/Payload.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 namespace firestarter::environment::platform {
