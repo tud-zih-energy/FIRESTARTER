@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/X86/X86CPUTopology.hpp"
+#include "firestarter/Environment/X86/X86ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <ctime>
@@ -33,7 +33,7 @@
 
 namespace firestarter::environment::x86 {
 
-X86CPUTopology::X86CPUTopology()
+X86ProcessorInformation::X86ProcessorInformation()
     : ProcessorInformation("x86_64")
     , CpuInfo(asmjit::CpuInfo::host())
     , Vendor(CpuInfo.vendor()) {
@@ -134,7 +134,7 @@ X86CPUTopology::X86CPUTopology()
 // only constant TSCs will be used (i.e. power management indepent TSCs)
 // save frequency in highest P-State or use generic fallback if no invarient TSC
 // is available
-auto X86CPUTopology::clockrate() const -> uint64_t {
+auto X86ProcessorInformation::clockrate() const -> uint64_t {
   using ClockT = std::chrono::high_resolution_clock;
   using TicksT = std::chrono::microseconds;
 
@@ -210,7 +210,7 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
   return Clockrate;
 }
 
-auto X86CPUTopology::timestamp() const -> uint64_t {
+auto X86ProcessorInformation::timestamp() const -> uint64_t {
   if (!hasRdtsc()) {
     return 0;
   }
@@ -227,7 +227,7 @@ auto X86CPUTopology::timestamp() const -> uint64_t {
 #endif
 }
 
-void X86CPUTopology::cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx) {
+void X86ProcessorInformation::cpuid(uint64_t* Rax, uint64_t* Rbx, uint64_t* Rcx, uint64_t* Rdx) {
 #ifndef _MSC_VER
   // NOLINTBEGIN(misc-const-correctness)
   uint64_t RaxOut = 0;

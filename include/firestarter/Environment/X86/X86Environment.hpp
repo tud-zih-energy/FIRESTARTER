@@ -41,7 +41,7 @@ namespace firestarter::environment::x86 {
 class X86Environment final : public Environment {
 public:
   X86Environment()
-      : Environment(std::make_unique<X86CPUTopology>()) {}
+      : Environment(std::make_unique<X86ProcessorInformation>()) {}
 
   /// Getter (which allows modifying) for the current platform config containing the payload, settings, the
   /// associated name and the default X86 family and models.
@@ -60,8 +60,8 @@ public:
   }
 
   /// Const getter for the current CPU topology with X86 specific modifications.
-  [[nodiscard]] auto topology() const -> const X86CPUTopology& final {
-    const auto* X86Topology = dynamic_cast<const X86CPUTopology*>(&Environment::topology());
+  [[nodiscard]] auto topology() const -> const X86ProcessorInformation& final {
+    const auto* X86Topology = dynamic_cast<const X86ProcessorInformation*>(&Environment::topology());
     assert(X86Topology && "X86Topology is a nullptr");
     return *X86Topology;
   }
