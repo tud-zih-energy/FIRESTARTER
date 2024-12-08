@@ -86,7 +86,7 @@ public:
   /// available.
   /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the payload is supported on the given CPUTopology.
-  [[nodiscard]] virtual auto isAvailable(const CPUTopology& Topology) const -> bool = 0;
+  [[nodiscard]] virtual auto isAvailable(const ProcessorInformation& Topology) const -> bool = 0;
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.

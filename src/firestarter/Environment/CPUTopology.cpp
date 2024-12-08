@@ -30,7 +30,7 @@
 
 namespace firestarter::environment {
 
-auto CPUTopology::print(std::ostream& Stream) const -> std::ostream& {
+auto ProcessorInformation::print(std::ostream& Stream) const -> std::ostream& {
   Stream << "  system summary:\n"
          << "    number of processors:        " << numPackages() << "\n"
          << "    number of cores (total)):    " << numCoresTotal() << "\n"
@@ -117,7 +117,7 @@ auto CPUTopology::print(std::ostream& Stream) const -> std::ostream& {
   return Stream;
 }
 
-CPUTopology::CPUTopology(std::string Architecture)
+ProcessorInformation::ProcessorInformation(std::string Architecture)
     : Architecture(std::move(Architecture)) {
 
   hwloc_topology_init(&Topology);
@@ -308,9 +308,9 @@ CPUTopology::CPUTopology(std::string Architecture)
   }
 }
 
-CPUTopology::~CPUTopology() { hwloc_topology_destroy(Topology); }
+ProcessorInformation::~ProcessorInformation() { hwloc_topology_destroy(Topology); }
 
-auto CPUTopology::getFileAsStream(std::string const& FilePath) -> std::stringstream {
+auto ProcessorInformation::getFileAsStream(std::string const& FilePath) -> std::stringstream {
   std::ifstream File(FilePath);
   std::stringstream Ss;
 
@@ -324,11 +324,11 @@ auto CPUTopology::getFileAsStream(std::string const& FilePath) -> std::stringstr
   return Ss;
 }
 
-auto CPUTopology::scalingGovernor() -> std::string {
+auto ProcessorInformation::scalingGovernor() -> std::string {
   return getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").str();
 }
 
-auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
+auto ProcessorInformation::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
 
   if (Width >= 1) {
@@ -347,7 +347,7 @@ auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> 
   return {};
 }
 
-auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
+auto ProcessorInformation::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
 
   if (Width >= 1) {
@@ -366,7 +366,7 @@ auto CPUTopology::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
   return {};
 }
 
-auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
+auto ProcessorInformation::hardwareThreadsInfo() const -> HardwareThreadsInfo {
   HardwareThreadsInfo Infos;
 
   // Get the number of different kinds of CPUs

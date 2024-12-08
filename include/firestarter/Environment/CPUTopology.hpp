@@ -49,12 +49,12 @@ struct HardwareThreadsInfo {
 };
 
 /// This class models the properties of a processor.
-class CPUTopology {
+class ProcessorInformation {
 public:
-  explicit CPUTopology(std::string Architecture);
-  virtual ~CPUTopology();
+  explicit ProcessorInformation(std::string Architecture);
+  virtual ~ProcessorInformation();
 
-  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream&;
+  friend auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream&;
 
   /// Assuming we have a consistent number of threads per core. The number of thread per core.
   [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
@@ -133,7 +133,7 @@ private:
   hwloc_topology_t Topology{};
 };
 
-inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream& {
+inline auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream& {
   return CpuTopologyRef.print(Stream);
 }
 

@@ -77,7 +77,7 @@ private:
   /// available for the payload that is used.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
   /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
+  [[nodiscard]] auto isAvailable(const ProcessorInformation* Topology) const -> bool final {
     return environment::platform::PlatformConfig::isAvailable(Topology);
   }
 
@@ -86,7 +86,7 @@ private:
   /// Models.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {
+  [[nodiscard]] auto isDefault(const ProcessorInformation* Topology) const -> bool final {
     const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
     assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
 

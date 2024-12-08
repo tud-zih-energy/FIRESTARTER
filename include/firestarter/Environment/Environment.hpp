@@ -38,7 +38,7 @@ namespace firestarter::environment {
 class Environment {
 public:
   Environment() = delete;
-  explicit Environment(std::unique_ptr<CPUTopology>&& Topology)
+  explicit Environment(std::unique_ptr<ProcessorInformation>&& Topology)
       : Topology(std::move(Topology)) {}
   virtual ~Environment() = default;
 
@@ -106,7 +106,7 @@ public:
   }
 
   /// Const getter for the current CPU topology.
-  [[nodiscard]] virtual auto topology() const -> const CPUTopology& {
+  [[nodiscard]] virtual auto topology() const -> const ProcessorInformation& {
     assert(Topology && "Topology is a nullptr");
     return *Topology;
   }
@@ -119,7 +119,7 @@ private:
   /// The selected config that contains the payload, settings and the associated name.
   std::unique_ptr<platform::PlatformConfig> Config;
   /// The description of the current CPU.
-  std::unique_ptr<CPUTopology> Topology;
+  std::unique_ptr<ProcessorInformation> Topology;
 
   /// The number of threads FIRESTARTER is requested to run with. This will initially be set to zero, which will be
   /// replaced by the maximum number of threads after calling evaluateCpuAffinity.

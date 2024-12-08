@@ -34,7 +34,7 @@
 namespace firestarter::environment::x86 {
 
 X86CPUTopology::X86CPUTopology()
-    : CPUTopology("x86_64")
+    : ProcessorInformation("x86_64")
     , CpuInfo(asmjit::CpuInfo::host())
     , Vendor(CpuInfo.vendor()) {
 
@@ -147,12 +147,12 @@ auto X86CPUTopology::clockrate() const -> uint64_t {
 #if not(defined(__APPLE__) || defined(_WIN32))
   auto Governor = scalingGovernor();
   if (Governor.empty()) {
-    return CPUTopology::clockrate();
+    return ProcessorInformation::clockrate();
   }
 
   /* non invariant TSCs can be used if CPUs run at fixed frequency */
   if (!hasInvariantRdtsc() && Governor != "performance" && Governor != "powersave") {
-    return CPUTopology::clockrate();
+    return ProcessorInformation::clockrate();
   }
 
   MinMeasurements = 5;

@@ -28,7 +28,7 @@
 namespace firestarter::environment::x86 {
 
 /// This class models the properties of a x86_64 processor.
-class X86CPUTopology final : public CPUTopology {
+class X86CPUTopology final : public ProcessorInformation {
 public:
   X86CPUTopology();
 

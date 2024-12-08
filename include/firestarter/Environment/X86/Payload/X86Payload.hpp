@@ -76,7 +76,7 @@ private:
   /// contains all features that are in FeatureRequests.
   /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the payload is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool final {
+  [[nodiscard]] auto isAvailable(const ProcessorInformation& Topology) const -> bool final {
     const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(&Topology);
     assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
 
