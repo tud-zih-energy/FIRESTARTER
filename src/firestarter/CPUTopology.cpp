@@ -296,8 +296,6 @@ void CPUTopology::bindCallerToOsIndex(unsigned OsIndex) const {
 
   auto ReturnCode =
       thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, reinterpret_cast<thread_policy_t>(&policy), 1);
-  // kern_return_t thread_policy_set(thread_act_t thread, thread_policy_flavor_t flavor, thread_policy_t policy_info,
-  // mach_msg_type_number_t policy_infoCnt);
 #else
   const auto* Obj = hwloc_get_pu_obj_by_os_index(Topology, OsIndex);
   auto ReturnCode = hwloc_set_cpubind(Topology, Obj->cpuset, HWLOC_CPUBIND_THREAD | HWLOC_CPUBIND_STRICT);
