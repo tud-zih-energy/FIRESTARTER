@@ -40,9 +40,10 @@ public:
   /// compiled payload.
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
+  /// \arg PrintAssembler Should the generated assembler code be logged.
   /// \returns The compiled payload that provides access to the init and load functions.
   [[nodiscard]] auto compilePayload(const environment::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                    bool ErrorDetection) const
+                                    bool ErrorDetection, bool PrintAssembler) const
       -> environment::payload::CompiledPayload::UniquePtr override;
 
 private:

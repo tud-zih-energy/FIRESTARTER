@@ -1,0 +1,39 @@
+name: ctest
+
+on: [push, pull_request]
+
+env:
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+
+    - name: Install python3
+      run: |
+        sudo apt update
+        sudo apt install python3
+
+    - name: Create build directory
+      run: |
+        mkdir build
+
+    - name: Run CMake configure (default)
+      run: |
+        cd build
+        cmake ..
+
+    - name: Build
+      run: |
+        cd build
+        make -j4
+
+    - name: Ctest
+      run: |
+        cd build
+        ctest

@@ -267,8 +267,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       Td->environment().setCpuAffinity(Td->id());
 
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
+                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -354,8 +354,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       break;
     case LoadThreadState::ThreadSwitch:
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
+                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
 
       // call init function
       Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);

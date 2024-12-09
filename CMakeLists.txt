@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(FIRESTARTER)
+enable_testing()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 17)
 
 include(cmake/GitSubmoduleUpdate.cmake)
 
@@ -55,41 +57,10 @@ endif()
 include(cmake/GitSubmoduleUpdate.cmake)
 git_submodule_update()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-else()
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
-endif()
+include(cmake/BuildOptions.cmake)
+include(cmake/BuildSettings.cmake)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip")
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-else()
-	SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
-endif()
-
-# enable debug features on linux
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
-	if (FIRESTARTER_DEBUG_FEATURES)
-		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIRESTARTER_DEBUG_FEATURES")
-	endif()
-endif()
-
-set(FIRESTARTER_BUILD_TYPE "FIRESTARTER" CACHE STRING "FIRESTARTER_BUILD_TYPE can be any of FIRESTARTER, FIRESTARTER_CUDA, FIRESTARTER_ONEAPI, or FIRESTARTER_HIP.")
-set_property(CACHE FIRESTARTER_BUILD_TYPE PROPERTY STRINGS FIRESTARTER FIRESTARTER_CUDA FIRESTARTER_ONEAPI)
-if (${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
-	option(FIRESTARTER_LINK_STATIC "Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA or OneAPI enabled." ON)
-endif()
-if (${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
-	option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
-elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_CUDA")
-	option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
-elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_ONEAPI")
-	option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
-elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER_HIP")
-	option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
-endif()
-option(FIRESTARTER_THREAD_AFFINITY "Enable FIRESTARTER to set affinity to hardware threads." ON)
+include(cmake/DarwinBuild.cmake)
 
 if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
@@ -111,3 +82,5 @@ find_package(Threads REQUIRED)
 include(cmake/InstallHwloc.cmake)
 
 add_subdirectory(src)
+
+add_subdirectory(test)

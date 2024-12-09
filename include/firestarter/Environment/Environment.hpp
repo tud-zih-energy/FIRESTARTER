@@ -85,7 +85,8 @@ public:
   virtual void printSelectedCodePathSummary() = 0;
 
   /// Print a list of available high-load function and if they are available on the current system.
-  virtual void printFunctionSummary() = 0;
+  /// \arg ForceYes Force all functions to be shown as avaialable
+  virtual void printFunctionSummary(bool ForceYes) = 0;
 
   /// Get the number of threads FIRESTARTER will run with.
   [[nodiscard]] auto requestedNumThreads() const -> uint64_t { return RequestedNumThreads; }

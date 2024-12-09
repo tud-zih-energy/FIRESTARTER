@@ -59,7 +59,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.PrintFunctionSummary) {
-    Environment->printFunctionSummary();
+    Environment->printFunctionSummary(/*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
