@@ -4,33 +4,29 @@ SET(FIRESTARTER_FILES
 	firestarter/LoadWorker.cpp
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
-
-	firestarter/Environment/Environment.cpp
-	firestarter/Environment/CPUTopology.cpp
-	firestarter/Environment/Payload/Payload.cpp
-)
+    )
+    SET(PAYLOAD_FILES
+firestarter/Environment/Environment.cpp
+	    firestarter/Environment/CPUTopology.cpp
+        firestarter/Environment/Payload/Payload.cpp)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86)$" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-	SET(FIRESTARTER_FILES 
-		${FIRESTARTER_FILES}
-	# here starts the x86 specific code
+    SET(PAYLOAD_FILES
+        ${PAYLOAD_FILES}
 	firestarter/Environment/X86/X86Environment.cpp
 	firestarter/Environment/X86/X86CPUTopology.cpp
-
 	firestarter/Environment/X86/Payload/X86Payload.cpp
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp
 	firestarter/Environment/X86/Payload/FMA4Payload.cpp
 	firestarter/Environment/X86/Payload/FMAPayload.cpp
 	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
 	firestarter/Environment/X86/Payload/AVXPayload.cpp
-	firestarter/Environment/X86/Payload/SSE2Payload.cpp
-)
+	firestarter/Environment/X86/Payload/SSE2Payload.cpp)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-	SET(FIRESTARTER_FILES 
-		${FIRESTARTER_FILES}
-	# here starts the AArch64 specific code
+    # here starts the AArch64 specific code
+    SET(PAYLOAD_FILES
+        ${PAYLOAD_FILES}
 	firestarter/Environment/AArch64/AArch64Environment.cpp
 	firestarter/Environment/AArch64/AArch64CPUTopology.cpp
-
 	firestarter/Environment/AArch64/Payload/AArch64Payload.cpp
 	firestarter/Environment/AArch64/Payload/AArch64DefaultPayload.cpp
 	firestarter/Environment/AArch64/Payload/AArch64NEONFMAPayload.cpp
@@ -38,7 +34,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	SET(FIRESTARTER_FILES 
+	SET(FIRESTARTER_FILES
 		${FIRESTARTER_FILES}
 
 		# measurement stuff
@@ -95,7 +91,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(FIRESTARTER_CUDA
-                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
+                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib
 			)
 	else()
 		target_link_libraries(FIRESTARTER_CUDA
@@ -148,9 +144,20 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 
 elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	add_executable(FIRESTARTER
-		${FIRESTARTER_FILES}
+        ${FIRESTARTER_FILES} ${PAYLOAD_FILES}
 		)
-	target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
+
+        add_library(payload ${PAYLOAD_FILES})
+        target_link_libraries(payload PUBLIC
+		hwloc
+		AsmJit::AsmJit
+		Nitro::log
+		nlohmann_json::nlohmann_json
+		)
+        target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
+
+        add_executable(payload_example payload_example/example.cpp)
+        target_link_libraries(payload_example payload)
 
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -161,6 +168,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 			${COREFOUNDATION_LIBRARY}
 			${IOKIT_LIBRARY}
 			)
+
 	else()
 		if (FIRESTARTER_LINK_STATIC)
 			SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -DFIRESTARTER_LINK_STATIC")
