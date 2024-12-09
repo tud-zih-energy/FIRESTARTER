@@ -22,6 +22,8 @@
 #include "firestarter/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <array>
+
 #if defined(__APPLE__)
 #include <mach/thread_act.h>
 #include <mach/thread_policy.h>
