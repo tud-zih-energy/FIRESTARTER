@@ -21,8 +21,8 @@
 
 #pragma once
 
+#include "firestarter/CPUTopology.hpp"
 #include "firestarter/Constants.hpp"
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Environment.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
@@ -73,8 +73,8 @@ public:
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
   LoadWorkerData(uint64_t Id, uint64_t OsIndex, const environment::Environment& Environment,
-                 const environment::CPUTopology& Topology, volatile LoadThreadWorkType& LoadVar,
-                 std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
+                 const CPUTopology& Topology, volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period,
+                 bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
       , Period(Period)
       , DumpRegisters(DumpRegisters)
@@ -168,7 +168,7 @@ public:
   /// The reference to the environment which allows getting the current timestamp.
   const environment::Environment& Environment;
   /// The reference to the processor topology abstraction which allows setting thread affinity.
-  const environment::CPUTopology& Topology;
+  const CPUTopology& Topology;
   /// The config that is cloned from the environment for this specfic load worker.
   std::unique_ptr<environment::platform::PlatformConfig> Config;
 };

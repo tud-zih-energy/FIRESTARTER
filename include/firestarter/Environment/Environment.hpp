@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/CPUTopology.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include "firestarter/Environment/ProcessorInformation.hpp"
 

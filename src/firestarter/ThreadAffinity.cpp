@@ -19,13 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/ThreadAffinity.hpp"
+#include "firestarter/ThreadAffinity.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <cstdint>
 #include <stdexcept>
 
-namespace firestarter::environment {
+namespace firestarter {
 
 auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
                                      const std::optional<unsigned>& RequestedNumThreads,
@@ -107,4 +107,4 @@ void ThreadAffinity::printThreadSummary(const CPUTopology& Topology) const {
 #endif
 }
 
-}; // namespace firestarter::environment
+}; // namespace firestarter

@@ -35,13 +35,13 @@ namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig))
-    , Topology(std::make_unique<environment::CPUTopology>()) {
+    , Topology(std::make_unique<CPUTopology>()) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     Environment = std::make_unique<environment::x86::X86Environment>();
   }
 
-  const auto Affinity = environment::ThreadAffinity::fromCommandLine(Topology->hardwareThreadsInfo(),
-                                                                     Cfg.RequestedNumThreads, Cfg.CpuBinding);
+  const auto Affinity =
+      ThreadAffinity::fromCommandLine(Topology->hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86

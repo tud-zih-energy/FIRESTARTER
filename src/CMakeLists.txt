@@ -4,14 +4,14 @@ add_library(firestartercore STATIC
 	firestarter/SafeExit.cpp
 	firestarter/WatchdogWorker.cpp
 	firestarter/DumpRegisterWorker.cpp
+	firestarter/CPUTopology.cpp
+	firestarter/ThreadAffinity.cpp
 
 	firestarter/Config/Config.cpp
 	firestarter/Config/CpuBind.cpp
 	
 	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
-	firestarter/Environment/CPUTopology.cpp
-	firestarter/Environment/ThreadAffinity.cpp
 	firestarter/Environment/ProcessorInformation.cpp
 	firestarter/Environment/Payload/CompiledPayload.cpp
 	firestarter/Environment/Payload/PayloadSettings.cpp

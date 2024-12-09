@@ -47,7 +47,7 @@
 
 namespace firestarter {
 
-void Firestarter::initLoadWorkers(const environment::ThreadAffinity& Affinity) {
+void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
   // Bind this thread to the first available CPU.
   Topology->bindCallerToOsIndex(Affinity.CpuBind[0]);
 

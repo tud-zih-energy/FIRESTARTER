@@ -19,10 +19,10 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
 
-namespace firestarter::environment {
+namespace firestarter {
 
 CPUTopology::CPUTopology() {
   hwloc_topology_init(&Topology);
@@ -290,4 +290,4 @@ void CPUTopology::bindCallerToOsIndex(unsigned OsIndex) const {
   }
 }
 
-}; // namespace firestarter::environment
+}; // namespace firestarter

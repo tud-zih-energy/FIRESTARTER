@@ -21,13 +21,14 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/CPUTopology.hpp"
+
 #include <cassert>
 #include <cstdint>
 #include <optional>
 #include <vector>
 
-namespace firestarter::environment {
+namespace firestarter {
 
 /// This class handles selecting the correct number of threads. They are parsed as user input to FIRESTARTER, but still
 /// need checking with runtime information.
@@ -58,4 +59,4 @@ struct ThreadAffinity {
   std::vector<unsigned> CpuBind;
 };
 
-} // namespace firestarter::environment
+} // namespace firestarter

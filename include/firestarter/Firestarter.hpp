@@ -25,13 +25,13 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
 #include "firestarter/DumpRegisterWorkerData.hpp"
-#include "firestarter/Environment/ThreadAffinity.hpp"
 #include "firestarter/LoadWorkerData.hpp"
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/OneAPI/OneAPI.hpp"
 #include "firestarter/Optimizer/Algorithm.hpp"
 #include "firestarter/Optimizer/OptimizerWorker.hpp"
 #include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/ThreadAffinity.hpp"
 
 #include <chrono>
 #include <condition_variable>
@@ -67,7 +67,7 @@ private:
   const Config Cfg;
 
   /// This class handles getting the topology information of the processor and is used to set thread binding.
-  std::unique_ptr<environment::CPUTopology> Topology;
+  std::unique_ptr<CPUTopology> Topology;
   /// The class that handles setting up the payload for firestarter
   std::unique_ptr<environment::Environment> Environment;
   /// The class for execution of the gemm routine on Cuda or HIP GPUs.
@@ -112,7 +112,7 @@ private:
 
   /// Spawn the load workers and initialize them.
   /// \arg Affinity Describes the number of threads and how they should be bound to the CPUs.
-  void initLoadWorkers(const environment::ThreadAffinity& Affinity);
+  void initLoadWorkers(const ThreadAffinity& Affinity);
 
   /// Wait for the load worker to join
   void joinLoadWorkers();

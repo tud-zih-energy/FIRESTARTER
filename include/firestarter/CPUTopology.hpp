@@ -29,7 +29,7 @@ extern "C" {
 #include <hwloc.h>
 }
 
-namespace firestarter::environment {
+namespace firestarter {
 
 /// This struct describes properties of the threads which are used in the Environment class to assign a specific number
 /// of threads and/or use it for cpu binding.
@@ -95,4 +95,4 @@ private:
   hwloc_topology_t Topology{};
 };
 
-} // namespace firestarter::environment
+} // namespace firestarter
