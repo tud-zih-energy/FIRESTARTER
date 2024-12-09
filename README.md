@@ -150,7 +150,6 @@ CMake option                  | Description
 `FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, `FIRESTARTER_ONEAPI`, or `FIRESTARTER_HIP`. Default `FIRESTARTER`
 `FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA or OneAPI enabled. Default `ON`
 `FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default `ON`
-`FIRESTARTER_THREAD_AFFINITY` | Enable FIRESTARTER to set affinity to hardware threads. Default `ON`
 
 When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel
 Library (MKL) and the compiler `icx` and `icpx` can be found. Please provide
