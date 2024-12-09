@@ -84,7 +84,6 @@ auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
 void ThreadAffinity::printThreadSummary(const CPUTopology& Topology) const {
   log::info() << "\n  using " << RequestedNumThreads << " threads";
 
-#if not defined(__APPLE__)
   bool PrintCoreIdInfo = false;
   size_t I = 0;
 
@@ -104,7 +103,6 @@ void ThreadAffinity::printThreadSummary(const CPUTopology& Topology) const {
   if (PrintCoreIdInfo) {
     log::info() << "  The cores are numbered using the logical_index from hwloc.";
   }
-#endif
 }
 
 }; // namespace firestarter
