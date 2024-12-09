@@ -349,10 +349,6 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-    - name: Install CMake
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install cmake
     - name: Install Mingw
       uses: crazy-max/ghaction-chocolatey@v3
       if: matrix.cfg.MSVC == false
