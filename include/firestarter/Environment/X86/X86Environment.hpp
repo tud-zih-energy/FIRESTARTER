@@ -59,9 +59,9 @@ public:
     return *X86PlatformConfig;
   }
 
-  /// Const getter for the current CPU topology with X86 specific modifications.
-  [[nodiscard]] auto topology() const -> const X86ProcessorInformation& final {
-    const auto* X86Topology = dynamic_cast<const X86ProcessorInformation*>(&Environment::topology());
+  /// Const getter for the current processor information with X86 specific modifications.
+  [[nodiscard]] auto processorInfos() const -> const X86ProcessorInformation& final {
+    const auto* X86Topology = dynamic_cast<const X86ProcessorInformation*>(&Environment::processorInfos());
     assert(X86Topology && "X86Topology is a nullptr");
     return *X86Topology;
   }

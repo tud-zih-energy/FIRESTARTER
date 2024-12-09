@@ -21,9 +21,7 @@
 
 #include "firestarter/Environment/ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
-#include "hwloc/bitmap.h"
 
-#include <array>
 #include <fstream>
 #include <regex>
 #include <utility>
@@ -31,14 +29,6 @@
 namespace firestarter::environment {
 
 auto ProcessorInformation::print(std::ostream& Stream) const -> std::ostream& {
-  Stream << "  system summary:\n"
-         << "    number of processors:        " << numPackages() << "\n"
-         << "    number of cores (total)):    " << numCoresTotal() << "\n"
-         << "  (this includes only cores in the cgroup)"
-         << "\n"
-         << "    number of threads per core:  " << numThreadsPerCore() << "\n"
-         << "    total number of threads:     " << numThreads() << "\n\n";
-
   std::stringstream Ss;
 
   for (auto const& Entry : features()) {
@@ -51,137 +41,13 @@ auto ProcessorInformation::print(std::ostream& Stream) const -> std::ostream& {
          << "    processor-name:     " << processorName() << "\n"
          << "    model:              " << model() << "\n"
          << "    frequency:          " << clockrate() / 1000000 << " MHz\n"
-         << "    supported features: " << Ss.str() << "\n"
-         << "    Caches:";
-
-  const std::vector<hwloc_obj_type_t> Caches = {
-      HWLOC_OBJ_L1CACHE, HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE, HWLOC_OBJ_L2ICACHE,
-      HWLOC_OBJ_L3CACHE, HWLOC_OBJ_L3ICACHE, HWLOC_OBJ_L4CACHE, HWLOC_OBJ_L5CACHE,
-  };
-
-  for (hwloc_obj_type_t const& Cache : Caches) {
-    std::stringstream Ss;
-
-    auto Width = hwloc_get_nbobjs_by_type(Topology, Cache);
-
-    if (Width >= 1) {
-      Ss << "\n      - ";
-
-      auto* CacheObj = hwloc_get_obj_by_type(Topology, Cache, 0);
-      std::array<char, 128> String{};
-      auto* StringPtr = String.data();
-      hwloc_obj_type_snprintf(StringPtr, sizeof(String), CacheObj, 0);
-
-      switch (CacheObj->attr->cache.type) {
-      case HWLOC_OBJ_CACHE_DATA:
-        Ss << "Level " << CacheObj->attr->cache.depth << " Data";
-        break;
-      case HWLOC_OBJ_CACHE_INSTRUCTION:
-        Ss << "Level " << CacheObj->attr->cache.depth << " Instruction";
-        break;
-      case HWLOC_OBJ_CACHE_UNIFIED:
-      default:
-        Ss << "Unified Level " << CacheObj->attr->cache.depth;
-        break;
-      }
-
-      Ss << " Cache, " << CacheObj->attr->cache.size / 1024 << " KiB, " << CacheObj->attr->cache.linesize
-         << " B Cacheline, ";
-
-      switch (CacheObj->attr->cache.associativity) {
-      case -1:
-        Ss << "full";
-        break;
-      case 0:
-        Ss << "unknown";
-        break;
-      default:
-        Ss << CacheObj->attr->cache.associativity << "-way set";
-        break;
-      }
-
-      Ss << " associative, ";
-
-      auto Shared = numThreads() / Width;
-
-      if (Shared > 1) {
-        Ss << "shared among " << Shared << " threads.";
-      } else {
-        Ss << "per thread.";
-      }
-
-      Stream << Ss.str();
-    }
-  }
+         << "    supported features: " << Ss.str() << "\n";
 
   return Stream;
 }
 
 ProcessorInformation::ProcessorInformation(std::string Architecture)
     : Architecture(std::move(Architecture)) {
-
-  hwloc_topology_init(&Topology);
-
-  // do not filter icaches
-  hwloc_topology_set_cache_types_filter(Topology, HWLOC_TYPE_FILTER_KEEP_ALL);
-
-  hwloc_topology_load(Topology);
-
-  // check for hybrid processor
-  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
-
-  switch (NrCpukinds) {
-  case -1:
-    log::warn() << "Hybrid core check failed";
-    break;
-  case 0:
-    log::warn() << "Hybrid core check read no information";
-    break;
-  default:
-    log::trace() << "Number of CPU kinds:" << NrCpukinds;
-  }
-  if (NrCpukinds > 1) {
-    log::warn() << "FIRESTARTER detected a hybrid CPU set-up";
-  }
-  // get number of packages
-  int Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PACKAGE);
-
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumPackages = 1;
-    log::warn() << "Could not get number of packages";
-  } else {
-    NumPackages = hwloc_get_nbobjs_by_depth(Topology, Depth);
-  }
-
-  log::trace() << "Number of Packages:" << NumPackages;
-  // get number of cores per package
-  Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_CORE);
-
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumCoresTotal = 1;
-    log::warn() << "Could not get number of cores";
-  } else {
-    NumCoresTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
-    if (NumCoresTotal == 0) {
-      log::warn() << "Could not get number of cores";
-      NumCoresTotal = 1;
-    }
-  }
-  log::trace() << "Number of Cores:" << NumCoresTotal;
-
-  // get number of threads per core
-  Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PU);
-
-  if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    NumThreadsPerCore = 1;
-    log::warn() << "Could not get number of threads";
-  } else {
-    NumThreadsPerCore = hwloc_get_nbobjs_by_depth(Topology, Depth) / NumCoresTotal;
-    if (NumThreadsPerCore == 0) {
-      log::warn() << "Could not get number of threads per core";
-      NumThreadsPerCore = 1;
-    }
-  }
 
   // get vendor, processor name and clockrate for linux
 #if defined(linux) || defined(__linux__)
@@ -298,17 +164,7 @@ ProcessorInformation::ProcessorInformation(std::string Architecture)
     }
   }
 #endif
-
-  // get L1i-Cache size
-  const auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_L1ICACHE);
-
-  if (Width >= 1) {
-    hwloc_obj_t CacheObj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_L1ICACHE, 0);
-    InstructionCacheSize = CacheObj->attr->cache.size;
-  }
 }
-
-ProcessorInformation::~ProcessorInformation() { hwloc_topology_destroy(Topology); }
 
 auto ProcessorInformation::getFileAsStream(std::string const& FilePath) -> std::stringstream {
   std::ifstream File(FilePath);
@@ -326,109 +182,6 @@ auto ProcessorInformation::getFileAsStream(std::string const& FilePath) -> std::
 
 auto ProcessorInformation::scalingGovernor() -> std::string {
   return getFileAsStream("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor").str();
-}
-
-auto ProcessorInformation::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
-  auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
-
-  if (Width >= 1) {
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      if (Obj->os_index == Pu) {
-        for (; Obj; Obj = Obj->parent) {
-          if (Obj->type == HWLOC_OBJ_CORE) {
-            return Obj->logical_index;
-          }
-        }
-      }
-    }
-  }
-
-  return {};
-}
-
-auto ProcessorInformation::getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
-  auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
-
-  if (Width >= 1) {
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      if (Obj->os_index == Pu) {
-        for (; Obj; Obj = Obj->parent) {
-          if (Obj->type == HWLOC_OBJ_PACKAGE) {
-            return Obj->logical_index;
-          }
-        }
-      }
-    }
-  }
-
-  return {};
-}
-
-auto ProcessorInformation::hardwareThreadsInfo() const -> HardwareThreadsInfo {
-  HardwareThreadsInfo Infos;
-
-  // Get the number of different kinds of CPUs
-  const auto NrCpukinds = hwloc_cpukinds_get_nr(Topology, 0);
-
-  if (NrCpukinds < 0) {
-    log::fatal() << "flags to hwloc_cpukinds_get_nr is invalid. This is not expected.";
-  }
-
-  // No information about the cpukinds found. Go through all PUs and save the biggest os index.
-  if (NrCpukinds == 0) {
-    auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
-    Infos.MaxNumThreads = Width;
-
-    for (int I = 0; I < Width; I++) {
-      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
-      Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, Obj->os_index);
-      Infos.OsIndices.emplace(Obj->os_index);
-    }
-
-    return Infos;
-  }
-
-  // Allocate bitmap to get CPUs later
-  hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
-  if (Bitmap == nullptr) {
-    // Error should abort, otherwise return zero.
-    log::fatal() << "Could not allocate memory for CPU bitmap";
-    return Infos;
-  }
-
-  // Go through all cpukinds and save the biggest os index.
-  for (int KindIndex = 0; KindIndex < NrCpukinds; KindIndex++) {
-    const auto Result = hwloc_cpukinds_get_info(Topology, KindIndex, Bitmap, nullptr, nullptr, nullptr, 0);
-    if (Result) {
-      log::warn() << "Could not get information for CPU kind " << KindIndex;
-    }
-
-    auto Weight = hwloc_bitmap_weight(Bitmap);
-    if (Weight < 0) {
-      log::fatal() << "bitmap is full or bitmap is not infinitely set";
-    }
-
-    auto MaxIndex = hwloc_bitmap_last(Bitmap);
-    if (MaxIndex < 0) {
-      log::fatal() << "bitmap is full or bitmap is not infinitely set";
-    }
-
-    Infos.MaxNumThreads += Weight;
-    Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, static_cast<unsigned>(MaxIndex));
-
-    {
-      unsigned OsIndex{};
-      // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
-      hwloc_bitmap_foreach_begin(OsIndex, Bitmap) Infos.OsIndices.emplace(OsIndex);
-      hwloc_bitmap_foreach_end();
-    }
-  }
-
-  hwloc_bitmap_free(Bitmap);
-
-  return Infos;
 }
 
 }; // namespace firestarter::environment

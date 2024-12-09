@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include "firestarter/Environment/ProcessorInformation.hpp"
 
@@ -39,7 +40,7 @@ class Environment {
 public:
   Environment() = delete;
   explicit Environment(std::unique_ptr<ProcessorInformation>&& Topology)
-      : Topology(std::move(Topology)) {}
+      : ProcessorInfos(std::move(Topology)) {}
   virtual ~Environment() = default;
 
   /// Parse the user input for the cpu affinity and the number of requested threads. If a CpuBind is provided we
@@ -105,11 +106,14 @@ public:
     return *Config;
   }
 
-  /// Const getter for the current CPU topology.
-  [[nodiscard]] virtual auto topology() const -> const ProcessorInformation& {
-    assert(Topology && "Topology is a nullptr");
-    return *Topology;
+  /// Const getter for the current processor information.
+  [[nodiscard]] virtual auto processorInfos() const -> const ProcessorInformation& {
+    assert(ProcessorInfos && "ProcessorInfos is a nullptr");
+    return *ProcessorInfos;
   }
+
+  /// Const getter for the current processor topology.
+  [[nodiscard]] auto topology() const -> const CPUTopology& { return Topology; }
 
 protected:
   /// This function sets the config based on the
@@ -119,7 +123,9 @@ private:
   /// The selected config that contains the payload, settings and the associated name.
   std::unique_ptr<platform::PlatformConfig> Config;
   /// The description of the current CPU.
-  std::unique_ptr<ProcessorInformation> Topology;
+  std::unique_ptr<ProcessorInformation> ProcessorInfos;
+  /// The topology information about the current processor
+  CPUTopology Topology;
 
   /// The number of threads FIRESTARTER is requested to run with. This will initially be set to zero, which will be
   /// replaced by the maximum number of threads after calling evaluateCpuAffinity.

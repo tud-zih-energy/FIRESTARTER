@@ -45,7 +45,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
       const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
-      if (!X86Env.topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+      if (!X86Env.processorInfos().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
       }
@@ -167,7 +167,16 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   Environment->printSelectedCodePathSummary();
 
-  log::info() << Environment->topology();
+  {
+    std::stringstream Ss;
+
+    Environment->topology().printSystemSummary(Ss);
+    Ss << "\n";
+    Ss << Environment->processorInfos();
+    Environment->topology().printCacheSummary(Ss);
+
+    log::info() << Ss.str();
+  }
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period

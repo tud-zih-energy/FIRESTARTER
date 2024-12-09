@@ -193,8 +193,8 @@ void Firestarter::printPerformanceReport() {
     Iterations += Td->LastRun.Iterations.load();
   }
 
-  double const Runtime =
-      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(Environment->topology().clockrate());
+  double const Runtime = static_cast<double>(StopTimestamp - StartTimestamp) /
+                         static_cast<double>(Environment->processorInfos().clockrate());
   double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
                         0.000000001 * static_cast<double>(Iterations) / Runtime;
   double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *
@@ -305,7 +305,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
     case LoadThreadState::ThreadWork:
       Td->CurrentRun.Iterations = 0;
       // record threads start timestamp
-      Td->CurrentRun.StartTsc = Td->environment().topology().timestamp();
+      Td->CurrentRun.StartTsc = Td->environment().processorInfos().timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -338,14 +338,14 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 
         // terminate if master signals end of run and record stop timestamp
         if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->environment().processorInfos().timestamp();
           Td->LastRun = Td->CurrentRun;
 
           return;
         }
 
         if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->environment().processorInfos().timestamp();
           Td->LastRun = Td->CurrentRun;
 
           break;

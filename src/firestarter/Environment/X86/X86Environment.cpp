@@ -32,13 +32,15 @@ namespace firestarter::environment::x86 {
 void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
+  const auto ProcessorICacheSize = topology().instructionCacheSize();
+  const auto ProcessorThreadsPerCore = topology().homogenousResourceCount().NumThreadsPerCore;
 
   // if functionId is 0 get the default or fallback
   for (const auto& PlatformConfigPtr : PlatformConfigs) {
     for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
       // the selected function
       if (Id == FunctionId) {
-        if (!PlatformConfigPtr->isAvailable(topology())) {
+        if (!PlatformConfigPtr->isAvailable(processorInfos())) {
           const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                    PlatformConfigPtr->functionName(ThreadsPerCore) + "\") requires " +
                                    PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
@@ -49,13 +51,13 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
           }
         }
         // found function
-        setConfig(PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore));
+        setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
         return;
       }
       // default function
-      if (0 == FunctionId && PlatformConfigPtr->isDefault(topology())) {
-        if (ThreadsPerCore == topology().numThreadsPerCore()) {
-          setConfig(PlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), ThreadsPerCore));
+      if (0 == FunctionId && PlatformConfigPtr->isDefault(processorInfos())) {
+        if (ThreadsPerCore == ProcessorThreadsPerCore) {
+          setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
           return;
         }
         DefaultPayloadName = PlatformConfigPtr->payload()->name();
@@ -70,21 +72,21 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
     if (DefaultPayloadName) {
       // default payload available, but number of threads per core is not
       // supported
-      log::warn() << "No " << *DefaultPayloadName << " code path for " << topology().numThreadsPerCore()
+      log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore
                   << " threads per core!";
     }
-    log::warn() << topology().vendor() << " " << topology().model()
+    log::warn() << processorInfos().vendor() << " " << processorInfos().model()
                 << " is not supported by this version of FIRESTARTER!\n"
                 << "Check project website for updates.";
 
     // loop over available implementation and check if they are marked as
     // fallback
     for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
-      if (FallbackPlatformConfigPtr->isAvailable(topology())) {
+      if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
         std::optional<unsigned> SelectedThreadsPerCore;
         // find the fallback implementation with the correct thread per core count
         for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
-          if (ThreadsPerCore == topology().numThreadsPerCore()) {
+          if (ThreadsPerCore == ProcessorThreadsPerCore) {
             SelectedThreadsPerCore = ThreadsPerCore;
           }
         }
@@ -92,8 +94,7 @@ void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePa
         if (!SelectedThreadsPerCore) {
           SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
         }
-        setConfig(
-            FallbackPlatformConfigPtr->cloneConcreate(topology().instructionCacheSize(), *SelectedThreadsPerCore));
+        setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, *SelectedThreadsPerCore));
         log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
                     << " as fallback.\n"
                     << "You can use the parameter --function to try other "
@@ -182,7 +183,7 @@ void X86Environment::printFunctionSummary(bool ForceYes) {
 
   for (auto const& Config : PlatformConfigs) {
     for (auto const& ThreadsPerCore : Config->settings().threads()) {
-      const char* Available = (Config->isAvailable(topology()) || ForceYes) ? "yes" : "no";
+      const char* Available = (Config->isAvailable(processorInfos()) || ForceYes) ? "yes" : "no";
       const auto& FunctionName = Config->functionName(ThreadsPerCore);
       const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();
 
