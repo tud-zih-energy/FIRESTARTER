@@ -29,11 +29,11 @@
 
 namespace firestarter::environment::x86 {
 
-void X86Environment::selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) {
+void X86Environment::selectFunction(unsigned FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
-  const auto ProcessorICacheSize = topology().instructionCacheSize();
-  const auto ProcessorThreadsPerCore = topology().homogenousResourceCount().NumThreadsPerCore;
+  const auto ProcessorICacheSize = Topology.instructionCacheSize();
+  const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
   // if functionId is 0 get the default or fallback
   for (const auto& PlatformConfigPtr : PlatformConfigs) {

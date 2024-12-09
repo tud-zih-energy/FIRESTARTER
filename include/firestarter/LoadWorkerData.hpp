@@ -22,12 +22,14 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Environment.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
 
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -61,22 +63,26 @@ public:
 
   /// Create the datastructure that is shared between a load worker thread and firestarter.
   /// \arg Id The id of the load worker thread. They are counted from 0 to the maximum number of threads - 1.
-  /// \arg Environment The reference to the environment which allows setting the thread affinity and getting the current
-  /// timestamp.
+  /// \arg OsIndex The os index to which this thread should be bound.
+  /// \arg Environment The reference to the environment which allows getting the current timestamp.
+  /// \arg Topology The reference to the processor topology abstraction which allows setting thread affinity.
   /// \arg LoadVar The variable that controls the execution of the load worker.
   /// \arg Period Is used in combination with the LoadVar for the low load routine.
   /// \arg DumpRegisters Should the code to support dumping registers be baked into the high load routine of the
   /// compiled payload.
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
-  LoadWorkerData(uint64_t Id, const environment::Environment& Environment, volatile LoadThreadWorkType& LoadVar,
+  LoadWorkerData(uint64_t Id, uint64_t OsIndex, const environment::Environment& Environment,
+                 const environment::CPUTopology& Topology, volatile LoadThreadWorkType& LoadVar,
                  std::chrono::microseconds Period, bool DumpRegisters, bool ErrorDetection)
       : LoadVar(LoadVar)
       , Period(Period)
       , DumpRegisters(DumpRegisters)
       , ErrorDetection(ErrorDetection)
       , Id(Id)
+      , OsIndex(OsIndex)
       , Environment(Environment)
+      , Topology(Topology)
       , Config(Environment.config().clone()) {}
 
   ~LoadWorkerData() = default;
@@ -157,8 +163,12 @@ public:
 
   /// The id of this load thread.
   const uint64_t Id;
-  /// The reference to the environment which allows setting the thread affinity and getting the current timestamp.
+  /// The os index to which this thread should be bound.
+  const uint64_t OsIndex;
+  /// The reference to the environment which allows getting the current timestamp.
   const environment::Environment& Environment;
+  /// The reference to the processor topology abstraction which allows setting thread affinity.
+  const environment::CPUTopology& Topology;
   /// The config that is cloned from the environment for this specfic load worker.
   std::unique_ptr<environment::platform::PlatformConfig> Config;
 };

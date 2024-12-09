@@ -86,6 +86,10 @@ public:
   /// \returns Optionally the logical index of the package that houses this hardware thread.
   [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
 
+  /// Set the CPU affinity of the calling thread to the os index in the argument.
+  /// \arg OsIndex The os index to which the calling thread should be bound.
+  void bindCallerToOsIndex(unsigned OsIndex) const;
+
 private:
   /// The hwloc topology that is used to query information about the processor.
   hwloc_topology_t Topology{};

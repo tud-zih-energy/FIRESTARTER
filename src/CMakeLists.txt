@@ -10,8 +10,8 @@ add_library(firestartercore STATIC
 	
 	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
-	firestarter/Environment/Environment.cpp
 	firestarter/Environment/CPUTopology.cpp
+	firestarter/Environment/ThreadAffinity.cpp
 	firestarter/Environment/ProcessorInformation.cpp
 	firestarter/Environment/Payload/CompiledPayload.cpp
 	firestarter/Environment/Payload/PayloadSettings.cpp

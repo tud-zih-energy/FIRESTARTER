@@ -47,39 +47,38 @@
 
 namespace firestarter {
 
-void Firestarter::initLoadWorkers() {
-  Environment->setCpuAffinity(0);
+void Firestarter::initLoadWorkers(const environment::ThreadAffinity& Affinity) {
+  // Bind this thread to the first available CPU.
+  Topology->bindCallerToOsIndex(Affinity.CpuBind[0]);
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
   LoadVar = Cfg.Load == std::chrono::microseconds::zero() ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
 
-  auto NumThreads = Environment->requestedNumThreads();
-
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
   if (Cfg.ErrorDetection) {
-    for (uint64_t I = 0; I < NumThreads; I++) {
+    for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++) {
       auto* CommPtr = static_cast<uint64_t*>(AlignedAlloc::malloc(2 * sizeof(uint64_t)));
       assert(CommPtr);
       ErrorCommunication.emplace_back(std::shared_ptr<uint64_t>(CommPtr, AlignedAlloc::free));
-      log::debug() << "Threads " << (I + NumThreads - 1) % NumThreads << " and " << I << " commPtr = 0x"
-                   << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
+      log::debug() << "Threads " << (I + Affinity.RequestedNumThreads - 1) % Affinity.RequestedNumThreads << " and "
+                   << I << " commPtr = 0x" << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
                    << std::hex
                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                    << reinterpret_cast<uint64_t>(CommPtr);
     }
   }
 
-  for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, std::cref(*Environment), std::ref(LoadVar), Cfg.Period,
-                                               Cfg.DumpRegisters, Cfg.ErrorDetection);
+  for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++) {
+    auto Td = std::make_shared<LoadWorkerData>(I, Affinity.CpuBind[I], std::cref(*Environment), std::cref(*Topology),
+                                               std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
       // give this thread the left pointer i and right pointer (i+1) %
       // requestedNumThreads().
-      Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % NumThreads]);
+      Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % Affinity.RequestedNumThreads]);
     }
 
     Td->BuffersizeMem = Td->config().settings().totalBufferSizePerThread() / sizeof(uint64_t);
@@ -264,7 +263,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
     // allocate and initialize memory
     case LoadThreadState::ThreadInit:
       // set affinity
-      Td->environment().setCpuAffinity(Td->id());
+      Td->Topology.bindCallerToOsIndex(Td->OsIndex);
 
       // compile payload
       Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,

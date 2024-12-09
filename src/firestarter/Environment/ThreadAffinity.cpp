@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/Environment.hpp"
+#include "firestarter/Environment/ThreadAffinity.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <cstdint>
@@ -27,43 +27,26 @@
 
 namespace firestarter::environment {
 
-#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
+auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
+                                     const std::optional<unsigned>& RequestedNumThreads,
+                                     const std::optional<std::vector<uint64_t>>& CpuBinding) -> ThreadAffinity {
+  ThreadAffinity Affinity{};
 
-extern "C" {
-#include <sched.h>
-}
-
-auto Environment::cpuSet(unsigned Id) -> int {
-  cpu_set_t Mask;
-
-  CPU_ZERO(&Mask);
-  CPU_SET(Id, &Mask);
-
-  return sched_setaffinity(0, sizeof(cpu_set_t), &Mask);
-}
-#endif
-
-void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNumThreads,
-                                      const std::optional<std::vector<uint64_t>>& CpuBinding) {
-  if (RequestedNumThreads && RequestedNumThreads > topology().hardwareThreadsInfo().MaxNumThreads) {
+  if (RequestedNumThreads && RequestedNumThreads > ThreadsInfo.MaxNumThreads) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
-#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  unsigned NumThreads = 0;
-  std::vector<unsigned> CpuSet;
-
   if (RequestedNumThreads) {
     // RequestedNumThreads provided, pin to the first *RequestedNumThreads CPUs.
-    for (const auto& OsIndex : topology().hardwareThreadsInfo().OsIndices) {
-      if (NumThreads == *RequestedNumThreads) {
+    for (const auto& OsIndex : ThreadsInfo.OsIndices) {
+      if (Affinity.RequestedNumThreads == *RequestedNumThreads) {
         break;
       }
-      CpuSet.emplace_back(OsIndex);
-      NumThreads++;
+      Affinity.CpuBind.emplace_back(OsIndex);
+      Affinity.RequestedNumThreads++;
     }
     // requested to many threads
-    if (NumThreads < *RequestedNumThreads) {
+    if (Affinity.RequestedNumThreads < *RequestedNumThreads) {
       throw std::invalid_argument("You are requesting more threads than "
                                   "there are CPUs available in the given cpuset.\n"
                                   "This can be caused by the taskset tool, cgrous, "
@@ -73,7 +56,7 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
     }
   } else if (CpuBinding) {
     // CpuBinding provided, pin to the specified cpus
-    const auto& AllowedOsIndices = topology().hardwareThreadsInfo().OsIndices;
+    const auto& AllowedOsIndices = ThreadsInfo.OsIndices;
 
     for (const auto& OsIndex : *CpuBinding) {
       if (AllowedOsIndices.find(OsIndex) == AllowedOsIndices.cend()) {
@@ -84,45 +67,30 @@ void Environment::evaluateCpuAffinity(const std::optional<unsigned>& RequestedNu
                                     "the batch system, or similar mechanisms.\n"
                                     "Please fix the argument to match the restrictions.");
       }
-      CpuSet.emplace_back(OsIndex);
+      Affinity.CpuBind.emplace_back(OsIndex);
     }
-    NumThreads = CpuBinding->size();
+    Affinity.RequestedNumThreads = CpuBinding->size();
   } else {
     // Neither RequestedNumThreads nor CpuBinding provided, pin to all available CPUs.
-    for (const auto& OsIndex : topology().hardwareThreadsInfo().OsIndices) {
-      CpuSet.emplace_back(OsIndex);
-      NumThreads++;
+    for (const auto& OsIndex : ThreadsInfo.OsIndices) {
+      Affinity.CpuBind.emplace_back(OsIndex);
+      Affinity.RequestedNumThreads++;
     }
   }
 
-  // Save the ids of the threads.
-  this->CpuBind = CpuSet;
-  this->RequestedNumThreads = NumThreads;
-#else
-  (void)CpuBinding;
-
-  if (!RequestedNumThreads) {
-    // Use all threads if no limit is provided.
-    this->RequestedNumThreads = topology().hardwareThreadsInfo().MaxNumThreads;
-  } else {
-    // Limit the number of thread to the maximum on the CPU.
-    this->RequestedNumThreads = (std::min)(*RequestedNumThreads, topology().hardwareThreadsInfo().MaxNumThreads);
-  }
-#endif
+  return Affinity;
 }
 
-void Environment::printThreadSummary() {
-  log::info() << "\n  using " << requestedNumThreads() << " threads";
+void ThreadAffinity::printThreadSummary(const CPUTopology& Topology) const {
+  log::info() << "\n  using " << RequestedNumThreads << " threads";
 
-#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
+#if not defined(__APPLE__)
   bool PrintCoreIdInfo = false;
   size_t I = 0;
 
-  std::vector<unsigned> CpuBind(this->CpuBind);
-  CpuBind.resize(requestedNumThreads());
   for (auto const& Bind : CpuBind) {
-    const auto CoreId = topology().getCoreIdFromPU(Bind);
-    const auto PkgId = topology().getPkgIdFromPU(Bind);
+    const auto CoreId = Topology.getCoreIdFromPU(Bind);
+    const auto PkgId = Topology.getPkgIdFromPU(Bind);
 
     if (CoreId && PkgId) {
       log::info() << "    - Thread " << I << " run on CPU " << Bind << ", core " << *CoreId
@@ -139,13 +107,4 @@ void Environment::printThreadSummary() {
 #endif
 }
 
-void Environment::setCpuAffinity(unsigned Thread) const {
-  if (Thread >= requestedNumThreads()) {
-    throw std::invalid_argument("Trying to set more CPUs than available.");
-  }
-
-#if (defined(linux) || defined(__linux__)) && defined(FIRESTARTER_THREAD_AFFINITY)
-  cpuSet(CpuBind.at(Thread));
-#endif
-}
 }; // namespace firestarter::environment

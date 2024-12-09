@@ -34,12 +34,14 @@
 namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
-    : Cfg(std::move(ProvidedConfig)) {
+    : Cfg(std::move(ProvidedConfig))
+    , Topology(std::make_unique<environment::CPUTopology>()) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     Environment = std::make_unique<environment::x86::X86Environment>();
   }
 
-  Environment->evaluateCpuAffinity(Cfg.RequestedNumThreads, Cfg.CpuBinding);
+  const auto Affinity = environment::ThreadAffinity::fromCommandLine(Topology->hardwareThreadsInfo(),
+                                                                     Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
@@ -52,10 +54,10 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
   }
 
-  if (Cfg.ErrorDetection && Environment->requestedNumThreads() < 2) {
+  if (Cfg.ErrorDetection && Affinity.RequestedNumThreads < 2) {
     throw std::invalid_argument("Option --error-detection must run with 2 or more threads. Number of "
                                 "threads is " +
-                                std::to_string(Environment->requestedNumThreads()) + "\n");
+                                std::to_string(Affinity.RequestedNumThreads) + "\n");
   }
 
   if (Cfg.PrintFunctionSummary) {
@@ -63,7 +65,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     safeExit(EXIT_SUCCESS);
   }
 
-  Environment->selectFunction(Cfg.FunctionId, Cfg.AllowUnavailablePayload);
+  Environment->selectFunction(Cfg.FunctionId, *Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
     Environment->printAvailableInstructionGroups();
@@ -81,7 +83,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     if (Cfg.Measurement || Cfg.ListMetrics || Cfg.Optimize) {
       MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
-          Cfg.MeasurementInterval, Environment->requestedNumThreads(), Cfg.MetricPaths, Cfg.StdinMetrics);
+          Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
 
       if (Cfg.ListMetrics) {
         log::info() << MeasurementWorker->availableMetrics();
@@ -170,17 +172,19 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   {
     std::stringstream Ss;
 
-    Environment->topology().printSystemSummary(Ss);
+    Topology->printSystemSummary(Ss);
     Ss << "\n";
     Ss << Environment->processorInfos();
-    Environment->topology().printCacheSummary(Ss);
+    Topology->printCacheSummary(Ss);
 
     log::info() << Ss.str();
   }
 
+  Affinity.printThreadSummary(*Topology);
+
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  initLoadWorkers();
+  initLoadWorkers(Affinity);
 
   // add some signal handler for aborting FIRESTARTER
   if constexpr (!firestarter::OptionalFeatures.IsWin32) {
@@ -192,8 +196,6 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 }
 
 void Firestarter::mainThread() {
-  Environment->printThreadSummary();
-
   Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
   Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
 

@@ -281,4 +281,13 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
   return Infos;
 }
 
+void CPUTopology::bindCallerToOsIndex(unsigned OsIndex) const {
+  const auto* Obj = hwloc_get_pu_obj_by_os_index(Topology, OsIndex);
+  auto ReturnCode = hwloc_set_cpubind(Topology, Obj->cpuset, HWLOC_CPUBIND_THREAD | HWLOC_CPUBIND_STRICT);
+
+  if (ReturnCode != 0) {
+    firestarter::log::warn() << "Could not enfoce binding the curren thread to OsIndex: " << OsIndex;
+  }
+}
+
 }; // namespace firestarter::environment
