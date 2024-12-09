@@ -22,6 +22,7 @@
 #include "firestarter/Config/CpuBind.hpp"
 
 #include <regex>
+#include <sstream>
 
 namespace firestarter {
 
