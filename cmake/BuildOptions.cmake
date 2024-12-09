@@ -14,12 +14,6 @@ endif()
 option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
 
 
-# Use of thread affinity is enabled on linux per default.
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	set(FIRESTARTER_THREAD_AFFINITY "Enable FIRESTARTER to set affinity to hardware threads." ON)
-endif()
-
-
 # Debug feature are enabled on linux per default.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)

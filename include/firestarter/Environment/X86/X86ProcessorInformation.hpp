@@ -21,18 +21,18 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 
 #include <asmjit/asmjit.h>
 
 namespace firestarter::environment::x86 {
 
 /// This class models the properties of a x86_64 processor.
-class X86CPUTopology final : public CPUTopology {
+class X86ProcessorInformation final : public ProcessorInformation {
 public:
-  X86CPUTopology();
+  X86ProcessorInformation();
 
-  friend auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream&;
+  friend auto operator<<(std::ostream& Stream, X86ProcessorInformation const& CpuTopology) -> std::ostream&;
 
   /// Getter for the list of CPU features
   [[nodiscard]] auto features() const -> std::list<std::string> const& override { return this->FeatureList; }
@@ -81,7 +81,7 @@ private:
   std::string Model;
 };
 
-inline auto operator<<(std::ostream& Stream, X86CPUTopology const& CpuTopology) -> std::ostream& {
+inline auto operator<<(std::ostream& Stream, X86ProcessorInformation const& CpuTopology) -> std::ostream& {
   return CpuTopology.print(Stream);
 }
 

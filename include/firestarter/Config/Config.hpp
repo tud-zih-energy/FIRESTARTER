@@ -22,6 +22,8 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -65,7 +67,7 @@ struct Config {
   std::vector<std::string> OptimizationMetrics;
 
   /// The optional cpu bind that allow pinning to specific cpus.
-  std::string CpuBind;
+  std::optional<std::vector<uint64_t>> CpuBinding;
   /// The optional selected instruction groups. If this is empty the default will be choosen.
   std::string InstructionGroups;
   /// The file where the dump register feature will safe its output to.
@@ -78,7 +80,7 @@ struct Config {
   /// The argument count from the command line.
   int Argc;
   /// The requested number of threads firestarter should run with. 0 means all threads.
-  unsigned RequestedNumThreads;
+  std::optional<unsigned> RequestedNumThreads;
   /// The selected function id. 0 means automatic selection.
   unsigned FunctionId;
   /// The line count of the payload. 0 means default.

@@ -23,7 +23,6 @@
 
 #include <cstdint>
 #include <list>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -34,33 +33,13 @@ extern "C" {
 
 namespace firestarter::environment {
 
-/// This struct describes properties of the threads which are used in the Environment class to assign a specific number
-/// of threads and/or use it for cpu binding.
-struct HardwareThreadsInfo {
-  HardwareThreadsInfo() = default;
-
-  /// The number of hardware threads on this system.
-  unsigned MaxNumThreads = 0;
-  /// The highest physical index on a hardware thread in the system.
-  unsigned MaxPhysicalIndex = 0;
-};
-
 /// This class models the properties of a processor.
-class CPUTopology {
+class ProcessorInformation {
 public:
-  explicit CPUTopology(std::string Architecture);
-  virtual ~CPUTopology();
+  explicit ProcessorInformation(std::string Architecture);
+  virtual ~ProcessorInformation() = default;
 
-  friend auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream&;
-
-  /// Assuming we have a consistent number of threads per core. The number of thread per core.
-  [[nodiscard]] auto numThreadsPerCore() const -> unsigned { return NumThreadsPerCore; }
-
-  /// Get the properties about the hardware threads.
-  [[nodiscard]] auto hardwareThreadsInfo() const -> HardwareThreadsInfo;
-
-  /// Getter for the L1i-cache size in bytes
-  [[nodiscard]] auto instructionCacheSize() const -> const auto& { return InstructionCacheSize; }
+  friend auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream&;
 
   /// Getter for the clockrate in Hz
   [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
@@ -68,23 +47,7 @@ public:
   /// Get the current hardware timestamp
   [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
 
-  /// Get the logical index of the core that housed the PU which is described by the os index.
-  /// \arg Pu The os index of the thread.
-  /// \returns Optionally the logical index of the CPU that houses this hardware thread.
-  [[nodiscard]] auto getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
-
-  /// Get the logical index of the package that housed the PU which is described by the os index.
-  /// \arg Pu The os index of the thread.
-  /// \returns Optionally the logical index of the package that houses this hardware thread.
-  [[nodiscard]] auto getPkgIdFromPU(unsigned Pu) const -> std::optional<unsigned>;
-
 protected:
-  /// The total number of hardware threads.
-  [[nodiscard]] auto numThreads() const -> unsigned { return NumThreadsPerCore * NumCoresTotal; }
-  /// The total number of cores.
-  [[nodiscard]] auto numCoresTotal() const -> unsigned { return NumCoresTotal; }
-  /// The total number of packages.
-  [[nodiscard]] auto numPackages() const -> unsigned { return NumPackages; }
   /// The CPU architecture e.g., x86_64
   [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
   /// The CPU vendor i.e., Intel or AMD.
@@ -111,26 +74,15 @@ private:
   /// \returns A stringstream with the contents of the file.
   [[nodiscard]] static auto getFileAsStream(std::string const& FilePath) -> std::stringstream;
 
-  /// Assuming we have a consistent number of threads per core. The number of thread per core.
-  unsigned NumThreadsPerCore;
-  /// The total number of cores.
-  unsigned NumCoresTotal;
-  /// The total number of packages.
-  unsigned NumPackages;
-
   /// The CPU architecture e.g., x86_64
   std::string Architecture;
   /// The processor name, this includes the vendor specific name
   std::string ProcessorName;
-  /// The optional size of the instruction cache per core.
-  std::optional<unsigned> InstructionCacheSize;
   /// Clockrate of the CPU in Hz
   uint64_t Clockrate = 0;
-  /// The hwloc topology that is used to query information about the processor.
-  hwloc_topology_t Topology{};
 };
 
-inline auto operator<<(std::ostream& Stream, CPUTopology const& CpuTopologyRef) -> std::ostream& {
+inline auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream& {
   return CpuTopologyRef.print(Stream);
 }
 

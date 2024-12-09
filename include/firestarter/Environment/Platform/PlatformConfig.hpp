@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Payload/Payload.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 namespace firestarter::environment::platform {
@@ -58,26 +58,26 @@ public:
   /// available for the payload that is used.
   /// \arg Topology The reference to the CPUTopology that is used to check agains if this platform is supported.
   /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
+  [[nodiscard]] auto isAvailable(const ProcessorInformation& Topology) const -> bool { return isAvailable(&Topology); }
 
   /// Check if this platform is available and the default on the current system.
   /// \arg Topology The reference to the CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+  [[nodiscard]] auto isDefault(const ProcessorInformation& Topology) const -> bool { return isDefault(&Topology); }
 
 protected:
   /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
   /// available for the payload that is used.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
   /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] virtual auto isAvailable(const CPUTopology* Topology) const -> bool {
+  [[nodiscard]] virtual auto isAvailable(const ProcessorInformation* Topology) const -> bool {
     return payload()->isAvailable(*Topology);
   }
 
   /// Check if this platform is available and the default on the current system.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] virtual auto isDefault(const CPUTopology*) const -> bool = 0;
+  [[nodiscard]] virtual auto isDefault(const ProcessorInformation*) const -> bool = 0;
 
 public:
   PlatformConfig() = delete;
