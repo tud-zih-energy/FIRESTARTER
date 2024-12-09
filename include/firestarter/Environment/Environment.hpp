@@ -42,11 +42,13 @@ public:
   virtual ~Environment() = default;
 
   /// Select a PlatformConfig based on its generated id. This function will throw if a payload is not available or the
-  /// id is incorrect. If id is zero we automatically select a matching PlatformConfig.
-  /// \arg FunctionId The id of the PlatformConfig that should be selected.
+  /// id is incorrect.
+  /// \arg FunctionId The id of the PlatformConfig that should be selected or automatically select a matching
+  /// PlatformConfig.
   /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  virtual void selectFunction(unsigned FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload) = 0;
+  virtual void selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
+                              bool AllowUnavailablePayload) = 0;
 
   /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
   /// invalid.

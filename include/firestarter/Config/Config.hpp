@@ -81,8 +81,8 @@ struct Config {
   int Argc;
   /// The requested number of threads firestarter should run with. 0 means all threads.
   std::optional<unsigned> RequestedNumThreads;
-  /// The selected function id. 0 means automatic selection.
-  unsigned FunctionId;
+  /// The selected function id.
+  std::optional<unsigned> FunctionId;
   /// The line count of the payload. 0 means default.
   unsigned LineCount = 0;
   /// The number of gpus firestarter should stress. Default is -1 means all gpus.

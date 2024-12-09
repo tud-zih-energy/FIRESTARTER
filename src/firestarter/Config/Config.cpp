@@ -143,7 +143,7 @@ Config::Config(int Argc, const char** Argv)
 
   Parser.add_options("general")
     ("i,function", "Specify integer ID of the load-function to be\nused (as listed by --avail)",
-      cxxopts::value<unsigned>()->default_value("0"), "ID");
+      cxxopts::value<unsigned>(), "ID");
 
   if (firestarter::OptionalFeatures.gpuEnabled()) {
     Parser.add_options("general")
@@ -326,7 +326,9 @@ Config::Config(int Argc, const char** Argv)
 
     PrintFunctionSummary = static_cast<bool>(Options.count("avail"));
 
-    FunctionId = Options["function"].as<unsigned>();
+    if (static_cast<bool>(Options.count("function"))) {
+      FunctionId = Options["function"].as<unsigned>();
+    }
 
     ListInstructionGroups = static_cast<bool>(Options.count("list-instruction-groups"));
     InstructionGroups = Options["run-instruction-groups"].as<std::string>();

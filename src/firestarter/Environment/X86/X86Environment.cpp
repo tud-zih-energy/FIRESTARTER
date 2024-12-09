@@ -29,86 +29,89 @@
 
 namespace firestarter::environment::x86 {
 
-void X86Environment::selectFunction(unsigned FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload) {
+void X86Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
+                                    bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
   const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
-  // if functionId is 0 get the default or fallback
   for (const auto& PlatformConfigPtr : PlatformConfigs) {
     for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
-      // the selected function
-      if (Id == FunctionId) {
-        if (!PlatformConfigPtr->isAvailable(processorInfos())) {
-          const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
-                                   PlatformConfigPtr->functionName(ThreadsPerCore) + "\") requires " +
-                                   PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
-          if (AllowUnavailablePayload) {
-            log::warn() << ErrorString;
-          } else {
-            throw std::invalid_argument(ErrorString);
+      if (FunctionId) {
+        // the selected function
+        if (Id == *FunctionId) {
+          if (!PlatformConfigPtr->isAvailable(processorInfos())) {
+            const auto ErrorString =
+                "Function " + std::to_string(*FunctionId) + " (\"" + PlatformConfigPtr->functionName(ThreadsPerCore) +
+                "\") requires " + PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
+            if (AllowUnavailablePayload) {
+              log::warn() << ErrorString;
+            } else {
+              throw std::invalid_argument(ErrorString);
+            }
           }
-        }
-        // found function
-        setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
-        return;
-      }
-      // default function
-      if (0 == FunctionId && PlatformConfigPtr->isDefault(processorInfos())) {
-        if (ThreadsPerCore == ProcessorThreadsPerCore) {
+          // found function
           setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
           return;
         }
-        DefaultPayloadName = PlatformConfigPtr->payload()->name();
+      } else {
+        // default function
+        if (PlatformConfigPtr->isDefault(processorInfos())) {
+          if (ThreadsPerCore == ProcessorThreadsPerCore) {
+            setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
+            return;
+          }
+          DefaultPayloadName = PlatformConfigPtr->payload()->name();
+        }
+        Id++;
       }
-      Id++;
     }
+  }
+
+  if (FunctionId) {
+    throw std::invalid_argument("unknown function id: " + std::to_string(*FunctionId) +
+                                ", see --avail for available ids");
   }
 
   // no default found
   // use fallback
-  if (0 == FunctionId) {
-    if (DefaultPayloadName) {
-      // default payload available, but number of threads per core is not
-      // supported
-      log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore
-                  << " threads per core!";
-    }
-    log::warn() << processorInfos().vendor() << " " << processorInfos().model()
-                << " is not supported by this version of FIRESTARTER!\n"
-                << "Check project website for updates.";
+  if (DefaultPayloadName) {
+    // default payload available, but number of threads per core is not
+    // supported
+    log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore << " threads per core!";
+  }
+  log::warn() << processorInfos().vendor() << " " << processorInfos().model()
+              << " is not supported by this version of FIRESTARTER!\n"
+              << "Check project website for updates.";
 
-    // loop over available implementation and check if they are marked as
-    // fallback
-    for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
-      if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
-        std::optional<unsigned> SelectedThreadsPerCore;
-        // find the fallback implementation with the correct thread per core count
-        for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
-          if (ThreadsPerCore == ProcessorThreadsPerCore) {
-            SelectedThreadsPerCore = ThreadsPerCore;
-          }
+  // loop over available implementation and check if they are marked as
+  // fallback
+  for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
+    if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
+      std::optional<unsigned> SelectedThreadsPerCore;
+      // find the fallback implementation with the correct thread per core count
+      for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
+        if (ThreadsPerCore == ProcessorThreadsPerCore) {
+          SelectedThreadsPerCore = ThreadsPerCore;
         }
-        // Otherwise select the first available thread per core count
-        if (!SelectedThreadsPerCore) {
-          SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
-        }
-        setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, *SelectedThreadsPerCore));
-        log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
-                    << " as fallback.\n"
-                    << "You can use the parameter --function to try other "
-                       "functions.";
-        return;
       }
+      // Otherwise select the first available thread per core count
+      if (!SelectedThreadsPerCore) {
+        SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
+      }
+      setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, *SelectedThreadsPerCore));
+      log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
+                  << " as fallback.\n"
+                  << "You can use the parameter --function to try other "
+                     "functions.";
+      return;
     }
-
-    // no fallback found
-    throw std::invalid_argument("No fallback implementation found for available ISA "
-                                "extensions.");
   }
 
-  throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
+  // no fallback found
+  throw std::invalid_argument("No fallback implementation found for available ISA "
+                              "extensions.");
 }
 
 void X86Environment::selectInstructionGroups(std::string Groups) {
