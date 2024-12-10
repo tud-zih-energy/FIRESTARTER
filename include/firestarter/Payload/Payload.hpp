@@ -102,6 +102,24 @@ public:
   /// Get the available instruction items that are supported by this payload.
   /// \returns The available instruction items that are supported by this payload.
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
+
+  /// Print the available instruction groups of this payload
+  /// \arg Stream The stream to which the message will be saved.
+  void printAvailableInstructionGroups(std::ostream& Stream) const {
+    std::stringstream Ss;
+
+    for (auto const& Item : getAvailableInstructions()) {
+      Ss << Item << ",";
+    }
+
+    auto S = Ss.str();
+    if (!S.empty()) {
+      S.pop_back();
+    }
+
+    Stream << " available instruction-groups for payload " << name() << ":\n"
+           << "  " << S;
+  }
 };
 
 } // namespace firestarter::payload

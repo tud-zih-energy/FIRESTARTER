@@ -167,18 +167,8 @@ void Environment::selectInstructionGroups(const std::string& Groups) {
 
 void Environment::printAvailableInstructionGroups() {
   std::stringstream Ss;
-
-  for (auto const& Item : config().payload()->getAvailableInstructions()) {
-    Ss << Item << ",";
-  }
-
-  auto S = Ss.str();
-  if (!S.empty()) {
-    S.pop_back();
-  }
-
-  log::info() << " available instruction-groups for payload " << config().payload()->name() << ":\n"
-              << "  " << S;
+  config().payload()->printAvailableInstructionGroups(Ss);
+  log::info() << Ss.str();
 }
 
 void Environment::setLineCount(unsigned LineCount) { config().settings().setLineCount(LineCount); }
