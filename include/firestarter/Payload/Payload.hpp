@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/CompiledPayload.hpp"
 #include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/ProcessorInformation.hpp"
@@ -104,8 +105,7 @@ public:
   [[nodiscard]] virtual auto getAvailableInstructions() const -> std::list<std::string> = 0;
 
   /// Print the available instruction groups of this payload
-  /// \arg Stream The stream to which the message will be saved.
-  void printAvailableInstructionGroups(std::ostream& Stream) const {
+  void printAvailableInstructionGroups() const {
     std::stringstream Ss;
 
     for (auto const& Item : getAvailableInstructions()) {
@@ -117,8 +117,8 @@ public:
       S.pop_back();
     }
 
-    Stream << " available instruction-groups for payload " << name() << ":\n"
-           << "  " << S;
+    log::info() << " available instruction-groups for payload " << name() << ":\n"
+                << "  " << S;
   }
 };
 

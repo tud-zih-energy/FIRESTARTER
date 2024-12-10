@@ -39,8 +39,6 @@ public:
   explicit ProcessorInformation(std::string Architecture);
   virtual ~ProcessorInformation() = default;
 
-  friend auto operator<<(std::ostream& Stream, ProcessorInformation const& ProcessorInfos) -> std::ostream&;
-
   /// Getter for the clockrate in Hz
   [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
 
@@ -53,6 +51,9 @@ public:
   /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
   [[nodiscard]] virtual auto model() const -> std::string const& = 0;
 
+  /// Print the information about this process to a stream.
+  void print() const;
+
 protected:
   /// The CPU architecture e.g., x86_64
   [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
@@ -63,9 +64,6 @@ protected:
 
   /// Read the scaling_govenor file of cpu0 on linux and return the contents as a string.
   [[nodiscard]] static auto scalingGovernor() -> std::string;
-
-  /// Print the information about this process to a stream.
-  [[nodiscard]] auto print(std::ostream& Stream) const -> std::ostream&;
 
 private:
   /// The CPU vendor i.e., Intel or AMD.
@@ -83,9 +81,5 @@ private:
   /// Clockrate of the CPU in Hz
   uint64_t Clockrate = 0;
 };
-
-inline auto operator<<(std::ostream& Stream, ProcessorInformation const& ProcessorInfos) -> std::ostream& {
-  return ProcessorInfos.print(Stream);
-}
 
 } // namespace firestarter

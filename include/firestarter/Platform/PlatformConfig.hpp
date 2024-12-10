@@ -21,13 +21,13 @@
 
 #pragma once
 
+#include "firestarter/Config/InstructionGroups.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
 #include "firestarter/ProcessorInformation.hpp"
 
 #include <algorithm>
 #include <cstdio>
-#include <regex>
 
 namespace firestarter::platform {
 
@@ -107,41 +107,18 @@ public:
   /// invalid.
   /// \arg Groups The list of instruction groups that is in the format: multiple INSTRUCTION:VALUE pairs
   /// comma-seperated.
-  void selectInstructionGroups(const std::string& Groups) {
-    const auto Delimiter = ',';
-    const std::regex Re("^(\\w+):(\\d+)$");
-    const auto AvailableInstructionGroups = payload()->getAvailableInstructions();
-
-    std::stringstream Ss(Groups);
-    std::vector<std::pair<std::string, unsigned>> PayloadSettings = {};
-
-    while (Ss.good()) {
-      std::string Token;
-      std::smatch M;
-      std::getline(Ss, Token, Delimiter);
-
-      if (std::regex_match(Token, M, Re)) {
-        if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==
-            AvailableInstructionGroups.end()) {
-          throw std::invalid_argument("Invalid instruction-group: " + M[1].str() +
-                                      "\n       --run-instruction-groups format: multiple INST:VAL "
-                                      "pairs comma-seperated");
-        }
-        auto Num = std::stoul(M[2].str());
-        if (Num == 0) {
-          throw std::invalid_argument("instruction-group VAL may not contain number 0"
-                                      "\n       --run-instruction-groups format: multiple INST:VAL "
-                                      "pairs comma-seperated");
-        }
-        PayloadSettings.emplace_back(M[1].str(), Num);
-      } else {
-        throw std::invalid_argument("Invalid symbols in instruction-group: " + Token +
+  void selectInstructionGroups(const InstructionGroups& Groups) {
+    const auto& AvailableInstructionGroups = payload()->getAvailableInstructions();
+    for (const auto& [Instruction, Value] : Groups.Groups) {
+      if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), Instruction) ==
+          AvailableInstructionGroups.end()) {
+        throw std::invalid_argument("Invalid instruction-group: " + Instruction +
                                     "\n       --run-instruction-groups format: multiple INST:VAL "
                                     "pairs comma-seperated");
       }
     }
 
-    settings().selectInstructionGroups(PayloadSettings);
+    settings().selectInstructionGroups(Groups.Groups);
 
     log::info() << "  Running custom instruction group: " << Groups;
   }

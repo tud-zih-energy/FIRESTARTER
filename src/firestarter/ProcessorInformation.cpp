@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/ProcessorInformation.hpp"
+#include "firestarter/Firestarter.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <fstream>
@@ -32,22 +33,20 @@
 
 namespace firestarter {
 
-auto ProcessorInformation::print(std::ostream& Stream) const -> std::ostream& {
+void ProcessorInformation::print() const {
   std::stringstream Ss;
 
   for (auto const& Entry : features()) {
     Ss << Entry << " ";
   }
 
-  Stream << "  processor characteristics:\n"
-         << "    architecture:       " << architecture() << "\n"
-         << "    vendor:             " << vendor() << "\n"
-         << "    processor-name:     " << processorName() << "\n"
-         << "    model:              " << model() << "\n"
-         << "    frequency:          " << clockrate() / 1000000 << " MHz\n"
-         << "    supported features: " << Ss.str() << "\n";
-
-  return Stream;
+  log::info() << "  processor characteristics:\n"
+              << "    architecture:       " << architecture() << "\n"
+              << "    vendor:             " << vendor() << "\n"
+              << "    processor-name:     " << processorName() << "\n"
+              << "    model:              " << model() << "\n"
+              << "    frequency:          " << clockrate() / 1000000 << " MHz\n"
+              << "    supported features: " << Ss.str();
 }
 
 ProcessorInformation::ProcessorInformation(std::string Architecture)

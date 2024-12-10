@@ -10,6 +10,7 @@ add_library(firestartercore STATIC
 	firestarter/ProcessorInformation.cpp
 
 	firestarter/Config/Config.cpp
+	firestarter/Config/InstructionGroups.cpp
 	firestarter/Config/CpuBind.cpp
 
 	firestarter/Payload/CompiledPayload.cpp

@@ -69,19 +69,16 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
       FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
-    std::stringstream Ss;
-    FunctionPtr->payload()->printAvailableInstructionGroups(Ss);
-    log::info() << Ss.str();
+    FunctionPtr->payload()->printAvailableInstructionGroups();
 
     safeExit(EXIT_SUCCESS);
   }
-
-  if (!Cfg.InstructionGroups.empty()) {
-    FunctionPtr->selectInstructionGroups(Cfg.InstructionGroups);
+  if (Cfg.Groups) {
+    FunctionPtr->selectInstructionGroups(*Cfg.Groups);
   }
 
-  if (Cfg.LineCount != 0) {
-    FunctionPtr->settings().setLineCount(Cfg.LineCount);
+  if (Cfg.LineCount) {
+    FunctionPtr->settings().setLineCount(*Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
@@ -173,16 +170,10 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   FunctionPtr->printCodePathSummary();
 
-  {
-    std::stringstream Ss;
-
-    Topology.printSystemSummary(Ss);
-    Ss << "\n";
-    Ss << *ProcessorInfos;
-    Topology.printCacheSummary(Ss);
-
-    log::info() << Ss.str();
-  }
+  Topology.printSystemSummary();
+  log::info();
+  ProcessorInfos->print();
+  Topology.printCacheSummary();
 
   Affinity.printThreadSummary(Topology);
 

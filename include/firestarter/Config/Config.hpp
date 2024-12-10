@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include "firestarter/Config/InstructionGroups.hpp"
+
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -69,7 +71,7 @@ struct Config {
   /// The optional cpu bind that allow pinning to specific cpus.
   std::optional<std::vector<uint64_t>> CpuBinding;
   /// The optional selected instruction groups. If this is empty the default will be choosen.
-  std::string InstructionGroups;
+  std::optional<InstructionGroups> Groups;
   /// The file where the dump register feature will safe its output to.
   std::string DumpRegistersOutpath;
   /// The name of the optimization algorithm.
@@ -83,8 +85,8 @@ struct Config {
   std::optional<unsigned> RequestedNumThreads;
   /// The selected function id.
   std::optional<unsigned> FunctionId;
-  /// The line count of the payload. 0 means default.
-  unsigned LineCount = 0;
+  /// The optional line count of the payload.
+  std::optional<unsigned> LineCount;
   /// The number of gpus firestarter should stress. Default is -1 means all gpus.
   int Gpus = 0;
   /// The matrix size which should be used. 0 means automatic detections.

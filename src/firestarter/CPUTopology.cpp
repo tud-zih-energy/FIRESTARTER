@@ -60,20 +60,20 @@ CPUTopology::CPUTopology() {
 
 CPUTopology::~CPUTopology() { hwloc_topology_destroy(Topology); }
 
-void CPUTopology::printSystemSummary(std::ostream& Stream) const {
+void CPUTopology::printSystemSummary() const {
   auto Resouces = homogenousResourceCount();
 
-  Stream << "  system summary:\n"
-         << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
-         << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
-         << "  (this includes only cores in the cgroup)"
-         << "\n"
-         << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
-         << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads << "\n";
+  log::info() << "  system summary:\n"
+              << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
+              << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
+              << "  (this includes only cores in the cgroup)"
+              << "\n"
+              << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
+              << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads;
 }
 
-void CPUTopology::printCacheSummary(std::ostream& Stream) const {
-  Stream << "    Caches:";
+void CPUTopology::printCacheSummary() const {
+  log::info() << "    Caches:";
 
   const std::vector<hwloc_obj_type_t> Caches = {
       HWLOC_OBJ_L1CACHE, HWLOC_OBJ_L1ICACHE, HWLOC_OBJ_L2CACHE, HWLOC_OBJ_L2ICACHE,
@@ -86,7 +86,7 @@ void CPUTopology::printCacheSummary(std::ostream& Stream) const {
     auto Width = hwloc_get_nbobjs_by_type(Topology, Cache);
 
     if (Width >= 1) {
-      Ss << "\n      - ";
+      Ss << "      - ";
 
       auto* CacheObj = hwloc_get_obj_by_type(Topology, Cache, 0);
       std::array<char, 128> String{};
@@ -131,7 +131,7 @@ void CPUTopology::printCacheSummary(std::ostream& Stream) const {
         Ss << "per thread.";
       }
 
-      Stream << Ss.str();
+      log::info() << Ss.str();
     }
   }
 }

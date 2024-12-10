@@ -34,6 +34,7 @@
 #include "firestarter/X86/Platform/SandyBridgeEPConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeSPConfig.hpp"
+
 #include <memory>
 
 namespace firestarter::x86 {

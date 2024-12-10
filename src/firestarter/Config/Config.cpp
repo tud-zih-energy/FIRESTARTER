@@ -171,7 +171,7 @@ Config::Config(int Argc, const char** Argv)
   Parser.add_options("specialized-workloads")
     ("list-instruction-groups", "List the available instruction groups for the\npayload of the current platform.")
     ("run-instruction-groups", "Run the payload with the specified\ninstruction groups. GROUPS format: multiple INST:VAL\npairs comma-seperated.",
-      cxxopts::value<std::string>()->default_value(""), "GROUPS")
+      cxxopts::value<std::string>(), "GROUPS")
     ("set-line-count", "Set the number of lines for a payload.",
       cxxopts::value<unsigned>());
 
@@ -331,7 +331,9 @@ Config::Config(int Argc, const char** Argv)
     }
 
     ListInstructionGroups = static_cast<bool>(Options.count("list-instruction-groups"));
-    InstructionGroups = Options["run-instruction-groups"].as<std::string>();
+    if (static_cast<bool>(Options.count("run-instruction-groups"))) {
+      Groups = InstructionGroups::fromString(Options["run-instruction-groups"].as<std::string>());
+    }
     if (static_cast<bool>(Options.count("set-line-count"))) {
       LineCount = Options["set-line-count"].as<unsigned>();
     }
