@@ -21,6 +21,7 @@
 
 #include "firestarter/Environment.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Platform/PlatformConfigAndThreads.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -36,36 +37,34 @@ void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTo
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
   const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
-  for (const auto& PlatformConfigPtr : platformConfigs()) {
-    for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
-      if (FunctionId) {
-        // the selected function
-        if (Id == *FunctionId) {
-          if (!PlatformConfigPtr->isAvailable(processorInfos())) {
-            const auto ErrorString =
-                "Function " + std::to_string(*FunctionId) + " (\"" + PlatformConfigPtr->functionName(ThreadsPerCore) +
-                "\") requires " + PlatformConfigPtr->payload()->name() + ", which is not supported by the processor.";
-            if (AllowUnavailablePayload) {
-              log::warn() << ErrorString;
-            } else {
-              throw std::invalid_argument(ErrorString);
-            }
+  for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
+    if (FunctionId) {
+      // the selected function
+      if (Id == *FunctionId) {
+        if (!Platform.Config->isAvailable(processorInfos())) {
+          const auto ErrorString = "Function " + std::to_string(*FunctionId) + " (\"" +
+                                   Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
+                                   Platform.Config->payload()->name() + ", which is not supported by the processor.";
+          if (AllowUnavailablePayload) {
+            log::warn() << ErrorString;
+          } else {
+            throw std::invalid_argument(ErrorString);
           }
-          // found function
-          setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
+        }
+        // found function
+        setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
+        return;
+      }
+    } else {
+      // default function
+      if (Platform.Config->isDefault(processorInfos())) {
+        if (Platform.ThreadCount == ProcessorThreadsPerCore) {
+          setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
           return;
         }
-      } else {
-        // default function
-        if (PlatformConfigPtr->isDefault(processorInfos())) {
-          if (ThreadsPerCore == ProcessorThreadsPerCore) {
-            setConfig(PlatformConfigPtr->cloneConcreate(ProcessorICacheSize, ThreadsPerCore));
-            return;
-          }
-          DefaultPayloadName = PlatformConfigPtr->payload()->name();
-        }
-        Id++;
+        DefaultPayloadName = Platform.Config->payload()->name();
       }
+      Id++;
     }
   }
 
@@ -89,19 +88,22 @@ void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTo
   // fallback
   for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
     if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
-      std::optional<unsigned> SelectedThreadsPerCore;
-      // find the fallback implementation with the correct thread per core count
-      for (auto const& ThreadsPerCore : FallbackPlatformConfigPtr->settings().threads()) {
-        if (ThreadsPerCore == ProcessorThreadsPerCore) {
-          SelectedThreadsPerCore = ThreadsPerCore;
+      unsigned SelectedThreadsPerCore{};
+
+      // find the fallback implementation with the correct thread per core count or select the first available thread
+      // per core count
+      {
+        const auto& Threads = FallbackPlatformConfigPtr->settings().threads();
+        const auto& ThreadIt = std::find(Threads.cbegin(), Threads.cend(), ProcessorThreadsPerCore);
+        if (ThreadIt == Threads.cend()) {
+          SelectedThreadsPerCore = Threads.front();
+        } else {
+          SelectedThreadsPerCore = *ThreadIt;
         }
       }
-      // Otherwise select the first available thread per core count
-      if (!SelectedThreadsPerCore) {
-        SelectedThreadsPerCore = FallbackPlatformConfigPtr->settings().threads().front();
-      }
-      setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, *SelectedThreadsPerCore));
-      log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(*SelectedThreadsPerCore)
+
+      setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, SelectedThreadsPerCore));
+      log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(SelectedThreadsPerCore)
                   << " as fallback.\n"
                   << "You can use the parameter --function to try other "
                      "functions.";
