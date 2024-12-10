@@ -31,6 +31,7 @@
 #include "firestarter/Optimizer/Algorithm.hpp"
 #include "firestarter/Optimizer/OptimizerWorker.hpp"
 #include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/ProcessorInformation.hpp"
 #include "firestarter/ThreadAffinity.hpp"
 
 #include <chrono>
@@ -68,8 +69,12 @@ private:
 
   /// This class handles getting the topology information of the processor and is used to set thread binding.
   std::unique_ptr<CPUTopology> Topology;
+  /// This class holds the information about the current processor which is specific to one architecture.
+  std::shared_ptr<ProcessorInformation> ProcessorInfos;
   /// The class that handles setting up the payload for firestarter
-  std::unique_ptr<Environment> EnvironmentPtr;
+  std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
+  /// The selection function.
+  std::unique_ptr<platform::PlatformConfig> FunctionPtr;
   /// The class for execution of the gemm routine on Cuda or HIP GPUs.
   std::unique_ptr<cuda::Cuda> Cuda;
   /// The class for execution of the gemm routine on OneAPI GPUs.

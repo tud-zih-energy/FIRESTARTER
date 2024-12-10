@@ -19,14 +19,17 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/X86/X86Environment.hpp"
+#include "firestarter/X86/X86FunctionSelection.hpp"
+#include "firestarter/X86/X86ProcessorInformation.hpp"
+#include <memory>
 
 auto main(int /*argc*/, const char** /*argv*/) -> int {
   firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
 
-  firestarter::x86::X86Environment Env;
+  firestarter::x86::X86FunctionSelection Env;
+  const auto ProcessorInfos = std::make_shared<firestarter::x86::X86ProcessorInformation>();
 
-  Env.printFunctionSummary(/*ForceYes=*/true);
+  Env.printFunctionSummary(ProcessorInfos, /*ForceYes=*/true);
 
   return EXIT_SUCCESS;
 }

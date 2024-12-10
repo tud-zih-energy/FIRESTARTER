@@ -21,9 +21,13 @@
 
 #pragma once
 
+#include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
 #include "firestarter/ProcessorInformation.hpp"
-#include "firestarter/Logging/Log.hpp"
+
+#include <algorithm>
+#include <cstdio>
+#include <regex>
 
 namespace firestarter::platform {
 
@@ -98,6 +102,49 @@ public:
   /// \arg ThreadPerCore The number of threads per pysical CPU.
   [[nodiscard]] virtual auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
       -> std::unique_ptr<PlatformConfig> = 0;
+
+  /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
+  /// invalid.
+  /// \arg Groups The list of instruction groups that is in the format: multiple INSTRUCTION:VALUE pairs
+  /// comma-seperated.
+  void selectInstructionGroups(const std::string& Groups) {
+    const auto Delimiter = ',';
+    const std::regex Re("^(\\w+):(\\d+)$");
+    const auto AvailableInstructionGroups = payload()->getAvailableInstructions();
+
+    std::stringstream Ss(Groups);
+    std::vector<std::pair<std::string, unsigned>> PayloadSettings = {};
+
+    while (Ss.good()) {
+      std::string Token;
+      std::smatch M;
+      std::getline(Ss, Token, Delimiter);
+
+      if (std::regex_match(Token, M, Re)) {
+        if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==
+            AvailableInstructionGroups.end()) {
+          throw std::invalid_argument("Invalid instruction-group: " + M[1].str() +
+                                      "\n       --run-instruction-groups format: multiple INST:VAL "
+                                      "pairs comma-seperated");
+        }
+        auto Num = std::stoul(M[2].str());
+        if (Num == 0) {
+          throw std::invalid_argument("instruction-group VAL may not contain number 0"
+                                      "\n       --run-instruction-groups format: multiple INST:VAL "
+                                      "pairs comma-seperated");
+        }
+        PayloadSettings.emplace_back(M[1].str(), Num);
+      } else {
+        throw std::invalid_argument("Invalid symbols in instruction-group: " + Token +
+                                    "\n       --run-instruction-groups format: multiple INST:VAL "
+                                    "pairs comma-seperated");
+      }
+    }
+
+    settings().selectInstructionGroups(PayloadSettings);
+
+    log::info() << "  Running custom instruction group: " << Groups;
+  }
 
   /// The function name for this platform config given a specific thread per core count.
   /// \arg ThreadsPerCore The number of threads per core.

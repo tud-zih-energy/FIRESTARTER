@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "firestarter/Environment.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/X86/Platform/BulldozerConfig.hpp"
 #include "firestarter/X86/Platform/HaswellConfig.hpp"
 #include "firestarter/X86/Platform/HaswellEPConfig.hpp"
@@ -34,37 +34,13 @@
 #include "firestarter/X86/Platform/SandyBridgeEPConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeSPConfig.hpp"
-#include "firestarter/X86/Platform/X86PlatformConfig.hpp"
+#include <memory>
 
 namespace firestarter::x86 {
 
-class X86Environment final : public Environment {
+class X86FunctionSelection final : public FunctionSelection {
 public:
-  X86Environment()
-      : Environment(std::make_unique<X86ProcessorInformation>()) {}
-
-  /// Getter (which allows modifying) for the current platform config containing the payload, settings, the
-  /// associated name and the default X86 family and models.
-  [[nodiscard]] auto config() -> platform::X86PlatformConfig& final {
-    auto* X86PlatformConfig = dynamic_cast<platform::X86PlatformConfig*>(&Environment::config());
-    assert(X86PlatformConfig && "X86PlatformConfig is a nullptr");
-    return *X86PlatformConfig;
-  }
-
-  /// Const getter for the current platform config containing the payload, settings, the associated name and the default
-  /// X86 family and models.
-  [[nodiscard]] auto config() const -> const platform::X86PlatformConfig& final {
-    const auto* X86PlatformConfig = dynamic_cast<const platform::X86PlatformConfig*>(&Environment::config());
-    assert(X86PlatformConfig && "X86PlatformConfig is a nullptr");
-    return *X86PlatformConfig;
-  }
-
-  /// Const getter for the current processor information with X86 specific modifications.
-  [[nodiscard]] auto processorInfos() const -> const X86ProcessorInformation& final {
-    const auto* X86Topology = dynamic_cast<const X86ProcessorInformation*>(&Environment::processorInfos());
-    assert(X86Topology && "X86Topology is a nullptr");
-    return *X86Topology;
-  }
+  X86FunctionSelection() = default;
 
   [[nodiscard]] auto platformConfigs() const
       -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& override {

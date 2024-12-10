@@ -6,7 +6,7 @@ add_library(firestartercore STATIC
 	firestarter/DumpRegisterWorker.cpp
 	firestarter/CPUTopology.cpp
 	firestarter/ThreadAffinity.cpp
-	firestarter/Environment.cpp
+	firestarter/FunctionSelection.cpp
 	firestarter/ProcessorInformation.cpp
 
 	firestarter/Config/Config.cpp

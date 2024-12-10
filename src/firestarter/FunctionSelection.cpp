@@ -19,19 +19,20 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Platform/PlatformConfigAndThreads.hpp"
 
 #include <algorithm>
 #include <cstdio>
 #include <iomanip>
-#include <regex>
 
 namespace firestarter {
 
-void Environment::selectAvailableFunction(unsigned FunctionId, const CPUTopology& Topology,
-                                          bool AllowUnavailablePayload) {
+auto FunctionSelection::selectAvailableFunction(unsigned FunctionId,
+                                                const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+                                                const CPUTopology& Topology, bool AllowUnavailablePayload) const
+    -> std::unique_ptr<platform::PlatformConfig> {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
@@ -39,7 +40,7 @@ void Environment::selectAvailableFunction(unsigned FunctionId, const CPUTopology
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // the selected function
     if (Id == FunctionId) {
-      if (!Platform.Config->isAvailable(processorInfos())) {
+      if (!Platform.Config->isAvailable(*ProcessorInfos)) {
         const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                  Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
                                  Platform.Config->payload()->name() + ", which is not supported by the processor.";
@@ -50,25 +51,25 @@ void Environment::selectAvailableFunction(unsigned FunctionId, const CPUTopology
         }
       }
       // found function
-      setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
-      return;
+      return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
     }
   }
 
   throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
 }
 
-void Environment::selectDefaultOrFallbackFunction(const CPUTopology& Topology) {
+auto FunctionSelection::selectDefaultOrFallbackFunction(const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+                                                        const CPUTopology& Topology) const
+    -> std::unique_ptr<platform::PlatformConfig> {
   std::optional<std::string> DefaultPayloadName;
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
   const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // default function
-    if (Platform.Config->isDefault(processorInfos())) {
+    if (Platform.Config->isDefault(*ProcessorInfos)) {
       if (Platform.ThreadCount == ProcessorThreadsPerCore) {
-        setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
-        return;
+        return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
       }
       DefaultPayloadName = Platform.Config->payload()->name();
     }
@@ -81,14 +82,14 @@ void Environment::selectDefaultOrFallbackFunction(const CPUTopology& Topology) {
     // supported
     log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore << " threads per core!";
   }
-  log::warn() << processorInfos().vendor() << " " << processorInfos().model()
+  log::warn() << ProcessorInfos->vendor() << " " << ProcessorInfos->model()
               << " is not supported by this version of FIRESTARTER!\n"
               << "Check project website for updates.";
 
   // loop over available implementation and check if they are marked as
   // fallback
   for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
-    if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
+    if (FallbackPlatformConfigPtr->isAvailable(*ProcessorInfos)) {
       unsigned SelectedThreadsPerCore{};
 
       // find the fallback implementation with the correct thread per core count or select the first available thread
@@ -103,12 +104,11 @@ void Environment::selectDefaultOrFallbackFunction(const CPUTopology& Topology) {
         }
       }
 
-      setConfig(FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, SelectedThreadsPerCore));
       log::warn() << "Using function " << FallbackPlatformConfigPtr->functionName(SelectedThreadsPerCore)
                   << " as fallback.\n"
                   << "You can use the parameter --function to try other "
                      "functions.";
-      return;
+      return FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, SelectedThreadsPerCore);
     }
   }
 
@@ -117,65 +117,18 @@ void Environment::selectDefaultOrFallbackFunction(const CPUTopology& Topology) {
                               "extensions.");
 }
 
-void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
-                                 bool AllowUnavailablePayload) {
+auto FunctionSelection::selectFunction(std::optional<unsigned> FunctionId,
+                                       const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+                                       const CPUTopology& Topology, bool AllowUnavailablePayload) const
+    -> std::unique_ptr<platform::PlatformConfig> {
   if (FunctionId) {
-    selectAvailableFunction(*FunctionId, Topology, AllowUnavailablePayload);
-  } else {
-    selectDefaultOrFallbackFunction(Topology);
+    return selectAvailableFunction(*FunctionId, ProcessorInfos, Topology, AllowUnavailablePayload);
   }
+  return selectDefaultOrFallbackFunction(ProcessorInfos, Topology);
 }
 
-void Environment::selectInstructionGroups(const std::string& Groups) {
-  const auto Delimiter = ',';
-  const std::regex Re("^(\\w+):(\\d+)$");
-  const auto AvailableInstructionGroups = config().payload()->getAvailableInstructions();
-
-  std::stringstream Ss(Groups);
-  std::vector<std::pair<std::string, unsigned>> PayloadSettings = {};
-
-  while (Ss.good()) {
-    std::string Token;
-    std::smatch M;
-    std::getline(Ss, Token, Delimiter);
-
-    if (std::regex_match(Token, M, Re)) {
-      if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), M[1].str()) ==
-          AvailableInstructionGroups.end()) {
-        throw std::invalid_argument("Invalid instruction-group: " + M[1].str() +
-                                    "\n       --run-instruction-groups format: multiple INST:VAL "
-                                    "pairs comma-seperated");
-      }
-      auto Num = std::stoul(M[2].str());
-      if (Num == 0) {
-        throw std::invalid_argument("instruction-group VAL may not contain number 0"
-                                    "\n       --run-instruction-groups format: multiple INST:VAL "
-                                    "pairs comma-seperated");
-      }
-      PayloadSettings.emplace_back(M[1].str(), Num);
-    } else {
-      throw std::invalid_argument("Invalid symbols in instruction-group: " + Token +
-                                  "\n       --run-instruction-groups format: multiple INST:VAL "
-                                  "pairs comma-seperated");
-    }
-  }
-
-  config().settings().selectInstructionGroups(PayloadSettings);
-
-  log::info() << "  Running custom instruction group: " << Groups;
-}
-
-void Environment::printAvailableInstructionGroups() {
-  std::stringstream Ss;
-  config().payload()->printAvailableInstructionGroups(Ss);
-  log::info() << Ss.str();
-}
-
-void Environment::setLineCount(unsigned LineCount) { config().settings().setLineCount(LineCount); }
-
-void Environment::printSelectedCodePathSummary() { config().printCodePathSummary(); }
-
-void Environment::printFunctionSummary(bool ForceYes) const {
+void FunctionSelection::printFunctionSummary(const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+                                             bool ForceYes) const {
   log::info() << " available load-functions:\n"
               << "  ID   | NAME                           | available on this "
                  "system | payload default setting\n"
@@ -186,16 +139,14 @@ void Environment::printFunctionSummary(bool ForceYes) const {
 
   auto Id = 1U;
 
-  for (auto const& Config : platformConfigs()) {
-    for (auto const& ThreadsPerCore : Config->settings().threads()) {
-      const char* Available = (Config->isAvailable(processorInfos()) || ForceYes) ? "yes" : "no";
-      const auto& FunctionName = Config->functionName(ThreadsPerCore);
-      const auto& InstructionGroupsString = Config->settings().getInstructionGroupsString();
+  for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
+    const char* Available = (Platform.Config->isAvailable(*ProcessorInfos) || ForceYes) ? "yes" : "no";
+    const auto& FunctionName = Platform.Config->functionName(Platform.ThreadCount);
+    const auto& InstructionGroupsString = Platform.Config->settings().getInstructionGroupsString();
 
-      log::info() << "  " << std::right << std::setw(4) << Id << " | " << std::left << std::setw(30) << FunctionName
-                  << " | " << std::left << std::setw(24) << Available << " | " << InstructionGroupsString;
-      Id++;
-    }
+    log::info() << "  " << std::right << std::setw(4) << Id << " | " << std::left << std::setw(30) << FunctionName
+                << " | " << std::left << std::setw(24) << Available << " | " << InstructionGroupsString;
+    Id++;
   }
 }
 

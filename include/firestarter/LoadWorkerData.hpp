@@ -23,9 +23,10 @@
 
 #include "firestarter/CPUTopology.hpp"
 #include "firestarter/Constants.hpp"
-#include "firestarter/Environment.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Platform/PlatformConfig.hpp"
+#include "firestarter/ProcessorInformation.hpp"
 
 #include <atomic>
 #include <cmath>
@@ -64,7 +65,8 @@ public:
   /// Create the datastructure that is shared between a load worker thread and firestarter.
   /// \arg Id The id of the load worker thread. They are counted from 0 to the maximum number of threads - 1.
   /// \arg OsIndex The os index to which this thread should be bound.
-  /// \arg Environment The reference to the environment which allows getting the current timestamp.
+  /// \arg ProcessorInfos The reference to the ProcessorInfos which allows getting the current timestamp.
+  /// \arg FunctionPtr The config that is cloned for this specific load worker.
   /// \arg Topology The reference to the processor topology abstraction which allows setting thread affinity.
   /// \arg LoadVar The variable that controls the execution of the load worker.
   /// \arg Period Is used in combination with the LoadVar for the low load routine.
@@ -72,7 +74,8 @@ public:
   /// compiled payload.
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
-  LoadWorkerData(uint64_t Id, uint64_t OsIndex, const Environment& EnvironmentRef, const CPUTopology& Topology,
+  LoadWorkerData(uint64_t Id, uint64_t OsIndex, const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+                 const std::unique_ptr<platform::PlatformConfig>& FunctionPtr, const CPUTopology& Topology,
                  volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period, bool DumpRegisters,
                  bool ErrorDetection)
       : LoadVar(LoadVar)
@@ -81,9 +84,9 @@ public:
       , ErrorDetection(ErrorDetection)
       , Id(Id)
       , OsIndex(OsIndex)
-      , EnvironmentRef(EnvironmentRef)
+      , ProcessorInfos(ProcessorInfos)
       , Topology(Topology)
-      , Config(EnvironmentRef.config().clone()) {}
+      , Config(FunctionPtr->clone()) {}
 
   ~LoadWorkerData() = default;
 
@@ -99,8 +102,6 @@ public:
 
   /// Gettter for the id of the thread.
   [[nodiscard]] auto id() const -> uint64_t { return Id; }
-  /// Const getter for the environment.
-  [[nodiscard]] auto environment() const -> const Environment& { return EnvironmentRef; }
   /// Getter for the current platform config.
   [[nodiscard]] auto config() const -> platform::PlatformConfig& { return *Config; }
 
@@ -166,10 +167,10 @@ public:
   /// The os index to which this thread should be bound.
   const uint64_t OsIndex;
   /// The reference to the environment which allows getting the current timestamp.
-  const Environment& EnvironmentRef;
+  std::shared_ptr<ProcessorInformation> ProcessorInfos;
   /// The reference to the processor topology abstraction which allows setting thread affinity.
   const CPUTopology& Topology;
-  /// The config that is cloned from the environment for this specfic load worker.
+  /// The config that is cloned for this specific load worker.
   std::unique_ptr<platform::PlatformConfig> Config;
 };
 

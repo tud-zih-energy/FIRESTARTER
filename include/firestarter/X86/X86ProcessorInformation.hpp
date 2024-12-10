@@ -32,8 +32,6 @@ class X86ProcessorInformation final : public ProcessorInformation {
 public:
   X86ProcessorInformation();
 
-  friend auto operator<<(std::ostream& Stream, X86ProcessorInformation const& CpuTopology) -> std::ostream&;
-
   /// Getter for the list of CPU features
   [[nodiscard]] auto features() const -> std::list<std::string> const& override { return this->FeatureList; }
   /// Getter for the CPU features class from asmjit
@@ -80,9 +78,5 @@ private:
   /// Model string containing family, model and stepping ids.
   std::string Model;
 };
-
-inline auto operator<<(std::ostream& Stream, X86ProcessorInformation const& CpuTopology) -> std::ostream& {
-  return CpuTopology.print(Stream);
-}
 
 } // namespace firestarter::x86

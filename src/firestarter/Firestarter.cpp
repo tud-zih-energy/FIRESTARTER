@@ -25,7 +25,7 @@
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
-#include "firestarter/X86/X86Environment.hpp"
+#include "firestarter/X86/X86FunctionSelection.hpp"
 
 #include <csignal>
 #include <cstdlib>
@@ -37,7 +37,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig))
     , Topology(std::make_unique<CPUTopology>()) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
-    EnvironmentPtr = std::make_unique<x86::X86Environment>();
+    ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
+    FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
   }
 
   const auto Affinity =
@@ -46,8 +47,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
-      const auto& X86Env = *dynamic_cast<x86::X86Environment*>(EnvironmentPtr.get());
-      if (!X86Env.processorInfos().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+      const auto& X86ProcessorInfos = *dynamic_cast<x86::X86ProcessorInformation*>(ProcessorInfos.get());
+      if (!X86ProcessorInfos.featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
       }
@@ -61,23 +62,27 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.PrintFunctionSummary) {
-    EnvironmentPtr->printFunctionSummary(/*ForceYes=*/false);
+    FunctionSelectionPtr->printFunctionSummary(ProcessorInfos, /*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
-  EnvironmentPtr->selectFunction(Cfg.FunctionId, *Topology, Cfg.AllowUnavailablePayload);
+  FunctionPtr =
+      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, ProcessorInfos, *Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
-    EnvironmentPtr->printAvailableInstructionGroups();
+    std::stringstream Ss;
+    FunctionPtr->payload()->printAvailableInstructionGroups(Ss);
+    log::info() << Ss.str();
+
     safeExit(EXIT_SUCCESS);
   }
 
   if (!Cfg.InstructionGroups.empty()) {
-    EnvironmentPtr->selectInstructionGroups(Cfg.InstructionGroups);
+    FunctionPtr->selectInstructionGroups(Cfg.InstructionGroups);
   }
 
   if (Cfg.LineCount != 0) {
-    EnvironmentPtr->setLineCount(Cfg.LineCount);
+    FunctionPtr->settings().setLineCount(Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
@@ -152,7 +157,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, EnvironmentPtr->config().settings().instructionGroupItems());
+          Cfg.StopDelta, FunctionPtr->settings().instructionGroupItems());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -167,14 +172,14 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
   }
 
-  EnvironmentPtr->printSelectedCodePathSummary();
+  FunctionPtr->printCodePathSummary();
 
   {
     std::stringstream Ss;
 
     Topology->printSystemSummary(Ss);
     Ss << "\n";
-    Ss << EnvironmentPtr->processorInfos();
+    Ss << ProcessorInfos;
     Topology->printCacheSummary(Ss);
 
     log::info() << Ss.str();
@@ -229,7 +234,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = EnvironmentPtr->config().settings().instructionGroupItems();
+      auto PayloadItems = FunctionPtr->settings().instructionGroupItems();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 
