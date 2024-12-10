@@ -34,15 +34,14 @@
 namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
-    : Cfg(std::move(ProvidedConfig))
-    , Topology(std::make_unique<CPUTopology>()) {
+    : Cfg(std::move(ProvidedConfig)) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
     FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
   }
 
   const auto Affinity =
-      ThreadAffinity::fromCommandLine(Topology->hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
+      ThreadAffinity::fromCommandLine(Topology.hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
@@ -67,7 +66,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   FunctionPtr =
-      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, *Topology, Cfg.AllowUnavailablePayload);
+      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
     std::stringstream Ss;
@@ -177,15 +176,15 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   {
     std::stringstream Ss;
 
-    Topology->printSystemSummary(Ss);
+    Topology.printSystemSummary(Ss);
     Ss << "\n";
     Ss << *ProcessorInfos;
-    Topology->printCacheSummary(Ss);
+    Topology.printCacheSummary(Ss);
 
     log::info() << Ss.str();
   }
 
-  Affinity.printThreadSummary(*Topology);
+  Affinity.printThreadSummary(Topology);
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period

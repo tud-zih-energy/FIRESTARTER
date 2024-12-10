@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/CPUTopology.hpp"
 #include "firestarter/Config/Config.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
@@ -68,7 +69,7 @@ private:
   const Config Cfg;
 
   /// This class handles getting the topology information of the processor and is used to set thread binding.
-  std::unique_ptr<CPUTopology> Topology;
+  CPUTopology Topology;
   /// This class holds the information about the current processor which is specific to one architecture.
   std::shared_ptr<ProcessorInformation> ProcessorInfos;
   /// The class that handles setting up the payload for firestarter
