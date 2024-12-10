@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020-2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/X86/X86Environment.hpp"
+#include "firestarter/Environment/Environment.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <algorithm>
@@ -27,16 +27,16 @@
 #include <iomanip>
 #include <regex>
 
-namespace firestarter::environment::x86 {
+namespace firestarter::environment {
 
-void X86Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
-                                    bool AllowUnavailablePayload) {
+void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
+                                 bool AllowUnavailablePayload) {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
   const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
-  for (const auto& PlatformConfigPtr : PlatformConfigs) {
+  for (const auto& PlatformConfigPtr : platformConfigs()) {
     for (auto const& ThreadsPerCore : PlatformConfigPtr->settings().threads()) {
       if (FunctionId) {
         // the selected function
@@ -87,7 +87,7 @@ void X86Environment::selectFunction(std::optional<unsigned> FunctionId, const CP
 
   // loop over available implementation and check if they are marked as
   // fallback
-  for (const auto& FallbackPlatformConfigPtr : FallbackPlatformConfigs) {
+  for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
     if (FallbackPlatformConfigPtr->isAvailable(processorInfos())) {
       std::optional<unsigned> SelectedThreadsPerCore;
       // find the fallback implementation with the correct thread per core count
@@ -114,7 +114,7 @@ void X86Environment::selectFunction(std::optional<unsigned> FunctionId, const CP
                               "extensions.");
 }
 
-void X86Environment::selectInstructionGroups(std::string Groups) {
+void Environment::selectInstructionGroups(const std::string& Groups) {
   const auto Delimiter = ',';
   const std::regex Re("^(\\w+):(\\d+)$");
   const auto AvailableInstructionGroups = config().payload()->getAvailableInstructions();
@@ -153,7 +153,7 @@ void X86Environment::selectInstructionGroups(std::string Groups) {
   log::info() << "  Running custom instruction group: " << Groups;
 }
 
-void X86Environment::printAvailableInstructionGroups() {
+void Environment::printAvailableInstructionGroups() {
   std::stringstream Ss;
 
   for (auto const& Item : config().payload()->getAvailableInstructions()) {
@@ -169,11 +169,11 @@ void X86Environment::printAvailableInstructionGroups() {
               << "  " << S;
 }
 
-void X86Environment::setLineCount(unsigned LineCount) { config().settings().setLineCount(LineCount); }
+void Environment::setLineCount(unsigned LineCount) { config().settings().setLineCount(LineCount); }
 
-void X86Environment::printSelectedCodePathSummary() { config().printCodePathSummary(); }
+void Environment::printSelectedCodePathSummary() { config().printCodePathSummary(); }
 
-void X86Environment::printFunctionSummary(bool ForceYes) {
+void Environment::printFunctionSummary(bool ForceYes) const {
   log::info() << " available load-functions:\n"
               << "  ID   | NAME                           | available on this "
                  "system | payload default setting\n"
@@ -184,7 +184,7 @@ void X86Environment::printFunctionSummary(bool ForceYes) {
 
   auto Id = 1U;
 
-  for (auto const& Config : PlatformConfigs) {
+  for (auto const& Config : platformConfigs()) {
     for (auto const& ThreadsPerCore : Config->settings().threads()) {
       const char* Available = (Config->isAvailable(processorInfos()) || ForceYes) ? "yes" : "no";
       const auto& FunctionName = Config->functionName(ThreadsPerCore);
@@ -197,4 +197,4 @@ void X86Environment::printFunctionSummary(bool ForceYes) {
   }
 }
 
-} // namespace firestarter::environment::x86
+} // namespace firestarter::environment

@@ -47,15 +47,17 @@ public:
   /// Get the current hardware timestamp
   [[nodiscard]] virtual auto timestamp() const -> uint64_t = 0;
 
+  /// The CPU vendor i.e., Intel or AMD.
+  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
+
+  /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
+  [[nodiscard]] virtual auto model() const -> std::string const& = 0;
+
 protected:
   /// The CPU architecture e.g., x86_64
   [[nodiscard]] auto architecture() const -> std::string const& { return Architecture; }
-  /// The CPU vendor i.e., Intel or AMD.
-  [[nodiscard]] virtual auto vendor() const -> std::string const& { return Vendor; }
   /// The processor name, this includes the vendor specific name
   [[nodiscard]] virtual auto processorName() const -> std::string const& { return ProcessorName; }
-  /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
-  [[nodiscard]] virtual auto model() const -> std::string const& = 0;
   /// Getter for the list of CPU features
   [[nodiscard]] virtual auto features() const -> std::list<std::string> const& = 0;
 

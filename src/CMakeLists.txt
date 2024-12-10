@@ -10,15 +10,16 @@ add_library(firestartercore STATIC
 	firestarter/Config/Config.cpp
 	firestarter/Config/CpuBind.cpp
 	
-	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
+	firestarter/Environment/Environment.cpp
 	firestarter/Environment/ProcessorInformation.cpp
 	firestarter/Environment/Payload/CompiledPayload.cpp
 	firestarter/Environment/Payload/PayloadSettings.cpp
 
 	# here starts the x86 specific code
-	firestarter/Environment/X86/X86Environment.cpp
 	firestarter/Environment/X86/X86ProcessorInformation.cpp
+	
+	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
 	firestarter/Environment/X86/Payload/X86Payload.cpp
 	firestarter/Environment/X86/Payload/AVX512Payload.cpp

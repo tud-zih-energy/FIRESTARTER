@@ -47,28 +47,27 @@ public:
   /// PlatformConfig.
   /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  virtual void selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
-                              bool AllowUnavailablePayload) = 0;
+  void selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload);
 
   /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
   /// invalid.
   /// \arg Groups The list of instruction groups that is in the format: multiple INSTRUCTION:VALUE pairs
   /// comma-seperated.
-  virtual void selectInstructionGroups(std::string Groups) = 0;
+  void selectInstructionGroups(const std::string& Groups);
 
   /// Print the available instruction groups of the selected function.
-  virtual void printAvailableInstructionGroups() = 0;
+  void printAvailableInstructionGroups();
 
   /// Set the line count in the selected function.
   /// \arg LineCount The maximum number of instruction that should be in the high-load loop.
-  virtual void setLineCount(unsigned LineCount) = 0;
+  void setLineCount(unsigned LineCount);
 
   /// Print a summary of the settings of the selected config.
-  virtual void printSelectedCodePathSummary() = 0;
+  void printSelectedCodePathSummary();
 
   /// Print a list of available high-load function and if they are available on the current system.
   /// \arg ForceYes Force all functions to be shown as avaialable
-  virtual void printFunctionSummary(bool ForceYes) = 0;
+  void printFunctionSummary(bool ForceYes) const;
 
   /// Getter (which allows modifying) for the current platform config containing the payload, settings and the
   /// associated name.
@@ -88,6 +87,12 @@ public:
     assert(ProcessorInfos && "ProcessorInfos is a nullptr");
     return *ProcessorInfos;
   }
+
+  [[nodiscard]] virtual auto platformConfigs() const
+      -> const std::vector<std::shared_ptr<firestarter::environment::platform::PlatformConfig>>& = 0;
+
+  [[nodiscard]] virtual auto fallbackPlatformConfigs() const
+      -> const std::vector<std::shared_ptr<firestarter::environment::platform::PlatformConfig>>& = 0;
 
 protected:
   /// This function sets the config based on the
