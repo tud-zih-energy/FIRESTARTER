@@ -62,12 +62,12 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.PrintFunctionSummary) {
-    FunctionSelectionPtr->printFunctionSummary(ProcessorInfos, /*ForceYes=*/false);
+    FunctionSelectionPtr->printFunctionSummary(*ProcessorInfos, /*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
   FunctionPtr =
-      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, ProcessorInfos, *Topology, Cfg.AllowUnavailablePayload);
+      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, *Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
     std::stringstream Ss;
@@ -179,7 +179,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
     Topology->printSystemSummary(Ss);
     Ss << "\n";
-    Ss << ProcessorInfos;
+    Ss << *ProcessorInfos;
     Topology->printCacheSummary(Ss);
 
     log::info() << Ss.str();

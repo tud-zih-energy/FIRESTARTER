@@ -39,7 +39,7 @@ public:
   explicit ProcessorInformation(std::string Architecture);
   virtual ~ProcessorInformation() = default;
 
-  friend auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream&;
+  friend auto operator<<(std::ostream& Stream, ProcessorInformation const& ProcessorInfos) -> std::ostream&;
 
   /// Getter for the clockrate in Hz
   [[nodiscard]] virtual auto clockrate() const -> uint64_t { return Clockrate; }
@@ -84,8 +84,8 @@ private:
   uint64_t Clockrate = 0;
 };
 
-inline auto operator<<(std::ostream& Stream, ProcessorInformation const& CpuTopologyRef) -> std::ostream& {
-  return CpuTopologyRef.print(Stream);
+inline auto operator<<(std::ostream& Stream, ProcessorInformation const& ProcessorInfos) -> std::ostream& {
+  return ProcessorInfos.print(Stream);
 }
 
 } // namespace firestarter

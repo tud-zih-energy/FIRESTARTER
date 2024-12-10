@@ -42,8 +42,7 @@ public:
   /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
   /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  [[nodiscard]] auto selectFunction(std::optional<unsigned> FunctionId,
-                                    const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+  [[nodiscard]] auto selectFunction(std::optional<unsigned> FunctionId, const ProcessorInformation& ProcessorInfos,
                                     const CPUTopology& Topology, bool AllowUnavailablePayload) const
       -> std::unique_ptr<platform::PlatformConfig>;
 
@@ -53,22 +52,21 @@ public:
   /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
   /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  [[nodiscard]] auto selectAvailableFunction(unsigned FunctionId,
-                                             const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+  [[nodiscard]] auto selectAvailableFunction(unsigned FunctionId, const ProcessorInformation& ProcessorInfos,
                                              const CPUTopology& Topology, bool AllowUnavailablePayload) const
       -> std::unique_ptr<platform::PlatformConfig>;
 
   /// Select the fallback PlatformConfig if no id is given.
   /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
   /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
-  [[nodiscard]] auto selectDefaultOrFallbackFunction(const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+  [[nodiscard]] auto selectDefaultOrFallbackFunction(const ProcessorInformation& ProcessorInfos,
                                                      const CPUTopology& Topology) const
       -> std::unique_ptr<platform::PlatformConfig>;
 
   /// Print a list of available high-load function and if they are available on the current system.
   /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
   /// \arg ForceYes Force all functions to be shown as avaialable
-  void printFunctionSummary(const std::shared_ptr<ProcessorInformation>& ProcessorInfos, bool ForceYes) const;
+  void printFunctionSummary(const ProcessorInformation& ProcessorInfos, bool ForceYes) const;
 
   [[nodiscard]] virtual auto platformConfigs() const
       -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& = 0;

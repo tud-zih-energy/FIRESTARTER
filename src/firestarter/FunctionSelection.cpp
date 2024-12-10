@@ -29,8 +29,7 @@
 
 namespace firestarter {
 
-auto FunctionSelection::selectAvailableFunction(unsigned FunctionId,
-                                                const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const ProcessorInformation& ProcessorInfos,
                                                 const CPUTopology& Topology, bool AllowUnavailablePayload) const
     -> std::unique_ptr<platform::PlatformConfig> {
   unsigned Id = 1;
@@ -40,7 +39,7 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId,
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // the selected function
     if (Id == FunctionId) {
-      if (!Platform.Config->isAvailable(*ProcessorInfos)) {
+      if (!Platform.Config->isAvailable(ProcessorInfos)) {
         const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                  Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
                                  Platform.Config->payload()->name() + ", which is not supported by the processor.";
@@ -59,7 +58,7 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId,
   throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
 }
 
-auto FunctionSelection::selectDefaultOrFallbackFunction(const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformation& ProcessorInfos,
                                                         const CPUTopology& Topology) const
     -> std::unique_ptr<platform::PlatformConfig> {
   std::optional<std::string> DefaultPayloadName;
@@ -68,7 +67,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const std::shared_ptr<Pr
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // default function
-    if (Platform.Config->isDefault(*ProcessorInfos)) {
+    if (Platform.Config->isDefault(ProcessorInfos)) {
       if (Platform.ThreadCount == ProcessorThreadsPerCore) {
         return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
       }
@@ -83,14 +82,14 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const std::shared_ptr<Pr
     // supported
     log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore << " threads per core!";
   }
-  log::warn() << ProcessorInfos->vendor() << " " << ProcessorInfos->model()
+  log::warn() << ProcessorInfos.vendor() << " " << ProcessorInfos.model()
               << " is not supported by this version of FIRESTARTER!\n"
               << "Check project website for updates.";
 
   // loop over available implementation and check if they are marked as
   // fallback
   for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
-    if (FallbackPlatformConfigPtr->isAvailable(*ProcessorInfos)) {
+    if (FallbackPlatformConfigPtr->isAvailable(ProcessorInfos)) {
       unsigned SelectedThreadsPerCore{};
 
       // find the fallback implementation with the correct thread per core count or select the first available thread
@@ -118,8 +117,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const std::shared_ptr<Pr
                               "extensions.");
 }
 
-auto FunctionSelection::selectFunction(std::optional<unsigned> FunctionId,
-                                       const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+auto FunctionSelection::selectFunction(std::optional<unsigned> FunctionId, const ProcessorInformation& ProcessorInfos,
                                        const CPUTopology& Topology, bool AllowUnavailablePayload) const
     -> std::unique_ptr<platform::PlatformConfig> {
   if (FunctionId) {
@@ -128,8 +126,7 @@ auto FunctionSelection::selectFunction(std::optional<unsigned> FunctionId,
   return selectDefaultOrFallbackFunction(ProcessorInfos, Topology);
 }
 
-void FunctionSelection::printFunctionSummary(const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
-                                             bool ForceYes) const {
+void FunctionSelection::printFunctionSummary(const ProcessorInformation& ProcessorInfos, bool ForceYes) const {
   log::info() << " available load-functions:\n"
               << "  ID   | NAME                           | available on this "
                  "system | payload default setting\n"
@@ -141,7 +138,7 @@ void FunctionSelection::printFunctionSummary(const std::shared_ptr<ProcessorInfo
   auto Id = 1U;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
-    const char* Available = (Platform.Config->isAvailable(*ProcessorInfos) || ForceYes) ? "yes" : "no";
+    const char* Available = (Platform.Config->isAvailable(ProcessorInfos) || ForceYes) ? "yes" : "no";
     const auto& FunctionName = Platform.Config->functionName(Platform.ThreadCount);
     const auto& InstructionGroupsString = Platform.Config->settings().getInstructionGroupsString();
 
