@@ -42,6 +42,8 @@ struct HardwareThreadsInfo {
   unsigned MaxPhysicalIndex = 0;
   /// The list of os indices which are available on the system.
   std::set<unsigned> OsIndices;
+  /// The optional number of different cpu kinds.
+  std::optional<unsigned> CpuKindCount;
 };
 
 /// Given that the processor is homogenous. I.e. all cores/packages are of the same type and the are equally
