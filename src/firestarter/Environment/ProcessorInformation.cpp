@@ -26,6 +26,10 @@
 #include <regex>
 #include <utility>
 
+#if defined(_WIN32) or defined(__APPLE__)
+#include <array>
+#endif
+
 namespace firestarter::environment {
 
 auto ProcessorInformation::print(std::ostream& Stream) const -> std::ostream& {
