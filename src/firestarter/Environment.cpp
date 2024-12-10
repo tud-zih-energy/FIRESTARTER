@@ -30,47 +30,48 @@
 
 namespace firestarter {
 
-void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
-                                 bool AllowUnavailablePayload) {
+void Environment::selectAvailableFunction(unsigned FunctionId, const CPUTopology& Topology,
+                                          bool AllowUnavailablePayload) {
   unsigned Id = 1;
+  std::optional<std::string> DefaultPayloadName;
+  const auto ProcessorICacheSize = Topology.instructionCacheSize();
+
+  for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
+    // the selected function
+    if (Id == FunctionId) {
+      if (!Platform.Config->isAvailable(processorInfos())) {
+        const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
+                                 Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
+                                 Platform.Config->payload()->name() + ", which is not supported by the processor.";
+        if (AllowUnavailablePayload) {
+          log::warn() << ErrorString;
+        } else {
+          throw std::invalid_argument(ErrorString);
+        }
+      }
+      // found function
+      setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
+      return;
+    }
+  }
+
+  throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
+}
+
+void Environment::selectDefaultOrFallbackFunction(const CPUTopology& Topology) {
   std::optional<std::string> DefaultPayloadName;
   const auto ProcessorICacheSize = Topology.instructionCacheSize();
   const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
-    if (FunctionId) {
-      // the selected function
-      if (Id == *FunctionId) {
-        if (!Platform.Config->isAvailable(processorInfos())) {
-          const auto ErrorString = "Function " + std::to_string(*FunctionId) + " (\"" +
-                                   Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
-                                   Platform.Config->payload()->name() + ", which is not supported by the processor.";
-          if (AllowUnavailablePayload) {
-            log::warn() << ErrorString;
-          } else {
-            throw std::invalid_argument(ErrorString);
-          }
-        }
-        // found function
+    // default function
+    if (Platform.Config->isDefault(processorInfos())) {
+      if (Platform.ThreadCount == ProcessorThreadsPerCore) {
         setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
         return;
       }
-    } else {
-      // default function
-      if (Platform.Config->isDefault(processorInfos())) {
-        if (Platform.ThreadCount == ProcessorThreadsPerCore) {
-          setConfig(Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount));
-          return;
-        }
-        DefaultPayloadName = Platform.Config->payload()->name();
-      }
-      Id++;
+      DefaultPayloadName = Platform.Config->payload()->name();
     }
-  }
-
-  if (FunctionId) {
-    throw std::invalid_argument("unknown function id: " + std::to_string(*FunctionId) +
-                                ", see --avail for available ids");
   }
 
   // no default found
@@ -114,6 +115,15 @@ void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTo
   // no fallback found
   throw std::invalid_argument("No fallback implementation found for available ISA "
                               "extensions.");
+}
+
+void Environment::selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology,
+                                 bool AllowUnavailablePayload) {
+  if (FunctionId) {
+    selectAvailableFunction(*FunctionId, Topology, AllowUnavailablePayload);
+  } else {
+    selectDefaultOrFallbackFunction(Topology);
+  }
 }
 
 void Environment::selectInstructionGroups(const std::string& Groups) {

@@ -49,6 +49,17 @@ public:
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
   void selectFunction(std::optional<unsigned> FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload);
 
+  /// Select a PlatformConfig based on its generated id. This function will throw if a payload is not available or the
+  /// id is incorrect.
+  /// \arg FunctionId The id of the PlatformConfig that should be selected.
+  /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
+  /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
+  void selectAvailableFunction(unsigned FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload);
+
+  /// Select the fallback PlatformConfig if no id is given.
+  /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
+  void selectDefaultOrFallbackFunction(const CPUTopology& Topology);
+
   /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
   /// invalid.
   /// \arg Groups The list of instruction groups that is in the format: multiple INSTRUCTION:VALUE pairs
