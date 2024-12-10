@@ -31,6 +31,7 @@ auto main(int /*argc*/, const char** /*argv*/) -> int {
 
   {
     std::stringstream Ss;
+    Topology.printSystemSummary(Ss);
     Topology.printCacheSummary(Ss);
     firestarter::log::info() << Ss.str();
   }
@@ -40,13 +41,6 @@ auto main(int /*argc*/, const char** /*argv*/) -> int {
     if (ICacheSize) {
       firestarter::log::info() << "InstructionCacheSize: " << *ICacheSize;
     }
-  }
-
-  {
-    auto Resouces = Topology.homogenousResourceCount();
-    firestarter::log::info() << "NumCoresTotal: " << Resouces.NumCoresTotal;
-    firestarter::log::info() << "NumPackagesTotal: " << Resouces.NumPackagesTotal;
-    firestarter::log::info() << "NumThreadsPerCore: " << Resouces.NumThreadsPerCore;
   }
 
   {
@@ -60,6 +54,10 @@ auto main(int /*argc*/, const char** /*argv*/) -> int {
       PhysicalIndicies << Index << " ";
     }
     firestarter::log::info() << PhysicalIndicies.str();
+
+    if (ThreadsInfo.CpuKindCount) {
+      firestarter::log::info() << "CpuKindCount: " << *ThreadsInfo.CpuKindCount;
+    }
   }
 
   return EXIT_SUCCESS;

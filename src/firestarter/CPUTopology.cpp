@@ -64,11 +64,11 @@ void CPUTopology::printSystemSummary(std::ostream& Stream) const {
   auto Resouces = homogenousResourceCount();
 
   Stream << "  system summary:\n"
-         << "    number of processors:        " << Resouces.NumCoresTotal << "\n"
+         << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
          << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
          << "  (this includes only cores in the cgroup)"
          << "\n"
-         << "    number of threads per core:  " << Resouces.NumPackagesTotal << "\n"
+         << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
          << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads << "\n";
 }
 
@@ -247,6 +247,8 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
 
     return Infos;
   }
+
+  Infos.CpuKindCount = NrCpukinds;
 
   // Allocate bitmap to get CPUs later
   hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
