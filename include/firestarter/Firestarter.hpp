@@ -69,7 +69,7 @@ private:
   /// This class handles getting the topology information of the processor and is used to set thread binding.
   std::unique_ptr<CPUTopology> Topology;
   /// The class that handles setting up the payload for firestarter
-  std::unique_ptr<environment::Environment> Environment;
+  std::unique_ptr<Environment> EnvironmentPtr;
   /// The class for execution of the gemm routine on Cuda or HIP GPUs.
   std::unique_ptr<cuda::Cuda> Cuda;
   /// The class for execution of the gemm routine on OneAPI GPUs.

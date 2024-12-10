@@ -19,14 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/X86/X86Environment.hpp"
+// This file exists to get an entry in the compile commands database. Clangd will interpolate the include directories
+// for header files based on the source file with the best matching score. This file should be the best score for the
+// included header. Therefore we should not see any errors in this file for missing includes. For more infomation
+// look in the LLVM code base: clang/lib/Tooling/InterpolatingCompilationDatabase.cpp
 
-auto main(int /*argc*/, const char** /*argv*/) -> int {
-  firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
-
-  firestarter::x86::X86Environment Env;
-
-  Env.printFunctionSummary(/*ForceYes=*/true);
-
-  return EXIT_SUCCESS;
-}
+#include "firestarter/X86/Platform/X86PlatformConfig.hpp"

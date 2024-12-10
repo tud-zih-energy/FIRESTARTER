@@ -71,7 +71,7 @@ void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
   }
 
   for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, Affinity.CpuBind[I], std::cref(*Environment), std::cref(*Topology),
+    auto Td = std::make_shared<LoadWorkerData>(I, Affinity.CpuBind[I], std::cref(*EnvironmentPtr), std::cref(*Topology),
                                                std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
@@ -193,7 +193,7 @@ void Firestarter::printPerformanceReport() {
   }
 
   double const Runtime = static_cast<double>(StopTimestamp - StartTimestamp) /
-                         static_cast<double>(Environment->processorInfos().clockrate());
+                         static_cast<double>(EnvironmentPtr->processorInfos().clockrate());
   double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
                         0.000000001 * static_cast<double>(Iterations) / Runtime;
   double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *

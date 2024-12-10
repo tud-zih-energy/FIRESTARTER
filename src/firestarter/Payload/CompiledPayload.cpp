@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2024 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,14 +19,15 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/X86/X86Environment.hpp"
+#include "firestarter/Payload/CompiledPayload.hpp"
+#include "firestarter/Payload/Payload.hpp"
 
-auto main(int /*argc*/, const char** /*argv*/) -> int {
-  firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
+namespace firestarter::payload {
 
-  firestarter::x86::X86Environment Env;
+void CompiledPayload::init(double* MemoryAddr, uint64_t BufferSize) { PayloadPtr->init(MemoryAddr, BufferSize); }
 
-  Env.printFunctionSummary(/*ForceYes=*/true);
+void CompiledPayload::lowLoadFunction(volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period) {
+  PayloadPtr->lowLoadFunction(LoadVar, Period);
+};
 
-  return EXIT_SUCCESS;
-}
+}; // namespace firestarter::payload

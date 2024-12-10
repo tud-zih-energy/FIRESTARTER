@@ -20,12 +20,12 @@
  *****************************************************************************/
 
 #include "firestarter/Firestarter.hpp"
-#include "firestarter/Environment/X86/X86Environment.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+#include "firestarter/X86/X86Environment.hpp"
 
 #include <csignal>
 #include <cstdlib>
@@ -37,7 +37,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig))
     , Topology(std::make_unique<CPUTopology>()) {
   if constexpr (firestarter::OptionalFeatures.IsX86) {
-    Environment = std::make_unique<environment::x86::X86Environment>();
+    EnvironmentPtr = std::make_unique<x86::X86Environment>();
   }
 
   const auto Affinity =
@@ -46,7 +46,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
-      const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
+      const auto& X86Env = *dynamic_cast<x86::X86Environment*>(EnvironmentPtr.get());
       if (!X86Env.processorInfos().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
@@ -61,23 +61,23 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.PrintFunctionSummary) {
-    Environment->printFunctionSummary(/*ForceYes=*/false);
+    EnvironmentPtr->printFunctionSummary(/*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
-  Environment->selectFunction(Cfg.FunctionId, *Topology, Cfg.AllowUnavailablePayload);
+  EnvironmentPtr->selectFunction(Cfg.FunctionId, *Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
-    Environment->printAvailableInstructionGroups();
+    EnvironmentPtr->printAvailableInstructionGroups();
     safeExit(EXIT_SUCCESS);
   }
 
   if (!Cfg.InstructionGroups.empty()) {
-    Environment->selectInstructionGroups(Cfg.InstructionGroups);
+    EnvironmentPtr->selectInstructionGroups(Cfg.InstructionGroups);
   }
 
   if (Cfg.LineCount != 0) {
-    Environment->setLineCount(Cfg.LineCount);
+    EnvironmentPtr->setLineCount(Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
@@ -152,7 +152,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
+          Cfg.StopDelta, EnvironmentPtr->config().settings().instructionGroupItems());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -167,14 +167,14 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
   }
 
-  Environment->printSelectedCodePathSummary();
+  EnvironmentPtr->printSelectedCodePathSummary();
 
   {
     std::stringstream Ss;
 
     Topology->printSystemSummary(Ss);
     Ss << "\n";
-    Ss << Environment->processorInfos();
+    Ss << EnvironmentPtr->processorInfos();
     Topology->printCacheSummary(Ss);
 
     log::info() << Ss.str();
@@ -229,7 +229,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = Environment->config().settings().instructionGroupItems();
+      auto PayloadItems = EnvironmentPtr->config().settings().instructionGroupItems();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 

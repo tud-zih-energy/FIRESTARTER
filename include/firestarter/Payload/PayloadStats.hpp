@@ -19,14 +19,20 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/X86/X86Environment.hpp"
+#pragma once
 
-auto main(int /*argc*/, const char** /*argv*/) -> int {
-  firestarter::logging::Filter<firestarter::logging::record>::set_severity(nitro::log::severity_level::info);
+namespace firestarter::payload {
 
-  firestarter::x86::X86Environment Env;
+/// This struct represents the stats a compiled payload has.
+struct PayloadStats {
+  /// The number of flops computed per iteration of the high load routine.
+  unsigned Flops = 0;
 
-  Env.printFunctionSummary(/*ForceYes=*/true);
+  /// The number of bytes accessed to the main memory per iteration of the high load routine.
+  unsigned Bytes = 0;
 
-  return EXIT_SUCCESS;
-}
+  /// The number of instructions in load loop
+  unsigned Instructions = 0;
+};
+
+} // namespace firestarter::payload
