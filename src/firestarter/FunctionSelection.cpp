@@ -53,6 +53,7 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId,
       // found function
       return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
     }
+    Id++;
   }
 
   throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
