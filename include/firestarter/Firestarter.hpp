@@ -26,6 +26,7 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
 #include "firestarter/DumpRegisterWorkerData.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/LoadWorkerData.hpp"
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/OneAPI/OneAPI.hpp"
@@ -39,7 +40,6 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <string>
 #include <utility>
 
 #if defined(linux) || defined(__linux__)

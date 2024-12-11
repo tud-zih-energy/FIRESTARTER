@@ -23,7 +23,6 @@
 
 #include "firestarter/CPUTopology.hpp"
 #include "firestarter/Constants.hpp"
-#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Platform/PlatformConfig.hpp"
 #include "firestarter/ProcessorInformation.hpp"
@@ -170,7 +169,7 @@ public:
   std::shared_ptr<ProcessorInformation> ProcessorInfos;
   /// The reference to the processor topology abstraction which allows setting thread affinity.
   const CPUTopology& Topology;
-  /// The config that is cloned for this specific load worker.
+  /// The config that is cloned from the environment for this specfic load worker.
   std::unique_ptr<platform::PlatformConfig> Config;
 };
 
