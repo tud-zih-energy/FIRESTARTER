@@ -70,7 +70,8 @@ public:
   [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
       -> std::unique_ptr<PlatformConfig> final {
     auto Ptr = clone();
-    Ptr->settings().concretize(InstructionCacheSize, ThreadsPerCore);
+    auto* DerivedPtr = dynamic_cast<X86PlatformConfig*>(Ptr.get());
+    DerivedPtr->settings().concretize(InstructionCacheSize, ThreadsPerCore);
     return Ptr;
   }
 

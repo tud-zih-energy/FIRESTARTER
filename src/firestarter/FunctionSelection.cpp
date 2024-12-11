@@ -95,7 +95,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformati
       // find the fallback implementation with the correct thread per core count or select the first available thread
       // per core count
       {
-        const auto& Threads = FallbackPlatformConfigPtr->settings().threads();
+        const auto& Threads = FallbackPlatformConfigPtr->constRef().settings().threads();
         const auto& ThreadIt = std::find(Threads.cbegin(), Threads.cend(), ProcessorThreadsPerCore);
         if (ThreadIt == Threads.cend()) {
           SelectedThreadsPerCore = Threads.front();
@@ -140,7 +140,7 @@ void FunctionSelection::printFunctionSummary(const ProcessorInformation& Process
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     const char* Available = (Platform.Config->isAvailable(ProcessorInfos) || ForceYes) ? "yes" : "no";
     const auto& FunctionName = Platform.Config->functionName(Platform.ThreadCount);
-    const auto& InstructionGroupsString = Platform.Config->settings().groups();
+    const auto& InstructionGroupsString = Platform.Config->constRef().settings().groups();
 
     log::info() << "  " << std::right << std::setw(4) << Id << " | " << std::left << std::setw(30) << FunctionName
                 << " | " << std::left << std::setw(24) << Available << " | " << InstructionGroupsString;

@@ -46,14 +46,14 @@ private:
   std::shared_ptr<const payload::Payload> Payload;
 
 public:
+  /// Getter for const ref to this type
+  [[nodiscard]] auto constRef() const -> const auto& { return *this; }
+
   /// Getter for the name of the platform.
   [[nodiscard]] auto name() const -> const auto& { return Name; }
 
   /// Getter for the settings of the platform.
-  [[nodiscard]] auto settings() const -> const auto& { return Settings; }
-
-  /// Reference to the settings. This allows them to be overriden.
-  [[nodiscard]] auto settings() -> auto& { return Settings; }
+  [[nodiscard]] auto settings() const -> const payload::PayloadSettings& { return Settings; }
 
   /// Getter for the payload of the platform.
   [[nodiscard]] auto payload() const -> const auto& { return Payload; }
@@ -70,6 +70,9 @@ public:
   [[nodiscard]] auto isDefault(const ProcessorInformation& Topology) const -> bool { return isDefault(&Topology); }
 
 protected:
+  /// Non const Getter for the settings of the platform.
+  [[nodiscard]] auto settings() -> payload::PayloadSettings& { return Settings; }
+
   /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
   /// available for the payload that is used.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
@@ -121,6 +124,9 @@ public:
     settings().selectInstructionGroups(Groups);
   }
 
+  /// Save the line count in the payload settings.
+  void setLineCount(unsigned LineCount) { settings().setLineCount(LineCount); }
+
   /// The function name for this platform config given a specific thread per core count.
   /// \arg ThreadsPerCore The number of threads per core.
   /// \returns The name of the function (a platform name, payload name and a specific thread per core count)
@@ -130,30 +136,30 @@ public:
 
   /// Get the concreate functions name.
   [[nodiscard]] auto functionName() const -> std::string {
-    assert(Settings.isConcreate() && "Settings must be concreate for a concreate function name");
-    return functionName(Settings.thread());
+    assert(settings().isConcreate() && "Settings must be concreate for a concreate function name");
+    return functionName(settings().thread());
   };
 
   /// Print a summary for the selected platform/payload with given settings.
   void printCodePathSummary() const {
-    assert(Settings.isConcreate() && "Setting must be concreate to print the code path summary.");
+    assert(settings().isConcreate() && "Setting must be concreate to print the code path summary.");
 
     log::info() << "\n"
-                << "  Taking " << Payload->name() << " path optimized for " << Name << " - " << Settings.thread()
+                << "  Taking " << Payload->name() << " path optimized for " << Name << " - " << settings().thread()
                 << " thread(s) per core\n"
                 << "  Used buffersizes per thread:";
 
-    if (Settings.instructionCacheSizePerThread()) {
-      log::info() << "    - L1i-Cache: " << *Settings.instructionCacheSizePerThread() << " Bytes";
+    if (settings().instructionCacheSizePerThread()) {
+      log::info() << "    - L1i-Cache: " << *settings().instructionCacheSizePerThread() << " Bytes";
     }
 
     unsigned I = 1;
-    for (auto const& Bytes : Settings.dataCacheBufferSizePerThread()) {
+    for (auto const& Bytes : settings().dataCacheBufferSizePerThread()) {
       log::info() << "    - L" << I << "d-Cache: " << Bytes << " Bytes";
       I++;
     }
 
-    log::info() << "    - Memory: " << Settings.ramBufferSizePerThread() << " Bytes";
+    log::info() << "    - Memory: " << settings().ramBufferSizePerThread() << " Bytes";
   }
 };
 

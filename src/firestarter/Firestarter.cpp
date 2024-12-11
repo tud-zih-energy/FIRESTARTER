@@ -81,7 +81,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.LineCount) {
-    FunctionPtr->settings().setLineCount(*Cfg.LineCount);
+    FunctionPtr->setLineCount(*Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
@@ -156,7 +156,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, FunctionPtr->settings().groups().intructions());
+          Cfg.StopDelta, FunctionPtr->constRef().settings().groups().intructions());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -227,7 +227,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = FunctionPtr->settings().groups().intructions();
+      const auto PayloadItems = FunctionPtr->constRef().settings().groups().intructions();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 

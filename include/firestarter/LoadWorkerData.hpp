@@ -102,7 +102,7 @@ public:
   /// Gettter for the id of the thread.
   [[nodiscard]] auto id() const -> uint64_t { return Id; }
   /// Getter for the current platform config.
-  [[nodiscard]] auto config() const -> platform::PlatformConfig& { return *Config; }
+  [[nodiscard]] auto config() const -> const platform::PlatformConfig& { return *Config; }
 
   /// Access the DumpRegisterStruct. Asserts when dumping registers is not enabled.
   /// \returns a reference to the DumpRegisterStruct

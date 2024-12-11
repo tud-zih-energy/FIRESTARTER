@@ -42,7 +42,7 @@ public:
       -> std::vector<PlatformConfigAndThreads> {
     std::vector<PlatformConfigAndThreads> Vec;
 
-    for (const auto& Thread : Config->settings().threads()) {
+    for (const auto& Thread : Config->constRef().settings().threads()) {
       Vec.emplace_back(PlatformConfigAndThreads{Config, Thread});
     }
 
