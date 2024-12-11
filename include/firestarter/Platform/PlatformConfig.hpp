@@ -118,7 +118,7 @@ public:
       }
     }
 
-    settings().selectInstructionGroups(Groups.Groups);
+    settings().selectInstructionGroups(Groups);
 
     log::info() << "  Running custom instruction group: " << Groups;
   }

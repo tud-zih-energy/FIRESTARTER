@@ -34,7 +34,8 @@ public:
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{65536, 524288, 2097152}, /*RamBufferSize=*/104857600,
                 /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}),
+                /*Groups=*/
+                InstructionGroups{{{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}}),
             /*Payload=*/std::make_shared<const payload::ZENFMAPayload>()) {}
 };
 } // namespace firestarter::x86::platform

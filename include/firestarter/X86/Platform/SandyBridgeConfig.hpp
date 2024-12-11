@@ -34,7 +34,8 @@ public:
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,
                 /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}),
+                /*Groups=*/
+                InstructionGroups{{{"RAM_L", 2}, {"L3_LS", 4}, {"L2_LS", 10}, {"L1_LS", 90}, {"REG", 45}}}),
             /*Payload=*/std::make_shared<const payload::AVXPayload>()) {}
 };
 } // namespace firestarter::x86::platform

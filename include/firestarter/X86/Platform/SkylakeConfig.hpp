@@ -28,13 +28,15 @@ namespace firestarter::x86::platform {
 class SkylakeConfig final : public X86PlatformConfig {
 public:
   SkylakeConfig() noexcept
-      : X86PlatformConfig(/*Name=*/"SKL_COREI", /*Family=*/6, /*Models=*/{78, 94},
-                          /*Settings=*/
-                          firestarter::payload::PayloadSettings(
-                              /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
-                              /*RamBufferSize=*/104857600, /*Lines=*/1536,
-                              /*InstructionGroups=*/
-                              {{"RAM_L", 3}, {"L3_LS_256", 5}, {"L2_LS_256", 18}, {"L1_2LS_256", 78}, {"REG", 40}}),
-                          /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"SKL_COREI", /*Family=*/6, /*Models=*/{78, 94},
+            /*Settings=*/
+            firestarter::payload::PayloadSettings(
+                /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
+                /*RamBufferSize=*/104857600, /*Lines=*/1536,
+                /*Groups=*/
+                InstructionGroups{
+                    {{"RAM_L", 3}, {"L3_LS_256", 5}, {"L2_LS_256", 18}, {"L1_2LS_256", 78}, {"REG", 40}}}),
+            /*Payload=*/std::make_shared<const payload::FMAPayload>()) {}
 };
 } // namespace firestarter::x86::platform

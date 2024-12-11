@@ -31,13 +31,12 @@ namespace {
 
 /// Take a list of instructions and return a list with a pair containing the each instruction in the first element of
 /// the pair and a one in the second.
-auto oneEach(const std::list<std::string>& Instructions)
-    -> std::vector<firestarter::payload::PayloadSettings::InstructionWithProportion> {
-  std::vector<firestarter::payload::PayloadSettings::InstructionWithProportion> OneEach;
+auto oneEach(const std::list<std::string>& Instructions) -> firestarter::InstructionGroups {
+  std::vector<std::pair<std::string, unsigned>> OneEach;
   for (const auto& Instruction : Instructions) {
     OneEach.emplace_back(Instruction, 1);
   }
-  return OneEach;
+  return firestarter::InstructionGroups{OneEach};
 }
 
 /// Dump the generated assembler code of the payload with some given settings. Each item is printed once.
@@ -48,7 +47,7 @@ void dumpPayload(firestarter::payload::Payload& PayloadPtr) {
                                                  /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
                                                  /*RamBufferSize=*/1048576000,
                                                  /*Lines=*/3 * Instuctions.size(),
-                                                 /*InstructionGroups=*/oneEach(Instuctions));
+                                                 /*Groups=*/oneEach(Instuctions));
 
   (void)PayloadPtr.compilePayload(Settings, /*DumpRegisters=*/false, /*ErrorDetection=*/false,
                                   /*PrintAssembler=*/true);

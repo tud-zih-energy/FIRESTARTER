@@ -140,7 +140,7 @@ void FunctionSelection::printFunctionSummary(const ProcessorInformation& Process
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     const char* Available = (Platform.Config->isAvailable(ProcessorInfos) || ForceYes) ? "yes" : "no";
     const auto& FunctionName = Platform.Config->functionName(Platform.ThreadCount);
-    const auto& InstructionGroupsString = Platform.Config->settings().getInstructionGroupsString();
+    const auto& InstructionGroupsString = Platform.Config->settings().groups();
 
     log::info() << "  " << std::right << std::setw(4) << Id << " | " << std::left << std::setw(30) << FunctionName
                 << " | " << std::left << std::setw(24) << Available << " | " << InstructionGroupsString;

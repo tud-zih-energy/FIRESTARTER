@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/Payload/PayloadSettings.hpp"
+#include "firestarter/Config/InstructionGroups.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -39,9 +40,8 @@ auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequ
   return I;
 }
 
-auto PayloadSettings::generateSequence(std::vector<PayloadSettings::InstructionWithProportion> const& Proportions)
-    -> std::vector<std::string> {
-  std::vector<std::pair<std::string, unsigned>> Prop = Proportions;
+auto PayloadSettings::generateSequence(InstructionGroups const& Proportions) -> std::vector<std::string> {
+  std::vector<std::pair<std::string, unsigned>> Prop = Proportions.Groups;
 
   Prop.erase(std::remove_if(Prop.begin(), Prop.end(), [](auto const& Pair) { return Pair.second == 0; }), Prop.end());
 

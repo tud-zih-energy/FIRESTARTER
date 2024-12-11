@@ -21,12 +21,12 @@
 
 #pragma once
 
+#include "firestarter/Config/InstructionGroups.hpp"
 #include <cassert>
 #include <cstddef>
 #include <initializer_list>
 #include <list>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -34,9 +34,6 @@ namespace firestarter::payload {
 
 /// This class represents the settings that can be changed in the high load routine of a payload.
 struct PayloadSettings {
-public:
-  using InstructionWithProportion = std::pair<std::string, unsigned>;
-
 private:
   /// The number of threads for which this payload is available. Multiple ones may exsists. The PayloadSettings are
   /// concreate once this is set to contain only one element.
@@ -56,7 +53,7 @@ private:
 
   /// This represents the instructions in combination with the number of times they should appear in the generated
   /// sequence.
-  std::vector<InstructionWithProportion> InstructionGroups;
+  InstructionGroups Groups;
 
   /// Get the number of items in the sequence that start with a given string.
   /// \arg Sequence The sequence that is analyzed.
@@ -69,20 +66,19 @@ public:
   PayloadSettings() = delete;
 
   PayloadSettings(std::initializer_list<unsigned> Threads, std::initializer_list<unsigned> DataCacheBufferSize,
-                  unsigned RamBufferSize, unsigned Lines, std::vector<InstructionWithProportion>&& InstructionGroups)
+                  unsigned RamBufferSize, unsigned Lines, InstructionGroups&& Groups)
       : Threads(Threads)
       , DataCacheBufferSize(DataCacheBufferSize)
       , RamBufferSize(RamBufferSize)
       , Lines(Lines)
-      , InstructionGroups(std::move(InstructionGroups)) {}
+      , Groups(std::move(Groups)) {}
 
   /// Generate a sequence of items interleaved with one another based on a supplied number how many times each items
   /// should appear in the resulting sequence.
   /// \arg Proportion The mapping of items defined by a string and the number of times this item should apear in the
   /// resuling sequence.
   /// \returns The sequence that is generated from the supplied propotions
-  [[nodiscard]] static auto generateSequence(const std::vector<InstructionWithProportion>& Proportion)
-      -> std::vector<std::string>;
+  [[nodiscard]] static auto generateSequence(const InstructionGroups& Proportion) -> std::vector<std::string>;
 
   /// Get the number of items in the sequence that start with "L2".
   /// \arg Sequence The sequence that is analyzed.
@@ -214,38 +210,11 @@ public:
   [[nodiscard]] auto linesPerThread() const -> auto{ return Lines / thread(); }
 
   /// The vector of instruction groups with proportions.
-  [[nodiscard]] auto instructionGroups() const -> const auto& { return InstructionGroups; }
+  [[nodiscard]] auto groups() const -> const auto& { return Groups; }
 
   /// Generate a sequence of items interleaved with one another based on the instruction groups.
   /// \returns The sequence that is generated from the supplied propotions in the instruction groups.
-  [[nodiscard]] auto sequence() const -> std::vector<std::string> { return generateSequence(instructionGroups()); }
-
-  /// The vector of used instructions that are saved in the instruction groups
-  [[nodiscard]] auto instructionGroupItems() const -> std::vector<std::string> {
-    std::vector<std::string> Items;
-    Items.reserve(InstructionGroups.size());
-    for (auto const& Pair : InstructionGroups) {
-      Items.push_back(Pair.first);
-    }
-    return Items;
-  }
-
-  /// Get the string that represents the instructions in combination with the number of times they should appear in the
-  /// sequence.
-  [[nodiscard]] auto getInstructionGroupsString() const -> std::string {
-    std::stringstream Ss;
-
-    for (auto const& [Name, Value] : InstructionGroups) {
-      Ss << Name << ":" << Value << ",";
-    }
-
-    auto Str = Ss.str();
-    if (!Str.empty()) {
-      Str.pop_back();
-    }
-
-    return Str;
-  }
+  [[nodiscard]] auto sequence() const -> std::vector<std::string> { return generateSequence(groups()); }
 
   /// Make the settings concreate.
   /// \arg InstructionCacheSize The detected size of the instructions cache.
@@ -256,10 +225,8 @@ public:
   }
 
   /// Save the supplied instruction groups with their proportion in the payload settings.
-  /// \arg InstructionGroups The vector with pairs of instructions and proportions
-  void selectInstructionGroups(std::vector<InstructionWithProportion> const& InstructionGroups) {
-    this->InstructionGroups = InstructionGroups;
-  }
+  /// \arg Groups The vector with pairs of instructions and proportions
+  void selectInstructionGroups(InstructionGroups const& Groups) { this->Groups = Groups; }
 
   /// Save the line count in the payload settings.
   void setLineCount(unsigned LineCount) { this->Lines = LineCount; }

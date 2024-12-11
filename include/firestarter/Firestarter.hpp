@@ -137,7 +137,7 @@ private:
 
   /// Set the load workers to the ThreadWork state.
   /// \arg Setting The new setting to switch to.
-  void signalSwitch(std::vector<std::pair<std::string, unsigned>> const& Setting) {
+  void signalSwitch(const InstructionGroups& Setting) {
     struct SwitchLoad {
       static void func() { LoadVar = LoadThreadWorkType::LoadSwitch; };
     };

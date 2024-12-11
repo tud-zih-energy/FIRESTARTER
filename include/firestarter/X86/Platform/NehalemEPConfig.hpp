@@ -33,7 +33,8 @@ public:
                           firestarter::payload::PayloadSettings(
                               /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 2097152},
                               /*RamBufferSize=*/104857600, /*Lines=*/1536,
-                              /*InstructionGroups=*/{{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}}),
+                              /*Groups=*/
+                              InstructionGroups{{{"RAM_P", 1}, {"L1_LS", 60}, {"REG", 2}}}),
                           /*Payload=*/std::make_shared<const payload::SSE2Payload>()) {}
 };
 } // namespace firestarter::x86::platform

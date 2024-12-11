@@ -39,6 +39,16 @@ struct InstructionGroups {
   /// \arg Groups The instruction groups as a string.
   [[nodiscard]] static auto fromString(const std::string& Groups) -> InstructionGroups;
 
+  /// The vector of used instructions that are saved in the instruction groups
+  [[nodiscard]] auto intructions() const -> std::vector<std::string> {
+    std::vector<std::string> Items;
+    Items.reserve(Groups.size());
+    for (auto const& Pair : Groups) {
+      Items.push_back(Pair.first);
+    }
+    return Items;
+  }
+
   /// The parsed instruction groups
   std::vector<std::pair<std::string, unsigned>> Groups;
 };

@@ -117,7 +117,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
 
     if (Cfg.Optimize) {
-      auto ApplySettings = [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
+      auto ApplySettings = [this](InstructionGroups const& Setting) {
         using Clock = std::chrono::high_resolution_clock;
         auto Start = Clock::now();
 
@@ -153,7 +153,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, FunctionPtr->settings().instructionGroupItems());
+          Cfg.StopDelta, FunctionPtr->settings().groups().intructions());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -224,7 +224,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = FunctionPtr->settings().instructionGroupItems();
+      auto PayloadItems = FunctionPtr->settings().groups().intructions();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 

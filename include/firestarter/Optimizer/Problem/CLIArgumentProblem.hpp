@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/Config/InstructionGroups.hpp"
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Optimizer/Problem.hpp"
 
@@ -38,7 +39,7 @@ class CLIArgumentProblem final : public firestarter::optimizer::Problem {
 private:
   /// The function which takes instruction groups and switches the payload in the high load function to the supplied
   /// ones.
-  std::function<void(std::vector<std::pair<std::string, unsigned>> const&)> ChangePayloadFunction;
+  std::function<void(const firestarter::InstructionGroups&)> ChangePayloadFunction;
   /// The shared pointer to the measurement infrastructure which will be used to get metric values.
   std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
   /// The metrics that are used in the optimization. They may have a dash at the start to allow them to be changed from
@@ -65,7 +66,7 @@ public:
   /// \arg StartDelta The time to skip from the measurement start
   /// \arg StopDelta The time to skip from the measurement stop
   /// \arg InstructionGroups The vector of instruction that is used in the optimization for the payload.
-  CLIArgumentProblem(std::function<void(std::vector<std::pair<std::string, unsigned>> const&)>&& ChangePayloadFunction,
+  CLIArgumentProblem(std::function<void(const firestarter::InstructionGroups&)>&& ChangePayloadFunction,
                      std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker,
                      std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
                      std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
@@ -98,7 +99,7 @@ public:
     for (; It1 != InstructionGroups.end(); ++It1, ++It2) {
       Payload.emplace_back(*It1, *It2);
     }
-    ChangePayloadFunction(Payload);
+    ChangePayloadFunction(firestarter::InstructionGroups{Payload});
 
     // start the measurement
     // NOTE: starting the measurement must happen after switching to not
@@ -111,7 +112,7 @@ public:
     // TODO(Issue #82): This is an ugly workaround for the ipc-estimate metric.
     // Changing the payload triggers a write of the iteration counter of
     // the last payload, which we use to estimate the ipc.
-    ChangePayloadFunction(Payload);
+    ChangePayloadFunction(firestarter::InstructionGroups{Payload});
 
     // return the results
     return MeasurementWorker->getValues(StartDelta, StopDelta);

@@ -34,7 +34,8 @@ public:
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1}, /*DataCacheBufferSize=*/{16384, 1048576, 786432}, /*RamBufferSize=*/104857600,
                 /*Lines=*/1536,
-                /*InstructionGroups=*/{{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}}),
+                /*Groups=*/
+                InstructionGroups{{{"RAM_L", 1}, {"L3_L", 1}, {"L2_LS", 5}, {"L1_L", 90}, {"REG", 45}}}),
             /*Payload=*/std::make_shared<const payload::FMA4Payload>()) {}
 };
 } // namespace firestarter::x86::platform
