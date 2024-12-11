@@ -29,12 +29,8 @@ auto main(int /*argc*/, const char** /*argv*/) -> int {
 
   firestarter::CPUTopology Topology;
 
-  {
-    std::stringstream Ss;
-    Topology.printSystemSummary(Ss);
-    Topology.printCacheSummary(Ss);
-    firestarter::log::info() << Ss.str();
-  }
+  Topology.printSystemSummary();
+  Topology.printCacheSummary();
 
   {
     auto ICacheSize = Topology.instructionCacheSize();
