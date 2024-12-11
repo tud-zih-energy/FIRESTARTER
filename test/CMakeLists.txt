@@ -23,4 +23,5 @@ endfunction()
 
 add_subdirectory(DumpCPUTopology)
 add_subdirectory(DumpPayloads)
+add_subdirectory(UnitTests)
 add_subdirectory(X86Functions)
