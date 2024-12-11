@@ -21,6 +21,7 @@
 
 #include "firestarter/Config/InstructionGroups.hpp"
 
+#include <cassert>
 #include <regex>
 
 namespace firestarter {
@@ -53,6 +54,30 @@ auto InstructionGroups::fromString(const std::string& Groups) -> InstructionGrou
   }
 
   return InstructionGroups{ParsedGroups};
+}
+
+auto InstructionGroups::fromInstructionAndValues(const std::vector<std::string>& Instructions,
+                                                 const std::vector<unsigned>& Values) -> InstructionGroups {
+  assert(Instructions.size() == Values.size());
+
+  std::vector<std::pair<std::string, unsigned>> Groups;
+
+  auto It1 = Instructions.begin();
+  auto It2 = Values.begin();
+  for (; It1 != Instructions.end(); ++It1, ++It2) {
+    Groups.emplace_back(*It1, *It2);
+  }
+
+  return InstructionGroups{Groups};
+}
+
+auto InstructionGroups::intructions() const -> std::vector<std::string> {
+  std::vector<std::string> Items;
+  Items.reserve(Groups.size());
+  for (auto const& Pair : Groups) {
+    Items.push_back(Pair.first);
+  }
+  return Items;
 }
 
 } // namespace firestarter

@@ -41,7 +41,7 @@ auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequ
 }
 
 auto PayloadSettings::generateSequence(InstructionGroups const& Proportions) -> std::vector<std::string> {
-  std::vector<std::pair<std::string, unsigned>> Prop = Proportions.Groups;
+  auto Prop = static_cast<InstructionGroups::InternalType>(Proportions);
 
   Prop.erase(std::remove_if(Prop.begin(), Prop.end(), [](auto const& Pair) { return Pair.second == 0; }), Prop.end());
 

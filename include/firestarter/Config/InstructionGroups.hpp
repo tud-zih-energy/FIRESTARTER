@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace firestarter {
@@ -30,7 +31,14 @@ namespace firestarter {
 /// Struct to parse selected from a string. The format is a comma delimited list of instruction value pairs. The values
 /// are unsigned integers.
 struct InstructionGroups {
+  using InternalType = std::vector<std::pair<std::string, unsigned>>;
+
   InstructionGroups() = default;
+
+  explicit InstructionGroups(InternalType Groups)
+      : Groups(std::move(Groups)) {}
+
+  explicit operator const InternalType&() const noexcept { return Groups; }
 
   friend auto operator<<(std::ostream& Stream, const InstructionGroups& IGroups) -> std::ostream&;
 
@@ -39,24 +47,25 @@ struct InstructionGroups {
   /// \arg Groups The instruction groups as a string.
   [[nodiscard]] static auto fromString(const std::string& Groups) -> InstructionGroups;
 
-  /// The vector of used instructions that are saved in the instruction groups
-  [[nodiscard]] auto intructions() const -> std::vector<std::string> {
-    std::vector<std::string> Items;
-    Items.reserve(Groups.size());
-    for (auto const& Pair : Groups) {
-      Items.push_back(Pair.first);
-    }
-    return Items;
-  }
+  /// Combine instructions and values for these instructions into the combined instruction groups.
+  /// \arg Instructions The vector of instructions
+  /// \arg Values The vector of values
+  /// \returns The combined instruction groups
+  [[nodiscard]] static auto fromInstructionAndValues(const std::vector<std::string>& Instructions,
+                                                     const std::vector<unsigned>& Values) -> InstructionGroups;
 
+  /// The vector of used instructions that are saved in the instruction groups
+  [[nodiscard]] auto intructions() const -> std::vector<std::string>;
+
+private:
   /// The parsed instruction groups
   std::vector<std::pair<std::string, unsigned>> Groups;
 };
 
-inline auto operator<<(std::ostream& Stream, const InstructionGroups& IGroups) -> std::ostream& {
+inline auto operator<<(std::ostream& Stream, const InstructionGroups& Groups) -> std::ostream& {
   std::stringstream Ss;
 
-  for (auto const& [Key, Value] : IGroups.Groups) {
+  for (auto const& [Key, Value] : static_cast<InstructionGroups::InternalType>(Groups)) {
     Ss << Key << ":" << Value << ",";
   }
 

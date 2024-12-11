@@ -52,7 +52,7 @@ private:
   /// The time to skip from the measurement stop
   std::chrono::milliseconds StopDelta;
   /// The vector of instruction that is used in the optimization for the payload.
-  std::vector<std::string> InstructionGroups;
+  std::vector<std::string> Instructions;
 
 public:
   /// Constructor for the problem of optimizing firestarter on the fly.
@@ -65,19 +65,19 @@ public:
   /// \arg Timeout The duration of the measurement.
   /// \arg StartDelta The time to skip from the measurement start
   /// \arg StopDelta The time to skip from the measurement stop
-  /// \arg InstructionGroups The vector of instruction that is used in the optimization for the payload.
+  /// \arg Instructions The vector of instruction that is used in the optimization for the payload.
   CLIArgumentProblem(std::function<void(const firestarter::InstructionGroups&)>&& ChangePayloadFunction,
                      std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker,
                      std::vector<std::string> const& Metrics, std::chrono::seconds Timeout,
                      std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
-                     std::vector<std::string> InstructionGroups)
+                     std::vector<std::string> Instructions)
       : ChangePayloadFunction(std::move(ChangePayloadFunction))
       , MeasurementWorker(std::move(MeasurementWorker))
       , Metrics(Metrics)
       , Timeout(Timeout)
       , StartDelta(StartDelta)
       , StopDelta(StopDelta)
-      , InstructionGroups(std::move(InstructionGroups)) {
+      , Instructions(std::move(Instructions)) {
     assert(!Metrics.empty());
   }
 
@@ -91,15 +91,10 @@ public:
     // increment evaluation idx
     incrementFevals();
 
+    const auto Groups = firestarter::InstructionGroups::fromInstructionAndValues(Instructions, Individual);
+
     // change the payload
-    assert(InstructionGroups.size() == Individual.size());
-    std::vector<std::pair<std::string, unsigned>> Payload = {};
-    auto It1 = InstructionGroups.begin();
-    auto It2 = Individual.begin();
-    for (; It1 != InstructionGroups.end(); ++It1, ++It2) {
-      Payload.emplace_back(*It1, *It2);
-    }
-    ChangePayloadFunction(firestarter::InstructionGroups{Payload});
+    ChangePayloadFunction(Groups);
 
     // start the measurement
     // NOTE: starting the measurement must happen after switching to not
@@ -112,7 +107,7 @@ public:
     // TODO(Issue #82): This is an ugly workaround for the ipc-estimate metric.
     // Changing the payload triggers a write of the iteration counter of
     // the last payload, which we use to estimate the ipc.
-    ChangePayloadFunction(firestarter::InstructionGroups{Payload});
+    ChangePayloadFunction(Groups);
 
     // return the results
     return MeasurementWorker->getValues(StartDelta, StopDelta);
@@ -156,8 +151,7 @@ public:
   /// Get the bounds of the problem. We currently set these bounds fix to a range from 0 to 100 for every instruction.
   /// \returns A vector the size of the number of instruction groups containing a tuple(0, 100).
   [[nodiscard]] auto getBounds() const -> std::vector<std::tuple<unsigned, unsigned>> override {
-    std::vector<std::tuple<unsigned, unsigned>> Vec(InstructionGroups.size(),
-                                                    std::make_tuple<unsigned, unsigned>(0, 100));
+    std::vector<std::tuple<unsigned, unsigned>> Vec(Instructions.size(), std::make_tuple<unsigned, unsigned>(0, 100));
 
     return Vec;
   }

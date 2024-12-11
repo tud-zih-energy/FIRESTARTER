@@ -109,7 +109,7 @@ public:
   /// comma-seperated.
   void selectInstructionGroups(const InstructionGroups& Groups) {
     const auto& AvailableInstructionGroups = payload()->getAvailableInstructions();
-    for (const auto& [Instruction, Value] : Groups.Groups) {
+    for (const auto& [Instruction, Value] : static_cast<InstructionGroups::InternalType>(Groups)) {
       if (std::find(AvailableInstructionGroups.begin(), AvailableInstructionGroups.end(), Instruction) ==
           AvailableInstructionGroups.end()) {
         throw std::invalid_argument("Invalid instruction-group: " + Instruction +
