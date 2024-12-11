@@ -26,8 +26,8 @@
 
 namespace firestarter {
 
-auto CpuBind::fromString(const std::string& CpuBindString) -> std::vector<uint64_t> {
-  std::vector<uint64_t> ParsedCpus;
+auto CpuBind::fromString(const std::string& CpuBindString) -> std::set<uint64_t> {
+  std::set<uint64_t> ParsedCpus;
 
   const auto Delimiter = ',';
   const std::regex Re(R"(^(?:(\d+)(?:-([1-9]\d*)(?:\/([1-9]\d*))?)?)$)");
@@ -58,7 +58,7 @@ auto CpuBind::fromString(const std::string& CpuBindString) -> std::vector<uint64
         throw std::invalid_argument("y has to be >= x in x-y expressions of CPU list: " + Token);
       }
       for (auto I = X; I <= Y; I += S) {
-        ParsedCpus.emplace_back(I);
+        ParsedCpus.emplace(I);
       }
     } else {
       throw std::invalid_argument("Invalid symbols in CPU list: " + Token);

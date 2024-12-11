@@ -22,8 +22,8 @@
 #pragma once
 
 #include <cstdint>
+#include <set>
 #include <string>
-#include <vector>
 
 namespace firestarter {
 
@@ -32,8 +32,8 @@ struct CpuBind {
   /// Parse the cpu bind string and return a vector containing the parsed number of all selected cpus.
   /// \arg CpuBindString The string containing the cpu binding in the format "x,y,z", "x-y", "x-y/step", and any
   /// combination.
-  /// \returns The vector of parsed CPUs.
-  static auto fromString(const std::string& CpuBindString) -> std::vector<uint64_t>;
+  /// \returns The set of parsed CPUs.
+  static auto fromString(const std::string& CpuBindString) -> std::set<uint64_t>;
 };
 
 } // namespace firestarter

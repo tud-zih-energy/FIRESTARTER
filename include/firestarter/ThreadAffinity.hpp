@@ -26,7 +26,6 @@
 #include <cassert>
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 namespace firestarter {
 
@@ -40,11 +39,11 @@ struct ThreadAffinity {
   /// \arg ThreadsInfo The information about hardware threads on the current platform.
   /// \arg RequestedNumThreads The optional number of threads that are requested by a user. If this is std::nullopt the
   /// number will be automatically determined.
-  /// \arg CpuBinding The optional vector of cpus which are used for FIRESTARTER. It overrides the requested number of
+  /// \arg CpuBinding The optional set of cpus which are used for FIRESTARTER. It overrides the requested number of
   /// threads.
   [[nodiscard]] static auto fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
                                             const std::optional<unsigned>& RequestedNumThreads,
-                                            const std::optional<std::vector<uint64_t>>& CpuBinding) -> ThreadAffinity;
+                                            const std::optional<std::set<uint64_t>>& CpuBinding) -> ThreadAffinity;
 
   /// Print the summary of the used thread for the workers. If thread affinity is supported (linux and windows), print
   /// which thread is pinned to which CPU.
@@ -54,9 +53,9 @@ struct ThreadAffinity {
   /// The number of threads FIRESTARTER is requested to run with.
   uint64_t RequestedNumThreads = 0;
 
-  /// The list of physical CPU ids that are requested to be used. The length of this list matches the number of
+  /// The set of physical CPU ids that are requested to be used. The length of this list matches the number of
   /// requested threads.
-  std::vector<unsigned> CpuBind;
+  std::set<unsigned> CpuBind;
 };
 
 } // namespace firestarter

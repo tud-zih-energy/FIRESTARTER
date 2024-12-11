@@ -14,6 +14,10 @@ endif()
 option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
 
 
+# We fetch google test per default
+option(FIRESTARTER_FETCH_GOOGLETEST "Fetch the Google Test dependency." ON)
+
+
 # Debug feature are enabled on linux per default.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)

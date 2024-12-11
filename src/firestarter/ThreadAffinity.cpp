@@ -29,7 +29,7 @@ namespace firestarter {
 
 auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
                                      const std::optional<unsigned>& RequestedNumThreads,
-                                     const std::optional<std::vector<uint64_t>>& CpuBinding) -> ThreadAffinity {
+                                     const std::optional<std::set<uint64_t>>& CpuBinding) -> ThreadAffinity {
   ThreadAffinity Affinity{};
 
   if (RequestedNumThreads && RequestedNumThreads > ThreadsInfo.MaxNumThreads) {
@@ -42,7 +42,7 @@ auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
       if (Affinity.RequestedNumThreads == *RequestedNumThreads) {
         break;
       }
-      Affinity.CpuBind.emplace_back(OsIndex);
+      Affinity.CpuBind.emplace(OsIndex);
       Affinity.RequestedNumThreads++;
     }
     // requested to many threads
@@ -67,13 +67,13 @@ auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
                                     "the batch system, or similar mechanisms.\n"
                                     "Please fix the argument to match the restrictions.");
       }
-      Affinity.CpuBind.emplace_back(OsIndex);
+      Affinity.CpuBind.emplace(OsIndex);
     }
     Affinity.RequestedNumThreads = CpuBinding->size();
   } else {
     // Neither RequestedNumThreads nor CpuBinding provided, pin to all available CPUs.
     for (const auto& OsIndex : ThreadsInfo.OsIndices) {
-      Affinity.CpuBind.emplace_back(OsIndex);
+      Affinity.CpuBind.emplace(OsIndex);
       Affinity.RequestedNumThreads++;
     }
   }
