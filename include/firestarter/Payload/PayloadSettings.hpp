@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Config/InstructionGroups.hpp"
+
 #include <cassert>
 #include <cstddef>
 #include <initializer_list>
