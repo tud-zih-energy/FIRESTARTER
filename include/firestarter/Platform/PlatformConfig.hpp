@@ -119,8 +119,6 @@ public:
     }
 
     settings().selectInstructionGroups(Groups);
-
-    log::info() << "  Running custom instruction group: " << Groups;
   }
 
   /// The function name for this platform config given a specific thread per core count.

@@ -77,6 +77,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
   if (Cfg.Groups) {
     FunctionPtr->selectInstructionGroups(*Cfg.Groups);
+    log::info() << "  Running custom instruction group: " << *Cfg.Groups;
   }
 
   if (Cfg.LineCount) {
