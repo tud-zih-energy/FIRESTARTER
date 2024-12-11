@@ -73,7 +73,7 @@ public:
   /// compiled payload.
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
-  LoadWorkerData(uint64_t Id, uint64_t OsIndex, const std::shared_ptr<ProcessorInformation>& ProcessorInfos,
+  LoadWorkerData(uint64_t Id, uint64_t OsIndex, std::shared_ptr<ProcessorInformation> ProcessorInfos,
                  const std::unique_ptr<platform::PlatformConfig>& FunctionPtr, const CPUTopology& Topology,
                  volatile LoadThreadWorkType& LoadVar, std::chrono::microseconds Period, bool DumpRegisters,
                  bool ErrorDetection)
@@ -83,7 +83,7 @@ public:
       , ErrorDetection(ErrorDetection)
       , Id(Id)
       , OsIndex(OsIndex)
-      , ProcessorInfos(ProcessorInfos)
+      , ProcessorInfos(std::move(ProcessorInfos))
       , Topology(Topology)
       , Config(FunctionPtr->clone()) {}
 
