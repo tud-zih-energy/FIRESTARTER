@@ -22,7 +22,6 @@
 #pragma once
 
 #include <optional>
-#include <ostream>
 #include <set>
 
 extern "C" {
