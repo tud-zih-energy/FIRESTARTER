@@ -35,6 +35,8 @@ namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig)) {
+  std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
+
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
     FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();

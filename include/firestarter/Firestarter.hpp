@@ -26,7 +26,6 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
 #include "firestarter/DumpRegisterWorkerData.hpp"
-#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/LoadWorkerData.hpp"
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/OneAPI/OneAPI.hpp"
@@ -72,8 +71,6 @@ private:
   CPUTopology Topology;
   /// This class holds the information about the current processor which is specific to one architecture.
   std::shared_ptr<ProcessorInformation> ProcessorInfos;
-  /// The class that handles setting up the payload for firestarter
-  std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
   /// The selection function.
   std::unique_ptr<platform::PlatformConfig> FunctionPtr;
   /// The class for execution of the gemm routine on Cuda or HIP GPUs.
