@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/AlignedAlloc.hpp"
+#include "firestarter/Config/CpuBind.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/ErrorDetectionStruct.hpp"
 #include "firestarter/Firestarter.hpp"
@@ -49,7 +50,7 @@ namespace firestarter {
 
 void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
   // Bind this thread to the first available CPU.
-  Topology->bindCallerToOsIndex(Affinity.CpuBind[0]);
+  Topology->bindCallerToOsIndex(*Affinity.CpuBind.cbegin());
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
@@ -70,8 +71,11 @@ void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
     }
   }
 
-  for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, Affinity.CpuBind[I], std::cref(*Environment), std::cref(*Topology),
+  auto CpuBindIt = Affinity.CpuBind.cbegin();
+  for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++, CpuBindIt++) {
+    assert(CpuBindIt != Affinity.CpuBind.cend());
+
+    auto Td = std::make_shared<LoadWorkerData>(I, *CpuBindIt, std::cref(*Environment), std::cref(*Topology),
                                                std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {

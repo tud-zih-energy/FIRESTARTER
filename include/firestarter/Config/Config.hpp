@@ -24,6 +24,7 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -67,7 +68,7 @@ struct Config {
   std::vector<std::string> OptimizationMetrics;
 
   /// The optional cpu bind that allow pinning to specific cpus.
-  std::optional<std::vector<uint64_t>> CpuBinding;
+  std::optional<std::set<uint64_t>> CpuBinding;
   /// The optional selected instruction groups. If this is empty the default will be choosen.
   std::string InstructionGroups;
   /// The file where the dump register feature will safe its output to.
