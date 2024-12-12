@@ -155,11 +155,8 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		nlohmann_json::nlohmann_json
 		)
         target_compile_features(FIRESTARTER PRIVATE cxx_std_17)
-
-        add_executable(payload_example payload_example/example.cpp)
-        target_link_libraries(payload_example payload)
-
-	# static linking is not supported on Darwin, see Apple Technical QA1118
+	
+        # static linking is not supported on Darwin, see Apple Technical QA1118
 	if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		find_library( COREFOUNDATION_LIBRARY CoreFoundation )
 		find_library( IOKIT_LIBRARY IOKit )
