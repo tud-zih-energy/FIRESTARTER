@@ -43,19 +43,6 @@ public:
       , Family(Family)
       , Models(std::move(Models)) {}
 
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given X86CPUTopology.
-  [[nodiscard]] auto isAvailable(const X86ProcessorInformation& Topology) const -> bool {
-    return isAvailable(&Topology);
-  }
-
-  /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given X86CPUTopology.
-  [[nodiscard]] auto isDefault(const X86ProcessorInformation& Topology) const -> bool { return isDefault(&Topology); }
-
   /// Clone a the platform config.
   [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> final {
     auto Ptr = std::make_unique<X86PlatformConfig>(name(), Family, std::list<unsigned>(Models),
@@ -76,14 +63,6 @@ public:
   }
 
 private:
-  /// Check if this platform is available on the current system. This tranlates to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const ProcessorInformation* Topology) const -> bool final {
-    return firestarter::platform::PlatformConfig::isAvailable(Topology);
-  }
-
   /// Check if this platform is available and the default on the current system. This is done by checking if the family
   /// id in the CPUTopology matches the one saved in Family and if the model id in the CPUTopology is contained in
   /// Models.
@@ -96,7 +75,8 @@ private:
     // Check if the family of the topology matches the family of the config, if the model of the topology is contained
     // in the models list of the config and if the config is available on the current platform.
     return Family == FinalTopology->familyId() &&
-           (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) && isAvailable(Topology);
+           (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) &&
+           payload()->isAvailable(*Topology);
   }
 };
 

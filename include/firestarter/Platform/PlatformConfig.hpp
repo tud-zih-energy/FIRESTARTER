@@ -58,12 +58,6 @@ public:
   /// Getter for the payload of the platform.
   [[nodiscard]] auto payload() const -> const auto& { return Payload; }
 
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The reference to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const ProcessorInformation& Topology) const -> bool { return isAvailable(&Topology); }
-
   /// Check if this platform is available and the default on the current system.
   /// \arg Topology The reference to the CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given CPUTopology.
@@ -72,14 +66,6 @@ public:
 protected:
   /// Non const Getter for the settings of the platform.
   [[nodiscard]] auto settings() -> payload::PayloadSettings& { return Settings; }
-
-  /// Check if this platform is available on the current system. This transloate to if the cpu extensions are
-  /// available for the payload that is used.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
-  /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] virtual auto isAvailable(const ProcessorInformation* Topology) const -> bool {
-    return payload()->isAvailable(*Topology);
-  }
 
   /// Check if this platform is available and the default on the current system.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
