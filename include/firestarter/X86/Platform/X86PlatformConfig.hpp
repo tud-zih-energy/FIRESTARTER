@@ -76,7 +76,7 @@ private:
     // in the models list of the config and if the config is available on the current platform.
     return Family == FinalTopology->familyId() &&
            (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) &&
-           payload()->isAvailable(*Topology);
+           payload()->isAvailable(Topology->cpuFeatures());
   }
 };
 

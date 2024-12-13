@@ -1,6 +1,8 @@
 add_executable(UnitTests
     CpuBindTest.cpp
     InstructionGroupsTest.cpp
+    X86CpuFeaturesTest.cpp
+    X86PayloadTest.cpp
 )
 
 target_link_libraries(UnitTests

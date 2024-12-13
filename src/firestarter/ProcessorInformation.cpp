@@ -20,7 +20,6 @@
  *****************************************************************************/
 
 #include "firestarter/ProcessorInformation.hpp"
-#include "firestarter/Firestarter.hpp"
 #include "firestarter/Logging/Log.hpp"
 
 #include <fstream>
@@ -49,8 +48,9 @@ void ProcessorInformation::print() const {
               << "    supported features: " << Ss.str();
 }
 
-ProcessorInformation::ProcessorInformation(std::string Architecture)
-    : Architecture(std::move(Architecture)) {
+ProcessorInformation::ProcessorInformation(std::string Architecture, std::unique_ptr<CpuFeatures>&& Features)
+    : Features(std::move(Features))
+    , Architecture(std::move(Architecture)) {
 
   // get vendor, processor name and clockrate for linux
 #if defined(linux) || defined(__linux__)

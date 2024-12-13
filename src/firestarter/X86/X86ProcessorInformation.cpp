@@ -21,6 +21,7 @@
 
 #include "firestarter/X86/X86ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/X86/X86CpuFeatures.hpp"
 
 #include <ctime>
 
@@ -34,7 +35,7 @@
 namespace firestarter::x86 {
 
 X86ProcessorInformation::X86ProcessorInformation()
-    : ProcessorInformation("x86_64")
+    : ProcessorInformation("x86_64", std::make_unique<X86CpuFeatures>(asmjit::CpuInfo::host().features()))
     , CpuInfo(asmjit::CpuInfo::host())
     , Vendor(CpuInfo.vendor()) {
 

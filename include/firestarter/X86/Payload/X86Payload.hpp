@@ -26,7 +26,7 @@
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Logging/Log.hpp" // IWYU pragma: keep
 #include "firestarter/Payload/Payload.hpp"
-#include "firestarter/X86/X86ProcessorInformation.hpp"
+#include "firestarter/X86/X86CpuFeatures.hpp"
 
 #include <asmjit/x86.h>
 #include <cassert>
@@ -43,7 +43,7 @@ namespace firestarter::x86::payload {
 class X86Payload : public firestarter::payload::Payload {
 private:
   /// This list contains the features (cpu extenstions) that are requied to execute the payload.
-  std::list<asmjit::CpuFeatures::X86::Id> FeatureRequests;
+  X86CpuFeatures FeatureRequests;
 
   /// The mapping from instructions to the number of flops per instruction. This map is required to have an entry for
   /// every instruction.
@@ -63,31 +63,24 @@ public:
   /// to have an entry for every instruction.
   /// \arg InstructionMemory The mapping from instructions to the size of main memory accesses for this instuction. This
   /// map is not required to contain all instructions.
-  X86Payload(std::initializer_list<asmjit::CpuFeatures::X86::Id> FeatureRequests, std::string Name,
-             unsigned RegisterSize, unsigned RegisterCount, std::map<std::string, unsigned>&& InstructionFlops,
+  X86Payload(X86CpuFeatures FeatureRequests, std::string Name, unsigned RegisterSize, unsigned RegisterCount,
+             std::map<std::string, unsigned>&& InstructionFlops,
              std::map<std::string, unsigned>&& InstructionMemory) noexcept
       : Payload(std::move(Name), RegisterSize, RegisterCount)
-      , FeatureRequests(FeatureRequests)
+      , FeatureRequests(std::move(FeatureRequests))
       , InstructionFlops(std::move(InstructionFlops))
       , InstructionMemory(std::move(InstructionMemory)) {}
 
-private:
-  /// Check if this payload is available on the current system. This is equivalent to checking if the supplied Topology
-  /// contains all features that are in FeatureRequests.
-  /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the payload is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const ProcessorInformation& Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86ProcessorInformation*>(&Topology);
-    assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
-
-    bool Available = true;
-
-    for (auto const& Feature : FeatureRequests) {
-      Available &= FinalTopology->featuresAsmjit().has(Feature);
-    }
-
-    return Available;
+  /// Check if this payload is available on the current system. This is equivalent to checking if the supplied features
+  /// contains all that are requested by this payload.
+  /// \arg CpuFeatures Features that this payload requires to check agains if this payload is supported.
+  /// \returns true if the payload is supported on the system with the given features.
+  [[nodiscard]] auto isAvailable(const CpuFeatures& Features) const -> bool final {
+    return Features.hasAll(FeatureRequests);
   };
+
+  /// The features that are required for this payload
+  [[nodiscard]] auto featureRequests() const -> const auto& { return FeatureRequests; }
 
 protected:
   /// Print the generated assembler Code of asmjit

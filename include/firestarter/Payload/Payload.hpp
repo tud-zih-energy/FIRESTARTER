@@ -22,10 +22,10 @@
 #pragma once
 
 #include "firestarter/Constants.hpp"
+#include "firestarter/CpuFeatures.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/CompiledPayload.hpp"
 #include "firestarter/Payload/PayloadSettings.hpp"
-#include "firestarter/ProcessorInformation.hpp"
 
 #include <chrono>
 #include <list>
@@ -85,9 +85,9 @@ public:
 
   /// Check if this payload is available on the current system. This usally translates if the cpu extensions are
   /// available.
-  /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the payload is supported on the given CPUTopology.
-  [[nodiscard]] virtual auto isAvailable(const ProcessorInformation& Topology) const -> bool = 0;
+  /// \arg CpuFeatures Features that this payload requires to check agains if this payload is supported.
+  /// \returns true if the payload is supported on the system with the given features.
+  [[nodiscard]] virtual auto isAvailable(const CpuFeatures& Features) const -> bool = 0;
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.

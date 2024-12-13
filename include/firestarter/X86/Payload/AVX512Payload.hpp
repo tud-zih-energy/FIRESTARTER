@@ -29,26 +29,28 @@ namespace firestarter::x86::payload {
 class AVX512Payload final : public X86Payload {
 public:
   AVX512Payload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX512_F}, /*Name=*/"AVX512", /*RegisterSize=*/8,
-                   /*RegisterCount=*/32,
-                   /*InstructionFlops=*/
-                   {{"REG", 32},
-                    {"L1_L", 32},
-                    {"L1_BROADCAST", 16},
-                    {"L1_S", 16},
-                    {"L1_LS", 16},
-                    {"L2_L", 32},
-                    {"L2_S", 16},
-                    {"L2_LS", 16},
-                    {"L3_L", 32},
-                    {"L3_S", 16},
-                    {"L3_LS", 16},
-                    {"L3_P", 16},
-                    {"RAM_L", 32},
-                    {"RAM_S", 16},
-                    {"RAM_LS", 16},
-                    {"RAM_P", 16}},
-                   /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
+      : X86Payload(
+            /*FeatureRequests=*/X86CpuFeatures().add(asmjit::CpuFeatures::X86::Id::kAVX512_F),
+            /*Name=*/"AVX512", /*RegisterSize=*/8,
+            /*RegisterCount=*/32,
+            /*InstructionFlops=*/
+            {{"REG", 32},
+             {"L1_L", 32},
+             {"L1_BROADCAST", 16},
+             {"L1_S", 16},
+             {"L1_LS", 16},
+             {"L2_L", 32},
+             {"L2_S", 16},
+             {"L2_LS", 16},
+             {"L3_L", 32},
+             {"L3_S", 16},
+             {"L3_LS", 16},
+             {"L3_P", 16},
+             {"RAM_L", 32},
+             {"RAM_S", 16},
+             {"RAM_LS", 16},
+             {"RAM_P", 16}},
+            /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.

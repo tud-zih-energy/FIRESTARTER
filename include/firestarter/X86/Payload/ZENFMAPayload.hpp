@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "asmjit/core/cpuinfo.h"
 #include "firestarter/X86/Payload/X86Payload.hpp"
 
 namespace firestarter::x86::payload {
@@ -29,7 +30,9 @@ namespace firestarter::x86::payload {
 class ZENFMAPayload final : public X86Payload {
 public:
   ZENFMAPayload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::Id::kAVX, asmjit::CpuFeatures::X86::Id::kFMA},
+      : X86Payload(/*FeatureRequests=*/X86CpuFeatures()
+                       .add(asmjit::CpuFeatures::X86::Id::kAVX)
+                       .add(asmjit::CpuFeatures::X86::Id::kFMA),
                    /*Name=*/"ZENFMA", /*RegisterSize=*/4, /*RegisterCount=*/16,
                    /*InstructionFlops=*/{{"REG", 8}, {"L1_LS", 8}, {"L2_L", 8}, {"L3_L", 8}, {"RAM_L", 8}},
                    /*InstructionMemory=*/{{"RAM_L", 64}}) {}

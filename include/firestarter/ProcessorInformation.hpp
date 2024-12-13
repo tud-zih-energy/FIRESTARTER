@@ -21,8 +21,11 @@
 
 #pragma once
 
+#include "firestarter/CpuFeatures.hpp"
+
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -35,7 +38,7 @@ namespace firestarter {
 /// This class models the properties of a processor.
 class ProcessorInformation {
 public:
-  explicit ProcessorInformation(std::string Architecture);
+  explicit ProcessorInformation(std::string Architecture, std::unique_ptr<CpuFeatures>&& Features);
   virtual ~ProcessorInformation() = default;
 
   /// Getter for the clockrate in Hz
@@ -49,6 +52,9 @@ public:
 
   /// The model of the processor. With X86 this is the the string of Family, Model and Stepping.
   [[nodiscard]] virtual auto model() const -> std::string const& = 0;
+
+  /// Getter for the cpu features abstraction
+  [[nodiscard]] auto cpuFeatures() const -> const CpuFeatures& { return *Features; }
 
   /// Print the information about this process to a stream.
   void print() const;
@@ -67,6 +73,8 @@ protected:
 private:
   /// The CPU vendor i.e., Intel or AMD.
   std::string Vendor;
+  /// The cpu features of this processor.
+  std::unique_ptr<CpuFeatures> Features;
 
   /// Helper function to open a filepath and return a stringstream with its contents.
   /// \arg FilePath The file to open

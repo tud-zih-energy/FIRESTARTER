@@ -29,15 +29,18 @@ namespace firestarter::x86::payload {
 class FMAPayload final : public X86Payload {
 public:
   FMAPayload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA}, /*Name=*/"FMA",
-                   /*RegisterSize=*/4, /*RegisterCount=*/16,
-                   /*InstructionFlops=*/{{"REG", 16},  {"L1_L", 16},     {"L1_2L", 16},      {"L1_S", 8},
-                                         {"L1_LS", 8}, {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},
-                                         {"L2_S", 8},  {"L2_LS", 8},     {"L2_LS_256", 8},   {"L2_2LS_256", 16},
-                                         {"L3_L", 16}, {"L3_S", 8},      {"L3_LS", 8},       {"L3_LS_256", 8},
-                                         {"L3_P", 8},  {"RAM_L", 16},    {"RAM_S", 8},       {"RAM_LS", 8},
-                                         {"RAM_P", 8}},
-                   /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
+      : X86Payload(
+            /*FeatureRequests=*/X86CpuFeatures()
+                .add(asmjit::CpuFeatures::X86::Id::kAVX)
+                .add(asmjit::CpuFeatures::X86::Id::kFMA),
+            /*Name=*/"FMA",
+            /*RegisterSize=*/4, /*RegisterCount=*/16,
+            /*InstructionFlops=*/{{"REG", 16},      {"L1_L", 16},       {"L1_2L", 16}, {"L1_S", 8},  {"L1_LS", 8},
+                                  {"L1_LS_256", 8}, {"L1_2LS_256", 16}, {"L2_L", 16},  {"L2_S", 8},  {"L2_LS", 8},
+                                  {"L2_LS_256", 8}, {"L2_2LS_256", 16}, {"L3_L", 16},  {"L3_S", 8},  {"L3_LS", 8},
+                                  {"L3_LS_256", 8}, {"L3_P", 8},        {"RAM_L", 16}, {"RAM_S", 8}, {"RAM_LS", 8},
+                                  {"RAM_P", 8}},
+            /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.

@@ -39,7 +39,7 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const Proce
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // the selected function
     if (Id == FunctionId) {
-      if (!Platform.Config->payload()->isAvailable(ProcessorInfos)) {
+      if (!Platform.Config->payload()->isAvailable(ProcessorInfos.cpuFeatures())) {
         const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                  Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
                                  Platform.Config->payload()->name() + ", which is not supported by the processor.";
@@ -89,7 +89,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformati
   // loop over available implementation and check if they are marked as
   // fallback
   for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
-    if (FallbackPlatformConfigPtr->payload()->isAvailable(ProcessorInfos)) {
+    if (FallbackPlatformConfigPtr->payload()->isAvailable(ProcessorInfos.cpuFeatures())) {
       unsigned SelectedThreadsPerCore{};
 
       // find the fallback implementation with the correct thread per core count or select the first available thread
@@ -138,7 +138,8 @@ void FunctionSelection::printFunctionSummary(const ProcessorInformation& Process
   auto Id = 1U;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
-    const char* Available = (Platform.Config->payload()->isAvailable(ProcessorInfos) || ForceYes) ? "yes" : "no";
+    const char* Available =
+        (Platform.Config->payload()->isAvailable(ProcessorInfos.cpuFeatures()) || ForceYes) ? "yes" : "no";
     const auto& FunctionName = Platform.Config->functionName(Platform.ThreadCount);
     const auto& InstructionGroupsString = Platform.Config->constRef().settings().groups();
 

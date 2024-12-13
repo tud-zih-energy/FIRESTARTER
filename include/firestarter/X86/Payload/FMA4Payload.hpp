@@ -29,7 +29,9 @@ namespace firestarter::x86::payload {
 class FMA4Payload final : public X86Payload {
 public:
   FMA4Payload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kAVX, asmjit::CpuFeatures::X86::kFMA4},
+      : X86Payload(/*FeatureRequests=*/X86CpuFeatures()
+                       .add(asmjit::CpuFeatures::X86::Id::kAVX)
+                       .add(asmjit::CpuFeatures::X86::Id::kFMA4),
                    /*Name=*/"FMA4", /*RegisterSize=*/4, /*RegisterCount=*/16,
                    /*InstructionFlops=*/
                    {{"REG", 8},

@@ -29,25 +29,27 @@ namespace firestarter::x86::payload {
 class SSE2Payload final : public X86Payload {
 public:
   SSE2Payload() noexcept
-      : X86Payload(/*FeatureRequests=*/{asmjit::CpuFeatures::X86::kSSE2}, /*Name=*/"SSE2", /*RegisterSize=*/2,
-                   /*RegisterCount=*/16,
-                   /*InstructionFlops=*/
-                   {{"REG", 2},
-                    {"L1_L", 2},
-                    {"L1_S", 2},
-                    {"L1_LS", 2},
-                    {"L2_L", 2},
-                    {"L2_S", 2},
-                    {"L2_LS", 2},
-                    {"L3_L", 2},
-                    {"L3_S", 2},
-                    {"L3_LS", 2},
-                    {"L3_P", 2},
-                    {"RAM_L", 2},
-                    {"RAM_S", 2},
-                    {"RAM_LS", 2},
-                    {"RAM_P", 2}},
-                   /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
+      : X86Payload(
+            /*FeatureRequests=*/X86CpuFeatures().add(asmjit::CpuFeatures::X86::Id::kSSE2),
+            /*Name=*/"SSE2", /*RegisterSize=*/2,
+            /*RegisterCount=*/16,
+            /*InstructionFlops=*/
+            {{"REG", 2},
+             {"L1_L", 2},
+             {"L1_S", 2},
+             {"L1_LS", 2},
+             {"L2_L", 2},
+             {"L2_S", 2},
+             {"L2_LS", 2},
+             {"L3_L", 2},
+             {"L3_S", 2},
+             {"L3_LS", 2},
+             {"L3_P", 2},
+             {"RAM_L", 2},
+             {"RAM_S", 2},
+             {"RAM_LS", 2},
+             {"RAM_P", 2}},
+            /*InstructionMemory=*/{{"RAM_L", 64}, {"RAM_S", 128}, {"RAM_LS", 128}, {"RAM_P", 64}}) {}
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.
