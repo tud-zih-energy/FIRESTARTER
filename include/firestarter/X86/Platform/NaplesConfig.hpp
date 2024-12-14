@@ -29,7 +29,9 @@ class NaplesConfig final : public X86PlatformConfig {
 public:
   NaplesConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"ZEN_EPYC", /*Family=*/23, /*Models=*/{1, 8, 17, 24},
+            /*Name=*/"ZEN_EPYC", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/23, /*ModelId=*/1), X86CpuModel(/*FamilyId=*/23, /*ModelId=*/8),
+             X86CpuModel(/*FamilyId=*/23, /*ModelId=*/17), X86CpuModel(/*FamilyId=*/23, /*ModelId=*/24)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{65536, 524288, 2097152}, /*RamBufferSize=*/104857600,

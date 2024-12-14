@@ -29,7 +29,8 @@ class SkylakeConfig final : public X86PlatformConfig {
 public:
   SkylakeConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"SKL_COREI", /*Family=*/6, /*Models=*/{78, 94},
+            /*Name=*/"SKL_COREI", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/78), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/94)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},

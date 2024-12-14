@@ -25,7 +25,9 @@
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+#include "firestarter/X86/X86CpuFeatures.hpp"
 #include "firestarter/X86/X86FunctionSelection.hpp"
+#include "firestarter/X86/X86ProcessorInformation.hpp"
 
 #include <csignal>
 #include <cstdlib>
@@ -48,8 +50,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
-      const auto& X86ProcessorInfos = *dynamic_cast<x86::X86ProcessorInformation*>(ProcessorInfos.get());
-      if (!X86ProcessorInfos.featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+      if (!ProcessorInfos->cpuFeatures().hasAll(x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kSSE4_2))) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
       }

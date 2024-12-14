@@ -24,9 +24,13 @@
 #include <asmjit/asmjit.h>
 #include <gtest/gtest.h>
 
+namespace {
+
 class InvalidCpuFeatures : public firestarter::CpuFeatures {
   [[nodiscard]] auto hasAll(const CpuFeatures& /*Features*/) const -> bool override { return true; };
 };
+
+} // namespace
 
 TEST(X86CpuFeatures, X86CpuFeaturesAllowed) {
   firestarter::x86::X86CpuFeatures Features{};

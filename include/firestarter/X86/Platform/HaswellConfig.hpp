@@ -29,7 +29,10 @@ class HaswellConfig final : public X86PlatformConfig {
 public:
   HaswellConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"HSW_COREI", /*Family=*/6, /*Models=*/{60, 61, 69, 70, 71},
+            /*Name=*/"HSW_COREI", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/60), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/61),
+             X86CpuModel(/*FamilyId=*/6, /*ModelId=*/69), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/70),
+             X86CpuModel(/*FamilyId=*/6, /*ModelId=*/71)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,

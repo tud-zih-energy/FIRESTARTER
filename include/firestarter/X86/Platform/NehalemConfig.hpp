@@ -29,7 +29,9 @@ class NehalemConfig final : public X86PlatformConfig {
 public:
   NehalemConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"NHM_COREI", /*Family=*/6, /*Models=*/{30, 37, 23},
+            /*Name=*/"NHM_COREI", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/30), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/37),
+             X86CpuModel(/*FamilyId=*/6, /*ModelId=*/23)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(/*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864},
                                                   /*RamBufferSize=*/104857600, /*Lines=*/1536,

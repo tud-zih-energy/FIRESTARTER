@@ -29,7 +29,10 @@ class BulldozerConfig final : public X86PlatformConfig {
 public:
   BulldozerConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"BLD_OPTERON", /*Family=*/21, /*Models=*/{1, 2, 3},
+            /*Name=*/"BLD_OPTERON",
+            /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/21, /*ModelId=*/1), X86CpuModel(/*FamilyId=*/21, /*ModelId=*/2),
+             X86CpuModel(/*FamilyId=*/21, /*ModelId=*/3)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1}, /*DataCacheBufferSize=*/{16384, 1048576, 786432}, /*RamBufferSize=*/104857600,

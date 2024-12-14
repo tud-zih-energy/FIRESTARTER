@@ -19,9 +19,9 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/X86/Platform/X86PlatformConfig.hpp"
 #include "firestarter/X86/Payload/X86Payload.hpp"
 
-#include <asmjit/asmjit.h>
 #include <gtest/gtest.h>
 
 namespace {
@@ -30,9 +30,7 @@ class X86PayloadTest : public firestarter::x86::payload::X86Payload {
 public:
   X86PayloadTest()
       : firestarter::x86::payload::X86Payload(
-            /*FeatureRequests=*/firestarter::x86::X86CpuFeatures()
-                .add(asmjit::CpuFeatures::X86::kAVX2)
-                .add(asmjit::CpuFeatures::X86::kAVX512_F),
+            /*FeatureRequests=*/firestarter::x86::X86CpuFeatures(),
             /*Name=*/"X86Payload", /*RegisterSize=*/0,
             /*RegisterCount=*/0,
             /*InstructionFlops=*/
@@ -48,6 +46,21 @@ public:
   }
 };
 
+class X86PlafromConfigTest : public firestarter::x86::platform::X86PlatformConfig {
+public:
+  inline static const auto Model1 = firestarter::x86::X86CpuModel(/*FamilyId=*/1, /*ModelId=*/2);
+  inline static const auto Model2 = firestarter::x86::X86CpuModel(/*FamilyId=*/3, /*ModelId=*/4);
+  inline static const auto InvalidModel = firestarter::x86::X86CpuModel(/*FamilyId=*/5, /*ModelId=*/6);
+
+  X86PlafromConfigTest()
+      : firestarter::x86::platform::X86PlatformConfig(
+            "X86PlatformConfig", {Model1, Model2},
+            firestarter::payload::PayloadSettings(
+                /*Threads=*/{}, /*DataCacheBufferSize=*/{}, /*RamBufferSize=*/0,
+                /*Lines=*/0, /*Groups=*/firestarter::InstructionGroups(firestarter::InstructionGroups::InternalType())),
+            std::make_shared<X86PayloadTest>()) {}
+};
+
 class TrueCpuFeatures : public firestarter::CpuFeatures {
   [[nodiscard]] auto hasAll(const CpuFeatures& /*Features*/) const -> bool override { return true; };
 };
@@ -58,19 +71,13 @@ class FalseCpuFeatures : public firestarter::CpuFeatures {
 
 } // namespace
 
-TEST(X86PayloadTest, CpuFeatureHasAllReturned) {
-  EXPECT_TRUE(X86PayloadTest().isAvailable(TrueCpuFeatures()));
-  EXPECT_FALSE(X86PayloadTest().isAvailable(FalseCpuFeatures()));
-}
+TEST(X86PlafromConfigTest, CheckIsDefault) {
+  EXPECT_TRUE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::Model1, TrueCpuFeatures()));
+  EXPECT_FALSE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::Model1, FalseCpuFeatures()));
 
-TEST(X86CpuFeatures, CheckIsAvailable) {
-  EXPECT_FALSE(X86PayloadTest().isAvailable(firestarter::x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kAVX)));
-  EXPECT_FALSE(X86PayloadTest().isAvailable(firestarter::x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kAVX2)));
-  EXPECT_FALSE(
-      X86PayloadTest().isAvailable(firestarter::x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kAVX512_F)));
-  EXPECT_TRUE(X86PayloadTest().isAvailable(X86PayloadTest().featureRequests()));
-  EXPECT_TRUE(X86PayloadTest().isAvailable(firestarter::x86::X86CpuFeatures()
-                                               .add(asmjit::CpuFeatures::X86::kAVX)
-                                               .add(asmjit::CpuFeatures::X86::kAVX2)
-                                               .add(asmjit::CpuFeatures::X86::kAVX512_F)));
+  EXPECT_TRUE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::Model2, TrueCpuFeatures()));
+  EXPECT_FALSE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::Model2, FalseCpuFeatures()));
+
+  EXPECT_FALSE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::InvalidModel, TrueCpuFeatures()));
+  EXPECT_FALSE(X86PlafromConfigTest().isDefault(X86PlafromConfigTest::InvalidModel, FalseCpuFeatures()));
 }

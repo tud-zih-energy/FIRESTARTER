@@ -28,7 +28,8 @@ namespace firestarter::x86::platform {
 class KnightsLandingConfig final : public X86PlatformConfig {
 public:
   KnightsLandingConfig() noexcept
-      : X86PlatformConfig(/*Name=*/"KNL_XEONPHI", /*Family=*/6, /*Models=*/{87},
+      : X86PlatformConfig(/*Name=*/"KNL_XEONPHI", /*RequestedModels=*/
+                          {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/87)},
                           /*Settings=*/
                           firestarter::payload::PayloadSettings(
                               /*Threads=*/{4}, /*DataCacheBufferSize=*/{32768, 524288, 236279125},

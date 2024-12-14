@@ -28,7 +28,8 @@ namespace firestarter::x86::platform {
 class NehalemEPConfig final : public X86PlatformConfig {
 public:
   NehalemEPConfig() noexcept
-      : X86PlatformConfig(/*Name=*/"NHM_XEONEP", /*Family=*/6, /*Models=*/{26, 44},
+      : X86PlatformConfig(/*Name=*/"NHM_XEONEP", /*RequestedModels=*/
+                          {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/26), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/44)},
                           /*Settings=*/
                           firestarter::payload::PayloadSettings(
                               /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 2097152},

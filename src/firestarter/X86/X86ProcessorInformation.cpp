@@ -22,8 +22,10 @@
 #include "firestarter/X86/X86ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/X86/X86CpuFeatures.hpp"
+#include "firestarter/X86/X86CpuModel.hpp"
 
 #include <ctime>
+#include <memory>
 
 #ifdef _MSC_VER
 #include <array>
@@ -35,13 +37,15 @@
 namespace firestarter::x86 {
 
 X86ProcessorInformation::X86ProcessorInformation()
-    : ProcessorInformation("x86_64", std::make_unique<X86CpuFeatures>(asmjit::CpuInfo::host().features()))
+    : ProcessorInformation(
+          "x86_64", std::make_unique<X86CpuFeatures>(asmjit::CpuInfo::host().features()),
+          std::make_unique<X86CpuModel>(asmjit::CpuInfo::host().familyId(), asmjit::CpuInfo::host().modelId()))
     , CpuInfo(asmjit::CpuInfo::host())
     , Vendor(CpuInfo.vendor()) {
 
   {
     std::stringstream Ss;
-    Ss << "Family " << familyId() << ", Model " << modelId() << ", Stepping " << stepping();
+    Ss << "Family " << CpuInfo.familyId() << ", Model " << CpuInfo.modelId() << ", Stepping " << CpuInfo.stepping();
     Model = Ss.str();
   }
 

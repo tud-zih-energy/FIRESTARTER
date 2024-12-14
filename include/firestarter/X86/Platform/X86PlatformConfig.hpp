@@ -22,30 +22,27 @@
 #pragma once
 
 #include "firestarter/Platform/PlatformConfig.hpp"
-#include "firestarter/ProcessorInformation.hpp"
-#include "firestarter/X86/X86ProcessorInformation.hpp"
+#include "firestarter/X86/X86CpuModel.hpp"
+#include <set>
 
 namespace firestarter::x86::platform {
 
 /// Models a platform config that is the default based on x86 CPU family and model ids.
 class X86PlatformConfig : public firestarter::platform::PlatformConfig {
 private:
-  /// The famility id of the processor for which this is the default platform config.
-  unsigned Family;
-  /// The list of model ids in combination with the family for which this is the default platform config.
-  std::list<unsigned> Models;
+  /// The set of requested cpu models
+  std::set<X86CpuModel> RequestedModels;
 
 public:
-  X86PlatformConfig(std::string Name, unsigned Family, std::list<unsigned>&& Models,
+  X86PlatformConfig(std::string Name, std::set<X86CpuModel>&& RequestedModels,
                     firestarter::payload::PayloadSettings&& Settings,
                     std::shared_ptr<const firestarter::payload::Payload>&& Payload) noexcept
       : PlatformConfig(std::move(Name), std::move(Settings), std::move(Payload))
-      , Family(Family)
-      , Models(std::move(Models)) {}
+      , RequestedModels(std::move(RequestedModels)) {}
 
   /// Clone a the platform config.
   [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> final {
-    auto Ptr = std::make_unique<X86PlatformConfig>(name(), Family, std::list<unsigned>(Models),
+    auto Ptr = std::make_unique<X86PlatformConfig>(name(), std::set<X86CpuModel>(RequestedModels),
                                                    firestarter::payload::PayloadSettings(settings()),
                                                    std::shared_ptr(payload()));
     return Ptr;
@@ -62,21 +59,14 @@ public:
     return Ptr;
   }
 
-private:
-  /// Check if this platform is available and the default on the current system. This is done by checking if the family
-  /// id in the CPUTopology matches the one saved in Family and if the model id in the CPUTopology is contained in
-  /// Models.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const ProcessorInformation* Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86ProcessorInformation*>(Topology);
-    assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
-
-    // Check if the family of the topology matches the family of the config, if the model of the topology is contained
-    // in the models list of the config and if the config is available on the current platform.
-    return Family == FinalTopology->familyId() &&
-           (std::find(Models.begin(), Models.end(), FinalTopology->modelId()) != Models.end()) &&
-           payload()->isAvailable(Topology->cpuFeatures());
+  /// Check if this platform is available and the default on the current system. This is done by checking if the cpu
+  /// model matches one of the requested ones and that the payload is available with the supplied cpu features.
+  /// \arg Model The reference to the cpu model that is used to check if this config is the default.
+  /// \arg CpuFeatures Features that this payload requires to check agains if this payload is supported.
+  /// \returns true if the platform is the default one.
+  [[nodiscard]] auto isDefault(const CpuModel& Model, const CpuFeatures& Features) const -> bool override {
+    const auto ModelIt = std::find(RequestedModels.cbegin(), RequestedModels.cend(), Model);
+    return ModelIt != RequestedModels.cend() && payload()->isAvailable(Features);
   }
 };
 

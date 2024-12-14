@@ -48,8 +48,10 @@ void ProcessorInformation::print() const {
               << "    supported features: " << Ss.str();
 }
 
-ProcessorInformation::ProcessorInformation(std::string Architecture, std::unique_ptr<CpuFeatures>&& Features)
+ProcessorInformation::ProcessorInformation(std::string Architecture, std::unique_ptr<CpuFeatures>&& Features,
+                                           std::unique_ptr<CpuModel>&& Model)
     : Features(std::move(Features))
+    , Model(std::move(Model))
     , Architecture(std::move(Architecture)) {
 
   // get vendor, processor name and clockrate for linux

@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Config/InstructionGroups.hpp"
+#include "firestarter/CpuModel.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
 #include "firestarter/ProcessorInformation.hpp"
@@ -59,18 +60,14 @@ public:
   [[nodiscard]] auto payload() const -> const auto& { return Payload; }
 
   /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The reference to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const ProcessorInformation& Topology) const -> bool { return isDefault(&Topology); }
+  /// \arg Model The reference to the cpu model that is used to check if this config is the default.
+  /// \arg CpuFeatures Features that this payload requires to check agains if this payload is supported.
+  /// \returns true if the platform is the default one.
+  [[nodiscard]] virtual auto isDefault(const CpuModel& Model, const CpuFeatures& Features) const -> bool = 0;
 
 protected:
   /// Non const Getter for the settings of the platform.
   [[nodiscard]] auto settings() -> payload::PayloadSettings& { return Settings; }
-
-  /// Check if this platform is available and the default on the current system.
-  /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
-  /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] virtual auto isDefault(const ProcessorInformation*) const -> bool = 0;
 
 public:
   PlatformConfig() = delete;

@@ -34,8 +34,6 @@ public:
 
   /// Getter for the list of CPU features
   [[nodiscard]] auto features() const -> std::list<std::string> const& override { return this->FeatureList; }
-  /// Getter for the CPU features class from asmjit
-  [[nodiscard]] auto featuresAsmjit() const -> const asmjit::CpuFeatures& { return this->CpuInfo.features(); }
 
   /// Getter for the clockrate in Hz
   [[nodiscard]] auto clockrate() const -> uint64_t override;
@@ -43,12 +41,6 @@ public:
   /// Get the current hardware timestamp
   [[nodiscard]] auto timestamp() const -> uint64_t override;
 
-  /// The family id of the x86 processor
-  [[nodiscard]] auto familyId() const -> unsigned { return this->CpuInfo.familyId(); }
-  /// The model id of the x86 processor
-  [[nodiscard]] auto modelId() const -> unsigned { return this->CpuInfo.modelId(); }
-  /// The stepping id of the x86 processor
-  [[nodiscard]] auto stepping() const -> unsigned { return this->CpuInfo.stepping(); }
   /// The CPU vendor i.e., Intel or AMD.
   [[nodiscard]] auto vendor() const -> std::string const& final { return Vendor; }
   /// Get the string containing family, model and stepping ids.

@@ -29,7 +29,8 @@ class SandyBridgeEPConfig final : public X86PlatformConfig {
 public:
   SandyBridgeEPConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"SNB_XEONEP", /*Family=*/6, /*Models=*/{45, 62},
+            /*Name=*/"SNB_XEONEP", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/45), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/62)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 2621440}, /*RamBufferSize=*/104857600,

@@ -29,7 +29,8 @@ class SandyBridgeConfig final : public X86PlatformConfig {
 public:
   SandyBridgeConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"SNB_COREI", /*Family=*/6, /*Models=*/{42, 58},
+            /*Name=*/"SNB_COREI", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/42), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/58)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 1572864}, /*RamBufferSize=*/104857600,

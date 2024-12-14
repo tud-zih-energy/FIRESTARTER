@@ -29,7 +29,8 @@ class RomeConfig final : public X86PlatformConfig {
 public:
   RomeConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"ZEN_2_EPYC", /*Family=*/23, /*Models=*/{49},
+            /*Name=*/"ZEN_2_EPYC", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/23, /*ModelId=*/49)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 524288, 2097152}, /*RamBufferSize=*/104857600,

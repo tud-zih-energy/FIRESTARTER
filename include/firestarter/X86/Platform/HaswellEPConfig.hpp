@@ -29,7 +29,8 @@ class HaswellEPConfig final : public X86PlatformConfig {
 public:
   HaswellEPConfig() noexcept
       : X86PlatformConfig(
-            /*Name=*/"HSW_XEONEP", /*Family=*/6, /*Models=*/{63, 79},
+            /*Name=*/"HSW_XEONEP", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/63), X86CpuModel(/*FamilyId=*/6, /*ModelId=*/79)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{32768, 262144, 2621440},

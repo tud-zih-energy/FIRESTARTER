@@ -28,7 +28,8 @@ namespace firestarter::x86::platform {
 class SkylakeSPConfig final : public X86PlatformConfig {
 public:
   SkylakeSPConfig() noexcept
-      : X86PlatformConfig(/*Name=*/"SKL_XEONEP", /*Family=*/6, /*Models=*/{85},
+      : X86PlatformConfig(/*Name=*/"SKL_XEONEP", /*RequestedModels=*/
+                          {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/85)},
                           /*Settings=*/
                           firestarter::payload::PayloadSettings(/*Threads=*/{1, 2},
                                                                 /*DataCacheBufferSize=*/{32768, 1048576, 1441792},

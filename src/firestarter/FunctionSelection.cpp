@@ -67,7 +67,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformati
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // default function
-    if (Platform.Config->isDefault(ProcessorInfos)) {
+    if (Platform.Config->isDefault(ProcessorInfos.cpuModel(), ProcessorInfos.cpuFeatures())) {
       if (Platform.ThreadCount == ProcessorThreadsPerCore) {
         return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
       }
