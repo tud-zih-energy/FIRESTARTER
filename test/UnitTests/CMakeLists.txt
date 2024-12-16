@@ -14,4 +14,4 @@ target_link_libraries(UnitTests
 )
 
 include(GoogleTest)
-gtest_discover_tests(UnitTests)
+gtest_discover_tests(UnitTests DISCOVERY_MODE PRE_TEST)
