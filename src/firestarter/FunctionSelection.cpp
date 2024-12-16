@@ -29,17 +29,17 @@
 
 namespace firestarter {
 
-auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const ProcessorInformation& ProcessorInfos,
-                                                const CPUTopology& Topology, bool AllowUnavailablePayload) const
+auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const CpuFeatures& Features,
+                                                std::optional<unsigned> InstructionCacheSize,
+                                                bool AllowUnavailablePayload) const
     -> std::unique_ptr<platform::PlatformConfig> {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
-  const auto ProcessorICacheSize = Topology.instructionCacheSize();
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // the selected function
     if (Id == FunctionId) {
-      if (!Platform.Config->payload()->isAvailable(ProcessorInfos.cpuFeatures())) {
+      if (!Platform.Config->payload()->isAvailable(Features)) {
         const auto ErrorString = "Function " + std::to_string(FunctionId) + " (\"" +
                                  Platform.Config->functionName(Platform.ThreadCount) + "\") requires " +
                                  Platform.Config->payload()->name() + ", which is not supported by the processor.";
@@ -50,7 +50,7 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const Proce
         }
       }
       // found function
-      return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
+      return Platform.Config->cloneConcreate(InstructionCacheSize, Platform.ThreadCount);
     }
     Id++;
   }
@@ -58,18 +58,18 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const Proce
   throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
 }
 
-auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformation& ProcessorInfos,
-                                                        const CPUTopology& Topology) const
+auto FunctionSelection::selectDefaultOrFallbackFunction(const CpuModel& Model, const CpuFeatures& Features,
+                                                        const std::string& VendorString, const std::string& ModelString,
+                                                        std::optional<unsigned> InstructionCacheSize,
+                                                        unsigned NumThreadsPerCore) const
     -> std::unique_ptr<platform::PlatformConfig> {
   std::optional<std::string> DefaultPayloadName;
-  const auto ProcessorICacheSize = Topology.instructionCacheSize();
-  const auto ProcessorThreadsPerCore = Topology.homogenousResourceCount().NumThreadsPerCore;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // default function
-    if (Platform.Config->isDefault(ProcessorInfos.cpuModel(), ProcessorInfos.cpuFeatures())) {
-      if (Platform.ThreadCount == ProcessorThreadsPerCore) {
-        return Platform.Config->cloneConcreate(ProcessorICacheSize, Platform.ThreadCount);
+    if (Platform.Config->isDefault(Model, Features)) {
+      if (Platform.ThreadCount == NumThreadsPerCore) {
+        return Platform.Config->cloneConcreate(InstructionCacheSize, Platform.ThreadCount);
       }
       DefaultPayloadName = Platform.Config->payload()->name();
     }
@@ -80,23 +80,22 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformati
   if (DefaultPayloadName) {
     // default payload available, but number of threads per core is not
     // supported
-    log::warn() << "No " << *DefaultPayloadName << " code path for " << ProcessorThreadsPerCore << " threads per core!";
+    log::warn() << "No " << *DefaultPayloadName << " code path for " << NumThreadsPerCore << " threads per core!";
   }
-  log::warn() << ProcessorInfos.vendor() << " " << ProcessorInfos.model()
-              << " is not supported by this version of FIRESTARTER!\n"
+  log::warn() << VendorString << " " << ModelString << " is not supported by this version of FIRESTARTER!\n"
               << "Check project website for updates.";
 
   // loop over available implementation and check if they are marked as
   // fallback
   for (const auto& FallbackPlatformConfigPtr : fallbackPlatformConfigs()) {
-    if (FallbackPlatformConfigPtr->payload()->isAvailable(ProcessorInfos.cpuFeatures())) {
+    if (FallbackPlatformConfigPtr->payload()->isAvailable(Features)) {
       unsigned SelectedThreadsPerCore{};
 
       // find the fallback implementation with the correct thread per core count or select the first available thread
       // per core count
       {
         const auto& Threads = FallbackPlatformConfigPtr->constRef().settings().threads();
-        const auto& ThreadIt = std::find(Threads.cbegin(), Threads.cend(), ProcessorThreadsPerCore);
+        const auto& ThreadIt = std::find(Threads.cbegin(), Threads.cend(), NumThreadsPerCore);
         if (ThreadIt == Threads.cend()) {
           SelectedThreadsPerCore = Threads.front();
         } else {
@@ -108,7 +107,7 @@ auto FunctionSelection::selectDefaultOrFallbackFunction(const ProcessorInformati
                   << " as fallback.\n"
                   << "You can use the parameter --function to try other "
                      "functions.";
-      return FallbackPlatformConfigPtr->cloneConcreate(ProcessorICacheSize, SelectedThreadsPerCore);
+      return FallbackPlatformConfigPtr->cloneConcreate(InstructionCacheSize, SelectedThreadsPerCore);
     }
   }
 
@@ -121,9 +120,12 @@ auto FunctionSelection::selectFunction(std::optional<unsigned> FunctionId, const
                                        const CPUTopology& Topology, bool AllowUnavailablePayload) const
     -> std::unique_ptr<platform::PlatformConfig> {
   if (FunctionId) {
-    return selectAvailableFunction(*FunctionId, ProcessorInfos, Topology, AllowUnavailablePayload);
+    return selectAvailableFunction(*FunctionId, ProcessorInfos.cpuFeatures(), Topology.instructionCacheSize(),
+                                   AllowUnavailablePayload);
   }
-  return selectDefaultOrFallbackFunction(ProcessorInfos, Topology);
+  return selectDefaultOrFallbackFunction(
+      ProcessorInfos.cpuModel(), ProcessorInfos.cpuFeatures(), ProcessorInfos.vendor(), ProcessorInfos.model(),
+      Topology.instructionCacheSize(), Topology.homogenousResourceCount().NumThreadsPerCore);
 }
 
 void FunctionSelection::printFunctionSummary(const ProcessorInformation& ProcessorInfos, bool ForceYes) const {

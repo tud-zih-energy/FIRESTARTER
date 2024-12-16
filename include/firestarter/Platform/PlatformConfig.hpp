@@ -25,7 +25,6 @@
 #include "firestarter/CpuModel.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
-#include "firestarter/ProcessorInformation.hpp"
 
 #include <algorithm>
 #include <cstdio>

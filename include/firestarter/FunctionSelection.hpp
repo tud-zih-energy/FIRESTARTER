@@ -49,18 +49,25 @@ public:
   /// Select a PlatformConfig based on its generated id. This function will throw if a payload is not available or the
   /// id is incorrect.
   /// \arg FunctionId The id of the PlatformConfig that should be selected.
-  /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
-  /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
+  /// \arg Features The CPU features of the current processor.
+  /// \arg InstructionCacheSize The optional size of the instruction cache.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  [[nodiscard]] auto selectAvailableFunction(unsigned FunctionId, const ProcessorInformation& ProcessorInfos,
-                                             const CPUTopology& Topology, bool AllowUnavailablePayload) const
+  [[nodiscard]] auto selectAvailableFunction(unsigned FunctionId, const CpuFeatures& Features,
+                                             std::optional<unsigned> InstructionCacheSize,
+                                             bool AllowUnavailablePayload) const
       -> std::unique_ptr<platform::PlatformConfig>;
 
   /// Select the fallback PlatformConfig if no id is given.
-  /// \arg ProcessorInfos Information about the processor which is specific to the current ISA.
-  /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
-  [[nodiscard]] auto selectDefaultOrFallbackFunction(const ProcessorInformation& ProcessorInfos,
-                                                     const CPUTopology& Topology) const
+  /// \arg Model The class that identifies the cpu model.
+  /// \arg Features The CPU features of the current processor.
+  /// \arg VendorString The string of the cpu vendor.
+  /// \arg ModelString The string of the cpu model.
+  /// \arg InstructionCacheSize The optional size of the instruction cache.
+  /// \arg NumThreadsPerCore The number of threads per core.
+  [[nodiscard]] auto selectDefaultOrFallbackFunction(const CpuModel& Model, const CpuFeatures& Features,
+                                                     const std::string& VendorString, const std::string& ModelString,
+                                                     std::optional<unsigned> InstructionCacheSize,
+                                                     unsigned NumThreadsPerCore) const
       -> std::unique_ptr<platform::PlatformConfig>;
 
   /// Print a list of available high-load function and if they are available on the current system.
