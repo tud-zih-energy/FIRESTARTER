@@ -71,11 +71,9 @@ void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
     }
   }
 
-  auto CpuBindIt = Affinity.CpuBind.cbegin();
-  for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++, CpuBindIt++) {
-    assert(CpuBindIt != Affinity.CpuBind.cend());
-
-    auto Td = std::make_shared<LoadWorkerData>(I, *CpuBindIt, std::cref(*Environment), std::cref(*Topology),
+  uint64_t I = 0;
+  for (const auto& OsIndex : Affinity.CpuBind) {
+    auto Td = std::make_shared<LoadWorkerData>(I, OsIndex, std::cref(*Environment), std::cref(*Topology),
                                                std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
@@ -98,6 +96,8 @@ void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
     }
 
     LoadThreads.emplace_back(std::move(T), Td);
+
+    I++;
   }
 
   signalLoadWorkers(LoadThreadState::ThreadInit);
