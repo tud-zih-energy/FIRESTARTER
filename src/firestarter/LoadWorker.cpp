@@ -20,7 +20,6 @@
  *****************************************************************************/
 
 #include "firestarter/AlignedAlloc.hpp"
-#include "firestarter/Config/CpuBind.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/ErrorDetectionStruct.hpp"
 #include "firestarter/Firestarter.hpp"
