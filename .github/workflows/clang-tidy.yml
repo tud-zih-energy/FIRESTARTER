@@ -30,7 +30,7 @@ jobs:
     - name: Run CMake configure (default)
       run: |
         cd build
-        cmake ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
 
     - name: Build
       run: |

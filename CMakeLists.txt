@@ -80,7 +80,10 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 include(cmake/InstallHwloc.cmake)
+include(cmake/InstallGoogleTest.cmake)
 
 add_subdirectory(src)
 
-add_subdirectory(test)
+if(FIRESTARTER_BUILD_TESTS)
+	add_subdirectory(test)
+endif()

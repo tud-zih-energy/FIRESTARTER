@@ -41,7 +41,7 @@ namespace firestarter::environment::x86 {
 class X86Environment final : public Environment {
 public:
   X86Environment()
-      : Environment(std::make_unique<X86CPUTopology>()) {}
+      : Environment(std::make_unique<X86ProcessorInformation>()) {}
 
   /// Getter (which allows modifying) for the current platform config containing the payload, settings, the
   /// associated name and the default X86 family and models.
@@ -59,9 +59,9 @@ public:
     return *X86PlatformConfig;
   }
 
-  /// Const getter for the current CPU topology with X86 specific modifications.
-  [[nodiscard]] auto topology() const -> const X86CPUTopology& final {
-    const auto* X86Topology = dynamic_cast<const X86CPUTopology*>(&Environment::topology());
+  /// Const getter for the current processor information with X86 specific modifications.
+  [[nodiscard]] auto processorInfos() const -> const X86ProcessorInformation& final {
+    const auto* X86Topology = dynamic_cast<const X86ProcessorInformation*>(&Environment::processorInfos());
     assert(X86Topology && "X86Topology is a nullptr");
     return *X86Topology;
   }
@@ -69,8 +69,9 @@ public:
   /// Select a PlatformConfig based on its generated id. This function will throw if a payload is not available or the
   /// id is incorrect. If id is zero we automatically select a matching PlatformConfig.
   /// \arg FunctionId The id of the PlatformConfig that should be selected.
+  /// \arg Topology The topology which contains information about the cpu requied to select the correct function.
   /// \arg AllowUnavailablePayload If true we will not throw if the PlatformConfig is not available.
-  void selectFunction(unsigned FunctionId, bool AllowUnavailablePayload) override;
+  void selectFunction(unsigned FunctionId, const CPUTopology& Topology, bool AllowUnavailablePayload) override;
 
   /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
   /// invalid.

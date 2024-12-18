@@ -13,11 +13,11 @@ endif()
 # We vendor hwloc per default.
 option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
 
+# Should we compile the tests
+option(FIRESTARTER_BUILD_TESTS "Enable the tests" OFF)
 
-# Use of thread affinity is enabled on linux per default.
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	set(FIRESTARTER_THREAD_AFFINITY "Enable FIRESTARTER to set affinity to hardware threads." ON)
-endif()
+# We fetch google test per default
+option(FIRESTARTER_FETCH_GOOGLETEST "Fetch the Google Test dependency." ON)
 
 
 # Debug feature are enabled on linux per default.
