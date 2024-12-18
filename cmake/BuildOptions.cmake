@@ -13,6 +13,8 @@ endif()
 # We vendor hwloc per default.
 option(FIRESTARTER_BUILD_HWLOC "Build hwloc dependency." ON)
 
+# Should we compile the tests
+option(FIRESTARTER_BUILD_TESTS "Enable the tests" OFF)
 
 # We fetch google test per default
 option(FIRESTARTER_FETCH_GOOGLETEST "Fetch the Google Test dependency." ON)
