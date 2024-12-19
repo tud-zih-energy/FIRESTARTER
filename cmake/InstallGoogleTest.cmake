@@ -4,6 +4,9 @@
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 
+# Do not execute the google test executable during build.
+set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
+
 if (FIRESTARTER_FETCH_GOOGLETEST)
 	include(FetchContent)
 

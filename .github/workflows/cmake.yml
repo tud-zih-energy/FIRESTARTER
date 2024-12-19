@@ -73,7 +73,7 @@ jobs:
         export HIPToolkit_ROOT=${HIP_ROOT}
 
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
     - name: Build (HIP)
       run: |
         cd build
@@ -126,13 +126,13 @@ jobs:
       run: |
         . /opt/intel/oneapi/setvars.sh
         cd build
-        cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Run CMake configure (OneAPI 2024.0)
       if: matrix.ONEAPI == '2024.0'
       run: |
         . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
         cd build
-        cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
     - name: Build (OneAPI 2023.2.0)
       if: matrix.ONEAPI == '2023.2.0'
       run: |
@@ -223,7 +223,7 @@ jobs:
         export CUDAToolkit_ROOT=${CUDA_ROOT}
   
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Run CMake configure (CUDA with NVHPC)
       if: matrix.CUDA == 'NVHPC-22.5'
       run: |
@@ -234,7 +234,7 @@ jobs:
         LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
   
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
     - name: Build (CUDA)
       run: |
         cd build
@@ -299,12 +299,12 @@ jobs:
         CXX: ${{ matrix.cxxcompiler }}
       run: |
         cd build
-        cmake ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
     - name: Run CMake configure
       if: matrix.compiler == 'default'
       run: |
         cd build
-        cmake ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
     - name: Build (default)
       run: |
         cd build
@@ -371,13 +371,13 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake -G "MinGW Makefiles" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "MinGW Makefiles" ..
     - name: Run CMake configure
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       shell: pwsh
       run: |
         cd build
-        cmake -G "NMake Makefiles" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "NMake Makefiles" ..
     - name: Run CMake configure
       if: matrix.cfg.CUDA != '0'
       shell: pwsh
@@ -385,7 +385,7 @@ jobs:
         cd build
         ls 
         dir "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.0"
-        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
@@ -444,7 +444,7 @@ jobs:
     - name: Run CMake configure
       run: |
         cd build
-        cmake ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
     - name: Build
       run: |
         cd build
