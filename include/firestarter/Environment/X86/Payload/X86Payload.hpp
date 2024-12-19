@@ -24,7 +24,7 @@
 #include "firestarter/Constants.hpp"          // IWYU pragma: keep
 #include "firestarter/DumpRegisterStruct.hpp" // IWYU pragma: keep
 #include "firestarter/Environment/Payload/Payload.hpp"
-#include "firestarter/Environment/X86/X86CPUTopology.hpp"
+#include "firestarter/Environment/X86/X86ProcessorInformation.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Logging/Log.hpp" // IWYU pragma: keep
 
@@ -76,8 +76,8 @@ private:
   /// contains all features that are in FeatureRequests.
   /// \arg Topology The CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the payload is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology& Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(&Topology);
+  [[nodiscard]] auto isAvailable(const ProcessorInformation& Topology) const -> bool final {
+    const auto* FinalTopology = dynamic_cast<const X86ProcessorInformation*>(&Topology);
     assert(FinalTopology && "isAvailable not called with const X86CPUTopology*");
 
     bool Available = true;

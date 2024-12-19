@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include "firestarter/Environment/CPUTopology.hpp"
 #include "firestarter/Environment/Platform/PlatformConfig.hpp"
-#include "firestarter/Environment/X86/X86CPUTopology.hpp"
+#include "firestarter/Environment/ProcessorInformation.hpp"
+#include "firestarter/Environment/X86/X86ProcessorInformation.hpp"
 
 namespace firestarter::environment::x86::platform {
 
@@ -47,12 +47,14 @@ public:
   /// available for the payload that is used.
   /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this platform is supported.
   /// \returns true if the platform is supported on the given X86CPUTopology.
-  [[nodiscard]] auto isAvailable(const X86CPUTopology& Topology) const -> bool { return isAvailable(&Topology); }
+  [[nodiscard]] auto isAvailable(const X86ProcessorInformation& Topology) const -> bool {
+    return isAvailable(&Topology);
+  }
 
   /// Check if this platform is available and the default on the current system.
   /// \arg Topology The reference to the X86CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given X86CPUTopology.
-  [[nodiscard]] auto isDefault(const X86CPUTopology& Topology) const -> bool { return isDefault(&Topology); }
+  [[nodiscard]] auto isDefault(const X86ProcessorInformation& Topology) const -> bool { return isDefault(&Topology); }
 
   /// Clone a the platform config.
   [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> final {
@@ -77,7 +79,7 @@ private:
   /// available for the payload that is used.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this platform is supported.
   /// \returns true if the platform is supported on the given CPUTopology.
-  [[nodiscard]] auto isAvailable(const CPUTopology* Topology) const -> bool final {
+  [[nodiscard]] auto isAvailable(const ProcessorInformation* Topology) const -> bool final {
     return environment::platform::PlatformConfig::isAvailable(Topology);
   }
 
@@ -86,8 +88,8 @@ private:
   /// Models.
   /// \arg Topology The pointer to the CPUTopology that is used to check agains if this payload is supported.
   /// \returns true if the platform is the default one for a given CPUTopology.
-  [[nodiscard]] auto isDefault(const CPUTopology* Topology) const -> bool final {
-    const auto* FinalTopology = dynamic_cast<const X86CPUTopology*>(Topology);
+  [[nodiscard]] auto isDefault(const ProcessorInformation* Topology) const -> bool final {
+    const auto* FinalTopology = dynamic_cast<const X86ProcessorInformation*>(Topology);
     assert(FinalTopology && "isDefault not called with const X86CPUTopology*");
 
     // Check if the family of the topology matches the family of the config, if the model of the topology is contained
