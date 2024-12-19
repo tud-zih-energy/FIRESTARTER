@@ -6,27 +6,28 @@ add_library(firestartercore STATIC
 	firestarter/DumpRegisterWorker.cpp
 	firestarter/CPUTopology.cpp
 	firestarter/ThreadAffinity.cpp
+	firestarter/FunctionSelection.cpp
+	firestarter/ProcessorInformation.cpp
 
 	firestarter/Config/Config.cpp
+	firestarter/Config/InstructionGroups.cpp
 	firestarter/Config/CpuBind.cpp
-	
-	firestarter/Environment/X86/Platform/X86PlatformConfig.cpp
 
-	firestarter/Environment/ProcessorInformation.cpp
-	firestarter/Environment/Payload/CompiledPayload.cpp
-	firestarter/Environment/Payload/PayloadSettings.cpp
+	firestarter/Payload/CompiledPayload.cpp
+	firestarter/Payload/PayloadSettings.cpp
 
 	# here starts the x86 specific code
-	firestarter/Environment/X86/X86Environment.cpp
-	firestarter/Environment/X86/X86ProcessorInformation.cpp
+	firestarter/X86/X86ProcessorInformation.cpp
 
-	firestarter/Environment/X86/Payload/X86Payload.cpp
-	firestarter/Environment/X86/Payload/AVX512Payload.cpp
-	firestarter/Environment/X86/Payload/FMA4Payload.cpp
-	firestarter/Environment/X86/Payload/FMAPayload.cpp
-	firestarter/Environment/X86/Payload/ZENFMAPayload.cpp
-	firestarter/Environment/X86/Payload/AVXPayload.cpp
-	firestarter/Environment/X86/Payload/SSE2Payload.cpp
+	firestarter/X86/Platform/X86PlatformConfig.cpp
+
+	firestarter/X86/Payload/X86Payload.cpp
+	firestarter/X86/Payload/AVX512Payload.cpp
+	firestarter/X86/Payload/FMA4Payload.cpp
+	firestarter/X86/Payload/FMAPayload.cpp
+	firestarter/X86/Payload/ZENFMAPayload.cpp
+	firestarter/X86/Payload/AVXPayload.cpp
+	firestarter/X86/Payload/SSE2Payload.cpp
 	)
 
 target_link_libraries(firestartercore

@@ -20,12 +20,14 @@
  *****************************************************************************/
 
 #include "firestarter/Firestarter.hpp"
-#include "firestarter/Environment/X86/X86Environment.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+#include "firestarter/X86/X86CpuFeatures.hpp"
+#include "firestarter/X86/X86FunctionSelection.hpp"
+#include "firestarter/X86/X86ProcessorInformation.hpp"
 
 #include <csignal>
 #include <cstdlib>
@@ -34,20 +36,21 @@
 namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
-    : Cfg(std::move(ProvidedConfig))
-    , Topology(std::make_unique<CPUTopology>()) {
+    : Cfg(std::move(ProvidedConfig)) {
+  std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
+
   if constexpr (firestarter::OptionalFeatures.IsX86) {
-    Environment = std::make_unique<environment::x86::X86Environment>();
+    ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
+    FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
   }
 
   const auto Affinity =
-      ThreadAffinity::fromCommandLine(Topology->hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
+      ThreadAffinity::fromCommandLine(Topology.hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
-      const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
-      if (!X86Env.processorInfos().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+      if (!ProcessorInfos->cpuFeatures().hasAll(x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kSSE4_2))) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
       }
@@ -61,23 +64,25 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if (Cfg.PrintFunctionSummary) {
-    Environment->printFunctionSummary(/*ForceYes=*/false);
+    FunctionSelectionPtr->printFunctionSummary(*ProcessorInfos, /*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
-  Environment->selectFunction(Cfg.FunctionId, *Topology, Cfg.AllowUnavailablePayload);
+  FunctionPtr =
+      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
-    Environment->printAvailableInstructionGroups();
+    FunctionPtr->payload()->printAvailableInstructionGroups();
+
     safeExit(EXIT_SUCCESS);
   }
-
-  if (!Cfg.InstructionGroups.empty()) {
-    Environment->selectInstructionGroups(Cfg.InstructionGroups);
+  if (Cfg.Groups) {
+    FunctionPtr->selectInstructionGroups(*Cfg.Groups);
+    log::info() << "  Running custom instruction group: " << *Cfg.Groups;
   }
 
-  if (Cfg.LineCount != 0) {
-    Environment->setLineCount(Cfg.LineCount);
+  if (Cfg.LineCount) {
+    FunctionPtr->setLineCount(*Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
@@ -116,7 +121,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
 
     if (Cfg.Optimize) {
-      auto ApplySettings = [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
+      auto ApplySettings = [this](InstructionGroups const& Setting) {
         using Clock = std::chrono::high_resolution_clock;
         auto Start = Clock::now();
 
@@ -152,7 +157,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
+          Cfg.StopDelta, FunctionPtr->constRef().settings().groups().intructions());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -167,20 +172,14 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
   }
 
-  Environment->printSelectedCodePathSummary();
+  FunctionPtr->printCodePathSummary();
 
-  {
-    std::stringstream Ss;
+  Topology.printSystemSummary();
+  log::info();
+  ProcessorInfos->print();
+  Topology.printCacheSummary();
 
-    Topology->printSystemSummary(Ss);
-    Ss << "\n";
-    Ss << Environment->processorInfos();
-    Topology->printCacheSummary(Ss);
-
-    log::info() << Ss.str();
-  }
-
-  Affinity.printThreadSummary(*Topology);
+  Affinity.printThreadSummary(Topology);
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
@@ -229,7 +228,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = Environment->config().settings().instructionGroupItems();
+      const auto PayloadItems = FunctionPtr->constRef().settings().groups().intructions();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 

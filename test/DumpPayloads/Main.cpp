@@ -19,36 +19,35 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Environment/Payload/Payload.hpp"
-#include "firestarter/Environment/X86/Payload/AVX512Payload.hpp"
-#include "firestarter/Environment/X86/Payload/AVXPayload.hpp"
-#include "firestarter/Environment/X86/Payload/FMA4Payload.hpp"
-#include "firestarter/Environment/X86/Payload/FMAPayload.hpp"
-#include "firestarter/Environment/X86/Payload/SSE2Payload.hpp"
-#include "firestarter/Environment/X86/Payload/ZENFMAPayload.hpp"
+#include "firestarter/Payload/Payload.hpp"
+#include "firestarter/X86/Payload/AVX512Payload.hpp"
+#include "firestarter/X86/Payload/AVXPayload.hpp"
+#include "firestarter/X86/Payload/FMA4Payload.hpp"
+#include "firestarter/X86/Payload/FMAPayload.hpp"
+#include "firestarter/X86/Payload/SSE2Payload.hpp"
+#include "firestarter/X86/Payload/ZENFMAPayload.hpp"
 
 namespace {
 
 /// Take a list of instructions and return a list with a pair containing the each instruction in the first element of
 /// the pair and a one in the second.
-auto oneEach(const std::list<std::string>& Instructions)
-    -> std::vector<firestarter::environment::payload::PayloadSettings::InstructionWithProportion> {
-  std::vector<firestarter::environment::payload::PayloadSettings::InstructionWithProportion> OneEach;
+auto oneEach(const std::list<std::string>& Instructions) -> firestarter::InstructionGroups {
+  std::vector<std::pair<std::string, unsigned>> OneEach;
   for (const auto& Instruction : Instructions) {
     OneEach.emplace_back(Instruction, 1);
   }
-  return OneEach;
+  return firestarter::InstructionGroups{OneEach};
 }
 
 /// Dump the generated assembler code of the payload with some given settings. Each item is printed once.
-void dumpPayload(firestarter::environment::payload::Payload& PayloadPtr) {
+void dumpPayload(firestarter::payload::Payload& PayloadPtr) {
   const auto& Instuctions = PayloadPtr.getAvailableInstructions();
 
-  firestarter::environment::payload::PayloadSettings Settings(/*Threads=*/{1},
-                                                              /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
-                                                              /*RamBufferSize=*/1048576000,
-                                                              /*Lines=*/3 * Instuctions.size(),
-                                                              /*InstructionGroups=*/oneEach(Instuctions));
+  firestarter::payload::PayloadSettings Settings(/*Threads=*/{1},
+                                                 /*DataCacheBufferSize=*/{32768, 1048576, 1441792},
+                                                 /*RamBufferSize=*/1048576000,
+                                                 /*Lines=*/3 * Instuctions.size(),
+                                                 /*Groups=*/oneEach(Instuctions));
 
   (void)PayloadPtr.compilePayload(Settings, /*DumpRegisters=*/false, /*ErrorDetection=*/false,
                                   /*PrintAssembler=*/true);
@@ -57,13 +56,13 @@ void dumpPayload(firestarter::environment::payload::Payload& PayloadPtr) {
 } // namespace
 
 auto main(int /*argc*/, const char** /*argv*/) -> int {
-  const std::vector<std::shared_ptr<firestarter::environment::payload::Payload>> PayloadPtrs = {
-      std::make_unique<firestarter::environment::x86::payload::AVX512Payload>(),
-      std::make_unique<firestarter::environment::x86::payload::FMAPayload>(),
-      std::make_unique<firestarter::environment::x86::payload::ZENFMAPayload>(),
-      std::make_unique<firestarter::environment::x86::payload::FMA4Payload>(),
-      std::make_unique<firestarter::environment::x86::payload::AVXPayload>(),
-      std::make_unique<firestarter::environment::x86::payload::SSE2Payload>()};
+  const std::vector<std::shared_ptr<firestarter::payload::Payload>> PayloadPtrs = {
+      std::make_unique<firestarter::x86::payload::AVX512Payload>(),
+      std::make_unique<firestarter::x86::payload::FMAPayload>(),
+      std::make_unique<firestarter::x86::payload::ZENFMAPayload>(),
+      std::make_unique<firestarter::x86::payload::FMA4Payload>(),
+      std::make_unique<firestarter::x86::payload::AVXPayload>(),
+      std::make_unique<firestarter::x86::payload::SSE2Payload>()};
 
   for (const auto& PayloadPtr : PayloadPtrs) {
     firestarter::log::info() << "Payload " << PayloadPtr->name();

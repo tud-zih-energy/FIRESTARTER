@@ -49,7 +49,7 @@ namespace firestarter {
 
 void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
   // Bind this thread to the first available CPU.
-  Topology->bindCallerToOsIndex(*Affinity.CpuBind.cbegin());
+  Topology.bindCallerToOsIndex(*Affinity.CpuBind.cbegin());
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
@@ -72,8 +72,9 @@ void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
 
   uint64_t I = 0;
   for (const auto& OsIndex : Affinity.CpuBind) {
-    auto Td = std::make_shared<LoadWorkerData>(I, OsIndex, std::cref(*Environment), std::cref(*Topology),
-                                               std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters, Cfg.ErrorDetection);
+    auto Td = std::make_shared<LoadWorkerData>(I, OsIndex, std::cref(ProcessorInfos), std::cref(FunctionPtr),
+                                               std::cref(Topology), std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters,
+                                               Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
@@ -195,8 +196,8 @@ void Firestarter::printPerformanceReport() {
     Iterations += Td->LastRun.Iterations.load();
   }
 
-  double const Runtime = static_cast<double>(StopTimestamp - StartTimestamp) /
-                         static_cast<double>(Environment->processorInfos().clockrate());
+  double const Runtime =
+      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(ProcessorInfos->clockrate());
   double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
                         0.000000001 * static_cast<double>(Iterations) / Runtime;
   double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *
@@ -307,7 +308,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
     case LoadThreadState::ThreadWork:
       Td->CurrentRun.Iterations = 0;
       // record threads start timestamp
-      Td->CurrentRun.StartTsc = Td->environment().processorInfos().timestamp();
+      Td->CurrentRun.StartTsc = Td->ProcessorInfos->timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -340,14 +341,14 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 
         // terminate if master signals end of run and record stop timestamp
         if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
-          Td->CurrentRun.StopTsc = Td->environment().processorInfos().timestamp();
+          Td->CurrentRun.StopTsc = Td->ProcessorInfos->timestamp();
           Td->LastRun = Td->CurrentRun;
 
           return;
         }
 
         if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
-          Td->CurrentRun.StopTsc = Td->environment().processorInfos().timestamp();
+          Td->CurrentRun.StopTsc = Td->ProcessorInfos->timestamp();
           Td->LastRun = Td->CurrentRun;
 
           break;

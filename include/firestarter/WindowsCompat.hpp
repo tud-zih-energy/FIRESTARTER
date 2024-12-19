@@ -35,11 +35,15 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
+
 #if defined(__clang__)
 #include <emmintrin.h>
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
 void _mm_mfence() noexcept;
+#else
+#include <intrin.h>
 #endif
+
 #if not(defined(__INTEL_LLVM_COMPILER))
 void __cpuid(int* /*unused*/, int /*unused*/) noexcept;
 #endif

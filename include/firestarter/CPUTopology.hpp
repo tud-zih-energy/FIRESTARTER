@@ -22,7 +22,6 @@
 #pragma once
 
 #include <optional>
-#include <ostream>
 #include <set>
 
 extern "C" {
@@ -64,10 +63,10 @@ public:
   virtual ~CPUTopology();
 
   /// Print information about the number of packages, cores and threads.
-  void printSystemSummary(std::ostream& Stream) const;
+  void printSystemSummary() const;
 
   /// Print information about the cache hierarchy.
-  void printCacheSummary(std::ostream& Stream) const;
+  void printCacheSummary() const;
 
   /// Get the size of the first instruction cache.
   [[nodiscard]] auto instructionCacheSize() const -> std::optional<unsigned>;
