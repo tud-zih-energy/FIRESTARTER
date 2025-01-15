@@ -254,7 +254,7 @@ OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool Use
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
 
-  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlops), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
+  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
                 UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
