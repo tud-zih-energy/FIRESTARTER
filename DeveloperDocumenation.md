@@ -6,7 +6,7 @@ This document contains knowledge required to work on the FIRESTARTER project.
 
 Code style follows the LLVM project.
 It is enforced by an automatic CI check.
-The currently used version for `clang-format` and `clang-tidy` is `1.14` (the default for Ubuntu 22.04).
+The currently used version for `clang-format` and `clang-tidy` is `1.18` (the default for Ubuntu 24.04).
 
 When using VSCode as your editor it is recomended that you install the [Clang-Format](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format) and [clangd](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) extension.
 
