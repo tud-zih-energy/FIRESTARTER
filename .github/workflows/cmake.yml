@@ -316,7 +316,7 @@ jobs:
     - name: Test FIRESTARTER (default)
       run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang-18' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      if: matrix.os == 'ubuntu-20.04' && matrix.compiler == 'default' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         name: FIRESTARTER-linux
         retention-days: 1
