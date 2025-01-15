@@ -29,10 +29,9 @@
 
 namespace firestarter {
 
-auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const CpuFeatures& Features,
-                                                std::optional<unsigned> InstructionCacheSize,
-                                                bool AllowUnavailablePayload) const
-    -> std::unique_ptr<platform::PlatformConfig> {
+auto FunctionSelection::selectAvailableFunction(
+    unsigned FunctionId, const CpuFeatures& Features, std::optional<unsigned> InstructionCacheSize,
+    bool AllowUnavailablePayload) const -> std::unique_ptr<platform::PlatformConfig> {
   unsigned Id = 1;
   std::optional<std::string> DefaultPayloadName;
 
@@ -58,11 +57,10 @@ auto FunctionSelection::selectAvailableFunction(unsigned FunctionId, const CpuFe
   throw std::invalid_argument("unknown function id: " + std::to_string(FunctionId) + ", see --avail for available ids");
 }
 
-auto FunctionSelection::selectDefaultOrFallbackFunction(const CpuModel& Model, const CpuFeatures& Features,
-                                                        const std::string& VendorString, const std::string& ModelString,
-                                                        std::optional<unsigned> InstructionCacheSize,
-                                                        unsigned NumThreadsPerCore) const
-    -> std::unique_ptr<platform::PlatformConfig> {
+auto FunctionSelection::selectDefaultOrFallbackFunction(
+    const CpuModel& Model, const CpuFeatures& Features, const std::string& VendorString, const std::string& ModelString,
+    std::optional<unsigned> InstructionCacheSize,
+    unsigned NumThreadsPerCore) const -> std::unique_ptr<platform::PlatformConfig> {
   std::optional<std::string> DefaultPayloadName;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {

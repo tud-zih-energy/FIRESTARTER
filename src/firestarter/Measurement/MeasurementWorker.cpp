@@ -245,8 +245,8 @@ void MeasurementWorker::insertCallback(const char* MetricName, int64_t TimeSince
 
 void MeasurementWorker::startMeasurement() { StartTime = std::chrono::high_resolution_clock::now(); }
 
-auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta)
-    -> std::map<std::string, Summary> {
+auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
+                                  std::chrono::milliseconds StopDelta) -> std::map<std::string, Summary> {
   std::map<std::string, Summary> Measurment = {};
 
   ValuesMutex.lock();

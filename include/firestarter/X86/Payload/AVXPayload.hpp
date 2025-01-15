@@ -59,9 +59,9 @@ public:
   /// of the compiled payload.
   /// \arg PrintAssembler Should the generated assembler code be logged.
   /// \returns The compiled payload that provides access to the init and load functions.
-  [[nodiscard]] auto compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                    bool ErrorDetection, bool PrintAssembler) const
-      -> firestarter::payload::CompiledPayload::UniquePtr override;
+  [[nodiscard]] auto
+  compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters, bool ErrorDetection,
+                 bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr override;
 
 private:
   /// Function to initialize the memory used by the high load function.

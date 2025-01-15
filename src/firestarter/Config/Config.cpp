@@ -53,16 +53,15 @@ void printWarranty() {
 }
 
 void printHelp(cxxopts::Options const& Parser, std::string const& Section = "") {
-  std::vector<std::pair<std::string, std::string>> Options = {
-    {"information", "Information Options:\n"},
-    {"general", "General Options:\n"},
-    {"specialized-workloads", "Specialized workloads:\n"},
+  std::vector<std::pair<std::string, std::string>> Options = {{"information", "Information Options:\n"},
+                                                              {"general", "General Options:\n"},
+                                                              {"specialized-workloads", "Specialized workloads:\n"},
 #ifdef FIRESTARTER_DEBUG_FEATURES
-    {"debug", "Debugging:\n"},
+                                                              {"debug", "Debugging:\n"},
 #endif
 #if defined(linux) || defined(__linux__)
-    {"measurement", "Measurement:\n"},
-    {"optimization", "Optimization:\n"}
+                                                              {"measurement", "Measurement:\n"},
+                                                              {"optimization", "Optimization:\n"}
 #endif
   };
 

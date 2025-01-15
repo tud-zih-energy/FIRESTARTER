@@ -66,8 +66,7 @@ void CPUTopology::printSystemSummary() const {
   log::info() << "  system summary:\n"
               << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
               << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
-              << "  (this includes only cores in the cgroup)"
-              << "\n"
+              << "  (this includes only cores in the cgroup)" << "\n"
               << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
               << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads;
 }

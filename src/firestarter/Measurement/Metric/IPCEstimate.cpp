@@ -44,8 +44,8 @@ auto IpcEstimateMetricData::getError() -> const char* {
   return ErrorCString;
 }
 
-auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg)
-    -> int32_t {
+auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double),
+                                                   void* Arg) -> int32_t {
   auto& Instance = instance();
 
   Instance.Callback = C;

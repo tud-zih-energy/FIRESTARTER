@@ -25,8 +25,8 @@
 namespace firestarter::x86::payload {
 
 auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                   bool ErrorDetection, bool PrintAssembler) const
-    -> firestarter::payload::CompiledPayload::UniquePtr {
+                                   bool ErrorDetection,
+                                   bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Zmm = asmjit::x86::Zmm;
   // NOLINTBEGIN(readability-identifier-naming)

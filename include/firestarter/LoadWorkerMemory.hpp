@@ -65,14 +65,14 @@ public:
 
   /// Get the pointer to the start of the memory use for computations.
   /// \returns the pointer to the memory.
-  [[nodiscard]] auto getMemoryAddress() -> auto{
+  [[nodiscard]] auto getMemoryAddress() -> auto {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return reinterpret_cast<double*>(&DoNotUseAddrMem);
   }
 
   /// Get the offset to the memory which is used by the high-load functions
   /// \returns the offset to the memory
-  [[nodiscard]] constexpr static auto getMemoryOffset() -> auto{ return offsetof(LoadWorkerMemory, DoNotUseAddrMem); }
+  [[nodiscard]] constexpr static auto getMemoryOffset() -> auto { return offsetof(LoadWorkerMemory, DoNotUseAddrMem); }
 
   /// Allocate the memory for the high-load thread on 64B cache line boundaries and return a unique_ptr.
   /// \arg Bytes The number of bytes allocated for the array whoose start address is returned by the getMemoryAddress

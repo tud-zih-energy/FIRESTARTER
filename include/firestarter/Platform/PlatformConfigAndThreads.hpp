@@ -38,8 +38,8 @@ public:
   /// Get the vector of available configurations for a specific platform config.
   /// \arg Config The reference to the platform config
   /// \returns The vector of available configurations for this platform config.
-  [[nodiscard]] static auto fromPlatformConfig(const std::shared_ptr<PlatformConfig>& Config)
-      -> std::vector<PlatformConfigAndThreads> {
+  [[nodiscard]] static auto
+  fromPlatformConfig(const std::shared_ptr<PlatformConfig>& Config) -> std::vector<PlatformConfigAndThreads> {
     std::vector<PlatformConfigAndThreads> Vec;
 
     for (const auto& Thread : Config->constRef().settings().threads()) {
