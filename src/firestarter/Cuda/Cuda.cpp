@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020-2023 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2020-2024 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,617 +19,293 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-/* CUDA error checking based on CudaWrapper.h
- * https://github.com/ashwin/gDel3D/blob/master/GDelFlipping/src/gDel3D/GPU/CudaWrapper.h
- *
+/******************************************************************************
  * inspired by gpu_burn
  * http://wili.cc/blog/gpu-burn.html
  *****************************************************************************/
 
-#include <firestarter/Cuda/Cuda.hpp>
-#include <firestarter/LoadWorkerData.hpp>
-#include <firestarter/Logging/Log.hpp>
+#include "firestarter/Cuda/Cuda.hpp"
+#include "firestarter/Cuda/CudaHipCompat.hpp"
+#include "firestarter/Logging/Log.hpp"
 
-#ifdef FIRESTARTER_BUILD_CUDA
-  #include <cublas_v2.h>
-  #include <cuda.h>
-  #include <cuda_runtime_api.h>
-  #include <curand_kernel.h>
-  #define FS_ACCEL_PREFIX_LC_LONG cuda
-  #define FS_ACCEL_PREFIX_LC cu
-  #define FS_ACCEL_PREFIX_UC CU
-  #define FS_ACCEL_PREFIX_UC_LONG CUDA
-  #define FS_ACCEL_STRING "CUDA"
-#else
-  #ifdef FIRESTARTER_BUILD_HIP
-    #include <hipblas/hipblas.h>
-    #include <hip/hip_runtime.h>
-    #include <hip/hip_runtime_api.h>
-    #include <hiprand_kernel.h>
-  #define FS_ACCEL_PREFIX_LC_LONG hip
-  #define FS_ACCEL_PREFIX_LC hip
-  #define FS_ACCEL_PREFIX_UC HIP
-  #define FS_ACCEL_PREFIX_UC_LONG HIP
-  #define FS_ACCEL_STRING "HIP"
-  #else
-    #error "Attempting to compile file but neither CUDA nor HIP is used"
-  #endif
-#endif
-#define CONCAT_(prefix, suffix) prefix##suffix
-/// Concatenate `prefix, suffix` into `prefixsuffix`
-#define CONCAT(prefix, suffix) CONCAT_(prefix, suffix)
-//#define FS_ACCEL_ERROR_TYPE CONCAT(FS_ACCEL_PREFIX_LC_LONG,Error_t)
-//#define FS_ACCEL_BLAS_STATUS_TYPE cublasStatus_t
-//#define FS_ACCEL_RAND_STATUS_TYPE curandStatus_t
-
-#include <algorithm>
 #include <atomic>
+#include <cmath>
+#include <cstddef>
 #include <type_traits>
 
-static std::atomic<unsigned long long> flops;
+namespace firestarter::cuda {
 
-#define ACCELL_SAFE_CALL(cuerr, dev_index)                                       \
-  accell_safe_call(cuerr, dev_index, __FILE__, __LINE__)
-#define SEED 123
+constexpr const int Seed = 123;
 
-using namespace firestarter::cuda;
+namespace {
 
-// CUDA error checking
-static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC_LONG,Error_t) cuerr, int dev_index,
-                                  const char *file, const int line) {
-  if (cuerr != CONCAT(FS_ACCEL_PREFIX_LC_LONG,Success) && cuerr != 1) {
-    firestarter::log::error()
-        << FS_ACCEL_STRING" error at " << file << ":" << line << ": error code = " << cuerr
-        << " (" << CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetErrorString)(cuerr)
-        << "), device index: " << dev_index;
-    exit(cuerr);
+template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
+  static_assert(Multiple != 0, "Multiple may not be zero.");
+
+  const int Remainder = NumToRound % Multiple;
+  if (Remainder == 0) {
+    return NumToRound;
   }
 
-  return;
+  return NumToRound + Multiple - Remainder;
 }
 
-static const char *_accellGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) error) {
-  switch (error) {
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_SUCCESS):
-    return FS_ACCEL_STRING"blas status: success";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_NOT_INITIALIZED):
-    return FS_ACCEL_STRING"blas status: not initialized";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_ALLOC_FAILED):
-    return FS_ACCEL_STRING"blas status: alloc failed";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INVALID_VALUE):
-    return FS_ACCEL_STRING"blas status: invalid value";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_ARCH_MISMATCH):
-    return FS_ACCEL_STRING"blas status: arch mismatch";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_MAPPING_ERROR):
-    return FS_ACCEL_STRING"blas status: mapping error";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_EXECUTION_FAILED):
-    return FS_ACCEL_STRING"blas status: execution failed";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INTERNAL_ERROR):
-    return FS_ACCEL_STRING"blas status: internal error";
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_NOT_SUPPORTED):
-    return FS_ACCEL_STRING"blas status: not supported";
-#ifdef FIRESTARTER_BUILD_CUDA
-  case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_LICENSE_ERROR):
-    return FS_ACCEL_STRING"blas status: license error";
-#endif
-#ifdef FIRESTARTER_BUILD_HIP
-    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_UNKNOWN):
-      return FS_ACCEL_STRING"blas status: unknown";
-    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_HANDLE_IS_NULLPTR):
-      return FS_ACCEL_STRING"blas status: handle is null pointer";
-    case CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_INVALID_ENUM):
-      return FS_ACCEL_STRING"blas status: invalid enum";
-#endif
-  }
-
-
-  return "<unknown>";
-}
-
-static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) cuerr, int dev_index,
-                                  const char *file, const int line) {
-  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC,BLAS_STATUS_SUCCESS)) {
-    firestarter::log::error()
-        << FS_ACCEL_STRING"BLAS error at " << file << ":" << line
-        << ": error code = " << cuerr << " (" << _accellGetErrorEnum(cuerr)
-        << "), device index: " << dev_index;
-    exit(cuerr);
-  }
-
-  return;
-}
-
-#ifdef FIRESTARTER_BUILD_CUDA
-static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_UC,result) cuerr, int dev_index,
-                                  const char *file, const int line) {
-  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC_LONG,_SUCCESS)) {
-    const char *errorString;
-
-    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,GetErrorName)(cuerr, &errorString), dev_index);
-
-    firestarter::log::error()
-        << FS_ACCEL_STRING" error at " << file << ":" << line << ": error code = " << cuerr
-        << " (" << errorString << "), device index: " << dev_index;
-    exit(cuerr);
-  }
-
-  return;
-}
-#endif
-
-static const char *_accellrandGetErrorEnum(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) cuerr) {
-  switch (cuerr) {
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_SUCCESS):
-      return FS_ACCEL_STRING"rand status: success";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_VERSION_MISMATCH):
-      return FS_ACCEL_STRING"rand status: version mismatch";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_NOT_INITIALIZED):
-      return FS_ACCEL_STRING"rand status: not initialized";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_ALLOCATION_FAILED):
-      return FS_ACCEL_STRING"rand status: allocation failed";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_TYPE_ERROR):
-      return FS_ACCEL_STRING"rand status: type error";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_OUT_OF_RANGE):
-      return FS_ACCEL_STRING"rand status: out of range";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_LENGTH_NOT_MULTIPLE):
-      return FS_ACCEL_STRING"rand status: length not multiple";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_DOUBLE_PRECISION_REQUIRED):
-      return FS_ACCEL_STRING"rand status: double precision required";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_LAUNCH_FAILURE):
-      return FS_ACCEL_STRING"rand status: launch failure";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_PREEXISTING_FAILURE):
-      return FS_ACCEL_STRING"rand status: preexisting failure";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_INITIALIZATION_FAILED):
-      return FS_ACCEL_STRING"rand status: initialization failed";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_ARCH_MISMATCH):
-      return FS_ACCEL_STRING"rand status: arch mismatch";
-    case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_INTERNAL_ERROR):
-      return FS_ACCEL_STRING"rand status: internal error";
-#ifdef FIRESTARTER_BUILD_HIP
-  case CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_NOT_IMPLEMENTED):
-      return FS_ACCEL_STRING"rand status: not implemented";
-#endif
-  }
-
-  return "<unknown>";
-}
-
-static inline void accell_safe_call(CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) cuerr, int dev_index,
-                                  const char *file, const int line) {
-  if (cuerr != CONCAT(FS_ACCEL_PREFIX_UC,RAND_STATUS_SUCCESS)) {
-    firestarter::log::error()
-        << FS_ACCEL_STRING"RAND error at " << file << ":" << line
-        << ": error code = " << cuerr << " (" << _accellrandGetErrorEnum(cuerr)
-        << "), device index: " << dev_index;
-    exit(cuerr);
-  }
-
-  return;
-}
-
-static int round_up(int num_to_round, int multiple) {
-  if (multiple == 0) {
-    return num_to_round;
-  }
-
-  int remainder = num_to_round % multiple;
-  if (remainder == 0) {
-    return num_to_round;
-  }
-
-  return num_to_round + multiple - remainder;
-}
-
-#ifdef FIRESTARTER_BUILD_CUDA
-static int get_precision(int useDouble, struct cudaDeviceProp properties) {
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-static int get_precision(int useDouble, struct hipDeviceProp_t properties) {
-#endif
-#endif
+/// Convert the UseDouble input (0 -> single precision, 1 -> double precision, 2 -> automatic) to either 0 or 1 for
+/// float or double respectively. For CUDART_VERSION at least equal 8000 and automatic selection we check if the card
+/// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
+/// cases automatic results in double. \arg UseDouble The input that specifies either single precision, double
+/// precision or automatic selection. \arg Properties The device properties. \return The selected precision, either 0
+/// or 1 for float or double respectively.
+auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
 #if (CUDART_VERSION >= 8000)
-// read precision ratio (dp/sp) of GPU to choose the right variant for maximum
-// workload
-  if (useDouble == 2 && properties.singleToDoublePrecisionPerfRatio > 3) {
-    return 0;
-  } else if (useDouble) {
-    return 1;
-  } else {
+  // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
+  // workload
+  if (UseDouble == 2 && Properties.singleToDoublePrecisionPerfRatio > 3) {
     return 0;
   }
-}
+  if (UseDouble) {
+    return 1;
+  }
+  return 0;
 #else
-// as precision ratio is not supported return default/user input value
-  (void)properties;
+  // as precision ratio is not supported return default/user input value
+  (void)Properties;
 
-  if (useDouble) {
+  if (UseDouble) {
     return 1;
-  } else {
-    return 0;
   }
-}
-#endif
+  return 0;
 
-static int get_precision(int device_index, int useDouble) {
-  size_t memory_avail, memory_total;
+#endif
+}
+
+auto getPrecision(int DeviceIndex, int UseDouble) -> int {
+  std::size_t MemoryAvail{};
+  std::size_t MemoryTotal{};
+  compat::DeviceProperties Properties;
+
+  // NOLINTNEXTLINE(readability-qualified-auto)
+  auto StreamOrContext = compat::createContextOrStream(DeviceIndex);
+
+  compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+
+  UseDouble = getPrecision(UseDouble, Properties);
+
+  const bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
-  CUcontext context;
-  CUdevice device;
-  struct cudaDeviceProp properties;
-  ACCELL_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
-  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
-  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
+      Properties.major <= 1 && Properties.minor <= 2;
 #else
-#ifdef FIRESTARTER_BUILD_HIP
-  struct hipDeviceProp_t properties;
-  ACCELL_SAFE_CALL(hipSetDevice(device_index), device_index);
+      false;
 #endif
-#endif
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemGetInfo)(&memory_avail, &memory_total), device_index);
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
-                 device_index);
-
-  useDouble = get_precision(useDouble, properties);
 
   // we check for double precision support on the GPU and print errormsg, when
   // the user wants to compute DP on a SP-only-Card.
-  if (useDouble && properties.major <= 1 && properties.minor <= 2) {
-    std::stringstream ss;
-    ss << FS_ACCEL_STRING" GPU " << device_index << ": " << properties.name << " ";
+  if (UseDouble && DoubleNotSupported) {
+    std::stringstream Ss;
+    Ss << compat::AccelleratorString << " GPU " << DeviceIndex << ": " << Properties.name << " ";
 
-    firestarter::log::error()
-        << ss.str() << "Doesn't support double precision.\n"
-        << ss.str() << "Compute Capability: " << properties.major << "."
-        << properties.minor << ". Requiered for double precision: >=1.3\n"
-        << ss.str()
-        << "Stressing with single precision instead. Maybe use -f parameter.";
+    firestarter::log::error() << Ss.str() << "Doesn't support double precision.\n"
+                              << Ss.str() << "Compute Capability: " << Properties.major << "." << Properties.minor
+                              << ". Requiered for double precision: >=1.3\n"
+                              << Ss.str() << "Stressing with single precision instead. Maybe use -f parameter.";
 
-    useDouble = 0;
+    UseDouble = 0;
   }
 
-#ifdef FIRESTARTER_BUILD_CUDA
-  ACCELL_SAFE_CALL(cuCtxDestroy(context), device_index);
-#endif
+  compat::accellSafeCall(compat::destroyContextOrStream(StreamOrContext), __FILE__, __LINE__, DeviceIndex);
 
-  return useDouble;
-}
-
-#ifdef FIRESTARTER_BUILD_CUDA
-static int get_msize(int device_index, int useDouble) {
-  CUcontext context;
-  CUdevice device;
-  size_t memory_avail, memory_total;
-
-  ACCELL_SAFE_CALL(cuDeviceGet(&device, device_index), device_index);
-  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
-  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-  ACCELL_SAFE_CALL(cuMemGetInfo(&memory_avail, &memory_total), device_index);
-
-  ACCELL_SAFE_CALL(cuCtxDestroy(context), device_index);
-
-  return round_up(
-      (int)(0.8 * sqrt(((memory_avail) /
-                        ((useDouble ? sizeof(double) : sizeof(float)) * 3)))),
-      1024); // a multiple of 1024 works always well
-}
-#endif
-
-static CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) gemm(
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasHandle_t) handle,
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transa,
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transb,
-                            int &m, int &n, int &k,
-                            const float *alpha, const float *A, int &lda,
-                            const float *B, int &ldb, const float *beta,
-                            float *C, int &ldc) {
-  return CONCAT(FS_ACCEL_PREFIX_LC,blasSgemm)(handle, transa, transb, m, n, k,
-                                              alpha, A, lda, B, ldb,
-                                              beta, C, ldc);
-}
-
-static CONCAT(FS_ACCEL_PREFIX_LC,blasStatus_t) gemm(
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasHandle_t) handle,
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transa,
-                            CONCAT(FS_ACCEL_PREFIX_LC,blasOperation_t) transb,
-                            int &m, int &n, int &k,
-                            const double *alpha, const double *A, int &lda,
-                            const double *B, int &ldb, const double *beta,
-                            double *C, int &ldc) {
-  return CONCAT(FS_ACCEL_PREFIX_LC,blasDgemm)(handle, transa, transb, m, n, k,
-                                              alpha, A, lda, B, ldb,
-                                              beta, C, ldc);
-}
-
-static CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) generateUniform(
-                            CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) generator,
-                            float *outputPtr, size_t num) {
-  return CONCAT(FS_ACCEL_PREFIX_LC,randGenerateUniform)(generator, outputPtr, num);
-}
-
-static CONCAT(FS_ACCEL_PREFIX_LC,randStatus_t) generateUniform(
-                            CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) generator,
-                            double *outputPtr, size_t num) {
-  return CONCAT(FS_ACCEL_PREFIX_LC,randGenerateUniformDouble)(generator, outputPtr, num);
+  return UseDouble;
 }
 
 // GPU index. Used to pin this thread to the GPU.
-template <typename T>
-static void create_load(std::condition_variable &waitForInitCv,
-                        std::mutex &waitForInitCvMutex, int device_index,
-                        std::atomic<int> &initCount,
-                        volatile unsigned long long *loadVar, int matrixSize) {
-  static_assert(
-      std::is_same<T, float>::value || std::is_same<T, double>::value,
-      "create_load<T>: Template argument T must be either float or double");
+// Size use is one square matrix dim size
+template <typename FloatingPointType>
+void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                int DeviceIndex, std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+                unsigned MatrixSize) {
+  static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
+                "create_load<FloatingPointType>: Template argument must be either float or double");
 
-  int iterations, i;
+  firestarter::log::trace() << "Starting " << compat::AccelleratorString << " with given matrix size " << MatrixSize;
 
-  firestarter::log::trace() << "Starting CUDA/HIP with given matrix size "
-                            << matrixSize;
-
-  size_t size_use = 0;
-  if (matrixSize > 0) {
-    size_use = matrixSize;
-  }
-
-  size_t use_bytes, memory_size;
-#ifdef FIRESTARTER_BUILD_CUDA
-  CUcontext context;
-  struct cudaDeviceProp properties;
-  CUdevice device;
-  cublasHandle_t cublas;
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  hipStream_t stream;
-  struct hipDeviceProp_t properties;
-  hipDevice_t device;
-  hipblasHandle_t cublas;
-#endif
-#endif
+  compat::DeviceProperties Properties;
+  compat::BlasHandle Blas{};
   // reserving the GPU and initializing cublas
 
-  firestarter::log::trace() << "Getting " FS_ACCEL_STRING " device nr. " << device_index;
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,DeviceGet)(&device, device_index), device_index);
+  // NOLINTNEXTLINE(readability-qualified-auto)
+  auto StreamOrContext = compat::createContextOrStream(DeviceIndex);
 
-#ifdef FIRESTARTER_BUILD_CUDA
-  firestarter::log::trace() << "Creating " FS_ACCEL_STRING " context for computation on device nr. "
-                     << device_index;
-  ACCELL_SAFE_CALL(cuCtxCreate(&context, 0, device), device_index);
+  firestarter::log::trace() << "Create " << compat::AccelleratorString << " Blas on device nr. " << DeviceIndex;
+  compat::accellSafeCall(compat::blasCreate(Blas), __FILE__, __LINE__, DeviceIndex);
 
-  firestarter::log::trace() << "Set created " FS_ACCEL_STRING " context on device nr. "
-                     << device_index;
-  ACCELL_SAFE_CALL(cuCtxSetCurrent(context), device_index);
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  firestarter::log::trace() << "Creating " FS_ACCEL_STRING " Stream for computation on device nr. "
-                     << device_index;
-  ACCELL_SAFE_CALL(hipSetDevice(device_index), device_index);
-  ACCELL_SAFE_CALL(hipStreamCreate(&stream), device_index);
-#endif
-#endif
-
-  firestarter::log::trace() << "Create " FS_ACCEL_STRING " Blas on device nr. "
-                     << device_index;
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasCreate)(&cublas), device_index);
-
-  firestarter::log::trace() << "Get " FS_ACCEL_STRING " device properties (e.g., support for double)"
-                     << " on device nr. "
-                     << device_index;
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,GetDeviceProperties)(&properties, device_index),
-                 device_index);
+  firestarter::log::trace() << "Get " << compat::AccelleratorString << " device properties (e.g., support for double)"
+                            << " on device nr. " << DeviceIndex;
+  compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
 
   // getting information about the GPU memory
-  size_t memory_avail, memory_total;
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemGetInfo)(&memory_avail, &memory_total), device_index);
+  std::size_t MemoryAvail{};
+  std::size_t MemoryTotal{};
+  compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
+  firestarter::log::trace() << "Get " << compat::AccelleratorString << " emory info on device nr. " << DeviceIndex
+                            << ": " << MemoryAvail << " B avail. from " << MemoryTotal << " B total";
 
-  firestarter::log::trace() << "Get " FS_ACCEL_STRING " Memory info on device nr. "
-                     << device_index
-                     <<": " << memory_avail << " B avail. from "
-                     << memory_total << " B total";
+  // Defining memory pointers. ADataPtr and BDataPtr will point to a square matrix. CDataPtr may be one or multiple
+  // square matrices.
+  FloatingPointType* ADataPtr{};
+  FloatingPointType* BDataPtr{};
+  FloatingPointType* CDataPtr{};
 
-  // defining memory pointers
-#ifdef FIRESTARTER_BUILD_CUDA
-  CUdeviceptr a_data_ptr;
-  CUdeviceptr b_data_ptr;
-  CUdeviceptr c_data_ptr;
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  T* a_data_ptr;
-  T* b_data_ptr;
-  T* c_data_ptr;
-#endif
-#endif
-
-  // check if the user has not set a matrix OR has set a too big matrixsite and
-  // if this is true: set a good matrixsize
-  if (!size_use || ((size_use * size_use * sizeof(T) * 3 > memory_avail))) {
-    size_use = round_up((int)(0.8 * sqrt(((memory_avail) / (sizeof(T) * 3)))),
-                        1024); // a multiple of 1024 works always well
+  // If the matrix size is not set or three square matricies with dim size of SizeUse do not fit into the available
+  // memory, select the size so that 3 square matricies will fit into the available device memory where the dim size
+  // is a multiple of 1024. There may be edge cases with small device memory that results in matricies that are not
+  // multiples of 1024.
+  std::size_t MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
+  if (!MatrixSize || (MemorySize * 3 > MemoryAvail)) {
+    // a multiple of 1024 works always well
+    MatrixSize = roundUp<1024>(0.8 * std::sqrt(MemoryAvail / sizeof(FloatingPointType) / 3));
+    MemorySize = sizeof(FloatingPointType) * MatrixSize * MatrixSize;
   }
-  firestarter::log::trace() << "Set " FS_ACCEL_STRING " matrix size: " << matrixSize;
-  use_bytes = (size_t)((T)memory_avail);
-  memory_size = sizeof(T) * size_use * size_use;
-  iterations = (use_bytes - 2 * memory_size) / memory_size; // = 1;
 
-  firestarter::log::trace()
-      << "Allocating " FS_ACCEL_STRING " memory on device nr. "
-      << device_index;
+  firestarter::log::trace() << "Set " << compat::AccelleratorString << " matrix size: " << MatrixSize;
+  // Calculate the numnber of C matricies based on the available memory and the matrix size in B.
+  const auto Iterations = (MemoryAvail - 2 * MemorySize) / MemorySize;
+  // The numner of used memory are two time the matrix size in B (Matrix A and B) plus the number of matricies in C.
+  const auto UseBytes = (2 + Iterations) * MemorySize;
+
+  firestarter::log::trace() << "Allocating " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex;
 
   // allocating memory on the GPU
-#ifdef FIRESTARTER_BUILD_CUDA
-  ACCELL_SAFE_CALL(cuMemAlloc(&a_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(cuMemAlloc(&b_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(cuMemAlloc(&c_data_ptr, iterations * memory_size),
-                 device_index);
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  ACCELL_SAFE_CALL(hipMalloc(&a_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(hipMalloc(&b_data_ptr, memory_size), device_index);
-  ACCELL_SAFE_CALL(hipMalloc(&c_data_ptr, iterations * memory_size),
-                 device_index);
-#endif
-#endif
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&ADataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&BDataPtr, MemorySize), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::malloc<FloatingPointType>(&CDataPtr, Iterations * MemorySize), __FILE__, __LINE__,
+                         DeviceIndex);
 
-  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
-                     << device_index
-                     <<". A: " << a_data_ptr << "(Size: "
-                     << memory_size << "B)"
-                     << "\n";
+  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)"
+                            << "\n";
+  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)"
+                            << "\n";
+  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)"
+                            << "\n";
 
-  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
-                     << device_index
-                     <<". B: " << b_data_ptr << "(Size: "
-                     << memory_size << "B)"
-                     << "\n";
-  firestarter::log::trace() << "Allocated " FS_ACCEL_STRING " memory on device nr. "
-                     << device_index
-                     <<". C: " << c_data_ptr << "(Size: "
-                     << iterations * memory_size << "B)"
-                     << "\n";
-
-  firestarter::log::trace() << "Initializing " FS_ACCEL_STRING " matrices a, b on device nr. "
-                            << device_index
-                            << ". Using "
-                            << size_use * size_use
-                            << " elements of size "
-                            << sizeof(T) << " Byte";
+  firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
+                            << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
+                            << sizeof(FloatingPointType) << " Byte";
   // initialize matrix A and B on the GPU with random values
-  CONCAT(FS_ACCEL_PREFIX_LC,randGenerator_t) random_gen;
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randCreateGenerator)(
-                              &random_gen,
-                              CONCAT(FS_ACCEL_PREFIX_UC,RAND_RNG_PSEUDO_DEFAULT)),
-                  device_index);
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randSetPseudoRandomGeneratorSeed)(
-                              random_gen, SEED),
-                   device_index);
-  ACCELL_SAFE_CALL(
-      generateUniform(random_gen, (T *)a_data_ptr, size_use * size_use),
-      device_index);
-  ACCELL_SAFE_CALL(
-      generateUniform(random_gen, (T *)b_data_ptr, size_use * size_use),
-      device_index);
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,randDestroyGenerator)(random_gen),
-                   device_index);
+  {
+    compat::RandGenerator RandomGen{};
+    compat::accellSafeCall(compat::randCreateGeneratorPseudoRandom(RandomGen), __FILE__, __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::randSetPseudoRandomGeneratorSeed(RandomGen, Seed), __FILE__, __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, ADataPtr, MatrixSize * MatrixSize),
+                           __FILE__, __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::generateUniform<FloatingPointType>(RandomGen, BDataPtr, MatrixSize * MatrixSize),
+                           __FILE__, __LINE__, DeviceIndex);
+    compat::accellSafeCall(compat::randDestroyGenerator(RandomGen), __FILE__, __LINE__, DeviceIndex);
+  }
 
   // initialize c_data_ptr with copies of A
-  for (i = 0; i < iterations; i++) {
-      firestarter::log::trace() << "Initializing " FS_ACCEL_STRING " matrix c-"
-                                << i
-                                << " by copying "
-                                << memory_size
-                                << " byte from "
-                                << a_data_ptr
-                                << " to "
-                                << c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr))
-                                << "\n";
-    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,MemcpyDtoD)(
-                                c_data_ptr + (size_t)(i * size_use * size_use * (float)sizeof(T)/(float)sizeof(c_data_ptr)),
-                                a_data_ptr, memory_size),
-                   device_index);
+  for (std::size_t I = 0; I < Iterations; I++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    auto DestinationPtr = CDataPtr + (I * MatrixSize * MatrixSize);
+    firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrix c-" << I << " by copying "
+                              << MemorySize << " byte from " << ADataPtr << " to " << DestinationPtr << "\n";
+    compat::accellSafeCall(compat::memcpyDtoD<FloatingPointType>(DestinationPtr, ADataPtr, MemorySize), __FILE__,
+                           __LINE__, DeviceIndex);
   }
 
   // save gpuvar->init_count and sys.out
   {
-    std::lock_guard<std::mutex> lk(waitForInitCvMutex);
+    const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
 
-#define TO_MB(x) (unsigned long)(x / 1024 / 1024)
-  firestarter::log::info()
-      << "   GPU " << device_index << "\n"
-      << "    name:           " << properties.name << "\n"
-      << "    memory:         " << TO_MB(memory_avail) << "/"
-      << TO_MB(memory_total) << " MiB available (using " << TO_MB(use_bytes)
-      << " MiB)\n"
-      << "    matrix size:    " << size_use << "\n"
-      << "    used precision: "
-      << ((sizeof(T) == sizeof(double)) ? "double" : "single");
-#undef TO_MB
+    auto ToMiB = [](const size_t Val) { return Val / 1024 / 1024; };
+    firestarter::log::info() << "   GPU " << DeviceIndex << "\n"
+                             << "    name:           " << Properties.name << "\n"
+                             << "    memory:         " << ToMiB(MemoryAvail) << "/" << ToMiB(MemoryTotal)
+                             << " MiB available (using " << ToMiB(UseBytes) << " MiB)\n"
+                             << "    matrix size:    " << MatrixSize << "\n"
+                             << "    used precision: "
+                             << ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single");
 
-    initCount++;
+    InitCount++;
   }
-  waitForInitCv.notify_all();
+  WaitForInitCv.notify_all();
 
-  const T alpha = 1.0;
-  const T beta = 0.0;
+  const FloatingPointType Alpha = 1.0;
+  const FloatingPointType Beta = 0.0;
 
-  int size_use_i = size_use;
   // actual stress begins here
-  while (*loadVar != LOAD_STOP) {
-    for (i = 0; i < iterations; i++) {
-      ACCELL_SAFE_CALL(gemm(
-                          cublas,
-                          CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
-                          CONCAT(FS_ACCEL_PREFIX_UC,BLAS_OP_N),
-                          size_use_i, size_use_i,
-                          size_use_i, &alpha, (const T *)a_data_ptr, size_use_i,
-                          (const T *)b_data_ptr, size_use_i, &beta,
-                          (T *)c_data_ptr + i * size_use * size_use, size_use_i),
-                     device_index);
-      ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC_LONG,DeviceSynchronize)(),
-                       device_index);
-      flops += 2*(unsigned long long)size_use_i*(unsigned long long)size_use_i*(unsigned long long)size_use_i;
+  while (LoadVar != firestarter::LoadThreadWorkType::LoadStop) {
+    for (std::size_t I = 0; I < Iterations; I++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      auto CSectionPtr = CDataPtr + (I * MatrixSize * MatrixSize);
+      compat::accellSafeCall(compat::gemm<FloatingPointType>(Blas, compat::BlasOperation::BLAS_OP_N,
+                                                             compat::BlasOperation::BLAS_OP_N, MatrixSize, MatrixSize,
+                                                             MatrixSize, Alpha, ADataPtr, MatrixSize, BDataPtr,
+                                                             MatrixSize, Beta, CSectionPtr, MatrixSize),
+                             __FILE__, __LINE__, DeviceIndex);
+      compat::accellSafeCall(compat::deviceSynchronize(), __FILE__, __LINE__, DeviceIndex);
+
+      // The number of executed flop for a gemm with two square 'MatrixSize' sized matricies is 2 *
+      // ('MatrixSize'^3)
+      if (std::is_same_v<FloatingPointType, float>) {
+        ExecutedFlop.SingleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
+      } else if (std::is_same_v<FloatingPointType, double>) {
+        ExecutedFlop.DoubleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
+      }
     }
   }
 
-#ifdef FIRESTARTER_BUILD_CUDA
-  ACCELL_SAFE_CALL(cuMemFree(a_data_ptr), device_index);
-  ACCELL_SAFE_CALL(cuMemFree(b_data_ptr), device_index);
-  ACCELL_SAFE_CALL(cuMemFree(c_data_ptr), device_index);
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  ACCELL_SAFE_CALL(hipFree(a_data_ptr), device_index);
-  ACCELL_SAFE_CALL(hipFree(b_data_ptr), device_index);
-  ACCELL_SAFE_CALL(hipFree(c_data_ptr), device_index);
-#endif
-#endif
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,blasDestroy)(cublas), device_index);
-#ifdef FIRESTARTER_BUILD_CUDA
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,CtxDestroy)(context), device_index);
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-  ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,StreamDestroy)(stream), device_index);
-#endif
-#endif
+  compat::accellSafeCall(compat::free<FloatingPointType>(ADataPtr), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::free<FloatingPointType>(BDataPtr), __FILE__, __LINE__, DeviceIndex);
+  compat::accellSafeCall(compat::free<FloatingPointType>(CDataPtr), __FILE__, __LINE__, DeviceIndex);
+
+  compat::accellSafeCall(compat::blasDestroy(Blas), __FILE__, __LINE__, DeviceIndex);
+
+  compat::accellSafeCall(compat::destroyContextOrStream(StreamOrContext), __FILE__, __LINE__, DeviceIndex);
 }
 
-Cuda::Cuda(volatile unsigned long long *loadVar, bool useFloat, bool useDouble,
-           unsigned matrixSize, int gpus) {
-  std::thread t(Cuda::initGpus, std::ref(_waitForInitCv), loadVar, useFloat,
-                useDouble, matrixSize, gpus);
-  _initThread = std::move(t);
+}; // namespace
 
-  std::unique_lock<std::mutex> lk(_waitForInitCvMutex);
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+           int Gpus) {
+  std::condition_variable WaitForInitCv;
+  std::mutex WaitForInitCvMutex;
+
+  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
+                UseDouble, MatrixSize, Gpus);
+  InitThread = std::move(T);
+
+  std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  _waitForInitCv.wait(lk);
+  WaitForInitCv.wait(Lk);
 }
 
-void Cuda::initGpus(std::condition_variable &cv,
-                    volatile unsigned long long *loadVar, bool useFloat,
-                    bool useDouble, unsigned matrixSize, int gpus) {
-  std::condition_variable waitForInitCv;
-  std::mutex waitForInitCvMutex;
+void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
+                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
+                    unsigned MatrixSize, int Gpus) {
+  std::condition_variable GpuThreadsWaitForInitCv;
+  std::mutex GpuThreadsWaitForInitCvMutex;
+  std::vector<std::thread> GpuThreads;
 
-  if (gpus) {
-    ACCELL_SAFE_CALL(CONCAT(FS_ACCEL_PREFIX_LC,Init)(0), -1);
-    int devCount;
-#ifdef FIRESTARTER_BUILD_CUDA
-    ACCELL_SAFE_CALL(cuDeviceGetCount(&devCount), -1);
-#else
-#ifdef FIRESTARTER_BUILD_HIP
-    ACCELL_SAFE_CALL(hipGetDeviceCount(&devCount), -1);
-#endif
-#endif
+  if (Gpus != 0) {
+    compat::accellSafeCall(compat::init(0), __FILE__, __LINE__);
 
-    if (devCount) {
-      std::vector<std::thread> gpuThreads;
-      std::atomic<int> initCount = 0;
-      int use_double;
+    int DevCount{};
+    compat::accellSafeCall(compat::getDeviceCount(DevCount), __FILE__, __LINE__);
 
-      if (useFloat) {
-        use_double = 0;
-      } else if (useDouble) {
-        use_double = 1;
+    if (DevCount) {
+      std::atomic<int> InitCount = 0;
+      int UseDoubleConverted{};
+
+      if (UseFloat) {
+        UseDoubleConverted = 0;
+      } else if (UseDouble) {
+        UseDoubleConverted = 1;
       } else {
-        use_double = 2;
+        UseDoubleConverted = 2;
       }
 
       firestarter::log::info()
@@ -639,69 +315,61 @@ void Cuda::initGpus(std::condition_variable &cv,
           << "\n  graphics processor characteristics:";
 
       // use all GPUs if the user gave no information about use_device
-      if (gpus < 0) {
-        gpus = devCount;
+      if (Gpus < 0) {
+        Gpus = DevCount;
       }
 
-      if (gpus > devCount) {
-        firestarter::log::warn()
-            << "You requested more " FS_ACCEL_STRING " devices than available. "
-               "Maybe you set " FS_ACCEL_STRING "_VISIBLE_DEVICES?";
-        firestarter::log::warn()
-            << "FIRESTARTER will use " << devCount << " of the requested "
-            << gpus << " " FS_ACCEL_STRING " device(s)";
-        gpus = devCount;
+      if (Gpus > DevCount) {
+        firestarter::log::warn() << "You requested more " << compat::AccelleratorString
+                                 << " devices than available. "
+                                    "Maybe you set "
+                                 << compat::AccelleratorString << "_VISIBLE_DEVICES?";
+        firestarter::log::warn() << "FIRESTARTER will use " << DevCount << " of the requested " << Gpus << " "
+                                 << compat::AccelleratorString << " device(s)";
+        Gpus = DevCount;
       }
 
       {
-        std::lock_guard<std::mutex> lk(waitForInitCvMutex);
+        const std::lock_guard<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
 
-        for (int i = 0; i < gpus; ++i) {
+        for (int I = 0; I < Gpus; ++I) {
           // if there's a GPU in the system without Double Precision support, we
           // have to correct this.
-          int precision = get_precision(i, use_double);
+          const auto Precision = getPrecision(I, UseDoubleConverted);
+          void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
+                           const volatile firestarter::LoadThreadWorkType&, unsigned) =
+              Precision ? createLoad<double> : createLoad<float>;
 
-          if (precision) {
-            std::thread t(create_load<double>, std::ref(waitForInitCv),
-                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
-            gpuThreads.push_back(std::move(t));
-          } else {
-            std::thread t(create_load<float>, std::ref(waitForInitCv),
-                          std::ref(waitForInitCvMutex), i, std::ref(initCount),
-                          loadVar, (int)matrixSize);
-            gpuThreads.push_back(std::move(t));
-          }
+          std::thread T(LoadFunc, std::ref(ExecutedFlop), std::ref(GpuThreadsWaitForInitCv),
+                        std::ref(GpuThreadsWaitForInitCvMutex), I, std::ref(InitCount), std::cref(LoadVar), MatrixSize);
+          GpuThreads.emplace_back(std::move(T));
         }
       }
 
       {
-        std::unique_lock<std::mutex> lk(waitForInitCvMutex);
+        std::unique_lock<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
         // wait for all threads to initialize
-        waitForInitCv.wait(lk, [&] { return initCount == gpus; });
-      }
-
-      // notify that init is done
-      cv.notify_all();
-
-      /* join computation threads */
-      for (auto &t : gpuThreads) {
-        t.join();
+        GpuThreadsWaitForInitCv.wait(Lk, [&] { return InitCount == Gpus; });
       }
     } else {
-      firestarter::log::info()
-          << "    - No " FS_ACCEL_STRING " devices. Just stressing CPU(s). Maybe use "
-             "FIRESTARTER instead of FIRESTARTER_" FS_ACCEL_STRING "?";
-      cv.notify_all();
+      firestarter::log::info() << "    - No " << compat::AccelleratorString
+                               << " devices. Just stressing CPU(s). Maybe use "
+                                  "FIRESTARTER instead of FIRESTARTER_"
+                               << compat::AccelleratorString << "?";
     }
   } else {
-    firestarter::log::info()
-        << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
-           "FIRESTARTER instead of FIRESTARTER_" FS_ACCEL_STRING "?";
-    cv.notify_all();
+    firestarter::log::info() << "    --gpus 0 is set. Just stressing CPU(s). Maybe use "
+                                "FIRESTARTER instead of FIRESTARTER_"
+                             << compat::AccelleratorString << "?";
+  }
+
+  // notify that init is done
+  WaitForInitCv.notify_all();
+
+  /* join computation threads */
+  for (auto& Thread : GpuThreads) {
+    Thread.join();
   }
 }
 
-double Cuda::getFlops(){
-  return flops.load();
-}
+} // namespace firestarter::cuda

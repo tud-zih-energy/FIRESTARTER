@@ -2,16 +2,29 @@ name: Build
 
 on: [push, pull_request]
 
+# We define multiple jobs that test compatibility of the FIRESTARTER code against different compilers.
+# On linux:
+#   FIRESTARTER_HIP version 6.2 against the hipcc compiler on ubuntu24.04
+#   FIRESTARTER_ONEAPI versions 2023.2.0 and 2024.0 against icx and icpx compiler on ubuntu24.04
+#   FIRESTARTER_CUDA with cuda versions 8.0, 11.0 and NVHPC-22.5 against the default compiler on ubuntu24.04
+#   FIRESTARTER against
+#     ubuntu 20.04 gcc-7 and clang-9
+#     ubuntu 24.04 gcc-14 and clang-18
+#     default compilers on ubuntu-20.04, ubuntu-22.04 and ubuntu-24.04
+# On Windows:
+#   FIRESTARTER against windows-2019 MSVC and mingw
+#   FIRESTARTER_CUDA against windows-2019 MSVC
+# On MacOS:
+#   FIRESTARTER against XCode on MacOS 13
+
 jobs:
 
   build-linux-hip-rocm:
     strategy:
-#      max-parallel: 1 # Sets the limit of jobs to run concurrently
       fail-fast: true
       matrix:
-        os: [ubuntu-22.04]
-        compiler: [g++-9] #, g++-10, g++-11, g++-12, clang++-11, clang++-12, clang++-13, clang++-14, clang++-15]
-        HIP: ['6.2']
+        os: [ubuntu-24.04]
+        HIP: ['6.3']
     runs-on: ${{ matrix.os }}
 
     env:
@@ -21,43 +34,9 @@ jobs:
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/.ghcup
 
-    - name: Install g++-9 (if needed)
-      if: matrix.compiler == 'g++-9'
-      run: |
-        sudo apt install g++-9
-    - name: Install g++-10 (if needed)
-      if: matrix.compiler == 'g++-10'
-      run: |
-        sudo apt install g++-10
-    - name: Install g++-11 (if needed)
-      if: matrix.compiler == 'g++-11'
-      run: |
-        sudo apt install g++-11
-    - name: Install g++-12 (if needed)
-      if: matrix.compiler == 'g++-12'
-      run: |
-        sudo apt install g++-12
-    - name: Install clang++-11 (if needed)
-      if: matrix.compiler == 'clang++-11'
-      run: |
-        sudo apt install clang-11
-    - name: Install clang++-12 (if needed)
-      if: matrix.compiler == 'clang++-12'
-      run: |
-        sudo apt install clang-12
-    - name: Install clang++-13 (if needed)
-      if: matrix.compiler == 'clang++-13'
-      run: |
-        sudo apt install clang-13
-    - name: Install clang++-14 (if needed)
-      if: matrix.compiler == 'clang++-14'
-      run: |
-        sudo apt install clang-14
-    - name: Install clang++-15 (if needed)
-      if: matrix.compiler == 'clang++-15'
-      run: |
-        sudo apt install clang-15
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -67,12 +46,11 @@ jobs:
       with:
         fetch-depth: '0'
     - name: Install HIP runtime (if needed)
-      if: matrix.HIP != '0' && matrix.ONEAPI == 0 && matrix.CUDA == 0
       run: |
         case ${{ matrix.HIP }} in
-          6.2)
-            wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb
-            sudo apt install ./amdgpu-install_6.2.60200-1_all.deb
+          6.3)
+            wget https://repo.radeon.com/amdgpu-install/6.3/ubuntu/noble/amdgpu-install_6.3.60300-1_all.deb
+            sudo apt install ./amdgpu-install_6.3.60300-1_all.deb
             sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
             ;;
         esac
@@ -81,9 +59,9 @@ jobs:
       run: |
           mkdir build
     - name: Run CMake configure (HIP)
-      if: matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0'
       env:
-        CXX: ${{ matrix.compiler }}
+        CC: '/opt/rocm/bin/hipcc'
+        CXX: '/opt/rocm/bin/hipcc'
       run: |
         export CPATH=${HIP_ROOT}/include:${HIP_ROOT}
         export LD_LIBRARY_PATH=${HIP_ROOT}/lib64:${HIP_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
@@ -95,63 +73,37 @@ jobs:
         export HIPToolkit_ROOT=${HIP_ROOT}
 
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
-    - name: Build (default, CUDA, HIP)
-      if: matrix.ONEAPI =='0'
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_HIP" -DCMAKE_EXE_LINKER_FLAGS="-L${HIP_ROOT}/lib64/stubs/" ..
+    - name: Build (HIP)
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary (HIP)
-      if: matrix.CUDA == '0' && matrix.HIP != '0' && matrix.ONEAPI == '0'
       run: |
         cd build
         strip src/FIRESTARTER_HIP
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'g++-9' && matrix.HIP != '0' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
       with:
         name: FIRESTARTER_HIP_${{ matrix.HIP }}-linux
         retention-days: 1
         path: build/src/FIRESTARTER_HIP
-  build-linux:
+
+
+  build-linux-oneapi:
     strategy:
-#      max-parallel: 1 # Sets the limit of jobs to run concurrently
       fail-fast: true
       matrix:
-        os: [ubuntu-20.04]
-        compiler: [g++-7] #, g++-8, g++-9, g++-10, clang++-8, clang++-9, clang++-10]
-        CUDA: ['0', '8.0'] #, '11.0', 'NVHPC-22.5']
-        ONEAPI: ['0', '2023.2.0'] #, '2024.0']
-
+        os: [ubuntu-24.04]
+        ONEAPI: ['2023.2.0', '2024.0']
+  
     runs-on: ${{ matrix.os }}
 
-    env:
-      CUDA_ROOT: '/usr/local/cuda'
-#kudos to https://github.com/easimon/maximize-build-space/blob/master/action.yml
     steps:
     - name: Try to clean up some things
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
-    - name: Install g++-7 (if needed)
-      if: matrix.compiler == 'g++-7'
-      run: |
-        sudo apt install g++-7
-    - name: Install g++-8 (if needed)
-      if: matrix.compiler == 'g++-8'
-      run: |
-        sudo apt install g++-8
-    - name: Install clang++-8 (if needed)
-      if: matrix.compiler == 'clang++-8'
-      run: |
-        sudo apt install clang-8
-    - name: Install clang++-9 (if needed)
-      if: matrix.compiler == 'clang++-9'
-      run: |
-        sudo apt install clang-9
-    - name: Install clang++-10 (if needed)
-      if: matrix.compiler == 'clang++-10'
-      run: |
-        sudo apt install clang-10
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -160,8 +112,77 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-    - name: Install CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == 0
+    - name: Install OneAPI Base-Toolkit
+      run: |
+        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt update
+        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
+    - name: Create build directory
+      run: |
+        mkdir build
+    - name: Run CMake configure (OneAPI 2023.2.0)
+      if: matrix.ONEAPI == '2023.2.0'
+      run: |
+        . /opt/intel/oneapi/setvars.sh
+        cd build
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+    - name: Run CMake configure (OneAPI 2024.0)
+      if: matrix.ONEAPI == '2024.0'
+      run: |
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
+        cd build
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
+    - name: Build (OneAPI 2023.2.0)
+      if: matrix.ONEAPI == '2023.2.0'
+      run: |
+        . /opt/intel/oneapi/setvars.sh
+        cd build
+        make -j4
+    - name: Build (OneAPI 2024.0)
+      if: matrix.ONEAPI == '2024.0'
+      run: |
+        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
+        cd build
+        make -j4
+    - name: Strip binary (OneAPI)
+      run: |
+        cd build
+        strip src/FIRESTARTER_ONEAPI
+    - uses: actions/upload-artifact@v4
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
+      with:
+        name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
+        retention-days: 1
+        path: build/src/FIRESTARTER_ONEAPI
+    
+    - name: UnInstall OneAPI Base-Toolkit (if needed)
+      run: |
+        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
+        sudo apt autoremove      
+
+
+  build-linux-cuda:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-24.04]
+        CUDA: ['8.0', '11.0', 'NVHPC-22.5']
+  
+    runs-on: ${{ matrix.os }}
+  
+    env:
+      CUDA_ROOT: '/usr/local/cuda'
+    steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - name: Install CUDA runtime
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
@@ -184,162 +205,142 @@ jobs:
             rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
             rm -rf nvhpc_2022_225_Linux_x86_64_cuda_11.7
-
+            ;;
         esac
-    - name: Install OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt update
-        sudo apt install intel-basekit-${{ matrix.ONEAPI }}
     - name: Create build directory
       run: |
         mkdir build
-    - name: Run CMake configure (default)
-      if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
-      env:
-        CXX: ${{ matrix.compiler }}
-      run: |
-        cd build
-        cmake ..
     - name: Run CMake configure (CUDA)
-      if: matrix.CUDA != '0' && matrix.CUDA != 'NVHPC-22.5' && matrix.ONEAPI == '0'
-      env:
-        CXX: ${{ matrix.compiler }}
+      if: matrix.CUDA != 'NVHPC-22.5'
       run: |
         export CPATH=${CUDA_ROOT}/include:${CPATH}
         export LD_LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LD_LIBRARY_PATH}
         export LIBRARY_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs:${LIBRARY_PATH}
         export CUDA_LIB_PATH=${CUDA_ROOT}/lib64:${CUDA_ROOT}/lib64/stubs
-        export PATH=${CUDA_ROOT}:${PATH}
+        export PATH=${CUDA_ROOT}/bin:${PATH}
         export CUDA_HOME=${CUDA_ROOT}
         export CUDA_PATH=${CUDA_ROOT}
         export CUDAToolkit_ROOT=${CUDA_ROOT}
-
+  
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS="-L${CUDA_ROOT}/lib64/stubs/" ..
     - name: Run CMake configure (CUDA with NVHPC)
-      if: matrix.CUDA == 'NVHPC-22.5' && matrix.ONEAPI == '0'
-      env:
-        CXX: ${{ matrix.compiler }}
+      if: matrix.CUDA == 'NVHPC-22.5'
       run: |
         NVARCH=`uname -s`_`uname -m`; export NVARCH
         PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/bin:$PATH; export PATH
         LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/compilers/lib:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
         LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
         LD_LIBRARY_PATH=$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
-
+  
         cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
-    - name: Run CMake configure (OneAPI 2023.2.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
-      run: |
-        . /opt/intel/oneapi/setvars.sh
-        cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
-    - name: Run CMake configure (OneAPI 2024.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2024.0'
-      run: |
-        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
-        cd build
-        cmake -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_ONEAPI" ..
-    - name: Build (default, CUDA)
-      if: matrix.ONEAPI =='0'
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCMAKE_EXE_LINKER_FLAGS=-L"$CUDA_ROOT/$NVARCH/22.5/cuda/11.7/lib64/stubs" -LA ..
+    - name: Build (CUDA)
       run: |
         cd build
-        make -j2
-    - name: Build (OneAPI 2023.2.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2023.2.0'
-      run: |
-        . /opt/intel/oneapi/setvars.sh
-        cd build
-        make -j2
-    - name: Build (OneAPI 2024.0)
-      if: matrix.CUDA == '0' && matrix.ONEAPI =='2024.0'
-      run: |
-        . /opt/intel/oneapi/${{ matrix.ONEAPI }}/oneapi-vars.sh
-        cd build
-        make -j2
-    - name: Strip binary (default)
-      if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
-      run: |
-        cd build
-        strip src/FIRESTARTER
+        make -j4
     - name: Strip binary (CUDA)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         cd build
         strip src/FIRESTARTER_CUDA
-    - name: Strip binary (OneAPI)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
-      run: |
-        cd build
-        strip src/FIRESTARTER_ONEAPI
-    - name: Test FIRESTARTER (default)
-      if: matrix.CUDA == '0' && matrix.ONEAPI == '0'
-      run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
-      with:
-        name: FIRESTARTER-linux
-        retention-days: 1
-        path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA != '0' && matrix.ONEAPI == '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
       with:
         name: FIRESTARTER_CUDA_${{ matrix.CUDA }}-linux
         retention-days: 1
         path: build/src/FIRESTARTER_CUDA
-    - uses: actions/upload-artifact@v4
-      if: matrix.compiler == 'clang++-10' && matrix.CUDA == '0' && matrix.ONEAPI != '0' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
-      with:
-        name: FIRESTARTER_ONEAPI_${{ matrix.ONEAPI }}-linux
-        retention-days: 1
-        path: build/src/FIRESTARTER_ONEAPI
-    
-    - name: UnInstall g++-7 (if needed)
-      if: matrix.compiler == 'g++-7'
-      run: |
-        sudo apt remove g++-7
-        sudo apt autoremove
-    - name: UnInstall g++-8 (if needed)
-      if: matrix.compiler == 'g++-8'
-      run: |
-        sudo apt remove g++-8
-        sudo apt autoremove
-    - name: UnInstall clang++-8 (if needed)
-      if: matrix.compiler == 'clang++-8'
-      run: |
-        sudo apt remove clang-8
-        sudo apt autoremove
-    - name: UnInstall clang++-9 (if needed)
-      if: matrix.compiler == 'clang++-9'
-      run: |
-        sudo apt remove clang-9
-        sudo apt autoremove
-    - name: UnInstall clang++-10 (if needed)
-      if: matrix.compiler == 'clang++-10'
-      run: |
-        sudo apt remove clang-10
-        sudo apt autoremove
     - name: UnInstall CUDA runtime (if needed)
-      if: matrix.CUDA != '0' && matrix.ONEAPI == '0'
       run: |
         sudo rm -rf ${CUDA_ROOT}
-    - name: UnInstall OneAPI Base-Toolkit (if needed)
-      if: matrix.ONEAPI != '0' && matrix.CUDA == '0'
+
+      
+  build-linux:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Oldest supported compiler on older Ubuntu
+          - { os: ubuntu-20.04, compiler: gcc-7,    cxxcompiler: g++-7 }
+          - { os: ubuntu-20.04, compiler: clang-9,  cxxcompiler: clang++-9 }
+          # Latest compiler on latest Ubuntu
+          - { os: ubuntu-24.04, compiler: gcc-14,   cxxcompiler: g++-14 }
+          - { os: ubuntu-24.04, compiler: clang-18, cxxcompiler: clang++-18 }
+          # Default compilers on all ubuntu
+          - { os: ubuntu-20.04, compiler: default }
+          - { os: ubuntu-22.04, compiler: default }
+          - { os: ubuntu-24.04, compiler: default }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install compiler (if needed)
+      if: startsWith(matrix.compiler, 'gcc')
       run: |
-        sudo apt remove intel-basekit-${{ matrix.ONEAPI }}
+        sudo apt install ${{ matrix.cxxcompiler }}
+    - name: Install compiler (if needed)
+      if: startsWith(matrix.compiler, 'clang')
+      run: |
+        sudo apt install ${{ matrix.compiler }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - name: Create build directory
+      run: |
+        mkdir build
+    - name: Run CMake configure
+      if: matrix.compiler != 'default'
+      env:
+        CC: ${{ matrix.compiler }}
+        CXX: ${{ matrix.cxxcompiler }}
+      run: |
+        cd build
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
+    - name: Run CMake configure
+      if: matrix.compiler == 'default'
+      run: |
+        cd build
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
+    - name: Build (default)
+      run: |
+        cd build
+        make -j4
+    - name: Strip binary (default)
+      run: |
+        cd build
+        strip src/FIRESTARTER
+    - name: Test FIRESTARTER (default)
+      run: ./build/src/FIRESTARTER -t 1
+    - uses: actions/upload-artifact@v4
+      if: matrix.compiler == 'clang-18' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
+      with:
+        name: FIRESTARTER-linux
+        retention-days: 1
+        path: build/src/FIRESTARTER
+    - name: Uninstall compiler (if needed)
+      if: startsWith(matrix.compiler, 'gcc')
+      run: |
+        sudo apt remove ${{ matrix.cxxcompiler }}
         sudo apt autoremove
+    - name: Uninstall compiler (if needed)
+      if: startsWith(matrix.compiler, 'clang')
+      run: |
+        sudo apt remove ${{ matrix.compiler }}
+        sudo apt autoremove
+  
+
   build-windows:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [windows-2019]
         cfg:
-          - { CUDA: '0', ONEAPI: '0', MSVC: true }
-          - { CUDA: '0', ONEAPI: '0', MSVC: false }
+          - { CUDA: '0',    MSVC: true }
+          - { CUDA: '0',    MSVC: false }
           - { CUDA: '11.0', MSVC: true }
 
     runs-on: ${{ matrix.os }}
@@ -348,10 +349,6 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: '0'
-    - name: Install CMake
-      uses: crazy-max/ghaction-chocolatey@v3
-      with:
-        args: install cmake
     - name: Install Mingw
       uses: crazy-max/ghaction-chocolatey@v3
       if: matrix.cfg.MSVC == false
@@ -374,13 +371,13 @@ jobs:
       shell: pwsh
       run: |
         cd build
-        cmake -G "MinGW Makefiles" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "MinGW Makefiles" ..
     - name: Run CMake configure
       if: matrix.cfg.CUDA == '0' && matrix.cfg.MSVC == true
       shell: pwsh
       run: |
         cd build
-        cmake -G "NMake Makefiles" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "NMake Makefiles" ..
     - name: Run CMake configure
       if: matrix.cfg.CUDA != '0'
       shell: pwsh
@@ -388,12 +385,12 @@ jobs:
         cd build
         ls 
         dir "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.0"
-        cmake -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON -G "NMake Makefiles" -DFIRESTARTER_BUILD_TYPE="FIRESTARTER_CUDA" -DCUDAToolkit_ROOT="C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0" ..
     - name: Build
       shell: pwsh
       run: |
         cd build
-        cmake --build . -j2
+        cmake --build . -j4
     - name: Copy Hwloc DLL
       shell: pwsh
       if: matrix.cfg.MSVC == true
@@ -425,11 +422,12 @@ jobs:
         path: |
           build\src\FIRESTARTER_CUDA.exe
           build\src\libhwloc-15.dll
+
   build-macos:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        os: [macos-12, macos-13]
+        os: [macos-13]
 
     runs-on: ${{ matrix.os }}
 
@@ -446,11 +444,11 @@ jobs:
     - name: Run CMake configure
       run: |
         cd build
-        cmake ..
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
     - name: Build
       run: |
         cd build
-        make -j2
+        make -j4
     - name: Strip binary
       run: |
         cd build
@@ -460,22 +458,17 @@ jobs:
         cd build
         ./src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-12' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
-      with:
-        retention-days: 1
-        name: FIRESTARTER-macOS_12
-        path: build/src/FIRESTARTER
-    - uses: actions/upload-artifact@v4
       if: matrix.os == 'macos-13' && ( github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request' )
       with:
         retention-days: 1
         name: FIRESTARTER-macOS_13
         path: build/src/FIRESTARTER
+
   create-download:
     name: Create download for Website
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
-    needs: [build-linux-hip-rocm, build-linux, build-macos, build-windows]
+    needs: [ build-linux-hip-rocm, build-linux-oneapi, build-linux-cuda, build-linux, build-macos, build-windows ]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -553,27 +546,17 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_ONEAPI FIRESTARTER_ONEAPI_2023.2.0
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_ONEAPI_2023.2.0
-    # Linux HIP 6.2
-    - name: Retrieve FIRESTARTER_HIP_6.2-linux 
+    # Linux HIP 6.3
+    - name: Retrieve FIRESTARTER_HIP_6.3-linux 
       uses: actions/download-artifact@v4
       with:
-        name: FIRESTARTER_HIP_6.2-linux
+        name: FIRESTARTER_HIP_6.3-linux
         path: FIRESTARTER
     - name: Move binary to right directory
       run: |
-        mv FIRESTARTER/FIRESTARTER_HIP FIRESTARTER_HIP_6.2
+        mv FIRESTARTER/FIRESTARTER_HIP FIRESTARTER_HIP_6.3
         rm -rf FIRESTARTER
-        chmod +x FIRESTARTER_HIP_6.2
-    - name: Retrieve FIRESTARTER-macOS_12
-      uses: actions/download-artifact@v4
-      with:
-        name: FIRESTARTER-macOS_12
-        path: FIRESTARTER
-    - name: Move binary to right directory
-      run: |
-        mv FIRESTARTER/FIRESTARTER FIRESTARTER-macOS_12
-        rm -rf FIRESTARTER
-        chmod +x FIRESTARTER-macOS_12
+        chmod +x FIRESTARTER_HIP_6.3
     - name: Retrieve FIRESTARTER-macOS_13
       uses: actions/download-artifact@v4
       with:

@@ -21,30 +21,32 @@
 
 #pragma once
 
-#include <firestarter/Measurement/TimeValue.hpp>
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/TimeValue.hpp"
 
 #include <chrono>
 #include <nlohmann/json.hpp>
 #include <vector>
 
-extern "C" {
-#include <firestarter/Measurement/MetricInterface.h>
-}
-
 namespace firestarter::measurement {
 
+/// This struct summarized multiple timevalues. The duration, the number of time points an average and stddev is saved.
 struct Summary {
+  size_t NumTimepoints;
+  std::chrono::milliseconds Duration;
 
-  size_t num_timepoints;
-  std::chrono::milliseconds duration;
+  double Average;
+  double Stddev;
 
-  double average;
-  double stddev;
-
-  static Summary calculate(std::vector<TimeValue>::iterator begin,
-                           std::vector<TimeValue>::iterator end,
-                           metric_type_t metricType,
-                           unsigned long long numThreads);
+  /// Calculate the summary over a range of timevalues for a given metric and number of threads.
+  /// \arg Begin The start of the iterator
+  /// \arg End The end of the iterator
+  /// \arg MetricType This describes what each timevalue represents and how the metric needs to be calucated into a
+  /// summary.
+  /// \arg NumThreads The number of threads this metric was accumulated across.
+  /// \returns The summary over the range of timevalues from a specific metric.
+  static auto calculate(std::vector<TimeValue>::iterator Begin, std::vector<TimeValue>::iterator End,
+                        MetricType MetricType, uint64_t NumThreads) -> Summary;
 };
 
 } // namespace firestarter::measurement

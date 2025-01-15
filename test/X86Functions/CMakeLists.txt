@@ -1,0 +1,5 @@
+add_executable(X86Functions Main.cpp)
+target_link_libraries(X86Functions firestartercore)
+target_link_libraries_darwin(NAME X86Functions)
+
+add_ref_test(NAME X86Functions)

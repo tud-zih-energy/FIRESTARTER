@@ -21,19 +21,26 @@
 
 #pragma once
 
-#include <firestarter/Optimizer/Population.hpp>
+#include "firestarter/Optimizer/Population.hpp"
 
 namespace firestarter::optimizer {
 
+/// Abstract class to provide an interface for evolutionary optimization algorithms.
 class Algorithm {
 public:
-  Algorithm() {}
-  virtual ~Algorithm() {}
+  Algorithm() = default;
+  virtual ~Algorithm() = default;
 
-  virtual void checkPopulation(Population const &pop,
-                               std::size_t populationSize) = 0;
+  /// Check if the population size and the problem matches the requirements of the algorithm. Asserts if this checks
+  /// fail.
+  /// \arg Prob The poblem that should be optimized with this algorithm
+  /// \arg PopulationSize The initial size of the population that is used
+  virtual void check(Problem const& Prob, std::size_t PopulationSize) = 0;
 
-  virtual Population evolve(Population &pop) = 0;
+  /// Evolve the population across multiple iterations.
+  /// \arg Pop The initial population
+  /// \returns The final population after the optimization has run
+  virtual auto evolve(Population& Pop) -> Population = 0;
 };
 
 } // namespace firestarter::optimizer

@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include <firestarter/Measurement/Summary.hpp>
-#include <firestarter/Optimizer/Individual.hpp>
+#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
 
 #include <cstring>
 #include <map>
@@ -31,37 +31,50 @@
 
 namespace firestarter::optimizer {
 
+/// This class models the abstract problem which should be optimized. It provides the methods to evaluate an individual
+/// and calculate its fitness.
 class Problem {
+  /// The number of metric evaluations
+  uint64_t Fevals = 0;
+
 public:
-  Problem() : _fevals(0) {}
-  virtual ~Problem() {}
+  Problem() = default;
+  virtual ~Problem() = default;
 
-  // return the fitness for an individual
-  virtual std::map<std::string, firestarter::measurement::Summary>
-  metrics(Individual const &individual) = 0;
+  /// Perform an evaluation of the supplied individual. This returns a map from the metric name to their respective
+  /// summary. This function will increment the fevals.
+  /// \arg Individual The individual that should be evaluated.
+  /// \returns A map from metric name to the summary of this metric for the specific individual
+  virtual auto metrics(Individual const& Individual) -> std::map<std::string, firestarter::measurement::Summary> = 0;
 
-  virtual std::vector<double>
-  fitness(std::map<std::string, firestarter::measurement::Summary> const
-              &summaries) = 0;
+  /// Convert the result of one evaluation into a fitness (vector of doubles) for the supplied summaries
+  /// \arg Summaries The summaries of one evaluation.
+  /// \returns The fitness vector derived from the summaries. The size of this vector is equal to the number of
+  /// objectives.
+  [[nodiscard]] virtual auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const
+      -> std::vector<double> = 0;
 
-  // get the bounds of the problem
-  virtual std::vector<std::tuple<unsigned, unsigned>> getBounds() const = 0;
+  /// Get the bounds of the problem. For each dimension a min and max value is supplied.
+  /// \return The min and max bound per dimension.
+  [[nodiscard]] virtual auto getBounds() const -> std::vector<std::tuple<unsigned, unsigned>> = 0;
 
-  // get the number of dimensions of the problem
-  std::size_t getDims() const { return this->getBounds().size(); };
+  /// Get the number of dimensions of the problem.
+  /// \returns The number of dimensions.
+  [[nodiscard]] auto getDims() const -> std::size_t { return this->getBounds().size(); };
 
-  // get the number of objectives.
-  virtual std::size_t getNobjs() const = 0;
+  /// Get the number of optimization objectives for this problem.
+  /// \arg The number of objectives.
+  [[nodiscard]] virtual auto getNobjs() const -> std::size_t = 0;
 
-  // is the problem multiobjective
-  bool isMO() const { return this->getNobjs() > 1; };
+  /// Check if the problem is a multi-objective one.
+  [[nodiscard]] auto isMO() const -> bool { return this->getNobjs() > 1; };
 
-  // get the number of fitness evaluations
-  unsigned long long getFevals() const { return _fevals; };
+  /// Get the number of evaluations.
+  [[nodiscard]] auto getFevals() const -> uint64_t { return Fevals; };
 
 protected:
-  // number of fitness evaluations
-  unsigned long long _fevals;
+  /// Increment the number of evaluations.
+  void incrementFevals() { Fevals++; };
 };
 
 } // namespace firestarter::optimizer
