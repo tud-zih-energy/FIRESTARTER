@@ -53,9 +53,10 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 /// Convert the UseDouble input (0 -> single precision, 1 -> double precision, 2 -> automatic) to either 0 or 1 for
 /// float or double respectively. For CUDART_VERSION at least equal 8000 and automatic selection we check if the card
 /// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
-/// cases automatic results in double. \arg UseDouble The input that specifies either single precision, double
-/// precision or automatic selection. \arg Properties The device properties. \return The selected precision, either 0
-/// or 1 for float or double respectively.
+/// cases automatic results in double.
+/// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
+/// \arg Properties The device properties.
+/// \return The selected precision, either 0 or 1 for float or double respectively.
 auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
 #if (CUDART_VERSION >= 8000)
   // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
