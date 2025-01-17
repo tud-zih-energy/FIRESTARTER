@@ -21,10 +21,17 @@
 
 #include "firestarter/Optimizer/Population.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/Summary.hpp"
 #include "firestarter/Optimizer/History.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
 
 #include <cassert>
+#include <cstddef>
+#include <map>
 #include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace firestarter::optimizer {
 

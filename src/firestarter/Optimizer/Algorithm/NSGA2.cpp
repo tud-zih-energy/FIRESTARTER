@@ -24,12 +24,21 @@
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Optimizer/Individual.hpp"
+#include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/Optimizer/Problem.hpp"
 #include "firestarter/Optimizer/Util/MultiObjective.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <iomanip>
+#include <limits>
+#include <numeric>
 #include <random>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace firestarter::optimizer::algorithm {
 

@@ -22,7 +22,13 @@
 #include "firestarter/Config/InstructionGroups.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <regex>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace firestarter {
 

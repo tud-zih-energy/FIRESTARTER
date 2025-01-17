@@ -185,8 +185,7 @@ public:
 
   /// The available instruction cache size. This refers to the L1i-Cache per thread on the physical CPU core.
   [[nodiscard]] auto instructionCacheSizePerThread() const -> std::optional<unsigned> {
-    auto InstructionCacheSize = this->InstructionCacheSize;
-    if (*InstructionCacheSize) {
+    if (InstructionCacheSize) {
       return *InstructionCacheSize / thread();
     }
     return {};

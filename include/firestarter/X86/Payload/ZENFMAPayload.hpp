@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "asmjit/core/cpuinfo.h"
+#include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/X86/Payload/X86Payload.hpp"
 
 namespace firestarter::x86::payload {

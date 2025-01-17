@@ -131,8 +131,9 @@ public:
                 << " thread(s) per core\n"
                 << "  Used buffersizes per thread:";
 
-    if (settings().instructionCacheSizePerThread()) {
-      log::info() << "    - L1i-Cache: " << *settings().instructionCacheSizePerThread() << " Bytes";
+    const auto ICacheSizePerThread = settings().instructionCacheSizePerThread();
+    if (ICacheSizePerThread) {
+      log::info() << "    - L1i-Cache: " << *ICacheSizePerThread << " Bytes";
     }
 
     unsigned I = 1;

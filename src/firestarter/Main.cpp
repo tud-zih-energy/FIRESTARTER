@@ -19,8 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Config/Config.hpp"
 #include "firestarter/Firestarter.hpp"
 #include "firestarter/Logging/Log.hpp"
+
+#include <cstdlib>
+#include <exception>
+#include <utility>
 
 auto main(int argc, const char** argv) -> int {
   firestarter::log::info() << "FIRESTARTER - A Processor Stress Test Utility, Version " << _FIRESTARTER_VERSION_STRING

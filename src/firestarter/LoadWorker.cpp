@@ -21,10 +21,14 @@
 
 #include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/Constants.hpp"
+#include "firestarter/DumpRegisterStruct.hpp"
 #include "firestarter/ErrorDetectionStruct.hpp"
 #include "firestarter/Firestarter.hpp"
 #include "firestarter/LoadWorkerData.hpp"
+#include "firestarter/LoadWorkerMemory.hpp"
+#include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/ThreadAffinity.hpp"
 
 #if defined(linux) || defined(__linux__)
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
@@ -37,13 +41,23 @@
 #include <SCOREP_User.h>
 #endif
 
+#include <algorithm>
+#include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <iomanip>
+#include <ios>
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace firestarter {
 
@@ -276,6 +290,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
   auto OldState = LoadThreadState::ThreadWait;
 
 #if defined(linux) || defined(__linux__)
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "LoadWorker");
 #endif
 

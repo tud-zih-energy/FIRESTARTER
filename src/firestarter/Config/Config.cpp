@@ -21,10 +21,20 @@
 
 #include "firestarter/Config/Config.hpp"
 #include "firestarter/Config/CpuBind.hpp"
+#include "firestarter/Config/InstructionGroups.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/SafeExit.hpp"
 
+#include <algorithm>
+#include <cstdlib>
 #include <cxxopts.hpp>
+#include <exception>
+#include <nitro/log/severity.hpp>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 

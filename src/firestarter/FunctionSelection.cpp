@@ -20,12 +20,22 @@
  *****************************************************************************/
 
 #include "firestarter/FunctionSelection.hpp"
+#include "firestarter/CPUTopology.hpp"
+#include "firestarter/CpuFeatures.hpp"
+#include "firestarter/CpuModel.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Platform/PlatformConfig.hpp"
 #include "firestarter/Platform/PlatformConfigAndThreads.hpp"
+#include "firestarter/ProcessorInformation.hpp"
 
 #include <algorithm>
 #include <cstdio>
 #include <iomanip>
+#include <ios>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
 
 namespace firestarter {
 
@@ -33,7 +43,6 @@ auto FunctionSelection::selectAvailableFunction(
     unsigned FunctionId, const CpuFeatures& Features, std::optional<unsigned> InstructionCacheSize,
     bool AllowUnavailablePayload) const -> std::unique_ptr<platform::PlatformConfig> {
   unsigned Id = 1;
-  std::optional<std::string> DefaultPayloadName;
 
   for (const auto& Platform : platform::PlatformConfigAndThreads::fromPlatformConfigs(platformConfigs())) {
     // the selected function

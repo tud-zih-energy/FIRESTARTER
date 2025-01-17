@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/X86/Payload/X86Payload.hpp"
 
 namespace firestarter::x86::payload {

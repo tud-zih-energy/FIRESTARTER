@@ -22,6 +22,7 @@
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 
 auto IpcEstimateMetricData::fini() -> int32_t {
