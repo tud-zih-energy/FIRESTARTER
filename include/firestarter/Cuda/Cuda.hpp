@@ -69,11 +69,14 @@ private:
 
 public:
   /// Initilize the cuda class. This will start a thread running the Cuda::initGpus function and wait until all gpus
-  /// are inititialized. \arg LoadVar A reference to the variable that controlls the current load of Firestarter. \arg
-  /// UseFloat Set to true if we want to stress using single precision floating points. \arg UseDouble Set to true if
-  /// we want to stress using double precision floating points. If neither UseFloat or UseDouble is set the precision
-  /// will be choosen automatically. \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm
-  /// operation or set to 0 for automatic selection. \arg Gpus Select the number of gpus to stress or -1 for all.
+  /// are inititialized.
+  /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
+  /// \arg UseFloat Set to true if we want to stress using single precision floating points.
+  /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
+  /// UseDouble is set the precision will be choosen automatically.
+  /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
+  /// automatic selection.
+  /// \arg Gpus Select the number of gpus to stress or -1 for all.
   Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
        int Gpus)
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
