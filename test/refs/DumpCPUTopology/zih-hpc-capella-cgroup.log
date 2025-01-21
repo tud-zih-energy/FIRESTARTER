@@ -1,0 +1,16 @@
+  system summary:
+    number of processors:        2
+    number of cores (total)):    16
+  (this includes only cores in the cgroup)
+    number of threads per core:  1
+    total number of threads:     16
+    Caches:
+      - Level 1 Data Cache, 32 KiB, 64 B Cacheline, 8-way set associative, per thread.
+      - Level 1 Instruction Cache, 32 KiB, 64 B Cacheline, 8-way set associative, per thread.
+      - Unified Level 2 Cache, 1024 KiB, 64 B Cacheline, 8-way set associative, per thread.
+      - Unified Level 3 Cache, 32768 KiB, 64 B Cacheline, 16-way set associative, shared among 2 threads.
+InstructionCacheSize: 32768
+MaxNumThreads: 16
+MaxPhysicalIndex: 19
+MaxPhysicalIndex: 0 1 2 3 4 5 8 9 10 11 12 13 16 17 18 19 
+CpuKindCount: 1
