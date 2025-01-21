@@ -292,8 +292,6 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
       log::fatal() << "bitmap is full or bitmap is not infinitely set";
     }
 
-    Infos.MaxNumThreads += Weight;
-
     if (!hwloc_bitmap_iszero(Bitmap)) {
       CpuKindCount++;
 
