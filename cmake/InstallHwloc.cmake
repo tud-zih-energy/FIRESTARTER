@@ -68,6 +68,6 @@ if (FIRESTARTER_BUILD_HWLOC)
 		endif()
 	endif()
 
-	include_directories(${HWLOC_INCLUDE_DIR}/include)
 	add_dependencies(hwloc HwlocInstall)
+	target_include_directories(hwloc INTERFACE ${HWLOC_INCLUDE_DIR}/include)
 endif()

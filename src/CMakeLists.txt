@@ -30,6 +30,8 @@ add_library(firestartercore STATIC
 	firestarter/X86/Payload/SSE2Payload.cpp
 	)
 
+target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
 target_link_libraries(firestartercore
 	hwloc
 	AsmJit::AsmJit
@@ -53,6 +55,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
 		)
+	
+	target_include_directories(firestarterlinux PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 	target_link_libraries(firestarterlinux
 		Nitro::log
