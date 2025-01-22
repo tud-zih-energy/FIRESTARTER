@@ -69,5 +69,9 @@ if (FIRESTARTER_BUILD_HWLOC)
 	endif()
 
 	add_dependencies(hwloc HwlocInstall)
-	target_include_directories(hwloc INTERFACE ${HWLOC_INCLUDE_DIR}/include)
+
+	# Including a non exsistant directory is not allowed. This is the case when configuring and hwloc is not yet installed.
+	# See https://gitlab.kitware.com/cmake/cmake/-/issues/15052
+	file(MAKE_DIRECTORY "${HWLOC_INCLUDE_DIR}/include")
+	target_include_directories(hwloc INTERFACE "${HWLOC_INCLUDE_DIR}/include")
 endif()
