@@ -92,7 +92,9 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
+		"-Wl,--whole-archive"
 		firestartercombined
+		"-Wl,--no-whole-archive"
 	)
 
 	target_link_libraries(FIRESTARTER_CUDA
@@ -120,7 +122,9 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
+		"-Wl,--whole-archive"
 		firestartercombined
+		"-Wl,--no-whole-archive"
 	)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
@@ -140,7 +144,9 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
+		"-Wl,--whole-archive"
 		firestartercombined
+		"-Wl,--no-whole-archive"
 	)
 
 	target_link_libraries(FIRESTARTER_HIP
@@ -162,7 +168,9 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 
 	target_link_libraries(FIRESTARTER
+		"-Wl,--whole-archive"
 		firestartercombined
+		"-Wl,--no-whole-archive"
 	)
 
 	target_link_libraries_darwin(NAME FIRESTARTER)
