@@ -6,7 +6,7 @@ set_property(CACHE FIRESTARTER_BUILD_TYPE PROPERTY STRINGS FIRESTARTER FIRESTART
 
 # Static linking is not supported with GPU devices or MacOS.
 if(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER" AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-	set(FIRESTARTER_LINK_STATIC "Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA, OneAPI or HIP enabled." ON)
+	option(FIRESTARTER_LINK_STATIC "Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA, OneAPI or HIP enabled." ON)
 endif()
 
 
@@ -22,5 +22,5 @@ option(FIRESTARTER_FETCH_GOOGLETEST "Fetch the Google Test dependency." ON)
 
 # Debug feature are enabled on linux per default.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	set(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
+	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
 endif()
