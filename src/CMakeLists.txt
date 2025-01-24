@@ -64,13 +64,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		)
 endif()
 
-
-SET(FIRESTARTER_FILES
-	firestarter/Main.cpp
-
+add_library(firestartercombined STATIC
 	# IpcEstimateMetricData::insertValue is accesses which is part of the firestarterlinux library.
 	# This reference should be removed there and the file moved back to the firestartercore library.
 	firestarter/LoadWorker.cpp
+)
+
+target_link_libraries(firestartercombined
+	firestartercore
+	)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(firestartercombined
+		firestarterlinux
+		)
+endif()
+
+
+SET(FIRESTARTER_FILES
+	firestarter/Main.cpp
 	)
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
@@ -80,14 +92,8 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
-		firestartercore
+		firestartercombined
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_CUDA
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_CUDA
 		CUDA::cuda_driver
@@ -114,14 +120,8 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
-		firestartercore
+		firestartercombined
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_ONEAPI
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_ONEAPI
 		mkl_sycl
@@ -140,14 +140,8 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
-		firestartercore
+		firestartercombined
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_HIP
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_HIP
 		hip::host
@@ -168,14 +162,8 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 
 	target_link_libraries(FIRESTARTER
-		firestartercore
+		firestartercombined
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries_darwin(NAME FIRESTARTER)
 
