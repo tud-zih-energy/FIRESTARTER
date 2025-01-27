@@ -224,19 +224,51 @@ void Firestarter::printPerformanceReport() {
     return Ss.str();
   };
 
+  const auto PrintGpuFlops = [&Runtime, &FormatString](auto& GpuPtr) -> void {
+    if (!GpuPtr) {
+      return;
+    }
+
+    auto SingleFlops = static_cast<double>(GpuPtr->executedFlop().SingleFlop.load()) * 0.000000001 / Runtime;
+    auto DoubleFlops = static_cast<double>(GpuPtr->executedFlop().DoubleFlop.load()) * 0.000000001 / Runtime;
+
+    if (SingleFlops > 0) {
+      log::debug() << "\n"
+                   << "estimated floating point performance (GPU)**: " << FormatString(SingleFlops)
+                   << " GFLOPS (single)";
+    }
+
+    if (DoubleFlops > 0) {
+      log::debug() << "\n"
+                   << "estimated floating point performance (GPU)**: " << FormatString(DoubleFlops)
+                   << " GFLOPS (double)";
+    }
+  };
+
   log::debug() << "\n"
                << "total iterations: " << Iterations << "\n"
                << "runtime: " << FormatString(Runtime) << " seconds (" << StopTimestamp - StartTimestamp << " cycles)\n"
                << "\n"
-               << "estimated floating point performance: " << FormatString(GFlops) << " GFLOPS\n"
-               << "estimated memory bandwidth*: " << FormatString(Bandwidth) << " GB/s\n"
-               << "\n"
+               << "estimated floating point performance (CPU): " << FormatString(GFlops) << " GFLOPS\n"
+               << "estimated memory bandwidth (CPU)*: " << FormatString(Bandwidth) << " GB/s";
+
+  PrintGpuFlops(Cuda);
+  PrintGpuFlops(Oneapi);
+
+  log::debug() << "\n"
                << "* this estimate is highly unreliable if --function is used in order "
                   "to "
                   "select\n"
                << "  a function that is not optimized for your architecture, or if "
                   "FIRESTARTER is\n"
                << "  executed on an unsupported architecture!";
+
+  if (Cuda || Oneapi) {
+    log::debug()
+        << "** this estimate is based on the assumption that no algorithmically optimized version\n"
+        << "    of the called algorithm has been implemented by the vendor. It also might not be not accurate\n"
+        << "    for short runs of FIRESTARTER";
+  }
 }
 
 void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {

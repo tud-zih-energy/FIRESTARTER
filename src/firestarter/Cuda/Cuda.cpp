@@ -51,9 +51,9 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 }
 
 /// Convert the UseDouble input (0 -> single precision, 1 -> double precision, 2 -> automatic) to either 0 or 1 for
-/// float or double respectively. For CUDART_VERSION at least equal 8000 and automatic selection we check if the card a
-/// singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other cases
-/// automatic results in double.
+/// float or double respectively. For CUDART_VERSION at least equal 8000 and automatic selection we check if the card
+/// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
+/// cases automatic results in double.
 /// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
 /// \arg Properties The device properties.
 /// \return The selected precision, either 0 or 1 for float or double respectively.
@@ -122,8 +122,8 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
 // GPU index. Used to pin this thread to the GPU.
 // Size use is one square matrix dim size
 template <typename FloatingPointType>
-void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex, int DeviceIndex,
-                std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
+void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                int DeviceIndex, std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
                 unsigned MatrixSize) {
   static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
                 "create_load<FloatingPointType>: Template argument must be either float or double");
@@ -248,6 +248,14 @@ void createLoad(std::condition_variable& WaitForInitCv, std::mutex& WaitForInitC
                                                              MatrixSize, Beta, CSectionPtr, MatrixSize),
                              __FILE__, __LINE__, DeviceIndex);
       compat::accellSafeCall(compat::deviceSynchronize(), __FILE__, __LINE__, DeviceIndex);
+
+      // The number of executed flop for a gemm with two square 'MatrixSize' sized matricies is 2 *
+      // ('MatrixSize'^3)
+      if (std::is_same_v<FloatingPointType, float>) {
+        ExecutedFlop.SingleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
+      } else if (std::is_same_v<FloatingPointType, double>) {
+        ExecutedFlop.DoubleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
+      }
     }
   }
 
@@ -267,7 +275,8 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
 
-  std::thread T(Cuda::initGpus, std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
+  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
+                UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
@@ -275,8 +284,9 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
   WaitForInitCv.wait(Lk);
 }
 
-void Cuda::initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                    bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus) {
+void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
+                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
+                    unsigned MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -327,12 +337,12 @@ void Cuda::initGpus(std::condition_variable& WaitForInitCv, const volatile fires
           // if there's a GPU in the system without Double Precision support, we
           // have to correct this.
           const auto Precision = getPrecision(I, UseDoubleConverted);
-          void (*LoadFunc)(std::condition_variable&, std::mutex&, int, std::atomic<int>&,
+          void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
                            const volatile firestarter::LoadThreadWorkType&, unsigned) =
               Precision ? createLoad<double> : createLoad<float>;
 
-          std::thread T(LoadFunc, std::ref(GpuThreadsWaitForInitCv), std::ref(GpuThreadsWaitForInitCvMutex), I,
-                        std::ref(InitCount), std::cref(LoadVar), MatrixSize);
+          std::thread T(LoadFunc, std::ref(ExecutedFlop), std::ref(GpuThreadsWaitForInitCv),
+                        std::ref(GpuThreadsWaitForInitCvMutex), I, std::ref(InitCount), std::cref(LoadVar), MatrixSize);
           GpuThreads.emplace_back(std::move(T));
         }
       }

@@ -23,10 +23,21 @@
 
 #include "firestarter/Constants.hpp"
 
+#include <atomic>
 #include <condition_variable>
+#include <cstddef>
 #include <thread>
 
 namespace firestarter::oneapi {
+
+/// This struct contains the number of flop estimated that have been executed. It will be incremented by the flop when
+/// on execution of a kernel is complete.
+struct GpuFlop {
+  /// The number of executed single precision flop
+  std::atomic<std::size_t> SingleFlop = 0;
+  /// The number of executed double precision flop
+  std::atomic<std::size_t> DoubleFlop = 0;
+};
 
 /// This class handles the workload on OneAPI compatible GPUs. A gemm routine is used to stress them with a
 /// constant high load. This header does not include any OneAPI specific headers to allow us to not guard the
@@ -37,7 +48,13 @@ private:
   /// joins.
   std::thread InitThread;
 
+  /// The estimation on the number of flops that have been executed. It will be incremented by the flops when on
+  /// execution of a kernel is complete.
+  GpuFlop ExecutedFlop;
+
   /// Spawns a thread for each of the selected gpus, initilizes them and starts the execution of the gemm in parallel.
+  /// \arg ExecutedFlop The variable that contains the number of flop estimated that have been executed. It will be
+  /// incremented by the flops when on execution of a kernel is complete.
   /// \arg WaitForInitCv The condition variables used to signal that all gpus are initialized.
   /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
@@ -46,8 +63,9 @@ private:
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
-  static void initGpus(std::condition_variable& WaitForInitCv, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                       bool UseFloat, bool UseDouble, unsigned MatrixSize, int Gpus);
+  static void initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
+                       const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
+                       unsigned MatrixSize, int Gpus);
 
 public:
   /// Initilize the OneAPI class. This will start a thread running the OneAPI::initGpus function and wait until all gpus
@@ -78,6 +96,10 @@ public:
       InitThread.join();
     }
   }
+
+  /// Get the estimation on the executed flops of the cuda thread.
+  /// \returns The number of estimated executed flop.
+  auto executedFlop() -> const GpuFlop& { return ExecutedFlop; };
 };
 
 } // namespace firestarter::oneapi
