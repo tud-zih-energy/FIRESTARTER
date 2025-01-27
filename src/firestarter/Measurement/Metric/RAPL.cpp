@@ -21,12 +21,15 @@
 
 #include "firestarter/Measurement/Metric/RAPL.hpp"
 
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 extern "C" {

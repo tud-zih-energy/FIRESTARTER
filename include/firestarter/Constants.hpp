@@ -83,49 +83,51 @@ struct FirestarterOptionalFeatures {
 };
 
 // MSC only supports designated initializers from C++20
-static constexpr const FirestarterOptionalFeatures OptionalFeatures {
+static constexpr const FirestarterOptionalFeatures OptionalFeatures{
 #if defined(linux) || defined(__linux__)
-  /*OptimizationEnabled=*/true,
+    /*OptimizationEnabled=*/true,
 #else
-  /*OptimizationEnabled=*/false,
+    /*OptimizationEnabled=*/false,
 #endif
 
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
-      /*CudaEnabled=*/true,
+    /*CudaEnabled=*/true,
 #else
-      /*CudaEnabled=*/false,
+    /*CudaEnabled=*/false,
 #endif
 
 #ifdef FIRESTARTER_BUILD_ONEAPI
-      /*OneAPIEnabled=*/true,
+    /*OneAPIEnabled=*/true,
 #else
-      /*OneAPIEnabled=*/false,
+    /*OneAPIEnabled=*/false,
 #endif
 
-      /*ErrorDetectionEnabled=*/true,
+    /*ErrorDetectionEnabled=*/true,
 
 #ifdef FIRESTARTER_DEBUG_FEATURES
-      /*DebugFeatureEnabled=*/true, /*DumpRegisterEnabled =*/true,
+    /*DebugFeatureEnabled=*/true,
+    /*DumpRegisterEnabled =*/true,
 #else
-      /*DebugFeatureEnabled=*/false, /*DumpRegisterEnabled =*/false,
+    /*DebugFeatureEnabled=*/false,
+    /*DumpRegisterEnabled =*/false,
 #endif
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
-      /*IsX86=*/true,
+    /*IsX86=*/true,
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
 
 #ifdef _WIN32
-      /*IsWin32=*/true,
+    /*IsWin32=*/true,
 #else
-      /*IsWin32=*/false,
+    /*IsWin32=*/false,
 #endif
 
 #ifdef _MSC_VER
-      /*IsMsc=*/true,
+    /*IsMsc=*/true,
 #else
-      /*IsMsc=*/false,
+    /*IsMsc=*/false,
 #endif
 };
 

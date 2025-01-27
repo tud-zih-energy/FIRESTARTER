@@ -51,8 +51,8 @@ public:
   /// \arg Summaries The summaries of one evaluation.
   /// \returns The fitness vector derived from the summaries. The size of this vector is equal to the number of
   /// objectives.
-  [[nodiscard]] virtual auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const
-      -> std::vector<double> = 0;
+  [[nodiscard]] virtual auto
+  fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const -> std::vector<double> = 0;
 
   /// Get the bounds of the problem. For each dimension a min and max value is supplied.
   /// \return The min and max bound per dimension.

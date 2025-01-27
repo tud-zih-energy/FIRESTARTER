@@ -20,8 +20,12 @@
  *****************************************************************************/
 
 #include "firestarter/Optimizer/OptimizerWorker.hpp"
+#include "firestarter/Optimizer/Algorithm.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 
+#include <chrono>
+#include <memory>
 #include <thread>
 #include <utility>
 
@@ -34,27 +38,30 @@ OptimizerWorker::OptimizerWorker(std::unique_ptr<firestarter::optimizer::Algorit
     , Population(std::move(Population))
     , Individuals(Individuals)
     , Preheat(Preheat) {
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_create(&this->WorkerThread, nullptr, OptimizerWorker::optimizerThread, this);
 }
 
 void OptimizerWorker::kill() const {
   // we ignore ESRCH errno if thread already exited
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_cancel(WorkerThread);
 }
 
 void OptimizerWorker::join() const {
   // we ignore ESRCH errno if thread already exited
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_join(WorkerThread, nullptr);
 }
 
 auto OptimizerWorker::optimizerThread(void* OptimizerWorker) -> void* {
-  // NOLINTBEGIN(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
+  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous,misc-include-cleaner)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
-  // NOLINTEND(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
 
   auto* This = static_cast<class OptimizerWorker*>(OptimizerWorker);
 
 #ifndef __APPLE__
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "Optimizer");
 #endif
 

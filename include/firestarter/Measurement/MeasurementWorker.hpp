@@ -130,9 +130,9 @@ public:
   /// \arg StartDelta The time to skip from the measurement start
   /// \arg StopDelta The time to skip from the measurement stop
   /// \returns The map from all metrics to their respective summaries.
-  auto getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
-                 std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero())
-      -> std::map<std::string, Summary>;
+  auto
+  getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
+            std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero()) -> std::map<std::string, Summary>;
 };
 
 } // namespace firestarter::measurement

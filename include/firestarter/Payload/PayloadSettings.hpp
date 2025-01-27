@@ -60,8 +60,8 @@ private:
   /// \arg Sequence The sequence that is analyzed.
   /// \arg Start The string that contains the start of the item names that should be counted in the sequence.
   /// \returns The number of items in the sequence that start with the supplied strings.
-  [[nodiscard]] static auto getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start)
-      -> unsigned;
+  [[nodiscard]] static auto getSequenceStartCount(const std::vector<std::string>& Sequence,
+                                                  const std::string& Start) -> unsigned;
 
 public:
   PayloadSettings() = delete;
@@ -168,7 +168,7 @@ public:
   [[nodiscard]] auto dataCacheBufferSize() const -> const auto& { return DataCacheBufferSize; }
 
   /// The selected size of the buffer that is in the RAM on the physical CPU core.
-  [[nodiscard]] auto ramBufferSize() const -> auto{ return RamBufferSize; }
+  [[nodiscard]] auto ramBufferSize() const -> auto { return RamBufferSize; }
 
   /// Return the total buffer size for the data caches and the ram per physical CPU core.
   [[nodiscard]] auto totalBufferSize() const -> std::size_t {
@@ -181,12 +181,11 @@ public:
   }
 
   /// The number of instruction groups which should be used in the payload per physical CPU core.
-  [[nodiscard]] auto lines() const -> auto{ return Lines; }
+  [[nodiscard]] auto lines() const -> auto { return Lines; }
 
   /// The available instruction cache size. This refers to the L1i-Cache per thread on the physical CPU core.
   [[nodiscard]] auto instructionCacheSizePerThread() const -> std::optional<unsigned> {
-    auto InstructionCacheSize = this->InstructionCacheSize;
-    if (*InstructionCacheSize) {
+    if (InstructionCacheSize) {
       return *InstructionCacheSize / thread();
     }
     return {};
@@ -202,13 +201,13 @@ public:
   }
 
   /// The selected size of the buffer that is in the RAM per thread on the physical CPU core.
-  [[nodiscard]] auto ramBufferSizePerThread() const -> auto{ return RamBufferSize / thread(); }
+  [[nodiscard]] auto ramBufferSizePerThread() const -> auto { return RamBufferSize / thread(); }
 
   /// Return the total buffer size for the data caches and the ram per thread on the physical CPU core.
   [[nodiscard]] auto totalBufferSizePerThread() const -> std::size_t { return totalBufferSize() / thread(); }
 
   /// The number of instruction groups which should be used in the payload per thread on the physical CPU core.
-  [[nodiscard]] auto linesPerThread() const -> auto{ return Lines / thread(); }
+  [[nodiscard]] auto linesPerThread() const -> auto { return Lines / thread(); }
 
   /// The vector of instruction groups with proportions.
   [[nodiscard]] auto groups() const -> const auto& { return Groups; }

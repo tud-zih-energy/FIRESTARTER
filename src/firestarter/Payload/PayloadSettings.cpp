@@ -24,11 +24,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <string>
+#include <vector>
 
 namespace firestarter::payload {
 
-auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequence, const std::string& Start)
-    -> unsigned {
+auto PayloadSettings::getSequenceStartCount(const std::vector<std::string>& Sequence,
+                                            const std::string& Start) -> unsigned {
   unsigned I = 0;
 
   for (const auto& Item : Sequence) {

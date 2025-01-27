@@ -25,6 +25,7 @@
 #include <set>
 
 extern "C" {
+// NOLINTNEXTLINE(misc-header-include-cycle) internal cycle inside hwloc
 #include <hwloc.h>
 }
 

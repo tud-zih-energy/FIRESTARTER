@@ -20,9 +20,15 @@
  *****************************************************************************/
 
 #include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/TimeValue.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <iterator>
+#include <vector>
 
 namespace firestarter::measurement {
 

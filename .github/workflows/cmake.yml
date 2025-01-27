@@ -36,11 +36,6 @@ jobs:
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /opt/ghc
         sudo rm -rf /usr/local/.ghcup
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -104,10 +99,6 @@ jobs:
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -174,10 +165,6 @@ jobs:
     env:
       CUDA_ROOT: '/usr/local/cuda'
     steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -281,10 +268,6 @@ jobs:
       if: startsWith(matrix.compiler, 'clang')
       run: |
         sudo apt install ${{ matrix.compiler }}
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
     - name: Checkout repository
       uses: actions/checkout@v4
       with:

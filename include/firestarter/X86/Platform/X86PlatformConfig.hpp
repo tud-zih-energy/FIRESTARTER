@@ -51,8 +51,8 @@ public:
   /// Clone a concreate platform config.
   /// \arg InstructionCacheSize The detected size of the instructions cache.
   /// \arg ThreadPerCore The number of threads per pysical CPU.
-  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
-      -> std::unique_ptr<PlatformConfig> final {
+  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize,
+                                    unsigned ThreadsPerCore) const -> std::unique_ptr<PlatformConfig> final {
     auto Ptr = clone();
     auto* DerivedPtr = dynamic_cast<X86PlatformConfig*>(Ptr.get());
     DerivedPtr->settings().concretize(InstructionCacheSize, ThreadsPerCore);

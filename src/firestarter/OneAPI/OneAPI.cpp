@@ -106,8 +106,7 @@ int getPrecision(int DeviceIndex, int UseDouble) {
   }
   // Get a list of devices for the chosen platform
 
-  firestarter::log::trace() << "Get support for double"
-                            << " on device nr. " << DeviceIndex;
+  firestarter::log::trace() << "Get support for double" << " on device nr. " << DeviceIndex;
   auto Devices = ChosenPlatform.get_devices();
   if (Devices[DeviceIndex].has(sycl::aspect::fp64))
     SupportsDouble = 1;

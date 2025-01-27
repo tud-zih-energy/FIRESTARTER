@@ -85,8 +85,8 @@ public:
   /// Clone a concreate platform config.
   /// \arg InstructionCacheSize The detected size of the instructions cache.
   /// \arg ThreadPerCore The number of threads per pysical CPU.
-  [[nodiscard]] virtual auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
-      -> std::unique_ptr<PlatformConfig> = 0;
+  [[nodiscard]] virtual auto cloneConcreate(std::optional<unsigned> InstructionCacheSize,
+                                            unsigned ThreadsPerCore) const -> std::unique_ptr<PlatformConfig> = 0;
 
   /// Parse the selected payload instruction groups and save the in the selected function. Throws if the input is
   /// invalid.
@@ -131,8 +131,9 @@ public:
                 << " thread(s) per core\n"
                 << "  Used buffersizes per thread:";
 
-    if (settings().instructionCacheSizePerThread()) {
-      log::info() << "    - L1i-Cache: " << *settings().instructionCacheSizePerThread() << " Bytes";
+    const auto ICacheSizePerThread = settings().instructionCacheSizePerThread();
+    if (ICacheSizePerThread) {
+      log::info() << "    - L1i-Cache: " << *ICacheSizePerThread << " Bytes";
     }
 
     unsigned I = 1;

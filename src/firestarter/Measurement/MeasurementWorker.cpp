@@ -21,9 +21,28 @@
 
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Measurement/TimeValue.hpp"
 
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cmath>
 #include <cstdarg>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iterator>
+#include <map>
 #include <queue>
+#include <ratio>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <tuple>
+#include <vector>
 
 #ifndef FIRESTARTER_LINK_STATIC
 extern "C" {
@@ -132,22 +151,28 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
 
   AvailableMetricsString = Ss.str();
 
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_create(&WorkerThread, nullptr, MeasurementWorker::dataAcquisitionWorker, this);
 
   // create a worker for getting metric values from stdin
   if (!StdinMetrics.empty()) {
+    // NOLINTNEXTLINE(misc-include-cleaner)
     pthread_create(&StdinThread, nullptr, MeasurementWorker::stdinDataAcquisitionWorker, this);
   }
 }
 
 MeasurementWorker::~MeasurementWorker() {
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_cancel(WorkerThread);
 
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_join(WorkerThread, nullptr);
 
   if (!StdinMetrics.empty()) {
+    // NOLINTNEXTLINE(misc-include-cleaner)
     pthread_cancel(StdinThread);
 
+    // NOLINTNEXTLINE(misc-include-cleaner)
     pthread_join(StdinThread, nullptr);
   }
 
@@ -245,8 +270,8 @@ void MeasurementWorker::insertCallback(const char* MetricName, int64_t TimeSince
 
 void MeasurementWorker::startMeasurement() { StartTime = std::chrono::high_resolution_clock::now(); }
 
-auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta)
-    -> std::map<std::string, Summary> {
+auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
+                                  std::chrono::milliseconds StopDelta) -> std::map<std::string, Summary> {
   std::map<std::string, Summary> Measurment = {};
 
   ValuesMutex.lock();
@@ -289,12 +314,13 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta, std::chr
 }
 
 auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> void* {
-  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
+  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous,misc-include-cleaner)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
   auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "DataAcquisition");
 #endif
 
@@ -388,12 +414,13 @@ auto MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) -> void* 
 }
 
 auto MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) -> void* {
-  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous)
+  // NOLINTNEXTLINE(cert-pos47-c,concurrency-thread-canceltype-asynchronous,misc-include-cleaner)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
   auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
 
 #ifndef __APPLE__
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "StdinDataAcquis");
 #endif
 

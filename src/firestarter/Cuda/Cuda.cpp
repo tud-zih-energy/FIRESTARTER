@@ -183,14 +183,11 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                          DeviceIndex);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)"
-                            << "\n";
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)" << "\n";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)"
-                            << "\n";
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)" << "\n";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)"
-                            << "\n";
+                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)" << "\n";
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "

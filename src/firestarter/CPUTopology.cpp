@@ -22,7 +22,11 @@
 #include "firestarter/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <algorithm>
 #include <array>
+#include <optional>
+#include <sstream>
+#include <vector>
 
 #if defined(__APPLE__)
 #include <mach/thread_act.h>
@@ -66,8 +70,7 @@ void CPUTopology::printSystemSummary() const {
   log::info() << "  system summary:\n"
               << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
               << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
-              << "  (this includes only cores in the cgroup)"
-              << "\n"
+              << "  (this includes only cores in the cgroup)" << "\n"
               << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
               << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads;
 }
