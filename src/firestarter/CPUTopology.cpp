@@ -70,7 +70,7 @@ void CPUTopology::printSystemSummary() const {
   log::info() << "  system summary:\n"
               << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
               << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
-              << "  (this includes only cores in the cgroup)" << "\n"
+              << "  (this includes only cores in the cgroup)\n"
               << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
               << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads;
 }
@@ -251,9 +251,28 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
     return Infos;
   }
 
-  Infos.CpuKindCount = NrCpukinds;
+  // Extract the bitmap for the allow PUs
+  hwloc_bitmap_t AllowedBitmap = hwloc_bitmap_alloc();
+  {
+    if (AllowedBitmap == nullptr) {
+      // Error should abort, otherwise return zero.
+      log::fatal() << "Could not allocate memory for PU bitmap";
+      return Infos;
+    }
 
-  // Allocate bitmap to get CPUs later
+    hwloc_bitmap_zero(AllowedBitmap);
+
+    auto Width = hwloc_get_nbobjs_by_type(Topology, HWLOC_OBJ_PU);
+
+    for (int I = 0; I < Width; I++) {
+      auto* Obj = hwloc_get_obj_by_type(Topology, HWLOC_OBJ_PU, I);
+      hwloc_bitmap_or(AllowedBitmap, AllowedBitmap, Obj->cpuset);
+    }
+  }
+
+  auto CpuKindCount = 0;
+
+  // Bitmap for the cpuset per cpukind
   hwloc_bitmap_t Bitmap = hwloc_bitmap_alloc();
   if (Bitmap == nullptr) {
     // Error should abort, otherwise return zero.
@@ -268,18 +287,26 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
       log::warn() << "Could not get information for CPU kind " << KindIndex;
     }
 
+    // Make sure we only include PUs, which are allowed
+    // NOLINTNEXTLINE(readability-suspicious-call-argument)
+    hwloc_bitmap_and(Bitmap, Bitmap, AllowedBitmap);
+
     auto Weight = hwloc_bitmap_weight(Bitmap);
     if (Weight < 0) {
       log::fatal() << "bitmap is full or bitmap is not infinitely set";
     }
 
-    auto MaxIndex = hwloc_bitmap_last(Bitmap);
-    if (MaxIndex < 0) {
-      log::fatal() << "bitmap is full or bitmap is not infinitely set";
-    }
+    if (!hwloc_bitmap_iszero(Bitmap)) {
+      CpuKindCount++;
 
-    Infos.MaxNumThreads += Weight;
-    Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, static_cast<unsigned>(MaxIndex));
+      auto MaxIndex = hwloc_bitmap_last(Bitmap);
+      if (MaxIndex < 0) {
+        log::fatal() << "bitmap is full or bitmap is not infinitely set";
+      }
+
+      Infos.MaxNumThreads += Weight;
+      Infos.MaxPhysicalIndex = (std::max)(Infos.MaxPhysicalIndex, static_cast<unsigned>(MaxIndex));
+    }
 
     {
       unsigned OsIndex{};
@@ -289,7 +316,11 @@ auto CPUTopology::hardwareThreadsInfo() const -> HardwareThreadsInfo {
     }
   }
 
+  Infos.CpuKindCount = CpuKindCount;
+
   hwloc_bitmap_free(Bitmap);
+
+  hwloc_bitmap_free(AllowedBitmap);
 
   return Infos;
 }
