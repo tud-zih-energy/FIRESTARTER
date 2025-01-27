@@ -5,13 +5,12 @@ on: [push, pull_request]
 
 jobs:
   clang-format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - name: Install clang-tidy
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-tidy
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
       - name: Analyze
         run: |
           clang-format --dry-run --Werror -style=file $(find ./src/ -name '*.cpp' -print)
