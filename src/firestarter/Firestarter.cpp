@@ -20,18 +20,37 @@
  *****************************************************************************/
 
 #include "firestarter/Firestarter.hpp"
+#include "firestarter/Config/Config.hpp"
+#include "firestarter/Config/InstructionGroups.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Cuda/Cuda.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/OneAPI/OneAPI.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+#include "firestarter/SafeExit.hpp"
+#include "firestarter/ThreadAffinity.hpp"
 #include "firestarter/X86/X86CpuFeatures.hpp"
 #include "firestarter/X86/X86FunctionSelection.hpp"
 #include "firestarter/X86/X86ProcessorInformation.hpp"
 
+#include <algorithm>
+#include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
+#include <iomanip>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace firestarter {
 
@@ -187,6 +206,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   // add some signal handler for aborting FIRESTARTER
   if constexpr (!firestarter::OptionalFeatures.IsWin32) {
+    // NOLINTNEXTLINE(misc-include-cleaner)
     (void)std::signal(SIGALRM, Firestarter::sigalrmHandler);
   }
 

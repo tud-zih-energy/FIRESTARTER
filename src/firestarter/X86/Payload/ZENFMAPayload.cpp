@@ -20,13 +20,24 @@
  *****************************************************************************/
 
 #include "firestarter/X86/Payload/ZENFMAPayload.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Logging/Log.hpp"
+#include "firestarter/Payload/CompiledPayload.hpp"
+#include "firestarter/Payload/PayloadSettings.hpp"
+#include "firestarter/Payload/PayloadStats.hpp"
 #include "firestarter/X86/Payload/CompiledX86Payload.hpp"
+#include "firestarter/X86/Payload/X86Payload.hpp"
+
+#include <asmjit/x86.h>
+#include <cstdint>
+#include <iterator>
+#include <vector>
 
 namespace firestarter::x86::payload {
 
 auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                   bool ErrorDetection, bool PrintAssembler) const
-    -> firestarter::payload::CompiledPayload::UniquePtr {
+                                   bool ErrorDetection,
+                                   bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   using Ymm = asmjit::x86::Ymm;
@@ -85,8 +96,8 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
   Code.init(asmjit::Environment::host());
 
   asmjit::x86::Builder Cb(&Code);
-  Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler |
-                          asmjit::DiagnosticOptions::kValidateIntermediate);
+  Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler);
+  Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateIntermediate);
 
   auto PointerReg = asmjit::x86::rax;
   auto L1Addr = asmjit::x86::rbx;

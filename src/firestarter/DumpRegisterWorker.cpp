@@ -19,11 +19,22 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
+#include "firestarter/DumpRegisterStruct.hpp"
+#include "firestarter/DumpRegisterWorkerData.hpp"
 #include "firestarter/Firestarter.hpp"
 
+#include <chrono>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
+#include <memory>
+#include <ostream>
 #include <sstream>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace {
 auto hammingDistance(uint64_t X, uint64_t Y) -> unsigned {
@@ -66,6 +77,7 @@ void Firestarter::joinDumpRegisterWorker() { this->DumpRegisterWorkerThread.join
 
 void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Data) {
 #if defined(linux) || defined(__linux__)
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "DumpRegWorker");
 #endif
 

@@ -30,10 +30,6 @@
 #include <sstream>
 #include <string>
 
-extern "C" {
-#include <hwloc.h>
-}
-
 namespace firestarter {
 
 /// This class models the properties of a processor.

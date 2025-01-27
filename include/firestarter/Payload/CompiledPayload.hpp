@@ -67,8 +67,8 @@ public:
   /// \arg Iterations The current iteration counter. This number will be incremented for every iteration of the high
   /// load loop.
   /// \returns The iteration counter passed into this function plus the number of iteration of the high load loop.
-  [[nodiscard]] auto highLoadFunction(double* MemoryAddr, volatile LoadThreadWorkType& LoadVar, uint64_t Iterations)
-      -> uint64_t {
+  [[nodiscard]] auto highLoadFunction(double* MemoryAddr, volatile LoadThreadWorkType& LoadVar,
+                                      uint64_t Iterations) -> uint64_t {
     return HighLoadFunction(MemoryAddr, &LoadVar, Iterations);
   }
 

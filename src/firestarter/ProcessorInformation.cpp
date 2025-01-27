@@ -20,10 +20,16 @@
  *****************************************************************************/
 
 #include "firestarter/ProcessorInformation.hpp"
+#include "firestarter/CpuFeatures.hpp"
+#include "firestarter/CpuModel.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <cstdint>
 #include <fstream>
+#include <memory>
 #include <regex>
+#include <sstream>
+#include <string>
 #include <utility>
 
 #if defined(_WIN32) or defined(__APPLE__)

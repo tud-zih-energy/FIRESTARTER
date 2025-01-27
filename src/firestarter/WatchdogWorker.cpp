@@ -19,10 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
 #include "firestarter/Firestarter.hpp"
 
 #include <cerrno>
+#include <chrono>
 #include <csignal>
+#include <mutex>
 
 #ifdef ENABLE_SCOREP
 #include <SCOREP_User.h>

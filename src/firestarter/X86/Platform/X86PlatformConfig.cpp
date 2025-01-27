@@ -24,4 +24,5 @@
 // included header. Therefore we should not see any errors in this file for missing includes. For more infomation
 // look in the LLVM code base: clang/lib/Tooling/InterpolatingCompilationDatabase.cpp
 
+// NOLINTNEXTLINE(misc-include-cleaner)
 #include "firestarter/X86/Platform/X86PlatformConfig.hpp"

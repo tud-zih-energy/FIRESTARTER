@@ -22,7 +22,11 @@
 #include "firestarter/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <algorithm>
 #include <array>
+#include <optional>
+#include <sstream>
+#include <vector>
 
 #if defined(__APPLE__)
 #include <mach/thread_act.h>

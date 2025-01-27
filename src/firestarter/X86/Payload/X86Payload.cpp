@@ -23,8 +23,15 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/WindowsCompat.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <chrono>
+#include <cstdint>
+#include <cstring>
+#include <iterator>
+#include <list>
+#include <string>
 #include <thread>
 
 namespace firestarter::x86::payload {

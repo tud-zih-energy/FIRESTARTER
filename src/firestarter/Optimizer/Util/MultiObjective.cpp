@@ -22,10 +22,19 @@
 // This file borrows a lot of code from https://github.com/esa/pagmo2
 
 #include "firestarter/Optimizer/Util/MultiObjective.hpp"
+#include "firestarter/Optimizer/Individual.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <numeric>
+#include <random>
 #include <stdexcept>
+#include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 namespace firestarter::optimizer::util {
 

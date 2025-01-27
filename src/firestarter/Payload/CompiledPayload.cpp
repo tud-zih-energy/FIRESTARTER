@@ -20,7 +20,11 @@
  *****************************************************************************/
 
 #include "firestarter/Payload/CompiledPayload.hpp"
+#include "firestarter/Constants.hpp"
 #include "firestarter/Payload/Payload.hpp"
+
+#include <chrono>
+#include <cstdint>
 
 namespace firestarter::payload {
 

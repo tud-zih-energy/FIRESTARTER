@@ -65,7 +65,7 @@ public:
   /// which the registers are dumped as well as getting the size and count of registers.
   std::shared_ptr<LoadWorkerData> LoadWorkerDataPtr;
   /// Every this number of seconds the register content will be dumped.
-  const std::chrono::seconds DumpTimeDelta;
+  std::chrono::seconds DumpTimeDelta;
   /// The folder in which the hamming_distance.csv file will be created.
   std::string DumpFilePath;
 };

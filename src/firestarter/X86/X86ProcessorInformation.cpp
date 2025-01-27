@@ -21,11 +21,15 @@
 
 #include "firestarter/X86/X86ProcessorInformation.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/ProcessorInformation.hpp"
 #include "firestarter/X86/X86CpuFeatures.hpp"
 #include "firestarter/X86/X86CpuModel.hpp"
 
+#include <chrono>
+#include <cstdint>
 #include <ctime>
 #include <memory>
+#include <sstream>
 
 #ifdef _MSC_VER
 #include <array>

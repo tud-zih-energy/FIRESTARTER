@@ -20,9 +20,13 @@
  *****************************************************************************/
 
 #include "firestarter/ThreadAffinity.hpp"
+#include "firestarter/CPUTopology.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <set>
 #include <stdexcept>
 
 namespace firestarter {

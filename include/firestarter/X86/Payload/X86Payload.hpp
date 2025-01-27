@@ -21,10 +21,10 @@
 
 #pragma once
 
-#include "firestarter/Constants.hpp"          // IWYU pragma: keep
+#include "firestarter/Constants.hpp"
 #include "firestarter/DumpRegisterStruct.hpp" // IWYU pragma: keep
 #include "firestarter/LoadWorkerMemory.hpp"
-#include "firestarter/Logging/Log.hpp" // IWYU pragma: keep
+#include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
 #include "firestarter/X86/X86CpuFeatures.hpp"
 
@@ -87,9 +87,8 @@ protected:
   /// \arg Builder The builder that contains the assembler code.
   static void printAssembler(asmjit::BaseBuilder& Builder) {
     asmjit::String Sb;
-    asmjit::FormatOptions FormatOptions{};
 
-    asmjit::Formatter::formatNodeList(Sb, FormatOptions, &Builder);
+    asmjit::Formatter::formatNodeList(Sb, asmjit::FormatOptions{}, &Builder);
     log::info() << Sb.data();
   }
 

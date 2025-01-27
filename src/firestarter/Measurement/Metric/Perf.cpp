@@ -23,19 +23,19 @@
 
 #include <array>
 #include <cassert>
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
-#include <string>
-
-extern "C" {
 #include <linux/perf_event.h>
+#include <string>
 #include <sys/ioctl.h>
-#include <sys/syscall.h>
+#include <sys/syscall.h> // IWYU pragma: keep
 #include <unistd.h>
-}
 
 namespace {
+// NOLINTNEXTLINE(misc-include-cleaner)
 auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int GroupFd, uint64_t Flags) -> int {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,misc-include-cleaner)
   return static_cast<int>(syscall(__NR_perf_event_open, HwEvent, Pid, Cpu, GroupFd, Flags));
 }
 } // namespace

@@ -60,5 +60,6 @@ CheckOptions:
   - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1 }
   - { key: readability-function-cognitive-complexity.IgnoreMacros,  value: 1 }
   - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: "true" }
-  # disable warnings is asmjit
+  # disable warnings is external libraries
   - { key: 'clang-analyzer-optin.cplusplus.UninitializedObject:IgnoreRecordsWithField', value: 'asmjit::Operand_::Signature' }
+  - { key: 'misc-include-cleaner.IgnoreHeaders', value: '.*asmjit.*;.*hwloc.*' }
