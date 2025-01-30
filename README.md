@@ -260,14 +260,18 @@ Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
 Make also sure that you have the correct drivers for your GPU installed so that
 OneAPI can apply work to it. 
 
-## Reference
+## References
 
-A detailed description can be found in the following paper. Please cite this if
-you use FIRESTARTER for scientific work.
+Below is a list of our FIRESTARTER publications. Please preferably cite the latest paper
+if you use FIRESTARTER for scientific work.
+
+Robert Schöne, Markus Schmidl, Mario Bielert, and Daniel Hackenberg
+[FIRESTARTER 2: Dynamic Code Generation for Processor Stress
+Tests](https://dx.doi.org/10.1109/Cluster48925.2021.00084) (Cluster 2021)
 
 Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
 [Introducing FIRESTARTER: A processor stress test
-utility](http://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
+utility](https://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
 
 Additional information:
 [https://tu-dresden.de/zih/forschung/projekte/firestarter](https://tu-dresden.de/zih/forschung/projekte/firestarter).
