@@ -80,10 +80,21 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		)
 endif()
 
-
 SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
 	)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	SET(FIRESTARTER_LIBRARIES
+		firestartercombined
+	)
+else()
+	SET(FIRESTARTER_LIBRARIES
+		"-Wl,--whole-archive"
+		firestartercombined
+		"-Wl,--no-whole-archive"
+	)
+endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	add_executable(FIRESTARTER_CUDA
@@ -92,9 +103,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
-		"-Wl,--whole-archive"
-		firestartercombined
-		"-Wl,--no-whole-archive"
+		${FIRESTARTER_LIBRARIES}
 	)
 
 	target_link_libraries(FIRESTARTER_CUDA
@@ -122,9 +131,7 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
-		"-Wl,--whole-archive"
-		firestartercombined
-		"-Wl,--no-whole-archive"
+		${FIRESTARTER_LIBRARIES}
 	)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
@@ -144,9 +151,7 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
-		"-Wl,--whole-archive"
-		firestartercombined
-		"-Wl,--no-whole-archive"
+		${FIRESTARTER_LIBRARIES}
 	)
 
 	target_link_libraries(FIRESTARTER_HIP
@@ -168,9 +173,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 
 	target_link_libraries(FIRESTARTER
-		"-Wl,--whole-archive"
-		firestartercombined
-		"-Wl,--no-whole-archive"
+		${FIRESTARTER_LIBRARIES}
 	)
 
 	target_link_libraries_darwin(NAME FIRESTARTER)
