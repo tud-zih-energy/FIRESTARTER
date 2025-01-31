@@ -30,6 +30,8 @@ add_library(firestartercore STATIC
 	firestarter/X86/Payload/SSE2Payload.cpp
 	)
 
+target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
 target_link_libraries(firestartercore
 	hwloc
 	AsmJit::AsmJit
@@ -53,6 +55,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
 		)
+	
+	target_include_directories(firestarterlinux PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 	target_link_libraries(firestarterlinux
 		Nitro::log
@@ -60,14 +64,37 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		)
 endif()
 
-
-SET(FIRESTARTER_FILES
-	firestarter/Main.cpp
-
+add_library(firestartercombined STATIC
 	# IpcEstimateMetricData::insertValue is accesses which is part of the firestarterlinux library.
 	# This reference should be removed there and the file moved back to the firestartercore library.
 	firestarter/LoadWorker.cpp
+)
+
+target_link_libraries(firestartercombined
+	firestartercore
 	)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(firestartercombined
+		firestarterlinux
+		)
+endif()
+
+SET(FIRESTARTER_FILES
+	firestarter/Main.cpp
+	)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+	SET(FIRESTARTER_LIBRARIES
+		firestartercombined
+	)
+else()
+	SET(FIRESTARTER_LIBRARIES
+		"-Wl,--whole-archive"
+		firestartercombined
+		"-Wl,--no-whole-archive"
+	)
+endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	add_executable(FIRESTARTER_CUDA
@@ -76,14 +103,8 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
-		firestartercore
+		${FIRESTARTER_LIBRARIES}
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_CUDA
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_CUDA
 		CUDA::cuda_driver
@@ -110,14 +131,8 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
-		firestartercore
+		${FIRESTARTER_LIBRARIES}
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_ONEAPI
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_ONEAPI
 		mkl_sycl
@@ -136,14 +151,8 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
-		firestartercore
+		${FIRESTARTER_LIBRARIES}
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER_HIP
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries(FIRESTARTER_HIP
 		hip::host
@@ -164,14 +173,8 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 
 	target_link_libraries(FIRESTARTER
-		firestartercore
+		${FIRESTARTER_LIBRARIES}
 	)
-
-	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		target_link_libraries(FIRESTARTER
-			firestarterlinux
-		)
-	endif()
 
 	target_link_libraries_darwin(NAME FIRESTARTER)
 
