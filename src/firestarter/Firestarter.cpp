@@ -115,8 +115,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
       }
 
       // init all metrics
-      auto All = MeasurementWorker->metricNames();
-      auto Initialized = MeasurementWorker->initMetrics(All);
+      const auto All = MeasurementWorker->metricNames();
+      const auto Initialized = MeasurementWorker->initMetrics(All);
 
       if (Initialized.empty()) {
         std::invalid_argument("No metrics initialized");
@@ -128,10 +128,6 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
           auto InvertedName = "-" + Name;
           return Name == OptimizationMetric || InvertedName == OptimizationMetric;
         };
-        // metric name is not found
-        if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" does not exist.");
-        }
         // metric has not initialized properly
         if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
           std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
