@@ -228,21 +228,27 @@ auto MeasurementWorker::initMetrics(std::vector<std::string> const& MetricNames)
     auto NameEqual = [&MetricName](auto const& Pair) { return MetricName == Pair.first; };
     auto Pair = std::find_if(Values.begin(), Values.end(), NameEqual);
     if (Pair != Values.end()) {
+      // we could find an entry in values, hence this metric has been initialized, clear the contents.
+      // also clear the submetrics
       Pair->second.clear();
-    } else {
       const auto* Metric = findMetricByName(MetricName);
-      if (Metric != nullptr) {
-        const auto ReturnValue = Metric->Init();
-        if (ReturnValue != EXIT_SUCCESS) {
-          log::warn() << "Metric " << Metric->Name << ": " << Metric->GetError();
-          continue;
-        }
+      // TODO: clear this value for all the submetrics
+    } else {
+      // we could not find an entry in values, hence this metric has not been initialized yet.
+      const auto* Metric = findMetricByName(MetricName);
+      if (!Metric) {
+        log::error() << "Could not find metric: " << MetricName;
+        break;
+      }
+      const auto ReturnValue = Metric->Init();
+      if (ReturnValue != EXIT_SUCCESS) {
+        log::warn() << "Metric " << Metric->Name << ": " << Metric->GetError();
+        continue;
       }
       Values[MetricName] = std::vector<TimeValue>();
-      if (Metric != nullptr) {
-        if (Metric->Type.InsertCallback) {
-          Metric->RegisterInsertCallback(::insertCallback, this);
-        }
+      // TODO: get the submetrics and insert them here.
+      if (Metric->Type.InsertCallback) {
+        Metric->RegisterInsertCallback(::insertCallback, this);
       }
       Initialized.push_back(MetricName);
     }
@@ -280,6 +286,7 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
     auto StartTime = this->StartTime;
     auto EndTime = std::chrono::high_resolution_clock::now();
     const auto* Metric = findMetricByName(key);
+    // TODO: submetrics have to find the settings from the metric. we need hierarchy here
 
     MetricType Type;
     std::memset(&Type, 0, sizeof(Type));
