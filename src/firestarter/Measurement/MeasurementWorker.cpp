@@ -184,30 +184,34 @@ void MeasurementWorker::dataAcquisitionWorker(MeasurementWorker& This) {
   while (!This.StopExecution.load()) {
     auto Now = Clock::now();
 
-    if (!CallbackQueue.empty()) {
-      auto [CallbackFunction, CallbackTime, NextCallback] = CallbackQueue.top();
-
-      if (NextCallback <= Now) {
-        // remove the elment from the queue
-        CallbackQueue.pop();
-
-        // call our callback
-        CallbackFunction();
-
-        // add it with the updated callback time to the queue again
-        NextCallback = Now + CallbackTime;
-        CallbackQueue.emplace(CallbackFunction, CallbackTime, NextCallback);
-      }
-    }
-
-    // No work, default 1us timeout
+    // Default 1us timeout for no work.
     auto SleepTime = std::chrono::microseconds(1);
 
     if (!CallbackQueue.empty()) {
-      auto [CallbackFunction, CallbackTime, NextCallback] = CallbackQueue.top();
-      SleepTime = std::chrono::duration_cast<std::chrono::microseconds>(NextCallback - Clock::now());
-      // Sleep time may not be negative
-      SleepTime = (std::max)(std::chrono::microseconds(0), SleepTime);
+      // Get the next callback and execute if the time matches. Once executed, reregister.
+      {
+        auto [CallbackFunction, CallbackTime, NextCallback] = CallbackQueue.top();
+
+        if (NextCallback <= Now) {
+          // remove the elment from the queue
+          CallbackQueue.pop();
+
+          // call our callback
+          CallbackFunction();
+
+          // add it with the updated callback time to the queue again
+          NextCallback = Now + CallbackTime;
+          CallbackQueue.emplace(CallbackFunction, CallbackTime, NextCallback);
+        }
+      }
+
+      // Adjust the sleep time to the next callback
+      {
+        auto [CallbackFunction, CallbackTime, NextCallback] = CallbackQueue.top();
+        SleepTime = std::chrono::duration_cast<std::chrono::microseconds>(NextCallback - Clock::now());
+        // Sleep time may not be negative
+        SleepTime = (std::max)(std::chrono::microseconds(0), SleepTime);
+      }
     }
 
     std::this_thread::sleep_for(SleepTime);
