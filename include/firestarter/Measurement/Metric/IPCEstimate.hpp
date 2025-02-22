@@ -75,7 +75,7 @@ public:
 /// This metric provdies the ipc estimated based on the estimated number of instructions and the runtime of the high
 /// load loop. The metric value is dependent on the frequency of the processor. It serves as an estimation of the IPC
 /// times the processor frequency.
-static constexpr const MetricInterface IpcEstimateMetric{
+static MetricInterface IpcEstimateMetric{
     /*Name=*/"ipc-estimate",
     /*Type=*/
     {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/1, /*IgnoreStartStopDelta=*/1,

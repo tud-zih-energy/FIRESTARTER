@@ -21,19 +21,17 @@
 
 #pragma once
 
+#include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #include "firestarter/Measurement/Metric/Perf.hpp"
 #include "firestarter/Measurement/Metric/RAPL.hpp"
-#include "firestarter/Measurement/MetricInterface.h"
 #include "firestarter/Measurement/Summary.hpp"
-#include "firestarter/Measurement/TimeValue.hpp"
-#include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
 
+#include <atomic>
 #include <chrono>
 #include <map>
-#include <mutex>
-
-void insertCallback(void* Cls, const char* MetricName, int64_t TimeSinceEpoch, double Value);
+#include <memory>
+#include <sstream>
 
 namespace firestarter::measurement {
 
@@ -42,30 +40,18 @@ namespace firestarter::measurement {
 class MeasurementWorker {
 private:
   /// The thread that handles the values that are read from metrics
-  pthread_t WorkerThread{};
+  std::thread WorkerThread;
   /// The thread that handles the metric values that are read from stdin
-  pthread_t StdinThread{};
+  std::thread StdinThread;
+
+  /// The signal that terminated the threads.
+  std::atomic<bool> StopExecution = false;
 
   /// The vector of metrics that are available. Currently the following metrics are builtin: sysfs-powercap-rapl,
   /// perf-ipc, perf-freq and ipc-estimate. Metric provided through shared libraries are added to this list.
-  std::vector<const MetricInterface*> Metrics = {&RaplMetric, &PerfIpcMetric, &PerfFreqMetric, &IpcEstimateMetric};
-
-  /// Mutex to access the Values map.
-  std::mutex ValuesMutex;
-  /// Map from metric name to the vector of timevalues of this metric.
-  std::map<std::string, std::vector<TimeValue>> Values;
-
-  /// The thread function handles the timed polling of the metric values and saves them to the Value datastructure.
-  static auto dataAcquisitionWorker(void* MeasurementWorker) -> void*;
-
-  /// The thread function that handles the acquisition of the metric values from stdin and saves them to the Value
-  /// datastructure.
-  static auto stdinDataAcquisitionWorker(void* MeasurementWorker) -> void*;
-
-  /// Return the pointer to a metric from the Metrics vector that matches the supplied name.
-  /// \arg MetricName The name of the metric
-  /// \returns the pointer to the metric with the specified name or a nullptr
-  auto findMetricByName(std::string MetricName) -> const MetricInterface*;
+  std::vector<std::shared_ptr<RootMetric>> Metrics = {
+      RootMetric::fromCInterface(RaplMetric), RootMetric::fromCInterface(PerfIpcMetric),
+      RootMetric::fromCInterface(PerfFreqMetric), RootMetric::fromCInterface(IpcEstimateMetric)};
 
   /// We poll the values of all the metrics after this number of milliseconds.
   std::chrono::milliseconds UpdateInterval;
@@ -76,16 +62,25 @@ private:
   /// The number of thread FIRESTARTER runs with. This is required by some metrics
   const uint64_t NumThreads;
 
-  std::string AvailableMetricsString;
+  /// The thread function handles the timed polling of the metric values and saves them to the Value datastructure.
+  static void dataAcquisitionWorker(void* MeasurementWorker);
 
-#ifndef FIRESTARTER_LINK_STATIC
-  /// The pointer to the metrics that are used for dynamic libraries. We need to save them seperately here to call
-  /// dlclose later.
-  std::vector<void*> MetricDylibs;
-#endif
+  /// The thread function that handles the acquisition of the metric values from stdin and saves them to the Value
+  /// datastructure.
+  static void stdinDataAcquisitionWorker(void* MeasurementWorker);
 
-  /// The name of the metrics that are supplied from stdin.
-  std::vector<std::string> StdinMetrics;
+  /// Return the pointer to a metric from the Metrics vector that matches the supplied name.
+  /// \arg MetricName The name of the metric
+  /// \returns the pointer to the metric with the specified name or a nullptr
+  auto findRootMetricByName(const std::string& MetricName) -> RootMetric* {
+    // TODO: split a metric name into the minus root metric and optional leaf metric
+    auto NameEqual = [&MetricName](auto const& RootMetric) { return RootMetric->Name == std::string(MetricName); };
+    auto MetricReference = std::find_if(Metrics.begin(), Metrics.end(), NameEqual);
+    if (MetricReference == Metrics.end()) {
+      return nullptr;
+    }
+    return MetricReference->get();
+  }
 
 public:
   /// Initilize the measurement worker. It will spawn the threads for the polling of metic values.
@@ -101,26 +96,40 @@ public:
   /// Stops the worker threads
   ~MeasurementWorker();
 
-  /// Get the formatting table of all metrics and if they are available
-  [[nodiscard]] auto availableMetrics() const -> std::string const& { return this->AvailableMetricsString; }
-
-  /// The vector of all metrics that are read from stdin
-  auto stdinMetrics() -> std::vector<std::string> const& { return StdinMetrics; }
-
   /// Get the name of the metrics. This includes all metrics, builins, from dynamic libraries and metrics from stdin.
-  auto metricNames() -> std::vector<std::string>;
+  auto metricNames() -> std::vector<std::string> {
+    std::vector<std::string> MetricNames;
+    std::transform(Metrics.begin(), Metrics.end(), std::back_inserter(MetricNames),
+                   [](auto& Metric) -> std::string { return Metric->Name; });
+    return MetricNames;
+  }
+
+  /// Get the formatting table of all metrics and if they are available
+  [[nodiscard]] auto availableMetrics() const -> std::string {
+    std::stringstream Ss;
+    unsigned MaxLength = 0;
+
+    for (auto const& Metric : Metrics) {
+      const auto& Name = Metric->Name;
+      MaxLength = MaxLength < Name.size() ? Name.size() : MaxLength;
+    }
+
+    const auto Padding = MaxLength > 6 ? MaxLength - 6 : 0;
+    Ss << "  METRIC" << std::string(Padding + 1, ' ') << "| available\n";
+    Ss << "  " << std::string(Padding + 7, '-') << "-----------\n";
+    for (auto const& Metric : Metrics) {
+      const auto& Name = Metric->Name;
+      Ss << "  " << Name << std::string(Padding + 7 - Name.size(), ' ') << "| ";
+      Ss << (Metric->Available ? "yes" : "no") << "\n";
+    }
+
+    return Ss.str();
+  }
 
   /// Initialize the metrics with the provided names.
   /// \arg MetricNames The metrics to initialize
   /// \returns The vector of metrics that were successfully initialized.
   auto initMetrics(std::vector<std::string> const& MetricNames) -> std::vector<std::string>;
-
-  /// This function insert a time value pair for a specific metric. This function will be provided to metrics to allow
-  /// them to push time value pairs.
-  /// \arg MetricName The name of the metric for which values are inserted
-  /// \arg TimeSinceEpoch The time since epoch of the time value pair
-  /// \arg Value The value of the time value pair
-  void insertCallback(const char* MetricName, int64_t TimeSinceEpoch, double Value);
 
   /// Set the StartTime to the current timestep
   void startMeasurement();

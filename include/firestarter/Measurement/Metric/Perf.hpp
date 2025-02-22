@@ -110,7 +110,7 @@ public:
 };
 
 /// This metric provides IPC measurement of the programm and all associated threads.
-static constexpr const MetricInterface PerfIpcMetric{
+static MetricInterface PerfIpcMetric{
     /*Name=*/"perf-ipc",
     /*Type=*/
     {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
@@ -126,7 +126,7 @@ static constexpr const MetricInterface PerfIpcMetric{
 };
 
 /// This metric provides frequency measurement on the CPUs used to execute the program on.
-static constexpr const MetricInterface PerfFreqMetric{
+static MetricInterface PerfFreqMetric{
     /*Name=*/"perf-freq",
     /*Type=*/
     {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
