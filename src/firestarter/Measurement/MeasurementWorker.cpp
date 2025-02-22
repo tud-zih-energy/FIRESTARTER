@@ -79,11 +79,11 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
 
   // TODO: Validate that all metrics names do not conflict with each other.
 
-  WorkerThread = std::thread(MeasurementWorker::dataAcquisitionWorker, this);
+  WorkerThread = std::thread(MeasurementWorker::dataAcquisitionWorker, std::ref(*this));
 
   if (StdinMetricsNames.size() > 1) {
     // create a worker for getting metric values from stdin
-    StdinThread = std::thread(MeasurementWorker::stdinDataAcquisitionWorker, this);
+    StdinThread = std::thread(MeasurementWorker::stdinDataAcquisitionWorker, std::ref(*this));
   }
 }
 
@@ -138,9 +138,7 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
   return Measurment;
 }
 
-void MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) {
-  auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
-
+void MeasurementWorker::dataAcquisitionWorker(MeasurementWorker& This) {
 #if defined(linux) || defined(__linux__)
   // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "DataAcquisition");
@@ -163,7 +161,7 @@ void MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) {
   auto StartTime = Clock::now();
 
   // Register the periodic callbacks
-  for (auto const& Metric : This->Metrics) {
+  for (auto const& Metric : This.Metrics) {
     // Register the periodic callbacks for metric internal use
     {
       auto OptionalTimedCallback = Metric->getTimedCallback();
@@ -178,12 +176,12 @@ void MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) {
     {
       auto OptionalCallback = Metric->getInsertCallback();
       if (OptionalCallback) {
-        CallbackQueue.emplace(*OptionalCallback, This->UpdateInterval, StartTime);
+        CallbackQueue.emplace(*OptionalCallback, This.UpdateInterval, StartTime);
       }
     }
   }
 
-  while (!This->StopExecution.load()) {
+  while (!This.StopExecution.load()) {
     auto Now = Clock::now();
 
     if (!CallbackQueue.empty()) {
@@ -216,8 +214,7 @@ void MeasurementWorker::dataAcquisitionWorker(void* MeasurementWorker) {
   }
 }
 
-void MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) {
-  auto* This = static_cast<class MeasurementWorker*>(MeasurementWorker);
+void MeasurementWorker::stdinDataAcquisitionWorker(MeasurementWorker& This) {
 
 #if defined(linux) || defined(__linux__)
   // NOLINTNEXTLINE(misc-include-cleaner)
@@ -234,7 +231,7 @@ void MeasurementWorker::stdinDataAcquisitionWorker(void* MeasurementWorker) {
       continue;
     }
 
-    auto* Metric = This->findRootMetricByName(Name.data());
+    auto* Metric = This.findRootMetricByName(Name.data());
     if (Metric) {
       Metric->insert(Time, Value);
     }

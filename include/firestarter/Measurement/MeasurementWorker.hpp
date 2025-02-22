@@ -63,11 +63,11 @@ private:
   const uint64_t NumThreads;
 
   /// The thread function handles the timed polling of the metric values and saves them to the Value datastructure.
-  static void dataAcquisitionWorker(void* MeasurementWorker);
+  static void dataAcquisitionWorker(MeasurementWorker& This);
 
   /// The thread function that handles the acquisition of the metric values from stdin and saves them to the Value
   /// datastructure.
-  static void stdinDataAcquisitionWorker(void* MeasurementWorker);
+  static void stdinDataAcquisitionWorker(MeasurementWorker& This);
 
   /// Return the pointer to a metric from the Metrics vector that matches the supplied name.
   /// \arg MetricName The name of the metric
