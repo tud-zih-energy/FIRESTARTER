@@ -92,7 +92,7 @@ public:
 
 /// This metric provides power measurements through the RAPL interface. Either psys measurement is choosen or if this is
 /// not available the sum of packages and drams.
-static MetricInterface RaplMetric{
+inline static MetricInterface RaplMetric{
     /*Name=*/"sysfs-powercap-rapl",
     /*Type=*/
     {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
