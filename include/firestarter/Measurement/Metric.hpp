@@ -36,7 +36,7 @@
 #include <utility>
 #include <vector>
 
-#ifndef FIRESTARTER_LINK_STATIC
+#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
 extern "C" {
 #include <dlfcn.h>
 }
@@ -97,7 +97,7 @@ struct RootMetric : public Metric {
       MetricPtr->Fini();
     }
 
-#ifndef FIRESTARTER_LINK_STATIC
+#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
     if (Dylib) {
       dlclose(MetricPtr);
     }
@@ -117,7 +117,7 @@ struct RootMetric : public Metric {
     return Root;
   }
 
-#ifndef FIRESTARTER_LINK_STATIC
+#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   /// Popuplate the RootMetric object from the C-style MetricInterface provided via a dynamic library.
   /// \arg DylibPath The dynamic library name
   static auto fromDylib(const std::string& DylibPath) -> std::shared_ptr<RootMetric> {
