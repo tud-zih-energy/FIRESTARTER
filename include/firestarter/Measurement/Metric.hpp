@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2024 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2025 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -43,6 +43,8 @@ extern "C" {
 #endif
 
 namespace firestarter::measurement {
+
+static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value);
 
 /// This class handels the state around a metric. Its name and if it is initialized or available.
 struct Metric {
@@ -292,18 +294,18 @@ private:
       Available = true;
     }
   }
-
-  /// This function insert a time value pair for a specific metric. This function will be provided to metrics to
-  /// allow them to push time value pairs.
-  /// \arg MetricName The name of the metric for which values are inserted
-  /// \arg TimeSinceEpoch The time since epoch of the time value pair
-  /// \arg Value The value of the time value pair
-  static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value) {
-    assert(Cls && "External metric does not provide Cls argument");
-    auto& This = *static_cast<RootMetric*>(Cls);
-    // TODO: allow inserting into the sub metrics
-    This.insert(TimeSinceEpoch, Value);
-  }
 };
+
+/// This function insert a time value pair for a specific metric. This function will be provided to metrics to
+/// allow them to push time value pairs.
+/// \arg MetricName The name of the metric for which values are inserted
+/// \arg TimeSinceEpoch The time since epoch of the time value pair
+/// \arg Value The value of the time value pair
+static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value) {
+  assert(Cls && "External metric does not provide Cls argument");
+  auto& This = *static_cast<RootMetric*>(Cls);
+  // TODO: allow inserting into the sub metrics
+  This.insert(TimeSinceEpoch, Value);
+}
 
 } // namespace firestarter::measurement

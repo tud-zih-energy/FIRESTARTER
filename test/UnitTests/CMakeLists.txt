@@ -2,6 +2,7 @@ add_executable(UnitTests
     CpuBindTest.cpp
     FunctionSelectionTest.cpp
     InstructionGroupsTest.cpp
+    MetricsTest.cpp
     X86CpuFeaturesTest.cpp
     X86CpuModelTest.cpp
     X86PayloadTest.cpp
@@ -11,6 +12,7 @@ add_executable(UnitTests
 target_link_libraries(UnitTests
     firestartercore
     GTest::gtest_main
+    GTest::gmock_main
 )
 
 include(GoogleTest)
