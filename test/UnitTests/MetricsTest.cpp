@@ -299,3 +299,80 @@ TEST(MetricsTest, CheckInsertCallbackFromCInterface) {
     EXPECT_FALSE(Callback.has_value());
   }
 }
+
+TEST(MetricsTest, CheckAvailableFromStdin) {
+  auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
+  EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
+
+  auto AvailableRoot =
+      firestarter::measurement::RootMetric::fromStdin(MetricMock<0, NoInsertCallbackMetricType, 0>::FakeName);
+
+  // Metric is created, it is not yet initialized.
+  EXPECT_EQ(AvailableRoot->Name, AvailableMetricMock.FakeName);
+  EXPECT_TRUE(AvailableRoot->Values.empty());
+  EXPECT_EQ(AvailableRoot->MetricPtr, nullptr);
+  EXPECT_TRUE(AvailableRoot->Submetrics.empty());
+  EXPECT_FALSE(AvailableRoot->Dylib);
+  EXPECT_TRUE(AvailableRoot->Stdin);
+  EXPECT_TRUE(AvailableRoot->Initialized);
+
+  EXPECT_TRUE(AvailableRoot->Available);
+
+  // Check if the metric inititializes
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  EXPECT_TRUE(AvailableRoot->Initialized);
+}
+
+TEST(MetricsTest, CheckNoTimedCallbackFromStdin) {
+  auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
+  EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+
+  auto AvailableRoot =
+      firestarter::measurement::RootMetric::fromStdin(MetricMock<0, NoInsertCallbackMetricType, 0>::FakeName);
+
+  EXPECT_CALL(AvailableMetricMock,
+              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+      .Times(0);
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+}
+
+TEST(MetricsTest, CheckNoInsertCallbackFromStdin) {
+  auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, InsertCallbackMetricType>::instance();
+  EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+
+  auto AvailableRoot =
+      firestarter::measurement::RootMetric::fromStdin(MetricMock<0, InsertCallbackMetricType, 0>::FakeName);
+
+  // Check if the metric inititializes
+  EXPECT_CALL(AvailableMetricMock,
+              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+      .Times(0);
+
+  {
+    auto Callback = AvailableRoot->getInsertCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  {
+    auto Callback = AvailableRoot->getInsertCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+}
