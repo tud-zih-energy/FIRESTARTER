@@ -22,6 +22,7 @@
 #include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
 
+#include <chrono>
 #include <cstdint>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -30,8 +31,6 @@
 using namespace ::testing;
 
 namespace {
-
-void callback() {};
 
 template <int32_t ReturnValue> auto init() -> int32_t { return ReturnValue; };
 
@@ -47,14 +46,15 @@ const MetricType NoInsertCallbackMetricType{
     /*Absolute=*/0,       /*Accumalative=*/0,         /*DivideByThreadCount=*/0,
     /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0, /*Reserved=*/0};
 
-template <int32_t InitReturnValue, const MetricType& Type> struct MetricMock {
+template <int32_t InitReturnValue, const MetricType& Type, uint64_t CallbackTime = 0U> struct MetricMock {
   inline static const char* Name = "Name";
   inline static const char* Unit = "Unit";
-  inline static uint64_t CallbackTime = 0U;
 
-  MOCK_METHOD(int32_t, registerInsertCallbackMock, (void (*Ptr1)(void*, const char*, int64_t, double), void* Ptr2));
+  MOCK_METHOD(void, callbackMock, ());
 
   MOCK_METHOD(int32_t, finiMock, ());
+
+  MOCK_METHOD(int32_t, registerInsertCallbackMock, (void (*Ptr1)(void*, const char*, int64_t, double), void* Ptr2));
 
   MetricInterface AvailableMetric = {
       /*Name=*/Name,
@@ -80,16 +80,18 @@ template <int32_t InitReturnValue, const MetricType& Type> struct MetricMock {
 private:
   MetricMock() = default;
 
+  static void callback() { return instance().callbackMock(); }
+
+  static auto fini() -> int32_t { return instance().finiMock(); }
+
   static auto registerInsertCallback(void (*FunctionPtr)(void*, const char*, int64_t, double), void* Cls) -> int32_t {
     return instance().registerInsertCallbackMock(FunctionPtr, Cls);
   }
-
-  static auto fini() -> int32_t { return instance().finiMock(); }
 };
 
 }; // namespace
 
-TEST(MetricsTest, CheckAvailableMetricFromCInterface) {
+TEST(MetricsTest, CheckAvailableFromCInterface) {
   auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
   EXPECT_CALL(AvailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
@@ -111,7 +113,7 @@ TEST(MetricsTest, CheckAvailableMetricFromCInterface) {
   EXPECT_TRUE(AvailableRoot->initialize());
 }
 
-TEST(MetricsTest, CheckUnavailableMetricFromCInterface) {
+TEST(MetricsTest, CheckUnavailableFromCInterface) {
   auto& UnavailableMetricMock = MetricMock</*InitReturnValue=*/1, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(UnavailableMetricMock, finiMock()).Times(1);
   EXPECT_CALL(UnavailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
@@ -124,7 +126,7 @@ TEST(MetricsTest, CheckUnavailableMetricFromCInterface) {
   EXPECT_FALSE(UnavailableRoot->initialize());
 }
 
-TEST(MetricsTest, CheckInsertCallback) {
+TEST(MetricsTest, CheckRegisterInsertCallbackFromCInterface) {
   // Check that the insert callback is provided during initialization
   {
     auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, InsertCallbackMetricType>::instance();
@@ -151,5 +153,74 @@ TEST(MetricsTest, CheckInsertCallback) {
                 registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
         .Times(0);
     EXPECT_TRUE(AvailableRoot->initialize());
+  }
+}
+
+TEST(MetricsTest, CheckNoTimedCallbackFromCInterface) {
+  // Callback is not enabled (Callbacktime = 0)
+
+  auto& AvailableMetricMock =
+      MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType, /*CallbackTime=*/0U>::instance();
+  EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
+
+  auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
+
+  EXPECT_CALL(AvailableMetricMock,
+              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+      .Times(0);
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_FALSE(Callback.has_value());
+  }
+}
+
+TEST(MetricsTest, CheckTimedCallbackFromCInterface) {
+  constexpr auto CallbackTime = 11U;
+  auto& AvailableMetricMock =
+      MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType, /*CallbackTime=*/CallbackTime>::instance();
+  EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
+
+  auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
+
+  EXPECT_CALL(AvailableMetricMock,
+              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+      .Times(0);
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_TRUE(Callback.has_value());
+
+    // no initialized, callback should not call the metric callback
+
+    // Call the callback
+    EXPECT_CALL(AvailableMetricMock, callbackMock()).Times(0);
+    std::get<0>(Callback.value())();
+
+    // Check the correct time is returned
+    EXPECT_EQ(std::get<1>(Callback.value()), std::chrono::microseconds(CallbackTime));
+  }
+
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  {
+    auto Callback = AvailableRoot->getTimedCallback();
+    EXPECT_TRUE(Callback.has_value());
+
+    // initialized, callback should  call the metric callback
+
+    // Call the callback
+    EXPECT_CALL(AvailableMetricMock, callbackMock()).Times(1);
+    std::get<0>(Callback.value())();
+
+    // Check the correct time is returned
+    EXPECT_EQ(std::get<1>(Callback.value()), std::chrono::microseconds(CallbackTime));
   }
 }
