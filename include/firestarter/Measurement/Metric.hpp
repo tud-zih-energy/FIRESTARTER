@@ -46,7 +46,7 @@ namespace firestarter::measurement {
 
 static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value);
 
-/// This class handels the state around a metric. Its name and if it is initialized or available.
+/// This class handels the state around a metric. Its name, the contained time value pairs and a mutex to guard them.
 struct Metric {
 
   Metric() = delete;
@@ -56,31 +56,37 @@ struct Metric {
 
   /// The name of the metric
   std::string Name;
-  /// Is the metric available
-  bool Available = false;
   /// The data collected from the metrics.
   std::vector<TimeValue> Values;
   /// Mutex to access the Values
   std::mutex ValuesMutex;
 };
 
-/// This class handels the state around a leaf metric. Its name and if it is initialized or available.
-struct LeafMetric : public Metric {};
+/// This class handels the state around a leaf metric. Its name, the contained time value pairs and a mutex to guard
+/// them.
+struct LeafMetric : public Metric {
+  LeafMetric() = delete;
 
-/// This class handels the state around a root metric. Its name, if it is initialized and available and the pointer to
-/// the interface to interact with it.
-/// Root metrics include addition leaf-/sub- metrics.
+  explicit LeafMetric(std::string Name)
+      : Metric(std::move(Name)) {}
+};
+
+/// This class handels the state around a root metric. Its name, the contained time value pairs, a mutex to guard them,
+/// if it is initialized and available and the pointer to the interface to interact with it. Root metrics include
+/// addition leaf-/sub- metrics.
 struct RootMetric : public Metric {
   /// The pointer to the metric
   MetricInterface* MetricPtr = nullptr;
   /// The names of the submetrics.
-  std::vector<LeafMetric> Submetrics;
+  std::vector<std::unique_ptr<LeafMetric>> Submetrics;
   /// Is the metric from a dynamic library
   bool Dylib;
   /// Is the metric from stdin input?
   bool Stdin;
   /// Is the metric initialized
   bool Initialized = false;
+  /// Is the metric available
+  bool Available = false;
 
   RootMetric() = delete;
 
@@ -182,6 +188,15 @@ struct RootMetric : public Metric {
       if (!Initialized) {
         log::warn() << "Metric " << Name << ": " << MetricPtr->GetError();
         return false;
+      }
+
+      // Get the submetrics
+      if (MetricPtr->GetSubmetricNames) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        for (auto** Names = MetricPtr->GetSubmetricNames(); Names; Names++) {
+          // Create a new submetric entry for each name
+          Submetrics.emplace_back(std::make_unique<LeafMetric>(std::string(*Names)));
+        }
       }
 
       // Register the callback to insert data
