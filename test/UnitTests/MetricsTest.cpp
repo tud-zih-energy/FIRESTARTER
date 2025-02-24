@@ -65,6 +65,8 @@ template <int32_t InitReturnValue, const MetricType& Type, uint64_t CallbackTime
       /*Callback=*/callback,
       /*Init=*/init<InitReturnValue>,
       /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
       /*GetReading=*/getReading,
       /*GetError=*/getError,
       /*RegisterInsertCallback=*/registerInsertCallback,

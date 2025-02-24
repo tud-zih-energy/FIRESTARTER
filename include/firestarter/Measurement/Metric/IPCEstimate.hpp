@@ -85,6 +85,8 @@ inline static MetricInterface IpcEstimateMetric{
     /*Callback=*/nullptr,
     /*Init=*/IpcEstimateMetricData::init,
     /*Fini=*/IpcEstimateMetricData::fini,
+    /*GetSubmetricNames=*/
+    nullptr,
     /*GetReading=*/nullptr,
     /*GetError=*/IpcEstimateMetricData::getError,
     /*RegisterInsertCallback=*/IpcEstimateMetricData::registerInsertCallback,

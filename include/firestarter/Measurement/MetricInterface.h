@@ -77,6 +77,12 @@ typedef struct {
   /// \returns EXIT_SUCCESS on success.
   int32_t (*Fini)();
 
+  /// Get a vector of submetric names. This is required to know the name of a submetric that is just described via an
+  /// index throughout this metric interface.
+  /// This function ptr may be NULL in case the metric does not support submetrics.
+  /// \returns The NULL terminated array of submetric names (char *)
+  char** (*GetSubmetricNames)();
+
   /// Get a reading of the metric. Set this function pointer to null if MetricType::InsertCallback is specified in the
   /// Type.
   /// \arg Value The pointer to which the value will be saved.

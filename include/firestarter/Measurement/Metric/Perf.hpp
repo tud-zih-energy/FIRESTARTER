@@ -120,6 +120,8 @@ inline static MetricInterface PerfIpcMetric{
     /*Callback=*/nullptr,
     /*Init=*/PerfMetricData::init,
     /*Fini=*/PerfMetricData::fini,
+    /*GetSubmetricNames=*/
+    nullptr,
     /*GetReading=*/PerfMetricData::getReadingIpc,
     /*GetError=*/PerfMetricData::getError,
     /*RegisterInsertCallback=*/nullptr,
@@ -136,6 +138,8 @@ inline static MetricInterface PerfFreqMetric{
     /*Callback=*/nullptr,
     /*Init=*/PerfMetricData::init,
     /*Fini=*/PerfMetricData::fini,
+    /*GetSubmetricNames=*/
+    nullptr,
     /*GetReading=*/PerfMetricData::getReadingFreq,
     /*GetError=*/PerfMetricData::getError,
     /*RegisterInsertCallback=*/nullptr,
