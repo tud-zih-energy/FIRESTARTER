@@ -21,6 +21,7 @@
 
 #include "firestarter/Measurement/Metric/RAPL.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -120,21 +121,30 @@ auto RaplMetricData::init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::getReading(double* Value) -> int32_t {
-  double FinalReading = 0.0;
+auto RaplMetricData::getReading(double* Value, uint64_t NumElems) -> int32_t {
 
   // Update all readers
-  for (auto& Reader : instance().Readers) {
+  auto& Readers = instance().Readers;
+
+  for (auto& Reader : Readers) {
     Reader->read();
   }
 
-  // Read the value
-  for (const auto& Reader : instance().AccumulateReaders) {
-    FinalReading += Reader->lastReading();
-  }
-
   if (Value != nullptr) {
+    assert(NumElems == 1 + Readers.size() &&
+           "The number of elems is smaller than the number of reader plus the root metric.");
+
+    // Read the value
+    double FinalReading = 0.0;
+    for (const auto& Reader : instance().AccumulateReaders) {
+      FinalReading += Reader->lastReading();
+    }
+
     *Value = FinalReading;
+    for (auto I = 1U; I <= Readers.size(); I++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      Value[I] = Readers[I]->lastReading();
+    }
   }
 
   return EXIT_SUCCESS;
@@ -147,4 +157,4 @@ auto RaplMetricData::getError() -> const char* {
 
 // this function will be called periodically to make sure we do not miss an
 // overflow of the counter
-void RaplMetricData::callback() { getReading(nullptr); }
+void RaplMetricData::callback() { getReading(nullptr, /*NumElems=*/0); }

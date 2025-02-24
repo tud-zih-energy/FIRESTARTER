@@ -58,7 +58,7 @@ struct MetricMock {
 
   MOCK_METHOD(const char**, getSubmetricNamesMock, ());
 
-  MOCK_METHOD(int32_t, getReadingMock, (double*));
+  MOCK_METHOD(int32_t, getReadingMock, (double*, uint64_t));
 
   MOCK_METHOD(int32_t, registerInsertCallbackMock, (void (*Ptr1)(void*, uint64_t, int64_t, double), void* Ptr2));
 
@@ -97,9 +97,9 @@ private:
 
   static auto getSubmetricNames() -> const char** { return instance().getSubmetricNamesMock(); };
 
-  static auto getReading(double* Value) -> int32_t {
+  static auto getReading(double* Value, uint64_t NumElems) -> int32_t {
     *Value = FakeValue;
-    return instance().getReadingMock(Value);
+    return instance().getReadingMock(Value, NumElems);
   }
 
   static auto registerInsertCallback(void (*FunctionPtr)(void*, uint64_t, int64_t, double), void* Cls) -> int32_t {
@@ -113,7 +113,7 @@ TEST(MetricsTest, CheckAvailableFromCInterface) {
   auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
   EXPECT_CALL(AvailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
 
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
@@ -140,7 +140,7 @@ TEST(MetricsTest, CheckUnavailableFromCInterface) {
   auto& UnavailableMetricMock = MetricMock</*InitReturnValue=*/1, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(UnavailableMetricMock, finiMock()).Times(1);
   EXPECT_CALL(UnavailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(UnavailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(UnavailableMetricMock, getReadingMock(_, _)).Times(0);
   EXPECT_CALL(UnavailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
 
   auto UnavailableRoot = firestarter::measurement::RootMetric::fromCInterface(UnavailableMetricMock.AvailableMetric);
@@ -160,7 +160,7 @@ TEST(MetricsTest, CheckRegisterInsertCallbackFromCInterface) {
     auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, InsertCallbackMetricType>::instance();
     EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
     EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-    EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+    EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
     auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
@@ -176,7 +176,7 @@ TEST(MetricsTest, CheckRegisterInsertCallbackFromCInterface) {
     auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
     EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
     EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-    EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+    EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
     auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
@@ -195,7 +195,7 @@ TEST(MetricsTest, CheckNoTimedCallbackFromCInterface) {
       MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType, /*CallbackTime=*/0U>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
@@ -222,7 +222,7 @@ TEST(MetricsTest, CheckTimedCallbackFromCInterface) {
       MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType, /*CallbackTime=*/CallbackTime>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
@@ -279,7 +279,7 @@ TEST(MetricsTest, CheckInsertCallbackFromCInterface) {
       auto Callback = PullingRoot->getInsertCallback();
       EXPECT_TRUE(Callback.has_value());
 
-      EXPECT_CALL(PullingMetricMock, getReadingMock(_)).Times(0);
+      EXPECT_CALL(PullingMetricMock, getReadingMock(_, _)).Times(0);
       Callback.value()();
     }
 
@@ -290,7 +290,7 @@ TEST(MetricsTest, CheckInsertCallbackFromCInterface) {
       EXPECT_TRUE(Callback.has_value());
 
       // mock the get reading function
-      EXPECT_CALL(PullingMetricMock, getReadingMock(_)).Times(1).WillOnce(Return(EXIT_SUCCESS));
+      EXPECT_CALL(PullingMetricMock, getReadingMock(_, _)).Times(1).WillOnce(Return(EXIT_SUCCESS));
 
       auto TimeBefore = std::chrono::high_resolution_clock::now();
 
@@ -315,7 +315,7 @@ TEST(MetricsTest, CheckInsertCallbackFromCInterface) {
     auto& PushingMetricMock = MetricMock</*InitReturnValue=*/0, InsertCallbackMetricType>::instance();
     EXPECT_CALL(PushingMetricMock, finiMock()).Times(1);
     EXPECT_CALL(PushingMetricMock, getSubmetricNamesMock()).Times(0);
-    EXPECT_CALL(PushingMetricMock, getReadingMock(_)).Times(0);
+    EXPECT_CALL(PushingMetricMock, getReadingMock(_, _)).Times(0);
     EXPECT_CALL(PushingMetricMock, registerInsertCallbackMock(_, _)).Times(0);
 
     auto PushingRoot = firestarter::measurement::RootMetric::fromCInterface(PushingMetricMock.AvailableMetric);
@@ -330,7 +330,7 @@ TEST(MetricsTest, CheckAvailableFromStdin) {
   auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
   EXPECT_CALL(AvailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
 
   auto AvailableRoot =
@@ -357,7 +357,7 @@ TEST(MetricsTest, CheckNoTimedCallbackFromStdin) {
   auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, NoInsertCallbackMetricType>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
   auto AvailableRoot =
       firestarter::measurement::RootMetric::fromStdin(MetricMock<0, NoInsertCallbackMetricType, 0>::FakeName);
@@ -383,7 +383,7 @@ TEST(MetricsTest, CheckNoInsertCallbackFromStdin) {
   auto& AvailableMetricMock = MetricMock</*InitReturnValue=*/0, InsertCallbackMetricType>::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(0);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(0);
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
 
   auto AvailableRoot =
       firestarter::measurement::RootMetric::fromStdin(MetricMock<0, InsertCallbackMetricType, 0>::FakeName);
@@ -419,7 +419,7 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
   auto& AvailableMetricMock = Mock::instance();
   EXPECT_CALL(AvailableMetricMock, finiMock()).Times(2);
   EXPECT_CALL(AvailableMetricMock, getSubmetricNamesMock()).Times(1).WillOnce(Return(Submetrics.data()));
-  EXPECT_CALL(AvailableMetricMock, getReadingMock(_)).Times(0);
+  EXPECT_CALL(AvailableMetricMock, getReadingMock(_, _)).Times(0);
   EXPECT_CALL(AvailableMetricMock, registerInsertCallbackMock(_, _)).Times(0);
 
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);

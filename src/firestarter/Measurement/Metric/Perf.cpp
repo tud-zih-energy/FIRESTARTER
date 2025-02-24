@@ -221,9 +221,15 @@ auto PerfMetricData::getReading(double* IpcValue, double* FreqValue) -> int32_t 
   return EXIT_SUCCESS;
 }
 
-auto PerfMetricData::getReadingIpc(double* Value) -> int32_t { return getReading(Value, nullptr); }
+auto PerfMetricData::getReadingIpc(double* Value, uint64_t NumElems) -> int32_t {
+  assert(NumElems == 1 && "The number of elements should be exctly one, since no submetrics are available.");
+  return getReading(Value, nullptr);
+}
 
-auto PerfMetricData::getReadingFreq(double* Value) -> int32_t { return getReading(nullptr, Value); }
+auto PerfMetricData::getReadingFreq(double* Value, uint64_t NumElems) -> int32_t {
+  assert(NumElems == 1 && "The number of elements should be exctly one, since no submetrics are available.");
+  return getReading(nullptr, Value);
+}
 
 auto PerfMetricData::getError() -> const char* {
   const char* ErrorCString = instance().ErrorString.c_str();

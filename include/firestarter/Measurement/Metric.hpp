@@ -240,10 +240,12 @@ struct RootMetric : public Metric {
     }
 
     auto Callback = [this]() {
-      double Value = NAN;
+      std::vector<double> Values(1 + Submetrics.size(), NAN);
 
-      if (Initialized && EXIT_SUCCESS == MetricPtr->GetReading(&Value)) {
-        insert(/*MetricIndex=*/ROOT_METRIC_INDEX, std::chrono::high_resolution_clock::now(), Value);
+      if (Initialized && EXIT_SUCCESS == MetricPtr->GetReading(Values.data(), Values.size())) {
+        for (auto I = 0U; I < Values.size(); I++) {
+          insert(/*MetricIndex=*/I, std::chrono::high_resolution_clock::now(), Values[I]);
+        }
       }
     };
 

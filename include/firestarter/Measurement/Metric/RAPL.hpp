@@ -188,9 +188,11 @@ public:
   static auto getSubmetricNames() -> const char** { return instance().SubmetricNames.data(); }
 
   /// Get a reading of the sysfs-powercap-rapl metric.
-  /// \arg Value The pointer to which the value will be saved.
+  /// \arg Values The memory array to which double values are saved. The index zero contains the root metric. The values
+  /// one and up are used to select the specific submetric.
+  /// \arg NumElems The number of elements in the double array.
   /// \returns EXIT_SUCCESS if we got a new value.
-  static auto getReading(double* Value) -> int32_t;
+  static auto getReading(double* Value, uint64_t NumElems) -> int32_t;
 
   /// Get error in case return code not being EXIT_SUCCESS.
   /// \returns The error string.
