@@ -44,7 +44,7 @@ extern "C" {
 
 namespace firestarter::measurement {
 
-static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value);
+static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value);
 
 /// This class handels the state around a metric. Its name, the contained time value pairs and a mutex to guard them.
 struct Metric {
@@ -243,7 +243,7 @@ struct RootMetric : public Metric {
       double Value = NAN;
 
       if (Initialized && EXIT_SUCCESS == MetricPtr->GetReading(&Value)) {
-        insert(std::chrono::high_resolution_clock::now(), Value);
+        insert(/*MetricIndex=*/ROOT_METRIC_INDEX, std::chrono::high_resolution_clock::now(), Value);
       }
     };
 
@@ -254,17 +254,34 @@ struct RootMetric : public Metric {
     return {};
   }
 
-  void insert(std::chrono::high_resolution_clock::time_point Time, double Value) {
+  /// Insert the supplied time value into the metric storage.
+  /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
+  /// specified by the index.
+  /// \arg Time The time of the time value pair
+  /// \arg Value The value of the time value pair
+  void insert(uint64_t MetricIndex, std::chrono::high_resolution_clock::time_point Time, double Value) {
     const std::lock_guard<std::mutex> Lock(ValuesMutex);
-    Values.emplace_back(Time, Value);
+
+    if (MetricIndex == ROOT_METRIC_INDEX) {
+      Values.emplace_back(Time, Value);
+    } else {
+      auto Index = MetricIndex - 1;
+      if (Index < Submetrics.size()) {
+        Submetrics[Index]->Values.emplace_back(Time, Value);
+      }
+    }
   }
 
-  void insert(int64_t TimeSinceEpoch, double Value) {
-    // TODO: allow inserting the sub metric
+  /// Insert the supplied time value into the metric storage.
+  /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
+  /// specified by the index.
+  /// \arg TimeSinceEpoch The time since epoch of the time value pair
+  /// \arg Value The value of the time value pair
+  void insert(uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value) {
     using Duration = std::chrono::duration<int64_t, std::nano>;
     auto Time = std::chrono::time_point<std::chrono::high_resolution_clock, Duration>(Duration(TimeSinceEpoch));
 
-    insert(Time, Value);
+    insert(MetricIndex, Time, Value);
   }
 
   [[nodiscard]] auto getSummary(std::chrono::high_resolution_clock::time_point StartTime,
@@ -313,14 +330,14 @@ private:
 
 /// This function insert a time value pair for a specific metric. This function will be provided to metrics to
 /// allow them to push time value pairs.
-/// \arg MetricName The name of the metric for which values are inserted
+/// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
+/// specified by the index.
 /// \arg TimeSinceEpoch The time since epoch of the time value pair
 /// \arg Value The value of the time value pair
-static void insertCallback(void* Cls, const char* /*MetricName*/, int64_t TimeSinceEpoch, double Value) {
+static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value) {
   assert(Cls && "External metric does not provide Cls argument");
   auto& This = *static_cast<RootMetric*>(Cls);
-  // TODO: allow inserting into the sub metrics
-  This.insert(TimeSinceEpoch, Value);
+  This.insert(MetricIndex, TimeSinceEpoch, Value);
 }
 
 } // namespace firestarter::measurement

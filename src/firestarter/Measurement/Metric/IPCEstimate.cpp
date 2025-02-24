@@ -45,8 +45,7 @@ auto IpcEstimateMetricData::getError() -> const char* {
   return ErrorCString;
 }
 
-auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, const char*, int64_t, double),
-                                                   void* Arg) -> int32_t {
+auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, uint64_t, int64_t, double), void* Arg) -> int32_t {
   auto& Instance = instance();
 
   Instance.Callback = C;
@@ -66,5 +65,5 @@ void IpcEstimateMetricData::insertValue(double Value) {
       std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch())
           .count();
 
-  Instance.Callback(Instance.CallbackArg, "ipc-estimate", T, Value);
+  Instance.Callback(Instance.CallbackArg, ROOT_METRIC_INDEX, T, Value);
 }

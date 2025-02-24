@@ -22,8 +22,10 @@
 #include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
 
+#include "gtest/gtest.h"
 #include <chrono>
 #include <cstdint>
+#include <firestarter/Measurement/TimeValue.hpp>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -58,7 +60,7 @@ struct MetricMock {
 
   MOCK_METHOD(int32_t, getReadingMock, (double*));
 
-  MOCK_METHOD(int32_t, registerInsertCallbackMock, (void (*Ptr1)(void*, const char*, int64_t, double), void* Ptr2));
+  MOCK_METHOD(int32_t, registerInsertCallbackMock, (void (*Ptr1)(void*, uint64_t, int64_t, double), void* Ptr2));
 
   MetricInterface AvailableMetric = {
       /*Name=*/FakeName,
@@ -100,7 +102,7 @@ private:
     return instance().getReadingMock(Value);
   }
 
-  static auto registerInsertCallback(void (*FunctionPtr)(void*, const char*, int64_t, double), void* Cls) -> int32_t {
+  static auto registerInsertCallback(void (*FunctionPtr)(void*, uint64_t, int64_t, double), void* Cls) -> int32_t {
     return instance().registerInsertCallbackMock(FunctionPtr, Cls);
   }
 };
@@ -438,7 +440,47 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
 
   EXPECT_TRUE(AvailableRoot->Initialized);
 
+  // Check that the submetrics are registered
   EXPECT_EQ(AvailableRoot->Submetrics.size(), 2);
   EXPECT_EQ(AvailableRoot->Submetrics[0]->Name, std::string(Submetrics[0]));
   EXPECT_EQ(AvailableRoot->Submetrics[1]->Name, std::string(Submetrics[1]));
+
+  // Check that submetrics are inserted
+  const auto TV0 = firestarter::measurement::TimeValue(std::chrono::high_resolution_clock::now(), 0.0);
+  const auto TV1 = firestarter::measurement::TimeValue(std::chrono::high_resolution_clock::now(), 0.0);
+  const auto TV2 = firestarter::measurement::TimeValue(std::chrono::high_resolution_clock::now(), 0.0);
+  const auto TV3 = firestarter::measurement::TimeValue(std::chrono::high_resolution_clock::now(), 0.0);
+
+  // Insert into root
+  AvailableRoot->insert(ROOT_METRIC_INDEX, TV0.Time, TV0.Value);
+  EXPECT_EQ(AvailableRoot->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values.size(), 0);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values.size(), 0);
+  EXPECT_EQ(AvailableRoot->Values[0], TV0);
+
+  // Insert into the first submetric
+  AvailableRoot->insert(1, TV1.Time, TV1.Value);
+  EXPECT_EQ(AvailableRoot->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values.size(), 0);
+  EXPECT_EQ(AvailableRoot->Values[0], TV0);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values[0], TV1);
+
+  // Insert into the second submetric
+  AvailableRoot->insert(2, TV2.Time, TV2.Value);
+  EXPECT_EQ(AvailableRoot->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Values[0], TV0);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values[0], TV1);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values[0], TV2);
+
+  // Inserting in a invalid metric does not change anything
+  AvailableRoot->insert(3, TV3.Time, TV3.Value);
+  EXPECT_EQ(AvailableRoot->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values.size(), 1);
+  EXPECT_EQ(AvailableRoot->Values[0], TV0);
+  EXPECT_EQ(AvailableRoot->Submetrics[0]->Values[0], TV1);
+  EXPECT_EQ(AvailableRoot->Submetrics[1]->Values[0], TV2);
 }

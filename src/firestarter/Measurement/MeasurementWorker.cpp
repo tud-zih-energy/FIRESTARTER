@@ -237,7 +237,7 @@ void MeasurementWorker::stdinDataAcquisitionWorker(MeasurementWorker& This) {
 
     auto* Metric = This.findRootMetricByName(Name.data());
     if (Metric) {
-      Metric->insert(Time, Value);
+      Metric->insert(ROOT_METRIC_INDEX, Time, Value);
     }
   }
 }

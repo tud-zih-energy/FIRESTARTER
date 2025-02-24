@@ -34,7 +34,7 @@ private:
   std::string ErrorString;
 
   /// The saved callback to push the metric value
-  void (*Callback)(void*, const char*, int64_t, double){};
+  void (*Callback)(void*, uint64_t, int64_t, double){};
   /// The saved first argument for the callback
   void* CallbackArg{};
 
@@ -62,10 +62,11 @@ public:
 
   /// The first argument is the function pointer to the callback. The first argument to this function pointer needs to
   /// be filled with the second argument to this function.
-  /// The supplied function pointer needs to be called with the metric name for the second, an unix timestamp (time
-  /// since epoch) for the third and a metric value for the forth argument. This allows the metric to provide values in
-  /// a pushing way in contract to the pulling way of the GetReading function.
-  static auto registerInsertCallback(void (*C)(void*, const char*, int64_t, double), void* Arg) -> int32_t;
+  /// The supplied function pointer needs to be called with either zero in case the metric value is provided or the
+  /// index starting with one of the submetric, an unix timestamp (time since epoch) for the third and a metric value
+  /// for the forth argument. This allows the metric to provide values in a pushing way in contrast to the pulling way
+  /// of the GetReading function.
+  static auto registerInsertCallback(void (*C)(void*, uint64_t, int64_t, double), void* Arg) -> int32_t;
 
   /// Push a value with the current timestamp.
   /// \arg Value The metric value to push.

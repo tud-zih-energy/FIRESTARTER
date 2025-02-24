@@ -22,6 +22,7 @@
 #pragma once
 
 #include <chrono>
+#include <tuple>
 
 namespace firestarter::measurement {
 
@@ -32,6 +33,10 @@ struct TimeValue {
   constexpr TimeValue(std::chrono::high_resolution_clock::time_point Time, double Value)
       : Time(Time)
       , Value(Value){};
+
+  friend auto operator==(const TimeValue& Lhs, const TimeValue& Rhs) -> bool {
+    return std::tie(Lhs.Time, Lhs.Value) == std::tie(Rhs.Time, Lhs.Value);
+  }
 
   std::chrono::high_resolution_clock::time_point Time;
   double Value{};
