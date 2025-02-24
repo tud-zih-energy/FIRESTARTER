@@ -81,7 +81,7 @@ typedef struct {
   /// index throughout this metric interface.
   /// This function ptr may be NULL in case the metric does not support submetrics.
   /// \returns The NULL terminated array of submetric names (char *)
-  char** (*GetSubmetricNames)();
+  const char** (*GetSubmetricNames)();
 
   /// Get a reading of the metric. Set this function pointer to null if MetricType::InsertCallback is specified in the
   /// Type.

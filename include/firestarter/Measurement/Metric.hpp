@@ -193,7 +193,7 @@ struct RootMetric : public Metric {
       // Get the submetrics
       if (MetricPtr->GetSubmetricNames) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        for (auto** Names = MetricPtr->GetSubmetricNames(); Names; Names++) {
+        for (auto** Names = MetricPtr->GetSubmetricNames(); *Names; Names++) {
           // Create a new submetric entry for each name
           Submetrics.emplace_back(std::make_unique<LeafMetric>(std::string(*Names)));
         }

@@ -160,7 +160,7 @@ private:
   std::vector<std::shared_ptr<ReaderDef>> AccumulateReaders;
 
   /// The null terminated vector of submetric names.
-  std::vector<char*> SubmetricNames = {nullptr};
+  std::vector<const char*> SubmetricNames = {nullptr};
 
   RaplMetricData() = default;
 
@@ -185,7 +185,7 @@ public:
   /// Get a vector of submetric names. This is required to know the name of a submetric that is just described via an
   /// index throughout this metric interface.
   /// \returns The NULL terminated array of submetric names (char *)
-  static auto getSubmetricNames() -> char** { return instance().SubmetricNames.data(); }
+  static auto getSubmetricNames() -> const char** { return instance().SubmetricNames.data(); }
 
   /// Get a reading of the sysfs-powercap-rapl metric.
   /// \arg Value The pointer to which the value will be saved.
