@@ -21,6 +21,7 @@
 
 #include "firestarter/Measurement/Metric/RAPL.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -67,9 +68,10 @@ auto RaplMetricData::init() -> int32_t {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Path << RaplPath << "/" << Dir->d_name;
 
+    std::shared_ptr<ReaderDef> Def;
+
     try {
-      auto Def = std::make_shared<ReaderDef>(/*Path=*/Path.str());
-      Instance.Readers.emplace_back(std::move(Def));
+      Def = std::make_shared<ReaderDef>(/*Path=*/Path.str());
     } catch (std::invalid_argument const& E) {
       // This path does not contain a metric
       continue;
@@ -77,6 +79,12 @@ auto RaplMetricData::init() -> int32_t {
       Instance.ErrorString = E.what();
       break;
     }
+
+    Instance.Readers.emplace_back(Def);
+
+    // Replace the nullptr with the new element and apend the nullptr again
+    *Instance.SubmetricNames.rbegin() = Def->name().c_str();
+    Instance.SubmetricNames.emplace_back(nullptr);
   }
   closedir(RaplDir);
 
