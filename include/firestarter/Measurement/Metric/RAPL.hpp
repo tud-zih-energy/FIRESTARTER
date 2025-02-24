@@ -121,7 +121,7 @@ private:
     };
 
     /// Get the name of this metric
-    auto name() -> auto& { return Name; }
+    auto name() -> const auto& { return Name; }
 
     /// Read the RAPL counter and update the internal state
     void read() {
