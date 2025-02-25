@@ -1,0 +1,65 @@
+/******************************************************************************
+ * FIRESTARTER - A Processor Stress Test Utility
+ * Copyright (C) 2025 TU Dresden, Center for Information Services and High
+ * Performance Computing
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/\>.
+ *
+ * Contact: daniel.hackenberg@tu-dresden.de
+ *****************************************************************************/
+
+#pragma once
+
+#include <optional>
+#include <string>
+#include <utility>
+
+namespace firestarter {
+
+struct MetricName {
+  MetricName() = delete;
+
+  MetricName(bool Inverted, std::string RootMetricName, std::optional<std::string> SubmetricName)
+      : Inverted(Inverted)
+      , RootMetricName(std::move(RootMetricName))
+      , SubmetricName(std::move(SubmetricName)) {}
+
+  /// Parse the metric name. It consists of an optional minus ('-') the root metric name, and an optional slash ('/')
+  /// followed by the submetric name.
+  /// \arg MetricName The name of the metric
+  [[nodiscard]] static auto fromString(const std::string& Metric) -> MetricName;
+
+  /// Convert the internal metric name to a string following the format: optional minus ('-') for an inverted metric,
+  /// the root metric name, and an optional slash ('/') followed by the submetric name.
+  [[nodiscard]] auto toString() const -> std::string {
+    return (Inverted ? "-" : "") + RootMetricName + (SubmetricName ? ("/" + *SubmetricName) : "");
+  }
+
+  /// Is the metric inverted
+  [[nodiscard]] auto inverted() const -> auto { return Inverted; }
+  /// The name of the root metric
+  [[nodiscard]] auto rootMetricName() const -> const auto& { return RootMetricName; }
+  /// The optional name of the submetric
+  [[nodiscard]] auto submetricName() const -> const auto& { return SubmetricName; }
+
+private:
+  /// True if the metric is inverted
+  bool Inverted;
+  /// The name of the root metric
+  std::string RootMetricName;
+  /// The optional name of the submetric
+  std::optional<std::string> SubmetricName;
+};
+
+} // namespace firestarter

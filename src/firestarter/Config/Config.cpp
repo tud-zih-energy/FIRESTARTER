@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <cxxopts.hpp>
 #include <exception>
+#include <iterator>
 #include <nitro/log/severity.hpp>
 #include <stdexcept>
 #include <string>
@@ -372,7 +373,9 @@ Config::Config(int Argc, const char** Argv)
         Preheat = std::chrono::seconds(Options["preheat"].as<unsigned>());
         OptimizationAlgorithm = Options["optimize"].as<std::string>();
         if (static_cast<bool>(Options.count("optimization-metric"))) {
-          OptimizationMetrics = Options["optimization-metric"].as<std::vector<std::string>>();
+          const auto Metrics = Options["optimization-metric"].as<std::vector<std::string>>();
+          std::transform(Metrics.cbegin(), Metrics.cend(), std::back_inserter(OptimizationMetrics),
+                         [](const std::string& Metric) { return MetricName::fromString(Metric); });
         }
         if (LoadPercent != 100) {
           throw std::invalid_argument("Options -p | --period and -l | --load are "
