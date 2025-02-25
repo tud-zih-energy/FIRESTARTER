@@ -53,6 +53,13 @@ struct MetricName {
   /// The optional name of the submetric
   [[nodiscard]] auto submetricName() const -> const auto& { return SubmetricName; }
 
+  /// Do two MetricName share the same metrics?
+  /// \arg Other The MetricName that is compared against.
+  /// \returns true if the two names share the same metric
+  [[nodiscard]] auto isSameMetric(const MetricName& Other) -> bool {
+    return std::tie(RootMetricName, SubmetricName) == std::tie(Other.rootMetricName(), Other.submetricName());
+  }
+
 private:
   /// True if the metric is inverted
   bool Inverted;
