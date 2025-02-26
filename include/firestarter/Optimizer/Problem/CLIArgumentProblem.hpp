@@ -45,7 +45,7 @@ private:
   std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
   /// The metrics that are used in the optimization. They may have a dash at the start to allow them to be changed from
   /// maximization to minimization.
-  std::vector<MetricName> Metrics;
+  std::vector<MetricName> OptimizationMetrics;
   /// The duration of the measurement.
   std::chrono::seconds Timeout;
   /// The time to skip from the measurement start
@@ -74,7 +74,7 @@ public:
                      std::vector<std::string> Instructions)
       : ChangePayloadFunction(std::move(ChangePayloadFunction))
       , MeasurementWorker(std::move(MeasurementWorker))
-      , Metrics(Metrics)
+      , OptimizationMetrics(Metrics)
       , Timeout(Timeout)
       , StartDelta(StartDelta)
       , StopDelta(StopDelta)
@@ -121,7 +121,7 @@ public:
   [[nodiscard]] auto fitness(measurement::MetricSummaries const& Summaries) const -> std::vector<double> override {
     std::vector<double> Values = {};
 
-    for (auto const& MetricName : Metrics) {
+    for (auto const& MetricName : OptimizationMetrics) {
       auto It = std::find_if(Summaries.cbegin(), Summaries.cend(), [&MetricName](const auto& NameValuePair) {
         return NameValuePair.first.isSameMetric(MetricName);
       });
@@ -155,7 +155,7 @@ public:
   }
 
   /// Get the number of optimization objectives.
-  [[nodiscard]] auto getNobjs() const -> std::size_t override { return Metrics.size(); }
+  [[nodiscard]] auto getNobjs() const -> std::size_t override { return OptimizationMetrics.size(); }
 };
 
 } // namespace firestarter::optimizer::problem
