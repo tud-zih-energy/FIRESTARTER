@@ -25,11 +25,10 @@
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #include "firestarter/Measurement/Metric/Perf.hpp"
 #include "firestarter/Measurement/Metric/RAPL.hpp"
-#include "firestarter/Measurement/Summary.hpp"
 
 #include <atomic>
 #include <chrono>
-#include <map>
+#include <functional>
 #include <memory>
 #include <sstream>
 
@@ -72,14 +71,30 @@ private:
   /// Return the pointer to a metric from the Metrics vector that matches the supplied name.
   /// \arg MetricName The name of the metric
   /// \returns the pointer to the metric with the specified name or a nullptr
-  auto findRootMetricByName(const std::string& MetricName) -> RootMetric* {
-    // TODO: split a metric name into the minus root metric and optional leaf metric
-    auto NameEqual = [&MetricName](auto const& RootMetric) { return RootMetric->Name == std::string(MetricName); };
+  auto findRootMetricByName(const MetricName& Metric) -> std::shared_ptr<RootMetric> {
+    auto NameEqual = [&Metric](auto const& RootMetric) { return RootMetric->Name == Metric.rootMetricName(); };
     auto MetricReference = std::find_if(Metrics.begin(), Metrics.end(), NameEqual);
     if (MetricReference == Metrics.end()) {
-      return nullptr;
+      return {};
     }
-    return MetricReference->get();
+    return *MetricReference;
+  }
+
+  /// Get all metrics matching a filter function defined on the std::shared_ptr<RootMetric>
+  /// \arg FilterFunction The function that take a shared_ptr to the RootMetric and returns
+  /// true if the metric names of this metric should be saved.
+  /// \return The vector of filtered metric names.
+  auto
+  metrics(const std::function<bool(const std::shared_ptr<RootMetric>&)>& FilterFunction) -> std::vector<MetricName> {
+    std::vector<MetricName> MetricNames;
+    for (const auto& Metric : Metrics) {
+      const auto Names = Metric->getMetricNames();
+
+      if (FilterFunction(Metric)) {
+        MetricNames.insert(MetricNames.end(), Names.cbegin(), Names.cend());
+      }
+    }
+    return MetricNames;
   }
 
 public:
@@ -96,31 +111,46 @@ public:
   /// Stops the worker threads
   ~MeasurementWorker();
 
-  /// Get the name of the metrics. This includes all metrics, builins, from dynamic libraries and metrics from stdin.
-  auto metricNames() -> std::vector<std::string> {
-    std::vector<std::string> MetricNames;
-    std::transform(Metrics.begin(), Metrics.end(), std::back_inserter(MetricNames),
-                   [](auto& Metric) -> std::string { return Metric->Name; });
-    return MetricNames;
+  /// Get the names of all available metrics
+  auto availableMetrics() -> std::vector<MetricName> {
+    return metrics(
+        /*FilterFunction=*/[](const auto& RootMetric) { return RootMetric->Available; });
+  }
+
+  /// Get the names of all initialized metrics
+  auto initializedMetrics() -> std::vector<MetricName> {
+    return metrics(/*FilterFunction=*/[](const auto& RootMetric) { return RootMetric->Initialized; });
+  }
+
+  /// Get the names of all metrics
+  auto metrics() -> std::vector<MetricName> {
+    return metrics(/*FilterFunction=*/[](const auto& /*RootMetric*/) { return true; });
   }
 
   /// Get the formatting table of all metrics and if they are available
-  [[nodiscard]] auto availableMetrics() const -> std::string {
+  [[nodiscard]] auto availableMetricsString() const -> std::string {
     std::stringstream Ss;
     unsigned MaxLength = 0;
 
-    for (auto const& Metric : Metrics) {
-      const auto& Name = Metric->Name;
-      MaxLength = MaxLength < Name.size() ? Name.size() : MaxLength;
+    for (const auto& Metric : Metrics) {
+      const auto Names = Metric->getMetricNames();
+
+      for (const auto& Name : Names) {
+        MaxLength = MaxLength < Name.toString().size() ? Name.toString().size() : MaxLength;
+      }
     }
 
     const auto Padding = MaxLength > 6 ? MaxLength - 6 : 0;
     Ss << "  METRIC" << std::string(Padding + 1, ' ') << "| available\n";
     Ss << "  " << std::string(Padding + 7, '-') << "-----------\n";
+
     for (auto const& Metric : Metrics) {
-      const auto& Name = Metric->Name;
-      Ss << "  " << Name << std::string(Padding + 7 - Name.size(), ' ') << "| ";
-      Ss << (Metric->Available ? "yes" : "no") << "\n";
+      const auto Names = Metric->getMetricNames();
+
+      for (const auto& Name : Names) {
+        Ss << "  " << Name.toString() << std::string(Padding + 7 - Name.toString().size(), ' ') << "| ";
+        Ss << (Metric->Available ? "yes" : "no") << "\n";
+      }
     }
 
     return Ss.str();
@@ -129,7 +159,7 @@ public:
   /// Initialize the metrics with the provided names.
   /// \arg MetricNames The metrics to initialize
   /// \returns The vector of metrics that were successfully initialized.
-  auto initMetrics(std::vector<std::string> const& MetricNames) -> std::vector<std::string>;
+  void initMetrics(std::vector<MetricName> const& MetricNames);
 
   /// Set the StartTime to the current timestep
   void startMeasurement();
@@ -139,9 +169,8 @@ public:
   /// \arg StartDelta The time to skip from the measurement start
   /// \arg StopDelta The time to skip from the measurement stop
   /// \returns The map from all metrics to their respective summaries.
-  auto
-  getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
-            std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero()) -> std::map<std::string, Summary>;
+  auto getValues(std::chrono::milliseconds StartDelta = std::chrono::milliseconds::zero(),
+                 std::chrono::milliseconds StopDelta = std::chrono::milliseconds::zero()) -> MetricSummaries;
 };
 
 } // namespace firestarter::measurement

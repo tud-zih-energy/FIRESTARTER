@@ -20,17 +20,18 @@
  *****************************************************************************/
 
 #include "firestarter/Config/MetricName.hpp"
+#include "firestarter/Logging/Log.hpp"
 
 #include <regex>
 
 namespace firestarter {
 
 auto MetricName::fromString(const std::string& Metric) -> MetricName {
-  const std::regex Re("^(-)(\\w+)(/\\w+)$");
+  const std::regex Re("(^(-)?([\\w-]+)(/[\\w-]+)?$)");
   std::smatch M;
 
   if (std::regex_match(Metric, M, Re)) {
-    bool Inverted = M[0].matched;
+    bool Inverted = M[0].length() == 1;
     auto RootMetricName = M[1].str();
     std::optional<std::string> SubmetricName;
     if (M[2].matched) {
@@ -39,7 +40,7 @@ auto MetricName::fromString(const std::string& Metric) -> MetricName {
     return {Inverted, RootMetricName, SubmetricName};
   }
 
-  throw std::invalid_argument("Could not parse the metric name");
+  throw std::invalid_argument("Could not parse the metric name: " + Metric);
 }
 
 } // namespace firestarter

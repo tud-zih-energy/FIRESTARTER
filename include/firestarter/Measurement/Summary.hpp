@@ -25,7 +25,6 @@
 #include "firestarter/Measurement/TimeValue.hpp"
 
 #include <chrono>
-#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace firestarter::measurement {

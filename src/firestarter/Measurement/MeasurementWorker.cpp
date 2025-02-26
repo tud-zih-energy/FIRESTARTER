@@ -20,8 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/Measurement/MeasurementWorker.hpp"
-#include "firestarter/Logging/Log.hpp"
-#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Config/MetricName.hpp"
 
 #include <array>
 #include <chrono>
@@ -32,6 +31,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <queue>
+#include <set>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <tuple>
@@ -77,7 +78,13 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
     Metrics.emplace_back(RootMetric::fromStdin(Name));
   }
 
-  // TODO: Validate that all metrics names do not conflict with each other.
+  // If the size of the vector and its set matches length, we don't have duplicate names.
+  const std::vector<MetricName> MetricNamesVec = metrics();
+  const auto MetricNamesSet = std::set<MetricName>(MetricNamesVec.cbegin(), MetricNamesVec.cend());
+
+  if (MetricNamesVec.size() != MetricNamesSet.size()) {
+    throw std::invalid_argument("Duplicate metric names present.");
+  }
 
   WorkerThread = std::thread(MeasurementWorker::dataAcquisitionWorker, std::ref(*this));
 
@@ -99,43 +106,34 @@ MeasurementWorker::~MeasurementWorker() {
 
 // this must be called by the main thread.
 // if not done so things like perf_event_attr.inherit might not work as expected
-auto MeasurementWorker::initMetrics(std::vector<std::string> const& MetricNames) -> std::vector<std::string> {
-  std::vector<std::string> Initialized = {};
-
+void MeasurementWorker::initMetrics(std::vector<MetricName> const& MetricNames) {
   // try to find each metric and initialize it
   for (auto const& MetricName : MetricNames) {
-
-    auto* Metric = findRootMetricByName(MetricName);
+    const auto Metric = findRootMetricByName(MetricName);
     if (!Metric) {
-      log::error() << "Could not find metric: " << MetricName;
-      break;
+      throw std::invalid_argument("Could not find metric: " + MetricName.toString());
     }
 
-    if (Metric->initialize()) {
-      Initialized.emplace_back(MetricName);
-    }
+    Metric->initialize();
   }
-
-  return Initialized;
 }
 
 void MeasurementWorker::startMeasurement() { StartTime = std::chrono::high_resolution_clock::now(); }
 
 auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
-                                  std::chrono::milliseconds StopDelta) -> std::map<std::string, Summary> {
-  std::map<std::string, Summary> Measurment = {};
+                                  std::chrono::milliseconds StopDelta) -> MetricSummaries {
+  MetricSummaries Measurement;
 
   auto StartTime = this->StartTime;
   auto StopTime = std::chrono::high_resolution_clock::now();
 
   for (auto& Metric : Metrics) {
-    // TODO: submetrics have to find the settings from the metric. we need hierarchy here
     if (Metric->Initialized) {
-      Measurment[Metric->Name] = Metric->getSummary(StartTime, StopTime, StartDelta, StopDelta, NumThreads);
+      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, NumThreads));
     }
   }
 
-  return Measurment;
+  return Measurement;
 }
 
 void MeasurementWorker::dataAcquisitionWorker(MeasurementWorker& This) {
@@ -235,7 +233,7 @@ void MeasurementWorker::stdinDataAcquisitionWorker(MeasurementWorker& This) {
       continue;
     }
 
-    auto* Metric = This.findRootMetricByName(Name.data());
+    const auto Metric = This.findRootMetricByName(MetricName(/*Inverted=*/false, Name.data()));
     if (Metric) {
       Metric->insert(ROOT_METRIC_INDEX, Time, Value);
     }

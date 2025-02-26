@@ -30,7 +30,7 @@ namespace firestarter {
 struct MetricName {
   MetricName() = delete;
 
-  MetricName(bool Inverted, std::string RootMetricName, std::optional<std::string> SubmetricName)
+  MetricName(bool Inverted, std::string RootMetricName, std::optional<std::string> SubmetricName = {})
       : Inverted(Inverted)
       , RootMetricName(std::move(RootMetricName))
       , SubmetricName(std::move(SubmetricName)) {}
@@ -56,7 +56,7 @@ struct MetricName {
   /// Do two MetricName share the same metrics?
   /// \arg Other The MetricName that is compared against.
   /// \returns true if the two names share the same metric
-  [[nodiscard]] auto isSameMetric(const MetricName& Other) -> bool {
+  [[nodiscard]] auto isSameMetric(const MetricName& Other) const -> bool {
     return std::tie(RootMetricName, SubmetricName) == std::tie(Other.rootMetricName(), Other.submetricName());
   }
 
@@ -70,3 +70,15 @@ private:
 };
 
 } // namespace firestarter
+
+template <> struct std::hash<firestarter::MetricName> {
+  auto operator()(firestarter::MetricName const& Name) const noexcept -> std::size_t {
+    return std::hash<std::string>{}(Name.toString());
+  }
+};
+
+template <> struct std::less<firestarter::MetricName> {
+  auto operator()(firestarter::MetricName const& Lhs, firestarter::MetricName const& Rhs) const noexcept -> bool {
+    return std::less<std::string>{}(Lhs.toString(), Rhs.toString());
+  }
+};

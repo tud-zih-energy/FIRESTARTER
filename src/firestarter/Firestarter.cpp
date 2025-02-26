@@ -110,27 +110,22 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
           Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
 
       if (Cfg.ListMetrics) {
-        log::info() << MeasurementWorker->availableMetrics();
+        log::info() << MeasurementWorker->availableMetricsString();
         safeExit(EXIT_SUCCESS);
       }
 
       // init all metrics
-      const auto All = MeasurementWorker->metricNames();
-      const auto Initialized = MeasurementWorker->initMetrics(All);
+      const auto All = MeasurementWorker->metrics();
+      MeasurementWorker->initMetrics(All);
 
-      if (Initialized.empty()) {
-        std::invalid_argument("No metrics initialized");
-      }
+      const auto Initialized = MeasurementWorker->initializedMetrics();
 
       // check if selected metrics are initialized
       for (auto const& OptimizationMetric : Cfg.OptimizationMetrics) {
-        auto NameEqual = [OptimizationMetric](auto const& Name) {
-          auto InvertedName = "-" + Name;
-          return Name == OptimizationMetric || InvertedName == OptimizationMetric;
-        };
+        auto NameEqual = [&OptimizationMetric](auto const& Name) { return Name.isSameMetric(OptimizationMetric); };
         // metric has not initialized properly
-        if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
+        if (std::find_if(Initialized.cbegin(), Initialized.cend(), NameEqual) == Initialized.cend()) {
+          std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
         }
       }
     }
@@ -274,7 +269,7 @@ void Firestarter::mainThread() {
       // TODO(Issue #77): clear this up
       log::info() << "metric,num_timepoints,duration_ms,average,stddev";
       for (auto const& [name, sum] : MeasurementWorker->getValues(Cfg.StartDelta, Cfg.StopDelta)) {
-        log::info() << std::quoted(name) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
+        log::info() << std::quoted(name.toString()) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
                     << sum.Average << "," << sum.Stddev;
       }
     }

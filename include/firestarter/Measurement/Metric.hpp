@@ -21,13 +21,16 @@
 
 #pragma once
 
+#include "firestarter/Config/MetricName.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
 #include "firestarter/Measurement/Summary.hpp"
 #include "firestarter/Measurement/TimeValue.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -43,6 +46,8 @@ extern "C" {
 #endif
 
 namespace firestarter::measurement {
+
+using MetricSummaries = std::map<MetricName, Summary>;
 
 static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value);
 
@@ -173,6 +178,11 @@ struct RootMetric : public Metric {
   }
 
   auto initialize() -> bool {
+    // Skip if already initialized
+    if (Initialized) {
+      return true;
+    }
+
     log::debug() << "Initializing metric " << Name;
 
     // Clear the contained data
@@ -256,6 +266,16 @@ struct RootMetric : public Metric {
     return {};
   }
 
+  auto getMetricNames() -> std::vector<MetricName> {
+    std::vector<MetricName> MetricNames;
+    MetricNames.emplace_back(MetricName::fromString(Name));
+
+    std::transform(Submetrics.cbegin(), Submetrics.cend(), std::back_inserter(MetricNames),
+                   [this](const auto& SubMetric) { return MetricName::fromString(Name + "/" + SubMetric->Name); });
+
+    return MetricNames;
+  }
+
   /// Insert the supplied time value into the metric storage.
   /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
   /// specified by the index.
@@ -286,10 +306,17 @@ struct RootMetric : public Metric {
     insert(MetricIndex, Time, Value);
   }
 
-  [[nodiscard]] auto getSummary(std::chrono::high_resolution_clock::time_point StartTime,
-                                std::chrono::high_resolution_clock::time_point StopTime,
-                                std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
-                                const uint64_t NumThreads) -> Summary {
+  /// Get the summaries of the root metric and submetrics between two timepoints with different start and stop delats.
+  /// \arg StartTime The start time of the summarized measurement values
+  /// \arg StopTime The stop time of the summarized measurement values
+  /// \arg StartDelta The time to skip from the measurement start
+  /// \arg StopDelta The time to skip from the measurement stop
+  /// \arg NumThreads The number of thread the experiment was run wtih.
+  /// \returns The map of MetricName to Summmary
+  [[nodiscard]] auto getSummaries(std::chrono::high_resolution_clock::time_point StartTime,
+                                  std::chrono::high_resolution_clock::time_point StopTime,
+                                  std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
+                                  const uint64_t NumThreads) -> MetricSummaries {
     MetricType Type{};
 
     if (MetricPtr == nullptr) {
@@ -306,16 +333,35 @@ struct RootMetric : public Metric {
       }
     }
 
-    decltype(Values) CroppedValues;
+    MetricSummaries Summaries;
+
+    auto FindAll = [&StartTime, &StopTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= StopTime; };
 
     {
-      std::lock_guard<std::mutex> Lock(ValuesMutex);
+      decltype(Values) CroppedValues;
 
-      auto FindAll = [&StartTime, &StopTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= StopTime; };
-      std::copy_if(Values.begin(), Values.end(), std::back_inserter(CroppedValues), FindAll);
+      {
+        std::lock_guard<std::mutex> Lock(ValuesMutex);
+        std::copy_if(Values.cbegin(), Values.cend(), std::back_inserter(CroppedValues), FindAll);
+      }
+
+      Summaries[MetricName(/*Inverted=*/false, Name)] =
+          Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
     }
 
-    return Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
+    for (const auto& Submetric : Submetrics) {
+      decltype(Submetric->Values) CroppedValues;
+
+      {
+        std::lock_guard<std::mutex> Lock(Submetric->ValuesMutex);
+        std::copy_if(Submetric->Values.cbegin(), Submetric->Values.cend(), std::back_inserter(CroppedValues), FindAll);
+      }
+
+      Summaries[MetricName(/*Inverted=*/false, Name, Submetric->Name)] =
+          Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
+    }
+
+    return Summaries;
   }
 
 private:

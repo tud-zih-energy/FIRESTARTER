@@ -21,29 +21,20 @@
 
 #pragma once
 
-#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Config/MetricName.hpp"
 
 #include <nlohmann/json.hpp>
 
-/// Json serializer and deserializer for the firestarter::measurement::Summary struct
+/// Json serializer and deserializer for the firestarter::MetricName struct
 namespace nlohmann {
-template <> struct adl_serializer<firestarter::measurement::Summary> {
+template <> struct adl_serializer<firestarter::MetricName> {
   // functions for nlohmann json do not follow LLVM code style
   // NOLINTBEGIN(readability-identifier-naming)
-  static auto from_json(const json& J) -> firestarter::measurement::Summary {
-    return {J["num_timepoints"].get<size_t>(),
-            std::chrono::milliseconds(J["duration"].get<std::chrono::milliseconds::rep>()), J["average"].get<double>(),
-            J["stddev"].get<double>()};
+  static auto from_json(const json& J) -> firestarter::MetricName {
+    return firestarter::MetricName::fromString(J.get<std::string>());
   }
 
-  static void to_json(json& J, firestarter::measurement::Summary S) {
-    J = json::object();
-
-    J["num_timepoints"] = S.NumTimepoints;
-    J["duration"] = S.Duration.count();
-    J["average"] = S.Average;
-    J["stddev"] = S.Stddev;
-  }
+  static void to_json(json& J, const firestarter::MetricName& Name) { J = Name.toString(); }
   // NOLINTEND(readability-identifier-naming)
 };
 } // namespace nlohmann
