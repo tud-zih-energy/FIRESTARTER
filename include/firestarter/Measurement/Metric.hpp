@@ -26,6 +26,7 @@
 #include "firestarter/Measurement/Summary.hpp"
 #include "firestarter/Measurement/TimeValue.hpp"
 
+#include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
@@ -53,6 +54,16 @@ struct Metric {
 
   explicit Metric(std::string Name)
       : Name(std::move(Name)) {}
+
+  /// Get the summary of the metric between to time points.
+  /// \arg StartTime The start time of the summarized measurement values
+  /// \arg StopTime The stop time of the summarized measurement values
+  /// \arg MetricType The type of the metric
+  /// \arg NumThreads The number of thread the experiment was run wtih.
+  /// \returns The summary of the values
+  auto getSummary(std::chrono::high_resolution_clock::time_point StartTime,
+                  std::chrono::high_resolution_clock::time_point StopTime, MetricType Type,
+                  uint64_t NumThreads) -> Summary;
 };
 
 /// This class handels the state around a leaf metric. Its name, the contained time value pairs and a mutex to guard

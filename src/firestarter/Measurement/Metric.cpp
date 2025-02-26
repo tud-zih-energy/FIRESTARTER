@@ -31,9 +31,23 @@ extern "C" {
 }
 #endif
 
-namespace {}; // namespace
-
 namespace firestarter::measurement {
+
+auto Metric::getSummary(const std::chrono::high_resolution_clock::time_point StartTime,
+                        const std::chrono::high_resolution_clock::time_point StopTime, const MetricType Type,
+                        const uint64_t NumThreads) -> Summary {
+
+  auto FindAll = [&StartTime, &StopTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= StopTime; };
+
+  decltype(Values) CroppedValues;
+
+  {
+    std::lock_guard<std::mutex> Lock(ValuesMutex);
+    std::copy_if(Values.cbegin(), Values.cend(), std::back_inserter(CroppedValues), FindAll);
+  }
+
+  return Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
+}
 
 auto LeafMetric::metricName() -> MetricName { return {/*Inverted=*/false, RootRef.Name, Name}; }
 
@@ -232,29 +246,10 @@ auto RootMetric::getSummaries(std::chrono::high_resolution_clock::time_point Sta
 
   MetricSummaries Summaries;
 
-  auto FindAll = [&StartTime, &StopTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= StopTime; };
-
-  {
-    decltype(Values) CroppedValues;
-
-    {
-      std::lock_guard<std::mutex> Lock(ValuesMutex);
-      std::copy_if(Values.cbegin(), Values.cend(), std::back_inserter(CroppedValues), FindAll);
-    }
-
-    Summaries[metricName()] = Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
-  }
+  Summaries[metricName()] = getSummary(StartTime, StopTime, Type, NumThreads);
 
   for (const auto& Submetric : Submetrics) {
-    decltype(Submetric->Values) CroppedValues;
-
-    {
-      std::lock_guard<std::mutex> Lock(Submetric->ValuesMutex);
-      std::copy_if(Submetric->Values.cbegin(), Submetric->Values.cend(), std::back_inserter(CroppedValues), FindAll);
-    }
-
-    Summaries[Submetric->metricName()] =
-        Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
+    Summaries[Submetric->metricName()] = Submetric->getSummary(StartTime, StopTime, Type, NumThreads);
   }
 
   return Summaries;
