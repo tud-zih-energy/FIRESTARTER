@@ -21,11 +21,10 @@
 
 #include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/TimeValue.hpp"
 
-#include "gtest/gtest.h"
 #include <chrono>
 #include <cstdint>
-#include <firestarter/Measurement/TimeValue.hpp>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
