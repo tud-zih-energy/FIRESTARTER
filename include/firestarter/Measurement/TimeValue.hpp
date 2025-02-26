@@ -34,8 +34,8 @@ struct TimeValue {
       : Time(Time)
       , Value(Value){};
 
-  friend auto operator==(const TimeValue& Lhs, const TimeValue& Rhs) -> bool {
-    return std::tie(Lhs.Time, Lhs.Value) == std::tie(Rhs.Time, Lhs.Value);
+  auto operator==(const TimeValue& Other) const -> bool {
+    return std::tie(Time, Value) == std::tie(Other.Time, Other.Value);
   }
 
   std::chrono::high_resolution_clock::time_point Time;
