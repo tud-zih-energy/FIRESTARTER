@@ -82,7 +82,7 @@ private:
     explicit ReaderDef(std::string Path)
         : Path(std::move(Path)) {
 
-      Name = getNameRecursive(Path);
+      Name = getNameRecursive(this->Path);
       if (Name.empty()) {
         // an error opening the file occured
         throw std::invalid_argument("Not a valid metric");
