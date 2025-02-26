@@ -19,8 +19,6 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#pragma once
-
 #include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Config/MetricName.hpp"
 #include "firestarter/Logging/Log.hpp"
