@@ -82,7 +82,7 @@ auto RootMetric::fromDylib(const std::string& DylibPath) -> std::shared_ptr<Root
   Handle = dlopen(Filename, RTLD_NOW | RTLD_LOCAL);
 
   if (!Handle) {
-    firestarter::log::error() << Filename << ": " << dlerror();
+    log::error() << Filename << ": " << dlerror();
     return nullptr;
   }
 
@@ -95,7 +95,7 @@ auto RootMetric::fromDylib(const std::string& DylibPath) -> std::shared_ptr<Root
 
   char* Error = nullptr;
   if ((Error = dlerror()) != nullptr) {
-    firestarter::log::error() << Filename << ": " << Error;
+    log::error() << Filename << ": " << Error;
     dlclose(Handle);
     return nullptr;
   }
