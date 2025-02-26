@@ -200,15 +200,6 @@ struct RootMetric : public Metric {
         return false;
       }
 
-      // Get the submetrics
-      if (MetricPtr->GetSubmetricNames) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        for (auto** Names = MetricPtr->GetSubmetricNames(); *Names; Names++) {
-          // Create a new submetric entry for each name
-          Submetrics.emplace_back(std::make_unique<LeafMetric>(std::string(*Names)));
-        }
-      }
-
       // Register the callback to insert data
       if (MetricPtr->Type.InsertCallback) {
         MetricPtr->RegisterInsertCallback(insertCallback, this);
@@ -368,8 +359,19 @@ private:
   void checkAvailability() {
     if (MetricPtr) {
       auto ReturnCode = MetricPtr->Init();
-      MetricPtr->Fini();
       Available = ReturnCode == EXIT_SUCCESS;
+
+      // Get the submetrics
+      if (Available && MetricPtr->GetSubmetricNames) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        for (auto** Names = MetricPtr->GetSubmetricNames(); *Names; Names++) {
+          // Create a new submetric entry for each name
+          Submetrics.emplace_back(std::make_unique<LeafMetric>(std::string(*Names)));
+        }
+      }
+
+      MetricPtr->Fini();
+
     } else {
       Available = true;
     }

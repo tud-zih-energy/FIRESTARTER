@@ -20,7 +20,6 @@
  *****************************************************************************/
 
 #include "firestarter/Config/MetricName.hpp"
-#include "firestarter/Logging/Log.hpp"
 
 #include <regex>
 

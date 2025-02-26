@@ -68,20 +68,11 @@ private:
         std::getline(NameStream, ParsedName);
       }
 
-      std::string DevicePath;
-
-      {
-        std::ifstream DeviceStream(Path + "/device");
-        if (!DeviceStream.good()) {
-          // else return the name
-          return Name;
-        }
-
-        std::getline(DeviceStream, DevicePath);
-      }
-
       // Got to the device that is set in the path and call the function on it.
-      return getNameRecursive(DevicePath, ParsedName + "-" + Name);
+      if (!Name.empty()) {
+        ParsedName += "-" + Name;
+      }
+      return getNameRecursive(Path + "/device", ParsedName);
     };
 
   public:
@@ -98,14 +89,14 @@ private:
       }
 
       std::stringstream EnergyUjPath;
-      EnergyUjPath << Path << "/energy_uj";
+      EnergyUjPath << this->Path << "/energy_uj";
       std::ifstream EnergyReadingStream(EnergyUjPath.str());
       if (!EnergyReadingStream.good()) {
         throw std::runtime_error("Could not read energy_uj");
       }
 
       std::stringstream MaxEnergyUjRangePath;
-      MaxEnergyUjRangePath << Path << "/max_energy_range_uj";
+      MaxEnergyUjRangePath << this->Path << "/max_energy_range_uj";
       std::ifstream MaxEnergyReadingStream(MaxEnergyUjRangePath.str());
       if (!MaxEnergyReadingStream.good()) {
         throw std::runtime_error("Could not read max_energy_range_uj");
