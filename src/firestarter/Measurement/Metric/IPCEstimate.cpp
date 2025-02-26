@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
 
 #include <chrono>
 #include <cstdint>

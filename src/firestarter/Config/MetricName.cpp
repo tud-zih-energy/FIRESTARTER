@@ -21,7 +21,10 @@
 
 #include "firestarter/Config/MetricName.hpp"
 
+#include <optional>
 #include <regex>
+#include <stdexcept>
+#include <string>
 
 namespace firestarter {
 
@@ -31,7 +34,7 @@ auto MetricName::fromString(const std::string& Metric) -> MetricName {
   std::smatch M;
 
   if (std::regex_match(Metric, M, Re)) {
-    bool Inverted = M[1].length() == 1;
+    const bool Inverted = M[1].length() == 1;
     auto RootMetricName = M[2].str();
     std::optional<std::string> SubmetricName;
     if (M[4].matched) {

@@ -28,6 +28,7 @@
 #include <cstring>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -53,9 +54,6 @@ auto RaplMetricData::init() -> int32_t {
     Instance.ErrorString = "Could not open " + std::string(RaplPath);
     return EXIT_FAILURE;
   }
-
-  // a vector of all paths to package and dram
-  std::vector<std::string> Paths = {};
 
   struct dirent* Dir = nullptr;
 

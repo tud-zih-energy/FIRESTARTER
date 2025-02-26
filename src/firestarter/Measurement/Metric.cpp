@@ -22,8 +22,26 @@
 #pragma once
 
 #include "firestarter/Measurement/Metric.hpp"
+#include "firestarter/Config/MetricName.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
+#include "firestarter/Measurement/Summary.hpp"
+
+#include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <ratio>
+#include <string>
+#include <tuple>
+#include <vector>
 
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
 extern "C" {
@@ -42,7 +60,7 @@ auto Metric::getSummary(const std::chrono::high_resolution_clock::time_point Sta
   decltype(Values) CroppedValues;
 
   {
-    std::lock_guard<std::mutex> Lock(ValuesMutex);
+    const std::lock_guard<std::mutex> Lock(ValuesMutex);
     std::copy_if(Values.cbegin(), Values.cend(), std::back_inserter(CroppedValues), FindAll);
   }
 
@@ -129,7 +147,7 @@ auto RootMetric::initialize() -> bool {
 
   // Clear the contained data
   {
-    std::lock_guard<std::mutex> Lock(ValuesMutex);
+    const std::lock_guard<std::mutex> Lock(ValuesMutex);
     Values.clear();
   }
   // Init the associated metric interface object

@@ -21,7 +21,10 @@
 
 #include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Config/MetricName.hpp"
+#include "firestarter/Measurement/Metric.hpp"
+#include "firestarter/Measurement/MetricInterface.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -30,6 +33,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <queue>
 #include <set>
 #include <stdexcept>
@@ -37,12 +41,6 @@
 #include <thread>
 #include <tuple>
 #include <vector>
-
-#if defined(linux) || defined(__linux__)
-extern "C" {
-#include <pthread.h>
-}
-#endif
 
 namespace {
 
@@ -65,7 +63,7 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
                                      std::vector<std::string> const& StdinMetricsNames)
     : UpdateInterval(UpdateInterval)
     , NumThreads(NumThreads) {
-#ifndef FIRESTARTER_LINK_STATIC
+#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   for (auto const& Dylib : MetricDylibsNames) {
     Metrics.emplace_back(RootMetric::fromDylib(Dylib));
   }

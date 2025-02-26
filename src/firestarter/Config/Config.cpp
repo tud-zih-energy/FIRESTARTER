@@ -22,6 +22,7 @@
 #include "firestarter/Config/Config.hpp"
 #include "firestarter/Config/CpuBind.hpp"
 #include "firestarter/Config/InstructionGroups.hpp"
+#include "firestarter/Config/MetricName.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/SafeExit.hpp"
