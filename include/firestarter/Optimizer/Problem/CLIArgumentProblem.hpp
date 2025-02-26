@@ -26,6 +26,7 @@
 #include "firestarter/Optimizer/Problem.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <stdexcept>
 #include <thread>

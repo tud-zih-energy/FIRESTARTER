@@ -22,58 +22,53 @@
 #pragma once
 
 #include "firestarter/Config/MetricName.hpp"
-#include "firestarter/Logging/Log.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
 #include "firestarter/Measurement/Summary.hpp"
 #include "firestarter/Measurement/TimeValue.hpp"
 
-#include <cassert>
-#include <cmath>
-#include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
+#include <stdexcept>
 #include <string>
-#include <tuple>
-#include <utility>
 #include <vector>
-
-#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
-extern "C" {
-#include <dlfcn.h>
-}
-#endif
 
 namespace firestarter::measurement {
 
 using MetricSummaries = std::map<MetricName, Summary>;
 
-static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value);
+struct RootMetric;
 
 /// This class handels the state around a metric. Its name, the contained time value pairs and a mutex to guard them.
 struct Metric {
-
-  Metric() = delete;
-
-  explicit Metric(std::string Name)
-      : Name(std::move(Name)) {}
-
   /// The name of the metric
   std::string Name;
   /// The data collected from the metrics.
   std::vector<TimeValue> Values;
   /// Mutex to access the Values
   std::mutex ValuesMutex;
+
+  Metric() = delete;
+
+  explicit Metric(std::string Name)
+      : Name(std::move(Name)) {}
 };
 
 /// This class handels the state around a leaf metric. Its name, the contained time value pairs and a mutex to guard
 /// them.
 struct LeafMetric : public Metric {
+  /// The reference to the root metric that contains this leaf metric.
+  const RootMetric& RootRef;
+
   LeafMetric() = delete;
 
-  explicit LeafMetric(std::string Name)
-      : Metric(std::move(Name)) {}
+  explicit LeafMetric(std::string Name, const RootMetric& RootRef)
+      : Metric(std::move(Name))
+      , RootRef(RootRef) {}
+
+  /// Get the name of this leaf metric.
+  auto metricName() -> MetricName;
 };
 
 /// This class handels the state around a root metric. Its name, the contained time value pairs, a mutex to guard them,
@@ -103,198 +98,69 @@ struct RootMetric : public Metric {
       , Stdin(Stdin)
       , Initialized(Initialized) {}
 
-  ~RootMetric() {
-    if (Initialized && MetricPtr) {
-      MetricPtr->Fini();
-    }
-
-#if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
-    if (Dylib) {
-      dlclose(MetricPtr);
-    }
-#endif
-    Initialized = false;
-  }
+  ~RootMetric();
 
   /// Popuplate the RootMetric object from the C-style MetricInterface.
   /// \arg Metric the refernce to the C-style MetricInterface
-  static auto fromCInterface(MetricInterface& Metric) -> std::shared_ptr<RootMetric> {
-    auto Root = std::make_shared<RootMetric>(/*Name=*/Metric.Name,
-                                             /*Dylib=*/false,
-                                             /*Stdin=*/false,
-                                             /*Initialized=*/false);
-    Root->MetricPtr = &Metric;
-    Root->checkAvailability();
-    return Root;
-  }
+  static auto fromCInterface(MetricInterface& Metric) -> std::shared_ptr<RootMetric>;
 
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   /// Popuplate the RootMetric object from the C-style MetricInterface provided via a dynamic library.
   /// \arg DylibPath The dynamic library name
-  static auto fromDylib(const std::string& DylibPath) -> std::shared_ptr<RootMetric> {
-    void* Handle = nullptr;
-    const char* Filename = DylibPath.c_str();
-
-    Handle = dlopen(Filename, RTLD_NOW | RTLD_LOCAL);
-
-    if (!Handle) {
-      firestarter::log::error() << Filename << ": " << dlerror();
-      return nullptr;
-    }
-
-    // clear existing error
-    dlerror();
-
-    MetricInterface* Metric = nullptr;
-
-    Metric = static_cast<MetricInterface*>(dlsym(Handle, "metric"));
-
-    char* Error = nullptr;
-    if ((Error = dlerror()) != nullptr) {
-      firestarter::log::error() << Filename << ": " << Error;
-      dlclose(Handle);
-      return nullptr;
-    }
-
-    auto Root = std::make_shared<RootMetric>(/*Name=*/Metric->Name,
-                                             /*Dylib=*/true,
-                                             /*Stdin=*/false,
-                                             /*Initialized=*/false);
-    Root->checkAvailability();
-    return Root;
-  }
+  static auto fromDylib(const std::string& DylibPath) -> std::shared_ptr<RootMetric>;
 #endif
 
   /// Popuplate the RootMetric object from the C-style MetricInterface.
   /// \arg Metric the refernce to the C-style MetricInterface
-  static auto fromStdin(const std::string& MetricName) -> std::shared_ptr<RootMetric> {
-    auto Root = std::make_shared<RootMetric>(/*Name=*/MetricName,
-                                             /*Dylib=*/false,
-                                             /*Stdin=*/true,
-                                             /*Initialized=*/true);
+  static auto fromStdin(const std::string& MetricName) -> std::shared_ptr<RootMetric>;
 
-    Root->checkAvailability();
-    return Root;
-  }
-
-  auto initialize() -> bool {
-    // Skip if already initialized
-    if (Initialized) {
-      return true;
-    }
-
-    log::debug() << "Initializing metric " << Name;
-
-    // Clear the contained data
-    {
-      std::lock_guard<std::mutex> Lock(ValuesMutex);
-      Values.clear();
-    }
-    // Init the associated metric interface object
-    if (MetricPtr) {
-      const auto ReturnValue = MetricPtr->Init();
-
-      Initialized = ReturnValue == EXIT_SUCCESS;
-      if (!Initialized) {
-        log::warn() << "Metric " << Name << ": " << MetricPtr->GetError();
-        return false;
-      }
-
-      // Register the callback to insert data
-      if (MetricPtr->Type.InsertCallback) {
-        MetricPtr->RegisterInsertCallback(insertCallback, this);
-      }
-    }
-
-    return true;
-  }
+  /// Initialize the metric. This will set the state to inititialized if successful and insert the optional callback
+  /// into the metric.
+  auto initialize() -> bool;
 
   /// Get the callback function and callback interval that has to be executed in a timed fashion for the metric.
   /// \returns an empty optional if the metric does not required timed callbacks. otherwise it returns a tuple of the
   /// callback function and callback interval. The callback function should be called after the callback interval has
   /// expired.
-  auto getTimedCallback() -> std::optional<std::tuple<std::function<void()>, std::chrono::microseconds>> {
-    if (!MetricPtr) {
-      return {};
-    }
-
-    auto CallbackTime = std::chrono::microseconds(MetricPtr->CallbackTime);
-    if (CallbackTime.count() == 0) {
-      return {};
-    }
-
-    auto Callback = [this]() {
-      if (Initialized) {
-        MetricPtr->Callback();
-      }
-    };
-
-    return std::tuple<std::function<void()>, std::chrono::microseconds>{Callback, CallbackTime};
-  }
+  auto getTimedCallback() -> std::optional<std::tuple<std::function<void()>, std::chrono::microseconds>>;
 
   /// Get the optional callback that has to be executed to insert values into the metric storage.
   /// \return optionally returns the function that has to be executed to save the current metric value into the
   /// stoarage.
-  auto getInsertCallback() -> std::optional<std::function<void()>> {
-    if (!MetricPtr) {
-      return {};
-    }
+  auto getInsertCallback() -> std::optional<std::function<void()>>;
 
-    auto Callback = [this]() {
-      std::vector<double> Values(1 + Submetrics.size(), NAN);
+  /// Get the name of this root metric.
+  auto metricName() -> MetricName;
 
-      if (Initialized && EXIT_SUCCESS == MetricPtr->GetReading(Values.data(), Values.size())) {
-        for (auto I = 0U; I < Values.size(); I++) {
-          insert(/*MetricIndex=*/I, std::chrono::high_resolution_clock::now(), Values[I]);
-        }
-      }
-    };
-
-    if (!MetricPtr->Type.InsertCallback && MetricPtr->GetReading != nullptr) {
-      return Callback;
-    }
-
-    return {};
-  }
-
-  auto getMetricNames() -> std::vector<MetricName> {
-    std::vector<MetricName> MetricNames;
-    MetricNames.emplace_back(MetricName::fromString(Name));
-
-    std::transform(Submetrics.cbegin(), Submetrics.cend(), std::back_inserter(MetricNames),
-                   [this](const auto& SubMetric) { return MetricName::fromString(Name + "/" + SubMetric->Name); });
-
-    return MetricNames;
-  }
+  /// Get the vector of metric names
+  auto getMetricNames() -> std::vector<MetricName>;
 
   /// Insert the supplied time value into the metric storage.
   /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
   /// specified by the index.
   /// \arg Time The time of the time value pair
   /// \arg Value The value of the time value pair
-  void insert(uint64_t MetricIndex, std::chrono::high_resolution_clock::time_point Time, double Value) {
-    const std::lock_guard<std::mutex> Lock(ValuesMutex);
-
-    if (MetricIndex == ROOT_METRIC_INDEX) {
-      Values.emplace_back(Time, Value);
-    } else {
-      auto Index = MetricIndex - 1;
-      if (Index < Submetrics.size()) {
-        Submetrics[Index]->Values.emplace_back(Time, Value);
-      }
-    }
-  }
+  void insert(uint64_t MetricIndex, std::chrono::high_resolution_clock::time_point Time, double Value);
 
   /// Insert the supplied time value into the metric storage.
   /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
   /// specified by the index.
   /// \arg TimeSinceEpoch The time since epoch of the time value pair
   /// \arg Value The value of the time value pair
-  void insert(uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value) {
-    using Duration = std::chrono::duration<int64_t, std::nano>;
-    auto Time = std::chrono::time_point<std::chrono::high_resolution_clock, Duration>(Duration(TimeSinceEpoch));
+  void insert(uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value);
 
-    insert(MetricIndex, Time, Value);
+  /// This function insert a time value pair for a specific metric. This function will be provided to metrics to
+  /// allow them to push time value pairs.
+  /// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
+  /// specified by the index.
+  /// \arg TimeSinceEpoch The time since epoch of the time value pair
+  /// \arg Value The value of the time value pair
+  static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value) {
+    if (!Cls) {
+      throw std::invalid_argument("External metric does not provide Cls argument");
+    }
+    auto& This = *static_cast<RootMetric*>(Cls);
+    This.insert(MetricIndex, TimeSinceEpoch, Value);
   }
 
   /// Get the summaries of the root metric and submetrics between two timepoints with different start and stop delats.
@@ -307,87 +173,12 @@ struct RootMetric : public Metric {
   [[nodiscard]] auto getSummaries(std::chrono::high_resolution_clock::time_point StartTime,
                                   std::chrono::high_resolution_clock::time_point StopTime,
                                   std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
-                                  const uint64_t NumThreads) -> MetricSummaries {
-    MetricType Type{};
-
-    if (MetricPtr == nullptr) {
-      Type.Absolute = 1;
-
-      StartTime += StartDelta;
-      StopTime -= StopDelta;
-    } else {
-      Type = MetricPtr->Type;
-
-      if (!Type.IgnoreStartStopDelta) {
-        StartTime += StartDelta;
-        StopTime -= StopDelta;
-      }
-    }
-
-    MetricSummaries Summaries;
-
-    auto FindAll = [&StartTime, &StopTime](auto const& Tv) { return StartTime <= Tv.Time && Tv.Time <= StopTime; };
-
-    {
-      decltype(Values) CroppedValues;
-
-      {
-        std::lock_guard<std::mutex> Lock(ValuesMutex);
-        std::copy_if(Values.cbegin(), Values.cend(), std::back_inserter(CroppedValues), FindAll);
-      }
-
-      Summaries[MetricName(/*Inverted=*/false, Name)] =
-          Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
-    }
-
-    for (const auto& Submetric : Submetrics) {
-      decltype(Submetric->Values) CroppedValues;
-
-      {
-        std::lock_guard<std::mutex> Lock(Submetric->ValuesMutex);
-        std::copy_if(Submetric->Values.cbegin(), Submetric->Values.cend(), std::back_inserter(CroppedValues), FindAll);
-      }
-
-      Summaries[MetricName(/*Inverted=*/false, Name, Submetric->Name)] =
-          Summary::calculate(CroppedValues.begin(), CroppedValues.end(), Type, NumThreads);
-    }
-
-    return Summaries;
-  }
+                                  uint64_t NumThreads) -> MetricSummaries;
 
 private:
-  void checkAvailability() {
-    if (MetricPtr) {
-      auto ReturnCode = MetricPtr->Init();
-      Available = ReturnCode == EXIT_SUCCESS;
-
-      // Get the submetrics
-      if (Available && MetricPtr->GetSubmetricNames) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        for (auto** Names = MetricPtr->GetSubmetricNames(); *Names; Names++) {
-          // Create a new submetric entry for each name
-          Submetrics.emplace_back(std::make_unique<LeafMetric>(std::string(*Names)));
-        }
-      }
-
-      MetricPtr->Fini();
-
-    } else {
-      Available = true;
-    }
-  }
+  /// Check if the metric is available. This function call init and fini on the metric. If successful, it sets the
+  /// available flag and insert the available submetrics into this datastructure.
+  void checkAvailability();
 };
-
-/// This function insert a time value pair for a specific metric. This function will be provided to metrics to
-/// allow them to push time value pairs.
-/// \arg MetricIndex Zero to insert values in the root metric. Index starting with one to insert in the submetric
-/// specified by the index.
-/// \arg TimeSinceEpoch The time since epoch of the time value pair
-/// \arg Value The value of the time value pair
-static void insertCallback(void* Cls, uint64_t MetricIndex, int64_t TimeSinceEpoch, double Value) {
-  assert(Cls && "External metric does not provide Cls argument");
-  auto& This = *static_cast<RootMetric*>(Cls);
-  This.insert(MetricIndex, TimeSinceEpoch, Value);
-}
 
 } // namespace firestarter::measurement

@@ -165,7 +165,7 @@ TEST(MetricsTest, CheckRegisterInsertCallbackFromCInterface) {
 
     // Check if the metric inititializes
     EXPECT_CALL(AvailableMetricMock,
-                registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+                registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
         .Times(1);
 
     EXPECT_TRUE(AvailableRoot->initialize());
@@ -181,7 +181,7 @@ TEST(MetricsTest, CheckRegisterInsertCallbackFromCInterface) {
 
     // Check if the metric inititializes
     EXPECT_CALL(AvailableMetricMock,
-                registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+                registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
         .Times(0);
     EXPECT_TRUE(AvailableRoot->initialize());
   }
@@ -199,7 +199,7 @@ TEST(MetricsTest, CheckNoTimedCallbackFromCInterface) {
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
   EXPECT_CALL(AvailableMetricMock,
-              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+              registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
       .Times(0);
 
   {
@@ -226,7 +226,7 @@ TEST(MetricsTest, CheckTimedCallbackFromCInterface) {
   auto AvailableRoot = firestarter::measurement::RootMetric::fromCInterface(AvailableMetricMock.AvailableMetric);
 
   EXPECT_CALL(AvailableMetricMock,
-              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+              registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
       .Times(0);
 
   {
@@ -271,7 +271,7 @@ TEST(MetricsTest, CheckInsertCallbackFromCInterface) {
 
     // Check if the metric inititializes
     EXPECT_CALL(PullingMetricMock,
-                registerInsertCallbackMock(firestarter::measurement::insertCallback, PullingRoot.get()))
+                registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, PullingRoot.get()))
         .Times(0);
 
     {
@@ -362,7 +362,7 @@ TEST(MetricsTest, CheckNoTimedCallbackFromStdin) {
       firestarter::measurement::RootMetric::fromStdin(MetricMock<0, NoInsertCallbackMetricType, 0>::FakeName);
 
   EXPECT_CALL(AvailableMetricMock,
-              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+              registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
       .Times(0);
 
   {
@@ -389,7 +389,7 @@ TEST(MetricsTest, CheckNoInsertCallbackFromStdin) {
 
   // Check if the metric inititializes
   EXPECT_CALL(AvailableMetricMock,
-              registerInsertCallbackMock(firestarter::measurement::insertCallback, AvailableRoot.get()))
+              registerInsertCallbackMock(firestarter::measurement::RootMetric::insertCallback, AvailableRoot.get()))
       .Times(0);
 
   {

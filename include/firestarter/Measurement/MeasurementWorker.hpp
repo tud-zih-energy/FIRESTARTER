@@ -31,6 +31,7 @@
 #include <functional>
 #include <memory>
 #include <sstream>
+#include <thread>
 
 namespace firestarter::measurement {
 
