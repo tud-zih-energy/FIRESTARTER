@@ -140,11 +140,12 @@ auto RaplMetricData::getReading(double* Value, uint64_t NumElems) -> int32_t {
       FinalReading += Reader->lastReading();
     }
 
-    *Value = FinalReading;
-    for (auto I = 1U; I <= Readers.size(); I++) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      Value[I] = Readers[I]->lastReading();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    *Value++ = FinalReading;
+    for (auto& Reader : Readers) {
+      *Value++ = Reader->lastReading();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
 
   return EXIT_SUCCESS;
