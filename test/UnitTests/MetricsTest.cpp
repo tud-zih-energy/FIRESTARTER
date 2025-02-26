@@ -428,22 +428,20 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
   EXPECT_EQ(AvailableRoot->Name, AvailableMetricMock.FakeName);
   EXPECT_TRUE(AvailableRoot->Values.empty());
   EXPECT_EQ(AvailableRoot->MetricPtr, &AvailableMetricMock.AvailableMetric);
-  EXPECT_TRUE(AvailableRoot->Submetrics.empty());
   EXPECT_FALSE(AvailableRoot->Dylib);
   EXPECT_FALSE(AvailableRoot->Stdin);
   EXPECT_FALSE(AvailableRoot->Initialized);
-
   EXPECT_TRUE(AvailableRoot->Available);
-
-  // Check if the metric inititializes
-  EXPECT_TRUE(AvailableRoot->initialize());
-
-  EXPECT_TRUE(AvailableRoot->Initialized);
 
   // Check that the submetrics are registered
   EXPECT_EQ(AvailableRoot->Submetrics.size(), 2);
   EXPECT_EQ(AvailableRoot->Submetrics[0]->Name, std::string(Submetrics[0]));
   EXPECT_EQ(AvailableRoot->Submetrics[1]->Name, std::string(Submetrics[1]));
+
+  // Check if the metric inititializes
+  EXPECT_TRUE(AvailableRoot->initialize());
+
+  EXPECT_TRUE(AvailableRoot->Initialized);
 
   // Check that submetrics are inserted
   const auto TV0 = firestarter::measurement::TimeValue(std::chrono::high_resolution_clock::now(), 0.0);
