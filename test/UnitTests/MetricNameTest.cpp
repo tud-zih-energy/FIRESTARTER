@@ -21,26 +21,24 @@
 
 #include "firestarter/Config/MetricName.hpp"
 
-#include <regex>
+#include <gtest/gtest.h>
 
-namespace firestarter {
+TEST(MetricNameTest, ParseValidInput) {
 
-auto MetricName::fromString(const std::string& Metric) -> MetricName {
-  // Group 1 matches the minus sign, group 2 the root metric name, group 4 the sub-metric name
-  const std::regex Re(R"(^(-)?([\w-]+)(/([\w-]+))?$)");
-  std::smatch M;
+  const auto StringToParsed = std::map<std::string, firestarter::MetricName>({
+      {"sysfs-powercap-rapl", firestarter::MetricName(/*Inverted*/ false, "sysfs-powercap-rapl")},
+      {"-sysfs-powercap-rapl", firestarter::MetricName(/*Inverted*/ true, "sysfs-powercap-rapl")},
+      {"sysfs-powercap-rapl/sub-metric1",
+       firestarter::MetricName(/*Inverted*/ false, "sysfs-powercap-rapl", "sub-metric1")},
+      {"-sysfs-powercap-rapl/sub-metric2",
+       firestarter::MetricName(/*Inverted*/ true, "sysfs-powercap-rapl", "sub-metric2")},
+  });
 
-  if (std::regex_match(Metric, M, Re)) {
-    bool Inverted = M[1].length() == 1;
-    auto RootMetricName = M[2].str();
-    std::optional<std::string> SubmetricName;
-    if (M[4].matched) {
-      SubmetricName = M[4].str();
-    }
-    return {Inverted, RootMetricName, SubmetricName};
+  // Check if the individual ones work.
+  for (const auto& [Input, Output] : StringToParsed) {
+    const auto Name = firestarter::MetricName::fromString(Input);
+    EXPECT_EQ(Name, Output);
+
+    EXPECT_EQ(Name.toString(), Input);
   }
-
-  throw std::invalid_argument("Could not parse the metric name: " + Metric);
 }
-
-} // namespace firestarter

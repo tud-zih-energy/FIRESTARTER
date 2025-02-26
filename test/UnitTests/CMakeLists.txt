@@ -2,6 +2,7 @@ add_executable(UnitTests
     CpuBindTest.cpp
     FunctionSelectionTest.cpp
     InstructionGroupsTest.cpp
+    MetricNameTest.cpp
     MetricsTest.cpp
     X86CpuFeaturesTest.cpp
     X86CpuModelTest.cpp

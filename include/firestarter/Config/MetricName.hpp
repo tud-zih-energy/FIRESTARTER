@@ -48,7 +48,7 @@ struct MetricName {
   }
 
   /// Is the metric inverted
-  [[nodiscard]] auto inverted() const -> auto { return Inverted; }
+  [[nodiscard]] auto inverted() const -> const auto& { return Inverted; }
   /// The name of the root metric
   [[nodiscard]] auto rootMetricName() const -> const auto& { return RootMetricName; }
   /// The optional name of the submetric
@@ -59,6 +59,11 @@ struct MetricName {
   /// \returns true if the two names share the same metric
   [[nodiscard]] auto isSameMetric(const MetricName& Other) const -> bool {
     return std::tie(RootMetricName, SubmetricName) == std::tie(Other.rootMetricName(), Other.submetricName());
+  }
+
+  auto operator==(const MetricName& Other) const -> bool {
+    return std::tie(Inverted, RootMetricName, SubmetricName) ==
+           std::tie(Other.inverted(), Other.rootMetricName(), Other.submetricName());
   }
 
 private:
