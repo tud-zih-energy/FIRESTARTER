@@ -84,10 +84,11 @@ private:
     return *MetricReference;
   }
 
-  /// Get all metrics matching a filter function defined on the std::shared_ptr<RootMetric>
+  /// Get all metrics matching a filter function that takes the Root metric as a std::shared_ptr<RootMetric> and return
+  /// true if the metric should be kept in the output set.
   /// \arg FilterFunction The function that take a shared_ptr to the RootMetric and returns
   /// true if the metric names of this metric should be saved.
-  /// \return The vector of filtered metric names.
+  /// \return The set of filtered metric names.
   auto metrics(const std::function<bool(const std::shared_ptr<RootMetric>&)>& FilterFunction) -> std::set<MetricName> {
     std::set<MetricName> MetricNames;
     for (const auto& Metric : Metrics) {
@@ -97,7 +98,7 @@ private:
           const auto [Iterator, Inserted] = MetricNames.emplace(Name);
           if (!Inserted) {
             throw std::runtime_error("Failed to insert MetricName: " + Name.toString() + " from RootMetric: " +
-                                     Metric->metricName().toString() + ". Another another entry exsists.");
+                                     Metric->metricName().toString() + ". Another another entry exists.");
           }
         }
       }
@@ -165,7 +166,6 @@ public:
 
   /// Initialize the metrics with the provided names.
   /// \arg MetricNames The metrics to initialize
-  /// \returns The vector of metrics that were successfully initialized.
   void initMetrics(std::set<MetricName> const& MetricNames);
 
   /// Set the StartTime to the current timestep

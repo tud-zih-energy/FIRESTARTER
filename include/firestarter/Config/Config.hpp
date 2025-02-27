@@ -67,7 +67,7 @@ struct Config {
   std::set<std::string> StdinMetrics;
   /// The paths to the metrics that are loaded using shared libraries.
   std::set<std::string> MetricPaths;
-  /// The list of metrics that are used for maximization. If a metric is prefixed with '-' it will be minimized.
+  /// The set of metrics that are used for maximization. If a metric is prefixed with '-' it will be minimized.
   std::set<MetricName> OptimizationMetrics;
 
   /// The optional cpu bind that allow pinning to specific cpus.

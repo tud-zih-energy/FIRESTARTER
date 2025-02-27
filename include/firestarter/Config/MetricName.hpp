@@ -30,8 +30,8 @@ namespace firestarter {
 
 /// This struct handels the name of a metric. It can be created from a string and converted back into a string.
 /// The metric name constains the name of the root metric and optionally the name of a submetric. These values are used
-/// to check if two metric names are the same. In addition to that the name can contain additional attribute. Currently
-/// this is only the flag to invert the metric value for the optimization.
+/// to check if two metric names are the same. It can also contain additional attributes. Currently this is only the
+/// flag to invert the metric value for the optimization.
 struct MetricName {
   MetricName() = delete;
 

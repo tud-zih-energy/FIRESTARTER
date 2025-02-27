@@ -41,7 +41,7 @@ using MetricSummaries = std::map<MetricName, Summary>;
 
 struct RootMetric;
 
-/// This class handels the state around a metric. Its name, the contained time value pairs and a mutex to guard them.
+/// This struct handels the state around a metric. Its name, the contained time value pairs and a mutex to guard them.
 struct Metric {
   /// The name of the metric
   std::string Name;
@@ -66,7 +66,7 @@ struct Metric {
                   uint64_t NumThreads) -> Summary;
 };
 
-/// This class handels the state around a leaf metric. Its name, the contained time value pairs and a mutex to guard
+/// This struct handels the state around a leaf metric. Its name, the contained time value pairs and a mutex to guard
 /// them.
 struct LeafMetric : public Metric {
   /// The reference to the root metric that contains this leaf metric.
@@ -82,7 +82,7 @@ struct LeafMetric : public Metric {
   auto metricName() -> MetricName;
 };
 
-/// This class handels the state around a root metric. Its name, the contained time value pairs, a mutex to guard them,
+/// This struct handels the state around a root metric. Its name, the contained time value pairs, a mutex to guard them,
 /// if it is initialized and available and the pointer to the interface to interact with it. Root metrics include
 /// addition leaf-/sub- metrics.
 struct RootMetric : public Metric {
@@ -111,18 +111,21 @@ struct RootMetric : public Metric {
 
   ~RootMetric();
 
-  /// Popuplate the RootMetric object from the C-style MetricInterface.
+  /// Populate the RootMetric object from the C-style MetricInterface.
   /// \arg Metric the refernce to the C-style MetricInterface
+  /// \returns The shared_ptr to the newly created RootMetric
   static auto fromCInterface(MetricInterface& Metric) -> std::shared_ptr<RootMetric>;
 
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   /// Popuplate the RootMetric object from the C-style MetricInterface provided via a dynamic library.
   /// \arg DylibPath The dynamic library name
+  /// \returns The shared_ptr to the newly created RootMetric
   static auto fromDylib(const std::string& DylibPath) -> std::shared_ptr<RootMetric>;
 #endif
 
   /// Popuplate the RootMetric object from the C-style MetricInterface.
   /// \arg Metric the refernce to the C-style MetricInterface
+  /// \returns The shared_ptr to the newly created RootMetric
   static auto fromStdin(const std::string& MetricName) -> std::shared_ptr<RootMetric>;
 
   /// Initialize the metric. This will set the state to inititialized if successful and insert the optional callback
