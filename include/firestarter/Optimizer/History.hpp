@@ -128,7 +128,7 @@ public:
       auto CompareIndividual = [&Metric, &IsSameMetric](measurement::MetricSummaries const& Lhs,
                                                         measurement::MetricSummaries const& Rhs) {
         auto SummaryLhs = std::find_if(Lhs.cbegin(), Lhs.cend(), IsSameMetric);
-        auto SummaryRhs = std::find_if(Lhs.cbegin(), Lhs.cend(), IsSameMetric);
+        auto SummaryRhs = std::find_if(Rhs.cbegin(), Rhs.cend(), IsSameMetric);
 
         assert(SummaryLhs != Lhs.cend());
         assert(SummaryRhs != Rhs.cend());
@@ -136,7 +136,7 @@ public:
         if (!Metric.inverted()) {
           return SummaryLhs->second.Average > SummaryRhs->second.Average;
         }
-        return SummaryLhs->second.Average > SummaryRhs->second.Average;
+        return SummaryLhs->second.Average < SummaryRhs->second.Average;
       };
 
       auto Perm = sortPermutation(F, CompareIndividual);
