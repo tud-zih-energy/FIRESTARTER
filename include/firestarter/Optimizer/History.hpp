@@ -38,6 +38,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <set>
 #include <vector>
 
 namespace firestarter::optimizer {
@@ -109,8 +110,7 @@ public:
   /// metric.
   /// \arg OptimizationMetrics The metrics for which the best individual should be printed.
   /// \arg PayloadItems The instruction of the associated instruction groups used in the optimization.
-  static void printBest(std::vector<MetricName> const& OptimizationMetrics,
-                        std::vector<std::string> const& PayloadItems) {
+  static void printBest(std::set<MetricName> const& OptimizationMetrics, std::vector<std::string> const& PayloadItems) {
     // TODO(Issue #76): print paretto front
 
     // print the best 20 individuals for each metric in a format
@@ -118,25 +118,20 @@ public:
     std::map<MetricName, std::size_t> ColumnWidth;
 
     for (auto const& Metric : OptimizationMetrics) {
-      ColumnWidth[Metric] = (std::max)(Metric.toString().size(), MinColumnWidth);
-      firestarter::log::trace() << Metric.toString() << ": " << ColumnWidth[Metric];
+      ColumnWidth[Metric] = (std::max)(Metric.toStringWithoutAttributes().size(), MinColumnWidth);
+      firestarter::log::trace() << Metric.toStringWithoutAttributes() << ": " << ColumnWidth[Metric];
     }
 
     for (auto const& Metric : OptimizationMetrics) {
-      auto IsSameMetric = [&Metric](const auto& NameValuePair) { return NameValuePair.first.isSameMetric(Metric); };
-
-      auto CompareIndividual = [&Metric, &IsSameMetric](measurement::MetricSummaries const& Lhs,
-                                                        measurement::MetricSummaries const& Rhs) {
-        auto SummaryLhs = std::find_if(Lhs.cbegin(), Lhs.cend(), IsSameMetric);
-        auto SummaryRhs = std::find_if(Rhs.cbegin(), Rhs.cend(), IsSameMetric);
-
-        assert(SummaryLhs != Lhs.cend());
-        assert(SummaryRhs != Rhs.cend());
+      auto CompareIndividual = [&Metric](measurement::MetricSummaries const& Lhs,
+                                         measurement::MetricSummaries const& Rhs) {
+        auto SummaryLhs = Lhs.at(Metric);
+        auto SummaryRhs = Rhs.at(Metric);
 
         if (!Metric.inverted()) {
-          return SummaryLhs->second.Average > SummaryRhs->second.Average;
+          return SummaryLhs.Average > SummaryRhs.Average;
         }
-        return SummaryLhs->second.Average < SummaryRhs->second.Average;
+        return SummaryLhs.Average < SummaryRhs.Average;
       };
 
       auto Perm = sortPermutation(F, CompareIndividual);
@@ -191,14 +186,14 @@ public:
         FirstLine << " | ";
         SecondLine << "---";
 
-        FirstLine << Metric.toString();
-        padding(FirstLine, Width, Metric.toString().size(), ' ');
+        FirstLine << Metric.toStringWithoutAttributes();
+        padding(FirstLine, Width, Metric.toStringWithoutAttributes().size(), ' ');
         padding(SecondLine, Width, 0, '-');
       }
 
       std::stringstream Ss;
 
-      Ss << "\n Best individuals sorted by metric " << Metric.toString() << " "
+      Ss << "\n Best individuals sorted by metric " << Metric.toStringWithoutAttributes() << " "
          << (Metric.inverted() ? "ascending" : "descending") << ":\n"
          << FirstLine.str() << "\n"
          << SecondLine.str() << "\n";
@@ -214,12 +209,8 @@ public:
         for (auto const& Metric : OptimizationMetrics) {
           auto Width = ColumnWidth[Metric];
 
-          auto IsSameMetric = [&Metric](const auto& NameValuePair) { return NameValuePair.first.isSameMetric(Metric); };
-          auto FitnessOfMetric = std::find_if(Fitness.cbegin(), Fitness.cend(), IsSameMetric);
-
-          assert(FitnessOfMetric != Fitness.cend());
-
-          const auto Value = std::to_string(FitnessOfMetric->second.Average);
+          auto FitnessOfMetric = Fitness.at(Metric);
+          const auto Value = std::to_string(FitnessOfMetric.Average);
 
           Ss << " | " << Value;
           padding(Ss, Width, Value.size(), ' ');

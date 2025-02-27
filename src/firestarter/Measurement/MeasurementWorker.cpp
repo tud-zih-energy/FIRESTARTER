@@ -59,8 +59,8 @@ auto scanStdin(const char* Fmt, int Count, ...) -> bool {
 namespace firestarter::measurement {
 
 MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
-                                     std::vector<std::string> const& MetricDylibsNames,
-                                     std::vector<std::string> const& StdinMetricsNames)
+                                     std::set<std::string> const& MetricDylibsNames,
+                                     std::set<std::string> const& StdinMetricsNames)
     : UpdateInterval(UpdateInterval)
     , NumThreads(NumThreads) {
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
@@ -74,14 +74,6 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
   // setup metric objects for metric names passed from stdin.
   for (auto const& Name : StdinMetricsNames) {
     Metrics.emplace_back(RootMetric::fromStdin(Name));
-  }
-
-  // If the size of the vector and its set matches length, we don't have duplicate names.
-  const std::vector<MetricName> MetricNamesVec = metrics();
-  const auto MetricNamesSet = std::set<MetricName>(MetricNamesVec.cbegin(), MetricNamesVec.cend());
-
-  if (MetricNamesVec.size() != MetricNamesSet.size()) {
-    throw std::invalid_argument("Duplicate metric names present.");
   }
 
   WorkerThread = std::thread(MeasurementWorker::dataAcquisitionWorker, std::ref(*this));
@@ -104,7 +96,7 @@ MeasurementWorker::~MeasurementWorker() {
 
 // this must be called by the main thread.
 // if not done so things like perf_event_attr.inherit might not work as expected
-void MeasurementWorker::initMetrics(std::vector<MetricName> const& MetricNames) {
+void MeasurementWorker::initMetrics(std::set<MetricName> const& MetricNames) {
   // try to find each metric and initialize it
   for (auto const& MetricName : MetricNames) {
     const auto Metric = findRootMetricByName(MetricName);

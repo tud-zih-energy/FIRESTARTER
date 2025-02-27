@@ -22,10 +22,12 @@
 #include "firestarter/Config/MetricName.hpp"
 
 #include <gtest/gtest.h>
+#include <optional>
+#include <string>
+#include <utility>
 
-TEST(MetricNameTest, ParseValidInput) {
-
-  const auto StringToParsed = std::map<std::string, firestarter::MetricName>({
+TEST(MetricNameTest, CheckFromToString) {
+  const auto StringToParsed = std::vector<std::pair<std::string, firestarter::MetricName>>({
       {"sysfs-powercap-rapl", firestarter::MetricName(/*Inverted*/ false, "sysfs-powercap-rapl")},
       {"-sysfs-powercap-rapl", firestarter::MetricName(/*Inverted*/ true, "sysfs-powercap-rapl")},
       {"sysfs-powercap-rapl/sub-metric1",
@@ -40,5 +42,22 @@ TEST(MetricNameTest, ParseValidInput) {
     EXPECT_EQ(Name, Output);
 
     EXPECT_EQ(Name.toString(), Input);
+  }
+}
+
+TEST(MetricNameTest, CheckToStringWithoutAttributes) {
+  const auto StringToParsed = std::vector<std::pair<firestarter::MetricName, std::string>>({
+      {firestarter::MetricName(/*Inverted*/ false, "sysfs-powercap-rapl"), "sysfs-powercap-rapl"},
+      {firestarter::MetricName(/*Inverted*/ true, "sysfs-powercap-rapl"), "sysfs-powercap-rapl"},
+      {firestarter::MetricName(/*Inverted*/ false, "sysfs-powercap-rapl", "sub-metric1"),
+       "sysfs-powercap-rapl/sub-metric1"},
+      {firestarter::MetricName(/*Inverted*/ true, "sysfs-powercap-rapl", "sub-metric2"),
+       "sysfs-powercap-rapl/sub-metric2"},
+  });
+
+  // Check if the individual ones work.
+  for (const auto& [Input, Output] : StringToParsed) {
+    const auto Name = Input.toStringWithoutAttributes();
+    EXPECT_EQ(Name, Output);
   }
 }

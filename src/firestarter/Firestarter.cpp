@@ -122,9 +122,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       // check if selected metrics are initialized
       for (auto const& OptimizationMetric : Cfg.OptimizationMetrics) {
-        auto NameEqual = [&OptimizationMetric](auto const& Name) { return Name.isSameMetric(OptimizationMetric); };
-        // metric has not initialized properly
-        if (std::find_if(Initialized.cbegin(), Initialized.cend(), NameEqual) == Initialized.cend()) {
+        if (!static_cast<bool>(Initialized.count(OptimizationMetric))) {
           throw std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
         }
       }

@@ -64,11 +64,11 @@ struct Config {
   double Nsga2M;
 
   /// The name of the metrics that are read from stdin.
-  std::vector<std::string> StdinMetrics;
+  std::set<std::string> StdinMetrics;
   /// The paths to the metrics that are loaded using shared libraries.
-  std::vector<std::string> MetricPaths;
+  std::set<std::string> MetricPaths;
   /// The list of metrics that are used for maximization. If a metric is prefixed with '-' it will be minimized.
-  std::vector<MetricName> OptimizationMetrics;
+  std::set<MetricName> OptimizationMetrics;
 
   /// The optional cpu bind that allow pinning to specific cpus.
   std::optional<std::set<uint64_t>> CpuBinding;

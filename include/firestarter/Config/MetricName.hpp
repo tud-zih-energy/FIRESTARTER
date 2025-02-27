@@ -28,6 +28,10 @@
 
 namespace firestarter {
 
+/// This struct handels the name of a metric. It can be created from a string and converted back into a string.
+/// The metric name constains the name of the root metric and optionally the name of a submetric. These values are used
+/// to check if two metric names are the same. In addition to that the name can contain additional attribute. Currently
+/// this is only the flag to invert the metric value for the optimization.
 struct MetricName {
   MetricName() = delete;
 
@@ -47,6 +51,11 @@ struct MetricName {
     return (Inverted ? "-" : "") + RootMetricName + (SubmetricName ? ("/" + *SubmetricName) : "");
   }
 
+  /// Convert the metric name to a string that does not contain any information about the attributes.
+  [[nodiscard]] auto toStringWithoutAttributes() const -> std::string {
+    return RootMetricName + (SubmetricName ? ("/" + *SubmetricName) : "");
+  }
+
   /// Is the metric inverted
   [[nodiscard]] auto inverted() const -> const auto& { return Inverted; }
   /// The name of the root metric
@@ -54,20 +63,12 @@ struct MetricName {
   /// The optional name of the submetric
   [[nodiscard]] auto submetricName() const -> const auto& { return SubmetricName; }
 
-  /// Do two MetricName share the same metrics?
-  /// \arg Other The MetricName that is compared against.
-  /// \returns true if the two names share the same metric
-  [[nodiscard]] auto isSameMetric(const MetricName& Other) const -> bool {
+  auto operator==(const MetricName& Other) const -> bool {
     return std::tie(RootMetricName, SubmetricName) == std::tie(Other.rootMetricName(), Other.submetricName());
   }
 
-  auto operator==(const MetricName& Other) const -> bool {
-    return std::tie(Inverted, RootMetricName, SubmetricName) ==
-           std::tie(Other.inverted(), Other.rootMetricName(), Other.submetricName());
-  }
-
 private:
-  /// True if the metric is inverted
+  /// True if the metric is inverted. This is an additional attribute that is not user in the comparison of metrics.
   bool Inverted;
   /// The name of the root metric
   std::string RootMetricName;
@@ -79,12 +80,12 @@ private:
 
 template <> struct std::hash<firestarter::MetricName> {
   auto operator()(firestarter::MetricName const& Name) const noexcept -> std::size_t {
-    return std::hash<std::string>{}(Name.toString());
+    return std::hash<std::string>{}(Name.toStringWithoutAttributes());
   }
 };
 
 template <> struct std::less<firestarter::MetricName> {
   auto operator()(firestarter::MetricName const& Lhs, firestarter::MetricName const& Rhs) const noexcept -> bool {
-    return std::less<std::string>{}(Lhs.toString(), Rhs.toString());
+    return std::less<std::string>{}(Lhs.toStringWithoutAttributes(), Rhs.toStringWithoutAttributes());
   }
 };

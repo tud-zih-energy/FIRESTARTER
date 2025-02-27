@@ -354,10 +354,14 @@ Config::Config(int Argc, const char** Argv)
       StopDelta = std::chrono::milliseconds(Options["stop-delta"].as<unsigned>());
       MeasurementInterval = std::chrono::milliseconds(Options["measurement-interval"].as<unsigned>());
 #ifndef FIRESTARTER_LINK_STATIC
-      MetricPaths = Options["metric-path"].as<std::vector<std::string>>();
+      {
+        const auto Metrics = Options["metric-path"].as<std::vector<std::string>>();
+        MetricPaths = std::set<std::string>(Metrics.cbegin(), Metrics.cend());
+      }
 #endif
       if (static_cast<bool>(Options.count("metric-from-stdin"))) {
-        StdinMetrics = Options["metric-from-stdin"].as<std::vector<std::string>>();
+        const auto Metrics = Options["metric-from-stdin"].as<std::vector<std::string>>();
+        StdinMetrics = std::set<std::string>(Metrics.cbegin(), Metrics.cend());
       }
       Measurement = static_cast<bool>(Options.count("measurement"));
       ListMetrics = static_cast<bool>(Options.count("list-metrics"));
@@ -375,7 +379,9 @@ Config::Config(int Argc, const char** Argv)
         OptimizationAlgorithm = Options["optimize"].as<std::string>();
         if (static_cast<bool>(Options.count("optimization-metric"))) {
           const auto Metrics = Options["optimization-metric"].as<std::vector<std::string>>();
-          std::transform(Metrics.cbegin(), Metrics.cend(), std::back_inserter(OptimizationMetrics),
+
+          std::transform(Metrics.cbegin(), Metrics.cend(),
+                         std::inserter(OptimizationMetrics, OptimizationMetrics.begin()),
                          [](const std::string& Metric) { return MetricName::fromString(Metric); });
         }
         if (LoadPercent != 100) {

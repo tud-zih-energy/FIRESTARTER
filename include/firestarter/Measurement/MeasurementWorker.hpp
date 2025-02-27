@@ -31,7 +31,9 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <set>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 
 namespace firestarter::measurement {
@@ -86,14 +88,18 @@ private:
   /// \arg FilterFunction The function that take a shared_ptr to the RootMetric and returns
   /// true if the metric names of this metric should be saved.
   /// \return The vector of filtered metric names.
-  auto
-  metrics(const std::function<bool(const std::shared_ptr<RootMetric>&)>& FilterFunction) -> std::vector<MetricName> {
-    std::vector<MetricName> MetricNames;
+  auto metrics(const std::function<bool(const std::shared_ptr<RootMetric>&)>& FilterFunction) -> std::set<MetricName> {
+    std::set<MetricName> MetricNames;
     for (const auto& Metric : Metrics) {
-      const auto Names = Metric->getMetricNames();
-
       if (FilterFunction(Metric)) {
-        MetricNames.insert(MetricNames.end(), Names.cbegin(), Names.cend());
+        const auto Names = Metric->getMetricNames();
+        for (const auto& Name : Names) {
+          const auto [Iterator, Inserted] = MetricNames.emplace(Name);
+          if (!Inserted) {
+            throw std::runtime_error("Failed to insert MetricName: " + Name.toString() + " from RootMetric: " +
+                                     Metric->metricName().toString() + ". Another another entry exsists.");
+          }
+        }
       }
     }
     return MetricNames;
@@ -107,25 +113,24 @@ public:
   /// libraries.
   /// \arg StdinMetricsNames The vector of metric names that should be read in from stdin
   MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
-                    std::vector<std::string> const& MetricDylibsNames,
-                    std::vector<std::string> const& StdinMetricsNames);
+                    std::set<std::string> const& MetricDylibsNames, std::set<std::string> const& StdinMetricsNames);
 
   /// Stops the worker threads
   ~MeasurementWorker();
 
   /// Get the names of all available metrics
-  auto availableMetrics() -> std::vector<MetricName> {
+  auto availableMetrics() -> std::set<MetricName> {
     return metrics(
         /*FilterFunction=*/[](const auto& RootMetric) { return RootMetric->Available; });
   }
 
   /// Get the names of all initialized metrics
-  auto initializedMetrics() -> std::vector<MetricName> {
+  auto initializedMetrics() -> std::set<MetricName> {
     return metrics(/*FilterFunction=*/[](const auto& RootMetric) { return RootMetric->Initialized; });
   }
 
   /// Get the names of all metrics
-  auto metrics() -> std::vector<MetricName> {
+  auto metrics() -> std::set<MetricName> {
     return metrics(/*FilterFunction=*/[](const auto& /*RootMetric*/) { return true; });
   }
 
@@ -161,7 +166,7 @@ public:
   /// Initialize the metrics with the provided names.
   /// \arg MetricNames The metrics to initialize
   /// \returns The vector of metrics that were successfully initialized.
-  void initMetrics(std::vector<MetricName> const& MetricNames);
+  void initMetrics(std::set<MetricName> const& MetricNames);
 
   /// Set the StartTime to the current timestep
   void startMeasurement();

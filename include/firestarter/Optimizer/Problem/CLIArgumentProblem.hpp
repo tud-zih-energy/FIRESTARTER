@@ -46,7 +46,7 @@ private:
   std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker;
   /// The metrics that are used in the optimization. They may have a dash at the start to allow them to be changed from
   /// maximization to minimization.
-  std::vector<MetricName> OptimizationMetrics;
+  std::set<MetricName> OptimizationMetrics;
   /// The duration of the measurement.
   std::chrono::seconds Timeout;
   /// The time to skip from the measurement start
@@ -70,7 +70,7 @@ public:
   /// \arg Instructions The vector of instruction that is used in the optimization for the payload.
   CLIArgumentProblem(std::function<void(const firestarter::InstructionGroups&)>&& ChangePayloadFunction,
                      std::shared_ptr<firestarter::measurement::MeasurementWorker> MeasurementWorker,
-                     std::vector<MetricName> const& Metrics, std::chrono::seconds Timeout,
+                     std::set<MetricName> const& Metrics, std::chrono::seconds Timeout,
                      std::chrono::milliseconds StartDelta, std::chrono::milliseconds StopDelta,
                      std::vector<std::string> Instructions)
       : ChangePayloadFunction(std::move(ChangePayloadFunction))
@@ -123,18 +123,10 @@ public:
     std::vector<double> Values = {};
 
     for (auto const& MetricName : OptimizationMetrics) {
-      auto It = std::find_if(Summaries.cbegin(), Summaries.cend(), [&MetricName](const auto& NameValuePair) {
-        return NameValuePair.first.isSameMetric(MetricName);
-      });
-
-      // Metric name not found
-      if (It == Summaries.cend()) {
-        throw std::invalid_argument("CLIArgumentProblem fitness: Metric " + MetricName.toString() +
-                                    " not found in supplied MetricSummaries.");
-      }
+      auto Summary = Summaries.at(MetricName);
 
       // round to two decimal places after the comma
-      auto Value = std::round(It->second.Average * 100.0) / 100.0;
+      auto Value = std::round(Summary.Average * 100.0) / 100.0;
 
       // invert metric
       if (MetricName.inverted()) {
