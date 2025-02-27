@@ -214,6 +214,7 @@ public:
         for (auto const& Metric : OptimizationMetrics) {
           auto Width = ColumnWidth[Metric];
 
+          auto IsSameMetric = [&Metric](const auto& NameValuePair) { return NameValuePair.first.isSameMetric(Metric); };
           auto FitnessOfMetric = std::find_if(Fitness.cbegin(), Fitness.cend(), IsSameMetric);
 
           assert(FitnessOfMetric != Fitness.cend());
