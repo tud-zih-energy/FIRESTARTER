@@ -109,9 +109,9 @@ public:
   /// Initilize the measurement worker. It will spawn the threads for the polling of metic values.
   /// \arg UpdateInterval The polling time for metric updates.
   /// \arg NumThreads The number of thread FIRESTARTER is running with.
-  /// \arg MetricDylibsNames The vector of files to which are passed to dlopen for using additional metrics from shared
+  /// \arg MetricDylibsNames The set of files to which are passed to dlopen for using additional metrics from shared
   /// libraries.
-  /// \arg StdinMetricsNames The vector of metric names that should be read in from stdin
+  /// \arg StdinMetricsNames The set of metric names that should be read in from stdin
   MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
                     std::set<std::string> const& MetricDylibsNames, std::set<std::string> const& StdinMetricsNames);
 
