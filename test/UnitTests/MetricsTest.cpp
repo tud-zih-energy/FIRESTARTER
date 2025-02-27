@@ -23,6 +23,7 @@
 #include "firestarter/Measurement/MetricInterface.h"
 #include "firestarter/Measurement/TimeValue.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <gmock/gmock.h>
