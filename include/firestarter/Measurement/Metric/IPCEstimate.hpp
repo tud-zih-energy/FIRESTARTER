@@ -26,9 +26,9 @@
 #include <string>
 
 /// The wrapper for the C interface to the IpcEstimateMetric metric.
-struct IpcEstimateMetricData {
+struct IpcEstimateMetric {
 private:
-  IpcEstimateMetricData() = default;
+  IpcEstimateMetric() = default;
 
   /// The error string of this metric
   std::string ErrorString;
@@ -39,12 +39,12 @@ private:
   void* CallbackArg{};
 
 public:
-  IpcEstimateMetricData(IpcEstimateMetricData const&) = delete;
-  void operator=(IpcEstimateMetricData const&) = delete;
+  IpcEstimateMetric(IpcEstimateMetric const&) = delete;
+  void operator=(IpcEstimateMetric const&) = delete;
 
   /// Get the instance of this metric
-  static auto instance() -> IpcEstimateMetricData& {
-    static IpcEstimateMetricData Instance;
+  static auto instance() -> IpcEstimateMetric& {
+    static IpcEstimateMetric Instance;
     return Instance;
   }
 
@@ -71,24 +71,24 @@ public:
   /// Push a value with the current timestamp.
   /// \arg Value The metric value to push.
   static void insertValue(double Value);
-};
 
-/// This metric provdies the ipc estimated based on the estimated number of instructions and the runtime of the high
-/// load loop. The metric value is dependent on the frequency of the processor. It serves as an estimation of the IPC
-/// times the processor frequency.
-inline static MetricInterface IpcEstimateMetric{
-    /*Name=*/"ipc-estimate",
-    /*Type=*/
-    {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/1, /*IgnoreStartStopDelta=*/1,
-     /*Reserved=*/0},
-    /*Unit=*/"IPC",
-    /*CallbackTime=*/0,
-    /*Callback=*/nullptr,
-    /*Init=*/IpcEstimateMetricData::init,
-    /*Fini=*/IpcEstimateMetricData::fini,
-    /*GetSubmetricNames=*/
-    nullptr,
-    /*GetReading=*/nullptr,
-    /*GetError=*/IpcEstimateMetricData::getError,
-    /*RegisterInsertCallback=*/IpcEstimateMetricData::registerInsertCallback,
+  /// This metric provdies the ipc estimated based on the estimated number of instructions and the runtime of the high
+  /// load loop. The metric value is dependent on the frequency of the processor. It serves as an estimation of the IPC
+  /// times the processor frequency.
+  inline static MetricInterface Metric{
+      /*Name=*/"ipc-estimate",
+      /*Type=*/
+      {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/1, /*IgnoreStartStopDelta=*/1,
+       /*Reserved=*/0},
+      /*Unit=*/"IPC",
+      /*CallbackTime=*/0,
+      /*Callback=*/nullptr,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
+      /*GetReading=*/nullptr,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/registerInsertCallback,
+  };
 };

@@ -36,7 +36,7 @@ extern "C" {
 #include <dirent.h>
 }
 
-auto RaplMetricData::fini() -> int32_t {
+auto RaplMetric::fini() -> int32_t {
   instance().Readers.clear();
   instance().AccumulateReaders.clear();
   instance().SubmetricNames = {nullptr};
@@ -44,7 +44,7 @@ auto RaplMetricData::fini() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::init() -> int32_t {
+auto RaplMetric::init() -> int32_t {
   auto& Instance = instance();
 
   Instance.ErrorString = "";
@@ -119,7 +119,7 @@ auto RaplMetricData::init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::getReading(double* Value, uint64_t NumElems) -> int32_t {
+auto RaplMetric::getReading(double* Value, uint64_t NumElems) -> int32_t {
 
   // Update all readers
   auto& Readers = instance().Readers;
@@ -149,11 +149,11 @@ auto RaplMetricData::getReading(double* Value, uint64_t NumElems) -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::getError() -> const char* {
+auto RaplMetric::getError() -> const char* {
   const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }
 
 // this function will be called periodically to make sure we do not miss an
 // overflow of the counter
-void RaplMetricData::callback() { getReading(nullptr, /*NumElems=*/0); }
+void RaplMetric::callback() { getReading(nullptr, /*NumElems=*/0); }

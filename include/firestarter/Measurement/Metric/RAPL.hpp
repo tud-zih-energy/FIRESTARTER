@@ -31,7 +31,7 @@
 #include <vector>
 
 /// The wrapper for the C interface to the RaplMetric metric.
-class RaplMetricData {
+class RaplMetric {
 private:
   /// Datastructure to hold the path of the sysfs rapl entry, the last reading (improtant to detect overflows), the
   /// counter of the number of overflows and the maximum value that the reading will have.
@@ -153,15 +153,15 @@ private:
   /// The null terminated vector of submetric names.
   std::vector<const char*> SubmetricNames = {nullptr};
 
-  RaplMetricData() = default;
+  RaplMetric() = default;
 
 public:
-  RaplMetricData(RaplMetricData const&) = delete;
-  void operator=(RaplMetricData const&) = delete;
+  RaplMetric(RaplMetric const&) = delete;
+  void operator=(RaplMetric const&) = delete;
 
   /// Get the instance of this metric
-  static auto instance() -> RaplMetricData& {
-    static RaplMetricData Instance;
+  static auto instance() -> RaplMetric& {
+    static RaplMetric Instance;
     return Instance;
   }
 
@@ -192,23 +192,23 @@ public:
   /// This function should be called every 30s. It will make shure that we do not miss an overflow of a counter and
   /// therefore get a wrong reading.
   static void callback();
-};
 
-/// This metric provides power measurements through the RAPL interface. Either psys measurement is choosen or if this is
-/// not available the sum of packages and drams.
-inline static MetricInterface RaplMetric{
-    /*Name=*/"sysfs-powercap-rapl",
-    /*Type=*/
-    {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
-     /*Reserved=*/0},
-    /*Unit=*/"J",
-    /*CallbackTime=*/30000000,
-    /*Callback=*/RaplMetricData::callback,
-    /*Init=*/RaplMetricData::init,
-    /*Fini=*/RaplMetricData::fini,
-    /*GetSubmetricNames=*/
-    RaplMetricData::getSubmetricNames,
-    /*GetReading=*/RaplMetricData::getReading,
-    /*GetError=*/RaplMetricData::getError,
-    /*RegisterInsertCallback=*/nullptr,
+  /// This metric provides power measurements through the RAPL interface. Either psys measurement is choosen or if this
+  /// is not available the sum of packages and drams.
+  inline static MetricInterface Metric{
+      /*Name=*/"sysfs-powercap-rapl",
+      /*Type=*/
+      {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+       /*Reserved=*/0},
+      /*Unit=*/"J",
+      /*CallbackTime=*/30000000,
+      /*Callback=*/callback,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      getSubmetricNames,
+      /*GetReading=*/getReading,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/nullptr,
+  };
 };

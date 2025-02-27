@@ -26,7 +26,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-auto IpcEstimateMetricData::fini() -> int32_t {
+auto IpcEstimateMetric::fini() -> int32_t {
   auto& Instance = instance();
 
   Instance.Callback = nullptr;
@@ -35,18 +35,18 @@ auto IpcEstimateMetricData::fini() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto IpcEstimateMetricData::init() -> int32_t {
+auto IpcEstimateMetric::init() -> int32_t {
   instance().ErrorString = "";
 
   return EXIT_SUCCESS;
 }
 
-auto IpcEstimateMetricData::getError() -> const char* {
+auto IpcEstimateMetric::getError() -> const char* {
   const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }
 
-auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, uint64_t, int64_t, double), void* Arg) -> int32_t {
+auto IpcEstimateMetric::registerInsertCallback(void (*C)(void*, uint64_t, int64_t, double), void* Arg) -> int32_t {
   auto& Instance = instance();
 
   Instance.Callback = C;
@@ -55,7 +55,7 @@ auto IpcEstimateMetricData::registerInsertCallback(void (*C)(void*, uint64_t, in
   return EXIT_SUCCESS;
 }
 
-void IpcEstimateMetricData::insertValue(double Value) {
+void IpcEstimateMetric::insertValue(double Value) {
   auto& Instance = instance();
 
   if (Instance.Callback == nullptr || Instance.CallbackArg == nullptr) {

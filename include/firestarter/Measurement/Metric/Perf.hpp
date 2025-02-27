@@ -27,9 +27,9 @@
 #include <string>
 
 /// The wrapper for the C interface to the PerfIpcMetric and PerfFreqMetric metric.
-class PerfMetricData {
+class PerfMetric {
 private:
-  PerfMetricData() = default;
+  PerfMetric() = default;
 
   static const constexpr char* PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
 
@@ -72,12 +72,12 @@ private:
   static auto getReading(double* IpcValue, double* FreqValue) -> int32_t;
 
 public:
-  PerfMetricData(PerfMetricData const&) = delete;
-  void operator=(PerfMetricData const&) = delete;
+  PerfMetric(PerfMetric const&) = delete;
+  void operator=(PerfMetric const&) = delete;
 
   /// Get the instance of this metric
-  static auto instance() -> PerfMetricData& {
-    static PerfMetricData Instance;
+  static auto instance() -> PerfMetric& {
+    static PerfMetric Instance;
     return Instance;
   }
 
@@ -111,40 +111,40 @@ public:
   /// Get error in case return code not being EXIT_SUCCESS.
   /// \returns The error string.
   static auto getError() -> const char*;
-};
 
-/// This metric provides IPC measurement of the programm and all associated threads.
-inline static MetricInterface PerfIpcMetric{
-    /*Name=*/"perf-ipc",
-    /*Type=*/
-    {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
-     /*Reserved=*/0},
-    /*Unit=*/"IPC",
-    /*CallbackTime=*/0,
-    /*Callback=*/nullptr,
-    /*Init=*/PerfMetricData::init,
-    /*Fini=*/PerfMetricData::fini,
-    /*GetSubmetricNames=*/
-    nullptr,
-    /*GetReading=*/PerfMetricData::getReadingIpc,
-    /*GetError=*/PerfMetricData::getError,
-    /*RegisterInsertCallback=*/nullptr,
-};
+  /// This metric provides IPC measurement of the programm and all associated threads.
+  inline static MetricInterface PerfIpcMetric{
+      /*Name=*/"perf-ipc",
+      /*Type=*/
+      {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+       /*Reserved=*/0},
+      /*Unit=*/"IPC",
+      /*CallbackTime=*/0,
+      /*Callback=*/nullptr,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
+      /*GetReading=*/getReadingIpc,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/nullptr,
+  };
 
-/// This metric provides frequency measurement on the CPUs used to execute the program on.
-inline static MetricInterface PerfFreqMetric{
-    /*Name=*/"perf-freq",
-    /*Type=*/
-    {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
-     /*Reserved=*/0},
-    /*Unit=*/"GHz",
-    /*CallbackTime=*/0,
-    /*Callback=*/nullptr,
-    /*Init=*/PerfMetricData::init,
-    /*Fini=*/PerfMetricData::fini,
-    /*GetSubmetricNames=*/
-    nullptr,
-    /*GetReading=*/PerfMetricData::getReadingFreq,
-    /*GetError=*/PerfMetricData::getError,
-    /*RegisterInsertCallback=*/nullptr,
+  /// This metric provides frequency measurement on the CPUs used to execute the program on.
+  inline static MetricInterface PerfFreqMetric{
+      /*Name=*/"perf-freq",
+      /*Type=*/
+      {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+       /*Reserved=*/0},
+      /*Unit=*/"GHz",
+      /*CallbackTime=*/0,
+      /*Callback=*/nullptr,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
+      /*GetReading=*/getReadingFreq,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/nullptr,
+  };
 };

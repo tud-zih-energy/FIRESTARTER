@@ -223,7 +223,7 @@ void Firestarter::printPerformanceReport() {
   if (Cfg.Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
-      IpcEstimateMetricData::insertValue(
+      IpcEstimateMetric::insertValue(
           static_cast<double>(Td->LastRun.Iterations) *
           static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
           static_cast<double>(StopTimestamp - StartTimestamp));

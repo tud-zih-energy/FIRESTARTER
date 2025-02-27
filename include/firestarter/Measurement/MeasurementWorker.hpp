@@ -51,8 +51,8 @@ private:
   /// The vector of metrics that are available. Currently the following metrics are builtin: sysfs-powercap-rapl,
   /// perf-ipc, perf-freq and ipc-estimate. Metric provided through shared libraries are added to this list.
   std::vector<std::shared_ptr<RootMetric>> Metrics = {
-      RootMetric::fromCInterface(RaplMetric), RootMetric::fromCInterface(PerfIpcMetric),
-      RootMetric::fromCInterface(PerfFreqMetric), RootMetric::fromCInterface(IpcEstimateMetric)};
+      RootMetric::fromCInterface(RaplMetric::Metric), RootMetric::fromCInterface(PerfMetric::PerfIpcMetric),
+      RootMetric::fromCInterface(PerfMetric::PerfFreqMetric), RootMetric::fromCInterface(IpcEstimateMetric::Metric)};
 
   /// We poll the values of all the metrics after this number of milliseconds.
   std::chrono::milliseconds UpdateInterval;
