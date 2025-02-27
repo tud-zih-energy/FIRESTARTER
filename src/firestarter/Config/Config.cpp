@@ -33,6 +33,7 @@
 #include <exception>
 #include <iterator>
 #include <nitro/log/severity.hpp>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>

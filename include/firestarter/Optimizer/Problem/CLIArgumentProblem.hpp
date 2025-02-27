@@ -28,7 +28,6 @@
 #include <cassert>
 #include <cmath>
 #include <functional>
-#include <stdexcept>
 #include <thread>
 #include <tuple>
 #include <utility>
