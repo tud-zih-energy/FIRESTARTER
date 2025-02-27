@@ -125,7 +125,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
         auto NameEqual = [&OptimizationMetric](auto const& Name) { return Name.isSameMetric(OptimizationMetric); };
         // metric has not initialized properly
         if (std::find_if(Initialized.cbegin(), Initialized.cend(), NameEqual) == Initialized.cend()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
+          throw std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
         }
       }
     }
