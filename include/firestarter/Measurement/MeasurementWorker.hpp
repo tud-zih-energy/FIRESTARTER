@@ -26,6 +26,7 @@
 #include "firestarter/Measurement/Metric/Perf.hpp"
 #include "firestarter/Measurement/Metric/RAPL.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <functional>
