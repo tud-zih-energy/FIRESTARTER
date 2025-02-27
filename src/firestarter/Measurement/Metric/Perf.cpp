@@ -62,6 +62,13 @@ auto PerfMetric::init() -> int32_t {
     return Instance.InitValue;
   }
 
+  // No other functions are setting the environment variables
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  if (const char* Cpu = std::getenv("FIRESTARTER_PERF_CPU")) {
+    // Collect the perf metrics only from a specific CPU.
+    Instance.PerfCpu = std::stoi(Cpu);
+  }
+
   if (access(PerfEventParanoidFile, F_OK) == -1) {
     // https://man7.org/linux/man-pages/man2/perf_event_open.2.html
     // The official way of knowing if perf_event_open() support is enabled
@@ -106,7 +113,7 @@ auto PerfMetric::init() -> int32_t {
   Instance.CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
                                        // pid == 0 and cpu == -1
                                        // This measures the calling process/thread on any CPU.
-                                       0, -1,
+                                       0, Instance.PerfCpu,
                                        // The group_fd argument allows event groups to be created.  An event
                                        // group has one event which is the group leader.  The leader is
                                        // created first, with group_fd = -1.  The rest of the group members
@@ -138,7 +145,7 @@ auto PerfMetric::init() -> int32_t {
   Instance.InstructionsFd = perfEventOpen(&InstructionsAttr,
                                           // pid == 0 and cpu == -1
                                           // This measures the calling process/thread on any CPU.
-                                          0, -1,
+                                          0, Instance.PerfCpu,
                                           // The group_fd argument allows event groups to be created.  An event
                                           // group has one event which is the group leader.  The leader is
                                           // created first, with group_fd = -1.  The rest of the group members

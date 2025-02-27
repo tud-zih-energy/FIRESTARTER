@@ -253,6 +253,12 @@ If `perf-ipc` is not available use `ipc-estimate`
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
 ```
 
+### Metric Options
+
+The `perf-ipc` and `perf-freq` metric allows the user to set the
+`FIRESTARTER_PERF_CPU` environment variable which can be set to an integer.
+This causes the perf metrics to be collected only on the specified cpu.
+
 ## OneAPI
 `FIRESTARTER_ONEAPI` needs to find certain libraries, which are installed with
 the Intel OneAPI toolkits, since some of these libraries cannot be linked statically.

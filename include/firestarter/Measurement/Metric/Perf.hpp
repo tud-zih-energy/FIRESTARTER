@@ -65,6 +65,10 @@ private:
   /// Save the last read metric for the perf-ipc metric. This value will be updated when the perf-ipc metric is read.
   struct ReadFormat Last {};
 
+  /// The Cpu parameter that is given to perf_event_open. Per default this is -1 resulting perf metrics to be collected
+  /// from any CPU of the calling process.
+  int PerfCpu = -1;
+
   /// Get a reading of the perf-freq and perf-ipc metric. Pointers can be nullptr.
   /// \arg IpcValue The pointer to which the value for ipc metric value will be saved.
   /// \arg FreqValue The pointer to which the value for freq metric value will be saved.
