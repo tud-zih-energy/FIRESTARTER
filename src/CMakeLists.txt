@@ -10,8 +10,12 @@ add_library(firestartercore STATIC
 	firestarter/ProcessorInformation.cpp
 
 	firestarter/Config/Config.cpp
-	firestarter/Config/InstructionGroups.cpp
 	firestarter/Config/CpuBind.cpp
+	firestarter/Config/InstructionGroups.cpp
+	firestarter/Config/MetricName.cpp
+	
+	firestarter/Measurement/Metric.cpp
+	firestarter/Measurement/Summary.cpp
 
 	firestarter/Payload/CompiledPayload.cpp
 	firestarter/Payload/PayloadSettings.cpp
@@ -44,7 +48,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	add_library(firestarterlinux STATIC
 		# measurement stuff
 		firestarter/Measurement/MeasurementWorker.cpp
-		firestarter/Measurement/Summary.cpp
 		firestarter/Measurement/Metric/IPCEstimate.cpp
 		firestarter/Measurement/Metric/RAPL.cpp
 		firestarter/Measurement/Metric/Perf.cpp

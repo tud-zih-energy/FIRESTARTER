@@ -21,13 +21,12 @@
 
 #include "firestarter/Optimizer/Population.hpp"
 #include "firestarter/Logging/Log.hpp"
-#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Optimizer/History.hpp"
 #include "firestarter/Optimizer/Individual.hpp"
 
 #include <cassert>
 #include <cstddef>
-#include <map>
 #include <random>
 #include <sstream>
 #include <string>
@@ -63,7 +62,7 @@ auto Population::size() const -> std::size_t { return X.size(); }
 void Population::append(Individual const& Ind) {
   assert(this->problem().getDims() == Ind.size());
 
-  std::map<std::string, firestarter::measurement::Summary> Metrics;
+  measurement::MetricSummaries Metrics;
 
   // check if we already evaluated this individual
   const auto OptionalMetric = History::find(Ind);

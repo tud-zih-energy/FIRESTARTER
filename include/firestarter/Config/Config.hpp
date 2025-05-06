@@ -22,6 +22,7 @@
 #pragma once
 
 #include "firestarter/Config/InstructionGroups.hpp"
+#include "firestarter/Config/MetricName.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -63,11 +64,11 @@ struct Config {
   double Nsga2M;
 
   /// The name of the metrics that are read from stdin.
-  std::vector<std::string> StdinMetrics;
+  std::set<std::string> StdinMetrics;
   /// The paths to the metrics that are loaded using shared libraries.
-  std::vector<std::string> MetricPaths;
-  /// The list of metrics that are used for maximization. If a metric is prefixed with '-' it will be minimized.
-  std::vector<std::string> OptimizationMetrics;
+  std::set<std::string> MetricPaths;
+  /// The set of metrics that are used for maximization. If a metric is prefixed with '-' it will be minimized.
+  std::set<MetricName> OptimizationMetrics;
 
   /// The optional cpu bind that allow pinning to specific cpus.
   std::optional<std::set<uint64_t>> CpuBinding;

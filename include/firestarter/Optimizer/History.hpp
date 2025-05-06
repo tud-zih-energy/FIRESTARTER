@@ -21,8 +21,10 @@
 
 #pragma once
 
-#include "firestarter/Json/Summary.hpp" // IWYU pragma: keep
+#include "firestarter/Json/MetricName.hpp" // IWYU pragma: keep
+#include "firestarter/Json/Summary.hpp"    // IWYU pragma: keep
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/Summary.hpp"
 #include "firestarter/Optimizer/Individual.hpp"
 #include "firestarter/WindowsCompat.hpp" // IWYU pragma: keep
@@ -36,6 +38,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <set>
 #include <vector>
 
 namespace firestarter::optimizer {
@@ -78,15 +81,14 @@ private:
   /// The vector of individuals that have been evaluated. This vector has the same size as F.
   inline static std::vector<Individual> X = {};
   /// The vector of metric summaries associated to the evaluated individuals. This vector has the same size as X.
-  inline static std::vector<std::map<std::string, firestarter::measurement::Summary>> F = {};
+  inline static std::vector<measurement::MetricSummaries> F = {};
   // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
 public:
   /// Append an evaluated individual to the history.
   /// \arg Ind The individual to add.
   /// \arg Metric The metric summaries for this individual.
-  static void append(std::vector<unsigned> const& Ind,
-                     std::map<std::string, firestarter::measurement::Summary> const& Metric) {
+  static void append(std::vector<unsigned> const& Ind, measurement::MetricSummaries const& Metric) {
     X.push_back(Ind);
     F.push_back(Metric);
   }
@@ -94,8 +96,7 @@ public:
   /// Loopup an indiviudal in the history and return the metric summaries if it is in the history.
   /// \arg Individual The individual which may already be evaluated.
   /// \returns The metric summaries if the individual is in the history or std::nullopt otherwise.
-  static auto find(std::vector<unsigned> const& Individual)
-      -> std::optional<std::map<std::string, firestarter::measurement::Summary>> {
+  static auto find(std::vector<unsigned> const& Individual) -> std::optional<measurement::MetricSummaries> {
     auto FindEqual = [&Individual](auto const& Ind) { return Ind == Individual; };
     auto Ind = std::find_if(X.begin(), X.end(), FindEqual);
     if (Ind == X.end()) {
@@ -109,36 +110,28 @@ public:
   /// metric.
   /// \arg OptimizationMetrics The metrics for which the best individual should be printed.
   /// \arg PayloadItems The instruction of the associated instruction groups used in the optimization.
-  static void printBest(std::vector<std::string> const& OptimizationMetrics,
-                        std::vector<std::string> const& PayloadItems) {
+  static void printBest(std::set<MetricName> const& OptimizationMetrics, std::vector<std::string> const& PayloadItems) {
     // TODO(Issue #76): print paretto front
 
     // print the best 20 individuals for each metric in a format
     // where the user can give it to --run-instruction-groups directly
-    std::map<std::string, std::size_t> ColumnWidth;
+    std::map<MetricName, std::size_t> ColumnWidth;
 
     for (auto const& Metric : OptimizationMetrics) {
-      ColumnWidth[Metric] = (std::max)(Metric.size(), MinColumnWidth);
-      firestarter::log::trace() << Metric << ": " << ColumnWidth[Metric];
+      ColumnWidth[Metric] = (std::max)(Metric.toStringWithoutAttributes().size(), MinColumnWidth);
+      firestarter::log::trace() << Metric.toStringWithoutAttributes() << ": " << ColumnWidth[Metric];
     }
 
     for (auto const& Metric : OptimizationMetrics) {
-      using SummaryMap = std::map<std::string, firestarter::measurement::Summary>;
-      auto CompareIndividual = [&Metric](SummaryMap const& MapA, SummaryMap const& MapB) {
-        auto SummaryA = MapA.find(Metric);
-        auto SummaryB = MapB.find(Metric);
+      auto CompareIndividual = [&Metric](measurement::MetricSummaries const& Lhs,
+                                         measurement::MetricSummaries const& Rhs) {
+        auto SummaryLhs = Lhs.at(Metric);
+        auto SummaryRhs = Rhs.at(Metric);
 
-        if (SummaryA == MapA.end() || SummaryB == MapB.end()) {
-          SummaryA = MapA.find(Metric.substr(1));
-          SummaryB = MapB.find(Metric.substr(1));
-          assert(SummaryA != MapA.end());
-          assert(SummaryB != MapB.end());
-          return SummaryA->second.Average < SummaryB->second.Average;
+        if (!Metric.inverted()) {
+          return SummaryLhs.Average > SummaryRhs.Average;
         }
-
-        assert(SummaryA != MapA.end());
-        assert(SummaryB != MapB.end());
-        return SummaryA->second.Average > SummaryB->second.Average;
+        return SummaryLhs.Average < SummaryRhs.Average;
       };
 
       auto Perm = sortPermutation(F, CompareIndividual);
@@ -193,15 +186,15 @@ public:
         FirstLine << " | ";
         SecondLine << "---";
 
-        FirstLine << Metric;
-        padding(FirstLine, Width, Metric.size(), ' ');
+        FirstLine << Metric.toStringWithoutAttributes();
+        padding(FirstLine, Width, Metric.toStringWithoutAttributes().size(), ' ');
         padding(SecondLine, Width, 0, '-');
       }
 
       std::stringstream Ss;
 
-      Ss << "\n Best individuals sorted by metric " << Metric << " "
-         << ((Metric[0] == '-') ? "ascending" : "descending") << ":\n"
+      Ss << "\n Best individuals sorted by metric " << Metric.toStringWithoutAttributes() << " "
+         << (Metric.inverted() ? "ascending" : "descending") << ":\n"
          << FirstLine.str() << "\n"
          << SecondLine.str() << "\n";
 
@@ -215,19 +208,9 @@ public:
 
         for (auto const& Metric : OptimizationMetrics) {
           auto Width = ColumnWidth[Metric];
-          std::string Value;
 
-          auto FitnessOfMetric = Fitness.find(Metric);
-          auto InvertedMetric = Metric.substr(1);
-          auto FitnessOfInvertedMetric = Fitness.find(InvertedMetric);
-
-          if (FitnessOfMetric != Fitness.end()) {
-            Value = std::to_string(FitnessOfMetric->second.Average);
-          } else if (FitnessOfInvertedMetric != Fitness.end()) {
-            Value = std::to_string(FitnessOfInvertedMetric->second.Average);
-          } else {
-            assert(false);
-          }
+          auto FitnessOfMetric = Fitness.at(Metric);
+          const auto Value = std::to_string(FitnessOfMetric.Average);
 
           Ss << " | " << Value;
           padding(Ss, Width, Value.size(), ' ');

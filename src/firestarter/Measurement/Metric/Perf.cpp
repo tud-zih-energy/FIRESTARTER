@@ -40,7 +40,7 @@ auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int Grou
 }
 } // namespace
 
-auto PerfMetricData::fini() -> int32_t {
+auto PerfMetric::fini() -> int32_t {
   auto& Instance = instance();
 
   if (!(Instance.CpuCyclesFd < 0)) {
@@ -55,7 +55,7 @@ auto PerfMetricData::fini() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto PerfMetricData::init() -> int32_t {
+auto PerfMetric::init() -> int32_t {
   auto& Instance = instance();
 
   if (Instance.InitDone) {
@@ -175,7 +175,7 @@ auto PerfMetricData::init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto PerfMetricData::valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t {
+auto PerfMetric::valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t {
   for (decltype(Reader->Nr) I = 0; I < Reader->Nr; ++I) {
     assert(I < 2 && "Index is out of bounds");
     // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
@@ -188,7 +188,7 @@ auto PerfMetricData::valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint
   return 0;
 }
 
-auto PerfMetricData::getReading(double* IpcValue, double* FreqValue) -> int32_t {
+auto PerfMetric::getReading(double* IpcValue, double* FreqValue) -> int32_t {
   auto& Instance = instance();
 
   if (Instance.CpuCyclesFd < 0 || Instance.InstructionsFd < 0) {
@@ -221,11 +221,17 @@ auto PerfMetricData::getReading(double* IpcValue, double* FreqValue) -> int32_t 
   return EXIT_SUCCESS;
 }
 
-auto PerfMetricData::getReadingIpc(double* Value) -> int32_t { return getReading(Value, nullptr); }
+auto PerfMetric::getReadingIpc(double* Value, uint64_t NumElems) -> int32_t {
+  assert(NumElems == 1 && "The number of elements should be exctly one, since no submetrics are available.");
+  return getReading(Value, nullptr);
+}
 
-auto PerfMetricData::getReadingFreq(double* Value) -> int32_t { return getReading(nullptr, Value); }
+auto PerfMetric::getReadingFreq(double* Value, uint64_t NumElems) -> int32_t {
+  assert(NumElems == 1 && "The number of elements should be exctly one, since no submetrics are available.");
+  return getReading(nullptr, Value);
+}
 
-auto PerfMetricData::getError() -> const char* {
+auto PerfMetric::getError() -> const char* {
   const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }

@@ -110,31 +110,20 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
           Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
 
       if (Cfg.ListMetrics) {
-        log::info() << MeasurementWorker->availableMetrics();
+        log::info() << MeasurementWorker->availableMetricsString();
         safeExit(EXIT_SUCCESS);
       }
 
       // init all metrics
-      auto All = MeasurementWorker->metricNames();
-      auto Initialized = MeasurementWorker->initMetrics(All);
+      const auto All = MeasurementWorker->metrics();
+      MeasurementWorker->initMetrics(All);
 
-      if (Initialized.empty()) {
-        std::invalid_argument("No metrics initialized");
-      }
+      const auto Initialized = MeasurementWorker->initializedMetrics();
 
       // check if selected metrics are initialized
       for (auto const& OptimizationMetric : Cfg.OptimizationMetrics) {
-        auto NameEqual = [OptimizationMetric](auto const& Name) {
-          auto InvertedName = "-" + Name;
-          return Name == OptimizationMetric || InvertedName == OptimizationMetric;
-        };
-        // metric name is not found
-        if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" does not exist.");
-        }
-        // metric has not initialized properly
-        if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
+        if (!static_cast<bool>(Initialized.count(OptimizationMetric))) {
+          throw std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
         }
       }
     }
@@ -162,7 +151,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
         for (auto const& Thread : LoadThreads) {
           auto Td = Thread.second;
-          IpcEstimateMetricData::insertValue(
+          IpcEstimateMetric::insertValue(
               static_cast<double>(Td->LastRun.Iterations) *
               static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
               static_cast<double>(StopTimestamp - StartTimestamp));
@@ -278,7 +267,7 @@ void Firestarter::mainThread() {
       // TODO(Issue #77): clear this up
       log::info() << "metric,num_timepoints,duration_ms,average,stddev";
       for (auto const& [name, sum] : MeasurementWorker->getValues(Cfg.StartDelta, Cfg.StopDelta)) {
-        log::info() << std::quoted(name) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
+        log::info() << std::quoted(name.toString()) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
                     << sum.Average << "," << sum.Stddev;
       }
     }

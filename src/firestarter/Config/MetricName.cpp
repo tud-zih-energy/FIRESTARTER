@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2025 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,27 +19,31 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#pragma once
+#include "firestarter/Config/MetricName.hpp"
 
-#include <chrono>
-#include <tuple>
+#include <optional>
+#include <regex>
+#include <stdexcept>
+#include <string>
 
-namespace firestarter::measurement {
+namespace firestarter {
 
-/// This struct models a value that was captured at a specific timepoint.
-struct TimeValue {
-  TimeValue() = default;
+auto MetricName::fromString(const std::string& Metric) -> MetricName {
+  // Group 1 matches the minus sign, group 2 the root metric name, group 4 the sub-metric name
+  const std::regex Re(R"(^(-)?([\w-]+)(/([\w-]+))?$)");
+  std::smatch M;
 
-  constexpr TimeValue(std::chrono::high_resolution_clock::time_point Time, double Value)
-      : Time(Time)
-      , Value(Value){};
-
-  auto operator==(const TimeValue& Other) const -> bool {
-    return std::tie(Time, Value) == std::tie(Other.Time, Other.Value);
+  if (std::regex_match(Metric, M, Re)) {
+    const bool Inverted = M[1].length() == 1;
+    auto RootMetricName = M[2].str();
+    std::optional<std::string> SubmetricName;
+    if (M[4].matched) {
+      SubmetricName = M[4].str();
+    }
+    return {Inverted, RootMetricName, SubmetricName};
   }
 
-  std::chrono::high_resolution_clock::time_point Time;
-  double Value{};
-};
+  throw std::invalid_argument("Could not parse the metric name: " + Metric);
+}
 
-} // namespace firestarter::measurement
+} // namespace firestarter
