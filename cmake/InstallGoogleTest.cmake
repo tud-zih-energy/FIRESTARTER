@@ -14,6 +14,7 @@ if (FIRESTARTER_FETCH_GOOGLETEST)
 	FetchContent_Declare(
 		googletest
 		URL https://github.com/google/googletest/archive/d122c0d435a6d305cdd50526127c84a98b77d87b.zip
+		DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 	)
 
 	FetchContent_MakeAvailable(googletest)
