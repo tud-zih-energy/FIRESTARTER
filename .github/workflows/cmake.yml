@@ -8,7 +8,7 @@ on: [push, pull_request]
 #   FIRESTARTER_ONEAPI versions 2023.2.0 and 2024.0 against icx and icpx compiler on ubuntu24.04
 #   FIRESTARTER_CUDA with cuda versions 8.0, 11.0 and NVHPC-22.5 against the default compiler on ubuntu24.04
 #   FIRESTARTER against
-#     ubuntu 22.04 gcc-9 and clang-11
+#     ubuntu 22.04 gcc-10 and clang-11
 #     ubuntu 24.04 gcc-14 and clang-18
 #     default compilers on ubuntu-22.04 and ubuntu-24.04
 # On Windows:
@@ -247,7 +247,7 @@ jobs:
       matrix:
         include:
           # Oldest supported compiler on older Ubuntu
-          - { os: ubuntu-22.04, compiler: gcc-9,    cxxcompiler: g++-9 }
+          - { os: ubuntu-22.04, compiler: gcc-10,    cxxcompiler: g++-10 }
           - { os: ubuntu-22.04, compiler: clang-11,  cxxcompiler: clang++-11 }
           # Latest compiler on latest Ubuntu
           - { os: ubuntu-24.04, compiler: gcc-14,   cxxcompiler: g++-14 }
