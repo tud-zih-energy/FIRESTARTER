@@ -1,5 +1,4 @@
-# Create the core firestarter library that is used in all builds and tests
-add_library(firestartercore STATIC
+SET(FIRESTARTER_LIBRARY_FILES
 	firestarter/Firestarter.cpp
 	firestarter/SafeExit.cpp
 	firestarter/WatchdogWorker.cpp
@@ -8,6 +7,7 @@ add_library(firestartercore STATIC
 	firestarter/ThreadAffinity.cpp
 	firestarter/FunctionSelection.cpp
 	firestarter/ProcessorInformation.cpp
+	firestarter/LoadWorker.cpp
 
 	firestarter/Config/Config.cpp
 	firestarter/Config/CpuBind.cpp
@@ -19,6 +19,9 @@ add_library(firestartercore STATIC
 
 	firestarter/Payload/CompiledPayload.cpp
 	firestarter/Payload/PayloadSettings.cpp
+
+	# the selected tracing variant
+	firestarter/Tracing/${FIRESTARTER_TRACING}.cpp
 
 	# here starts the x86 specific code
 	firestarter/X86/X86ProcessorInformation.cpp
@@ -32,20 +35,11 @@ add_library(firestartercore STATIC
 	firestarter/X86/Payload/ZENFMAPayload.cpp
 	firestarter/X86/Payload/AVXPayload.cpp
 	firestarter/X86/Payload/SSE2Payload.cpp
-	)
+)
 
-target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
-target_link_libraries(firestartercore
-	hwloc
-	AsmJit::AsmJit
-	Nitro::log
-	nlohmann_json::nlohmann_json
-	)
-
-# Create the linux firestarter library that is used for specific linux only features
+# Specific linux only features
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	add_library(firestarterlinux STATIC
+	list(APPEND FIRESTARTER_LIBRARY_FILES
 		# measurement stuff
 		firestarter/Measurement/MeasurementWorker.cpp
 		firestarter/Measurement/Metric/IPCEstimate.cpp
@@ -57,47 +51,26 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		firestarter/Optimizer/OptimizerWorker.cpp
 		firestarter/Optimizer/Util/MultiObjective.cpp
 		firestarter/Optimizer/Algorithm/NSGA2.cpp
-		)
-	
-	target_include_directories(firestarterlinux PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
-	target_link_libraries(firestarterlinux
-		Nitro::log
-		nlohmann_json::nlohmann_json
-		)
+	)
 endif()
 
-add_library(firestartercombined STATIC
-	# IpcEstimateMetricData::insertValue is accesses which is part of the firestarterlinux library.
-	# This reference should be removed there and the file moved back to the firestartercore library.
-	firestarter/LoadWorker.cpp
+# Create library that is used in all builds and tests
+add_library(firestartercore
+	${FIRESTARTER_LIBRARY_FILES}
 )
 
-target_link_libraries(firestartercombined
-	firestartercore
-	)
+target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	target_link_libraries(firestartercombined
-		firestarterlinux
-		)
-endif()
+target_link_libraries(firestartercore
+	hwloc
+	AsmJit::AsmJit
+	Nitro::log
+	nlohmann_json::nlohmann_json
+)
 
 SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
 	)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-	SET(FIRESTARTER_LIBRARIES
-		firestartercombined
-	)
-else()
-	SET(FIRESTARTER_LIBRARIES
-		"-Wl,--whole-archive"
-		firestartercombined
-		"-Wl,--no-whole-archive"
-	)
-endif()
 
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	add_executable(FIRESTARTER_CUDA
@@ -106,7 +79,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
-		${FIRESTARTER_LIBRARIES}
+		firestartercore
 	)
 
 	target_link_libraries(FIRESTARTER_CUDA
@@ -134,7 +107,7 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
-		${FIRESTARTER_LIBRARIES}
+		firestartercore
 	)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
@@ -154,7 +127,7 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
-		${FIRESTARTER_LIBRARIES}
+		firestartercore
 	)
 
 	target_link_libraries(FIRESTARTER_HIP
@@ -176,7 +149,7 @@ elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		)
 
 	target_link_libraries(FIRESTARTER
-		${FIRESTARTER_LIBRARIES}
+		firestartercore
 	)
 
 	target_link_libraries_darwin(NAME FIRESTARTER)

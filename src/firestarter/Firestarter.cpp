@@ -35,6 +35,7 @@
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
 #include "firestarter/SafeExit.hpp"
 #include "firestarter/ThreadAffinity.hpp"
+#include "firestarter/Tracing.h"
 #include "firestarter/X86/X86CpuFeatures.hpp"
 #include "firestarter/X86/X86FunctionSelection.hpp"
 #include "firestarter/X86/X86ProcessorInformation.hpp"
@@ -57,6 +58,8 @@ namespace firestarter {
 Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig)) {
   std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
+
+  firestarterTracingInitialize(Cfg.Argc, Cfg.Argv);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
@@ -204,6 +207,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 }
 
 void Firestarter::mainThread() {
+  firestarterTracingRegionBegin("Main-Thread");
+
   Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
   Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
 
@@ -228,6 +233,8 @@ void Firestarter::mainThread() {
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     // check if optimization is selected
     if (Cfg.Optimize) {
+      firestarterTracingRegionBegin("Main-Thread-Optimize");
+
       auto StartTime = optimizer::History::getTime();
 
       Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(std::move(Algorithm), std::move(Population),
@@ -246,6 +253,8 @@ void Firestarter::mainThread() {
 
       // stop all the load threads
       (void)std::raise(SIGTERM);
+
+      firestarterTracingRegionEnd("Main-Thread-Optimize");
     }
   }
 
@@ -276,6 +285,8 @@ void Firestarter::mainThread() {
   if (Cfg.ErrorDetection) {
     printThreadErrorReport();
   }
+
+  firestarterTracingRegionEnd("Main-Thread");
 }
 
 void Firestarter::setLoad(LoadThreadWorkType Value) {

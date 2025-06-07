@@ -3,7 +3,7 @@
 include(ExternalProject)
 
 if (FIRESTARTER_BUILD_HWLOC)
-	add_library(hwloc STATIC IMPORTED)
+	add_library(hwloc UNKNOWN IMPORTED)
 
 	if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 		ExternalProject_Add(
@@ -13,19 +13,26 @@ if (FIRESTARTER_BUILD_HWLOC)
 			INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
 			URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
 			URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
-			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --enable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install
-			BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libhwloc.a
+			BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libhwloc.a <INSTALL_DIR>/lib/libhwloc.so
 			DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 			)
 
 		SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/install")
 		SET(HWLOC_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/install")
-		set_target_properties(hwloc PROPERTIES
-			IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.a
-		)
+
+		if (FIRESTARTER_LINK_STATIC)
+			set_target_properties(hwloc PROPERTIES
+				IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.a
+			)
+		else()
+			set_target_properties(hwloc PROPERTIES
+				IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.so
+			)
+		endif()
 	elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 			ExternalProject_Add(

@@ -24,3 +24,8 @@ option(FIRESTARTER_FETCH_GOOGLETEST "Fetch the Google Test dependency." ON)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	option(FIRESTARTER_DEBUG_FEATURES "Enable debug features" ON)
 endif()
+
+
+# Feature for different tracing libraries
+set(FIRESTARTER_TRACING "None" CACHE STRING "FIRESTARTER_TRACING can be any of None or External.")
+set_property(CACHE FIRESTARTER_TRACING PROPERTY STRINGS None External)
