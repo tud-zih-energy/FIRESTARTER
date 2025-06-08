@@ -21,7 +21,7 @@
 
 #pragma once
 
-/// This file provides a interface to adopt differnt tracing targets to FIRESTARTER
+/// This file provides a interface to adopt different tracing targets to FIRESTARTER
 #ifdef __cplusplus
 extern "C" {
 #endif
