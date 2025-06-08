@@ -29,7 +29,7 @@ message("Passing the following arguments to the FIRESTARTER build: ${FIRESTARTER
 # Define the library that contains the instrumentation
 find_package(ScoreP REQUIRED COMPONENTS PTHREAD)
 
-add_library(ScorePLibrary
+add_library(ScorePLibrary SHARED
 	ScoreP.c
   ${CMAKE_CURRENT_BINARY_DIR}/ScorePAdapter.c
 )

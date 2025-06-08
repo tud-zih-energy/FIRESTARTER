@@ -71,11 +71,13 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 endif()
 
 # Create library that is used in all builds and tests
-add_library(firestartercore
+add_library(firestartercore OBJECT
 	${FIRESTARTER_LIBRARY_FILES}
 )
 
-target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(firestartercore PUBLIC
+	${PROJECT_SOURCE_DIR}/include
+)
 
 target_link_libraries(firestartercore
 	hwloc
@@ -83,49 +85,6 @@ target_link_libraries(firestartercore
 	Nitro::log
 	nlohmann_json::nlohmann_json
 )
-
-# Link options for GPU versions
-if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
-	target_link_libraries(firestartercore
-		CUDA::cuda_driver
-		CUDA::cudart
-		CUDA::curand
-		CUDA::cublas
-	)
-
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		target_link_libraries(firestartercore
-            ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
-		)
-	else()
-		target_link_libraries(firestartercore
-			-ldl
-		)
-	endif()
-elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
-	target_link_libraries(firestartercore
-		mkl_sycl
-		mkl_intel_ilp64
-		mkl_sequential
-		mkl_core
-		sycl
-		stdc++
-		Threads::Threads
-	)
-elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
-	target_link_libraries(firestartercore
-		hip::host
-		hip::hiprand
-		roc::hipblas
-	)
-
-	if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-		target_link_libraries(firestartercore
-			hip
-			-ldl
-		)
-	endif()
-endif()
 
 # Main executable
 add_executable(${FIRESTARTER_BUILD_TYPE}
@@ -136,12 +95,52 @@ target_link_libraries(${FIRESTARTER_BUILD_TYPE}
 	firestartercore
 )
 
-if(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
-	target_link_libraries_darwin(NAME FIRESTARTER)
+if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
+	target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+		CUDA::cuda_driver
+		CUDA::cudart
+		CUDA::curand
+		CUDA::cublas
+	)
+
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+            ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
+		)
+	else()
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+			-ldl
+		)
+	endif()
+elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+	target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+		mkl_sycl
+		mkl_intel_ilp64
+		mkl_sequential
+		mkl_core
+		sycl
+		stdc++
+		Threads::Threads
+	)
+elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
+	target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+		hip::host
+		hip::hiprand
+		roc::hipblas
+	)
+
+	if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+			hip
+			-ldl
+		)
+	endif()
+elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
+	target_link_libraries_darwin(NAME ${FIRESTARTER_BUILD_TYPE})
 
 	# static linking is not supported on Darwin, see Apple Technical QA1118
 	if((NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND FIRESTARTER_LINK_STATIC)
-		target_link_libraries(FIRESTARTER
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
 			-static
 			)
 
@@ -149,20 +148,20 @@ if(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 		# static linking with pthreads and std::condition_variabale is evil and will cause segfaults
 		# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58909#c1
 		if(CMAKE_THREAD_LIBS_INIT MATCHES "^.*pthread.*$")
-			target_link_libraries(FIRESTARTER
+			target_link_libraries(${FIRESTARTER_BUILD_TYPE}
 				"-Wl,--whole-archive -lpthread -Wl,--no-whole-archive"
 				)
 		endif()
 	endif()
 
 	if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT FIRESTARTER_LINK_STATIC)
-		target_link_libraries(FIRESTARTER
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
 			-ldl
 			)
 	endif()
 
 	if (NOT FIRESTARTER_LINK_STATIC)
-		target_link_libraries(FIRESTARTER
+		target_link_libraries(${FIRESTARTER_BUILD_TYPE}
 			Threads::Threads
 			)
 	endif()
