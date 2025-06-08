@@ -28,6 +28,10 @@ if (FIRESTARTER_BUILD_HWLOC)
 			set_target_properties(hwloc PROPERTIES
 				IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.a
 			)
+		elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+			set_target_properties(hwloc PROPERTIES
+				IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.dylib
+			)
 		else()
 			set_target_properties(hwloc PROPERTIES
 				IMPORTED_LOCATION ${HWLOC_LIB_DIR}/lib/libhwloc.so
