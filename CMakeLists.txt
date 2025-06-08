@@ -63,7 +63,7 @@ include(cmake/BuildSettings.cmake)
 include(cmake/DarwinBuild.cmake)
 
 if(NOT DEFINED ASMJIT_STATIC)
-       set(ASMJIT_STATIC TRUE)
+	set(ASMJIT_STATIC TRUE)
 endif()
 
 add_subdirectory(lib/asmjit)
