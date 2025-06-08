@@ -55,7 +55,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 # Create library that is used in all builds and tests
-add_library(firestartercore OBJECT
+add_library(firestartercore STATIC
 	${FIRESTARTER_LIBRARY_FILES}
 )
 
