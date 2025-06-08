@@ -10,3 +10,6 @@
 [submodule "lib/cxxopts"]
 	path = lib/cxxopts
 	url = https://github.com/tud-zih-energy/FIRESTARTER.git
+[submodule "examples/ScoreP_Tracing/scorep_cmake"]
+	path = examples/ScoreP_Tracing/scorep_cmake
+	url = https://github.com/score-p/scorep_cmake.git

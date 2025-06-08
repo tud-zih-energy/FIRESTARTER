@@ -29,16 +29,10 @@
 #include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/ThreadAffinity.hpp"
+#include "firestarter/Tracing.h"
 
 #if defined(linux) || defined(__linux__)
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
-#endif
-
-#ifdef ENABLE_VTRACING
-#include <vt_user.h>
-#endif
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
 #endif
 
 #include <algorithm>
@@ -366,25 +360,16 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
+
+        firestarterTracingRegionBegin("High");
         Td->CurrentRun.Iterations = Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
                                                                              Td->LoadVar, Td->CurrentRun.Iterations);
+        firestarterTracingRegionEnd("High");
 
         // call low load function
-#ifdef ENABLE_VTRACING
-        VT_USER_END("HIGH_LOAD_FUNC");
-        VT_USER_START("LOW_LOAD_FUNC");
-#endif
-#ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_END("HIGH");
-        SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+        firestarterTracingRegionBegin("Low");
         Td->CompiledPayloadPtr->lowLoadFunction(Td->LoadVar, Td->Period);
-#ifdef ENABLE_VTRACING
-        VT_USER_END("LOW_LOAD_FUNC");
-#endif
-#ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_END("LOW");
-#endif
+        firestarterTracingRegionEnd("Low");
 
         // terminate if master signals end of run and record stop timestamp
         if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
