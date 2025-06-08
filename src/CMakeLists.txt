@@ -54,6 +54,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	)
 endif()
 
+if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
+	list(APPEND FIRESTARTER_LIBRARY_FILES
+		firestarter/Cuda/Cuda.cpp
+	)
+elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+	list(APPEND FIRESTARTER_LIBRARY_FILES
+		firestarter/OneAPI/OneAPI.cpp
+	)
+elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
+	list(APPEND FIRESTARTER_LIBRARY_FILES
+		firestarter/Cuda/Cuda.cpp
+	)
+endif()
+
 # Create library that is used in all builds and tests
 add_library(firestartercore
 	${FIRESTARTER_LIBRARY_FILES}
@@ -75,7 +89,6 @@ SET(FIRESTARTER_FILES
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	add_executable(FIRESTARTER_CUDA
 		${FIRESTARTER_FILES}
-		firestarter/Cuda/Cuda.cpp
 		)
 
 	target_link_libraries(FIRESTARTER_CUDA
@@ -103,7 +116,6 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 	add_executable(FIRESTARTER_ONEAPI
 		${FIRESTARTER_FILES}
-		firestarter/OneAPI/OneAPI.cpp
 		)
 
 	target_link_libraries(FIRESTARTER_ONEAPI
@@ -123,7 +135,6 @@ elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 	add_executable(FIRESTARTER_HIP
 		${FIRESTARTER_FILES}
-		firestarter/Cuda/Cuda.cpp
 		)
 
 	target_link_libraries(FIRESTARTER_HIP
