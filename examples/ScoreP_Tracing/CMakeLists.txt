@@ -29,15 +29,15 @@ message("Passing the following arguments to the FIRESTARTER build: ${FIRESTARTER
 # Define the library that contains the instrumentation
 find_package(ScoreP REQUIRED COMPONENTS PTHREAD)
 
-add_library(ScorePLibrary SHARED
+add_library(firestarter_scorep SHARED
 	ScoreP.c
   ${CMAKE_CURRENT_BINARY_DIR}/ScorePAdapter.c
 )
-target_include_directories(ScorePLibrary PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+target_include_directories(firestarter_scorep PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 
 get_target_property(scorep ScoreP::ScoreP IMPORTED_LOCATION)
 
-scorep_instrument("ScorePLibrary" LANGS C ARGUMENTS "--nocompiler" "--nokokkos" "--user" "--thread=pthread")
+scorep_instrument("firestarter_scorep" LANGS C ARGUMENTS "--nocompiler" "--nokokkos" "--user" "--thread=pthread")
 
 # Create the ScoreP adapter
 add_custom_command(
@@ -46,7 +46,7 @@ add_custom_command(
 )
 
 list(APPEND FIRESTARTER_CMAKE_ARGUMENTS "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
-list(APPEND FIRESTARTER_CMAKE_ARGUMENTS "-DCMAKE_CXX_STANDARD_LIBRARIES=-L${CMAKE_CURRENT_BINARY_DIR} -lScorePLibrary")
+list(APPEND FIRESTARTER_CMAKE_ARGUMENTS "-DCMAKE_CXX_STANDARD_LIBRARIES=-L${CMAKE_CURRENT_BINARY_DIR} -lfirestarter_scorep")
 
 # Define the build the FIRESTARTER executable
 ExternalProject_Add(FIRESTARTER
@@ -55,4 +55,4 @@ ExternalProject_Add(FIRESTARTER
   CMAKE_ARGS "${FIRESTARTER_CMAKE_ARGUMENTS}"
 )
 
-add_dependencies(FIRESTARTER ScorePLibrary)
+add_dependencies(FIRESTARTER firestarter_scorep)
