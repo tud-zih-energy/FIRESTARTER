@@ -58,6 +58,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	list(APPEND FIRESTARTER_LIBRARY_FILES
 		firestarter/Cuda/Cuda.cpp
 	)
+
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 	list(APPEND FIRESTARTER_LIBRARY_FILES
 		firestarter/OneAPI/OneAPI.cpp
@@ -73,6 +74,52 @@ add_library(firestartercore
 	${FIRESTARTER_LIBRARY_FILES}
 )
 
+if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
+	target_link_libraries(firestartercore
+		CUDA::cuda_driver
+		CUDA::cudart
+		CUDA::curand
+		CUDA::cublas
+	)
+
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(firestartercore
+                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
+		)
+	else()
+		target_link_libraries(firestartercore
+			cuda
+			-ldl
+		)
+	endif()
+
+elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
+	target_link_libraries(firestartercore
+		mkl_sycl
+		mkl_intel_ilp64
+		mkl_sequential
+		mkl_core
+		sycl
+		stdc++
+		Threads::Threads
+	)
+elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
+	target_link_libraries(firestartercore
+		hip::host
+		hip::hiprand
+		roc::hipblas
+	)
+
+	if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
+		target_link_libraries(firestartercore
+			hip
+			-ldl
+		)
+	endif()
+endif()
+
+
+
 target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(firestartercore
@@ -84,85 +131,17 @@ target_link_libraries(firestartercore
 
 SET(FIRESTARTER_FILES
 	firestarter/Main.cpp
-	)
+)
 
-if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
-	add_executable(FIRESTARTER_CUDA
-		${FIRESTARTER_FILES}
-		)
+add_executable(${FIRESTARTER_BUILD_TYPE}
+	${FIRESTARTER_FILES}
+)
 
-	target_link_libraries(FIRESTARTER_CUDA
-		firestartercore
-	)
+target_link_libraries(${FIRESTARTER_BUILD_TYPE}
+	firestartercore
+)
 
-	target_link_libraries(FIRESTARTER_CUDA
-		CUDA::cuda_driver
-		CUDA::cudart
-		CUDA::curand
-		CUDA::cublas
-		)
-
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		target_link_libraries(FIRESTARTER_CUDA
-                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
-			)
-	else()
-		target_link_libraries(FIRESTARTER_CUDA
-			cuda
-			-ldl
-			)
-	endif()
-
-elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
-	add_executable(FIRESTARTER_ONEAPI
-		${FIRESTARTER_FILES}
-		)
-
-	target_link_libraries(FIRESTARTER_ONEAPI
-		firestartercore
-	)
-
-	target_link_libraries(FIRESTARTER_ONEAPI
-		mkl_sycl
-		mkl_intel_ilp64
-		mkl_sequential
-		mkl_core
-		sycl
-		stdc++
-		Threads::Threads
-	)
-
-elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
-	add_executable(FIRESTARTER_HIP
-		${FIRESTARTER_FILES}
-		)
-
-	target_link_libraries(FIRESTARTER_HIP
-		firestartercore
-	)
-
-	target_link_libraries(FIRESTARTER_HIP
-		hip::host
-		hip::hiprand
-		roc::hipblas
-		)
-
-	if (NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-		target_link_libraries(FIRESTARTER_HIP
-		hip
-		-ldl)
-	endif()
-	
-
-elseif(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
-	add_executable(FIRESTARTER
-		${FIRESTARTER_FILES}
-		)
-
-	target_link_libraries(FIRESTARTER
-		firestartercore
-	)
-
+if(${FIRESTARTER_BUILD_TYPE} STREQUAL "FIRESTARTER")
 	target_link_libraries_darwin(NAME FIRESTARTER)
 
 	# static linking is not supported on Darwin, see Apple Technical QA1118
