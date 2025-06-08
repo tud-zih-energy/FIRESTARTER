@@ -54,6 +54,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	)
 endif()
 
+# Files used in GPU versions
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	list(APPEND FIRESTARTER_LIBRARY_FILES
 		firestarter/Cuda/Cuda.cpp
@@ -74,6 +75,16 @@ add_library(firestartercore
 	${FIRESTARTER_LIBRARY_FILES}
 )
 
+target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+target_link_libraries(firestartercore
+	hwloc
+	AsmJit::AsmJit
+	Nitro::log
+	nlohmann_json::nlohmann_json
+)
+
+# Link options for GPU versions
 if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	target_link_libraries(firestartercore
 		CUDA::cuda_driver
@@ -84,15 +95,13 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		target_link_libraries(firestartercore
-                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
+            ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
 		)
 	else()
 		target_link_libraries(firestartercore
-			cuda
 			-ldl
 		)
 	endif()
-
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
 	target_link_libraries(firestartercore
 		mkl_sycl
@@ -118,23 +127,9 @@ elseif("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_HIP")
 	endif()
 endif()
 
-
-
-target_include_directories(firestartercore PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
-target_link_libraries(firestartercore
-	hwloc
-	AsmJit::AsmJit
-	Nitro::log
-	nlohmann_json::nlohmann_json
-)
-
-SET(FIRESTARTER_FILES
-	firestarter/Main.cpp
-)
-
+# Main executable
 add_executable(${FIRESTARTER_BUILD_TYPE}
-	${FIRESTARTER_FILES}
+	firestarter/Main.cpp
 )
 
 target_link_libraries(${FIRESTARTER_BUILD_TYPE}
