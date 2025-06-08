@@ -306,6 +306,12 @@ void Firestarter::sigalrmHandler(int Signum) { (void)Signum; }
 void Firestarter::sigtermHandler(int Signum) {
   (void)Signum;
 
+  if (Firestarter::LoadVar == LoadThreadWorkType::LoadLow) {
+    firestarterTracingRegionEnd("WD_LOW");
+  } else if (Firestarter::LoadVar == LoadThreadWorkType::LoadHigh) {
+    firestarterTracingRegionEnd("WD_HIGH");
+  }
+
   Firestarter::setLoad(LoadThreadWorkType::LoadStop);
   // exit loop
   // used in case of 0 < load < 100
