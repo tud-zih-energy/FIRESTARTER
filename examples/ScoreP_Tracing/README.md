@@ -24,7 +24,7 @@ Required variables that need to be set to include shared or static tracing libra
 ## Automatic build
 
 This folder contains a CMake file that builds FIRESTARTER with ScoreP instrumentation.
-Run the normal CMake commands will create an instrumented FIRESTARTER build. `./FIRESTARTER/src/FIRESTARTER-build/src/FIRESTARTER`.
+Running the normal CMake commands will create an instrumented FIRESTARTER build. `./FIRESTARTER/src/FIRESTARTER-build/src/FIRESTARTER`.
 
 ## Running FIRESTARTER with ScoreP instrumentation
 
