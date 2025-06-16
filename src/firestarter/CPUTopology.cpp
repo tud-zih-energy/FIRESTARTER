@@ -65,13 +65,13 @@ CPUTopology::CPUTopology() {
 CPUTopology::~CPUTopology() { hwloc_topology_destroy(Topology); }
 
 void CPUTopology::printSystemSummary() const {
-  auto Resouces = homogenousResourceCount();
+  auto Resources = homogenousResourceCount();
 
   log::info() << "  system summary:\n"
-              << "    number of processors:        " << Resouces.NumPackagesTotal << "\n"
-              << "    number of cores (total)):    " << Resouces.NumCoresTotal << "\n"
+              << "    number of processors:        " << Resources.NumPackagesTotal << "\n"
+              << "    number of cores (total):     " << Resources.NumCoresTotal << "\n"
               << "  (this includes only cores in the cgroup)\n"
-              << "    number of threads per core:  " << Resouces.NumThreadsPerCore << "\n"
+              << "    number of threads per core:  " << Resources.NumThreadsPerCore << "\n"
               << "    total number of threads:     " << hardwareThreadsInfo().MaxNumThreads;
 }
 
@@ -92,8 +92,14 @@ void CPUTopology::printCacheSummary() const {
       Ss << "      - ";
 
       auto* CacheObj = hwloc_get_obj_by_type(Topology, Cache, 0);
+      if (CacheObj == nullptr) {
+        log::warn() << "Could not get cache object of type " << hwloc_obj_type_string(Cache);
+        continue;
+      }
+
       std::array<char, 128> String{};
       auto* StringPtr = String.data();
+
       hwloc_obj_type_snprintf(StringPtr, sizeof(String), CacheObj, 0);
 
       switch (CacheObj->attr->cache.type) {
@@ -151,42 +157,52 @@ auto CPUTopology::instructionCacheSize() const -> std::optional<unsigned> {
 }
 
 auto CPUTopology::homogenousResourceCount() const -> HomogenousResourceCount {
-  HomogenousResourceCount Resouces{};
+  HomogenousResourceCount Resources{};
 
   // get number of packages
   int Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PACKAGE);
 
   if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    Resouces.NumPackagesTotal = 1;
+    Resources.NumPackagesTotal = 1;
     log::warn() << "No information on number of packages";
   } else {
-    Resouces.NumPackagesTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
+    Resources.NumPackagesTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
+    if (Resources.NumPackagesTotal < 1) {
+      log::warn() << "No packages found in the system";
+      Resources.NumPackagesTotal = 1; // assume at least one package
+    }
   }
 
-  log::trace() << "Number of Packages:" << Resouces.NumPackagesTotal;
+  log::trace() << "Number of Packages:" << Resources.NumPackagesTotal;
 
   // get number of cores per package
   Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_CORE);
 
   if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    Resouces.NumCoresTotal = 1;
+    Resources.NumCoresTotal = 1;
     log::warn() << "No information on number of cores";
   } else {
-    Resouces.NumCoresTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
+    Resources.NumCoresTotal = hwloc_get_nbobjs_by_depth(Topology, Depth);
+    if (Resources.NumCoresTotal < 1) {
+      log::warn() << "No cores found in package";
+      Resources.NumCoresTotal = 1; // assume at least one core
+    }
   }
-  log::trace() << "Number of Cores:" << Resouces.NumCoresTotal;
+  log::trace() << "Number of Cores:" << Resources.NumCoresTotal;
 
   // get number of threads per core
   Depth = hwloc_get_type_depth(Topology, HWLOC_OBJ_PU);
 
   if (Depth == HWLOC_TYPE_DEPTH_UNKNOWN) {
-    Resouces.NumThreadsPerCore = 1;
+    Resources.NumThreadsPerCore = 1;
     log::warn() << "No information on number of threads";
   } else {
-    Resouces.NumThreadsPerCore = hwloc_get_nbobjs_by_depth(Topology, Depth) / Resouces.NumCoresTotal;
+    // TODO: This is not correct for heterogeneous processors and also not for NUMA domains which do not hold cores.
+    // It gives you more or less the **average** number of threads per core.
+    Resources.NumThreadsPerCore = hwloc_get_nbobjs_by_depth(Topology, Depth) / Resources.NumCoresTotal;
   }
 
-  return Resouces;
+  return Resources;
 }
 
 auto CPUTopology::getCoreIdFromPU(unsigned Pu) const -> std::optional<unsigned> {
@@ -340,7 +356,7 @@ void CPUTopology::bindCallerToOsIndex(unsigned OsIndex) const {
 #endif
 
   if (ReturnCode != 0) {
-    firestarter::log::warn() << "Could not enfoce binding the curren thread to OsIndex: " << OsIndex;
+    firestarter::log::warn() << "Could not enforce binding the current thread to OsIndex: " << OsIndex;
   }
 }
 

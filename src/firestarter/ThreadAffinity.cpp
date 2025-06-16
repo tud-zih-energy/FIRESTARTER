@@ -36,7 +36,7 @@ auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
                                      const std::optional<std::set<uint64_t>>& CpuBinding) -> ThreadAffinity {
   ThreadAffinity Affinity{};
 
-  if (RequestedNumThreads && RequestedNumThreads > ThreadsInfo.MaxNumThreads) {
+  if (RequestedNumThreads && (*RequestedNumThreads > ThreadsInfo.MaxNumThreads)) {
     log::warn() << "Not enough CPUs for requested number of threads";
   }
 
@@ -49,11 +49,11 @@ auto ThreadAffinity::fromCommandLine(const HardwareThreadsInfo& ThreadsInfo,
       Affinity.CpuBind.emplace(OsIndex);
       Affinity.RequestedNumThreads++;
     }
-    // requested to many threads
+    // requested too many threads
     if (Affinity.RequestedNumThreads < *RequestedNumThreads) {
       throw std::invalid_argument("You are requesting more threads than "
                                   "there are CPUs available in the given cpuset.\n"
-                                  "This can be caused by the taskset tool, cgrous, "
+                                  "This can be caused by the taskset tool, cgroups, "
                                   "the batch system, or similar mechanisms.\n"
                                   "Please fix the -n/--threads argument to match the "
                                   "restrictions.");
