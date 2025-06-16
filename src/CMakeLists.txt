@@ -20,11 +20,6 @@ SET(FIRESTARTER_LIBRARY_FILES
 	firestarter/Payload/CompiledPayload.cpp
 	firestarter/Payload/PayloadSettings.cpp
 
-	# the selected tracing variant
-	if(DEFINED FIRESTARTER_TRACING && FIRESTARTER_TRACING STREQUAL "None")
-		message(STATUS "FIRESTARTER_TRACING is set to 'None', no tracing can be used with the resulting binary.")
-	else
-		firestarter/Tracing/${FIRESTARTER_TRACING}.cpp
 
 	# here starts the x86 specific code
 	firestarter/X86/X86ProcessorInformation.cpp
@@ -39,6 +34,17 @@ SET(FIRESTARTER_LIBRARY_FILES
 	firestarter/X86/Payload/AVXPayload.cpp
 	firestarter/X86/Payload/SSE2Payload.cpp
 )
+
+# the selected tracing variant
+if(DEFINED FIRESTARTER_TRACING)
+    if(FIRESTARTER_TRACING STREQUAL "None")
+        message(STATUS "FIRESTARTER_TRACING is set to 'None', no tracing can be used with the resulting binary.")
+    else()
+        list(APPEND FIRESTARTER_LIBRARY_FILES
+            firestarter/Tracing/${FIRESTARTER_TRACING}.cpp
+        )
+    endif()
+endif()
 
 # Specific linux only features
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
