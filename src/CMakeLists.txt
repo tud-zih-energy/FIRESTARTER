@@ -21,7 +21,10 @@ SET(FIRESTARTER_LIBRARY_FILES
 	firestarter/Payload/PayloadSettings.cpp
 
 	# the selected tracing variant
-	firestarter/Tracing/${FIRESTARTER_TRACING}.cpp
+	if(DEFINED FIRESTARTER_TRACING && FIRESTARTER_TRACING STREQUAL "None")
+		message(STATUS "FIRESTARTER_TRACING is set to 'None', no tracing can be used with the resulting binary.")
+	else
+		firestarter/Tracing/${FIRESTARTER_TRACING}.cpp
 
 	# here starts the x86 specific code
 	firestarter/X86/X86ProcessorInformation.cpp

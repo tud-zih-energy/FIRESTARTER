@@ -26,9 +26,16 @@
 extern "C" {
 #endif
 
+// Define the tracing funtions as doing nothing (;) if tracing is not enabled via compiler flags.
+#ifdef FIRESTARTER_TRACING_DISABLED
+  #define firestarterTracingInitialize(Argc, Argv) ()
+  #define firestarterTracingRegionBegin(RegionName) ()
+  #define firestarterTracingRegionEnd(RegionName) ()
+#else
 void firestarterTracingInitialize(int Argc, const char** Argv);
 void firestarterTracingRegionBegin(const char* RegionName);
 void firestarterTracingRegionEnd(const char* RegionName);
+#endif
 
 #ifdef __cplusplus
 };
