@@ -32,9 +32,9 @@ extern "C" {
 #define firestarterTracingRegionBegin(RegionName) ((void)0)
 #define firestarterTracingRegionEnd(RegionName) ((void)0)
 #else
-void firestarterTracingInitialize(int Argc, const char **Argv);
-void firestarterTracingRegionBegin(const char *RegionName);
-void firestarterTracingRegionEnd(const char *RegionName);
+void firestarterTracingInitialize(int Argc, const char** Argv);
+void firestarterTracingRegionBegin(const char* RegionName);
+void firestarterTracingRegionEnd(const char* RegionName);
 #endif
 
 #ifdef __cplusplus
