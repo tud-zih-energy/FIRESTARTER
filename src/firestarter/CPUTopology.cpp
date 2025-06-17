@@ -340,7 +340,7 @@ void CPUTopology::bindCallerToOsIndex(unsigned OsIndex) const {
 #endif
 
   if (ReturnCode != 0) {
-    firestarter::log::warn() << "Could not enfoce binding the curren thread to OsIndex: " << OsIndex;
+    firestarter::log::warn() << "Could not enforce binding the current thread to OsIndex: " << OsIndex;
   }
 }
 
