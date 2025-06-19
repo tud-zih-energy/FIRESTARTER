@@ -267,23 +267,25 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 
 }; // namespace
 
-Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
-           int Gpus) {
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
+           unsigned MatrixSize, int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
+  bool InitDone = false;
 
-  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
-                UseDouble, MatrixSize, Gpus);
+  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  WaitForInitCv.wait(Lk);
+  WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
 void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                    unsigned MatrixSize, int Gpus) {
+                    std::mutex& WaitForInitCvMutex, bool& InitDone,
+                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+                    bool UseDouble, unsigned MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -361,6 +363,10 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
                              << compat::AccelleratorString << "?";
   }
 
+  {
+    const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
+    InitDone = true;
+  }
   // notify that init is done
   WaitForInitCv.notify_all();
 
