@@ -107,8 +107,8 @@ auto PerfMetric::init() -> int32_t {
   // - if (attr->inherit && (attr->read_format & PERF_FORMAT_GROUP))
   // + if (attr->inherit && (attr->sample_type & PERF_SAMPLE_READ))
   CpuCyclesAttr.inherit = 1;
-  CpuCyclesAttr.exclude_kernel = 1;
-  CpuCyclesAttr.exclude_hv = 1;
+  CpuCyclesAttr.exclude_kernel = 0;
+  CpuCyclesAttr.exclude_hv = 0;
 
   Instance.CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
                                        // pid == 0 and cpu == -1
@@ -139,8 +139,8 @@ auto PerfMetric::init() -> int32_t {
   InstructionsAttr.config = PERF_COUNT_HW_INSTRUCTIONS;
   InstructionsAttr.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
   InstructionsAttr.inherit = 1;
-  InstructionsAttr.exclude_kernel = 1;
-  InstructionsAttr.exclude_hv = 1;
+  InstructionsAttr.exclude_kernel = 0;
+  InstructionsAttr.exclude_hv = 0;
 
   Instance.InstructionsFd = perfEventOpen(&InstructionsAttr,
                                           // pid == 0 and cpu == -1
