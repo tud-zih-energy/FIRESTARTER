@@ -21,11 +21,15 @@
 $$ TODO
 $$ TODO Version 2.x
 $$ TODO - add results verification
-$$ TODO - add AMD GPUs
 $$ TODO - add more processors
 $$ TODO - support for AArch64 (64 Bit ARM)
 $$ TODO - support Infiniband interconnects
-$$ TODO
+
+Version 2.2
+ - added support for AMD GPUs
+ - support for thread binding on all supported platforms
+ - bug fixes related to thread binding with cgroups and disabled cpus
+ - added report for estimated GPU FLOPS
 
 Version 2.1.1
  - Removed MacOS 11

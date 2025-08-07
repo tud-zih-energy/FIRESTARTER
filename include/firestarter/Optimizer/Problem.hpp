@@ -21,11 +21,10 @@
 
 #pragma once
 
-#include "firestarter/Measurement/Summary.hpp"
+#include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Optimizer/Individual.hpp"
 
 #include <cstring>
-#include <map>
 #include <tuple>
 #include <vector>
 
@@ -45,14 +44,13 @@ public:
   /// summary. This function will increment the fevals.
   /// \arg Individual The individual that should be evaluated.
   /// \returns A map from metric name to the summary of this metric for the specific individual
-  virtual auto metrics(Individual const& Individual) -> std::map<std::string, firestarter::measurement::Summary> = 0;
+  virtual auto metrics(Individual const& Individual) -> measurement::MetricSummaries = 0;
 
   /// Convert the result of one evaluation into a fitness (vector of doubles) for the supplied summaries
   /// \arg Summaries The summaries of one evaluation.
   /// \returns The fitness vector derived from the summaries. The size of this vector is equal to the number of
   /// objectives.
-  [[nodiscard]] virtual auto fitness(std::map<std::string, firestarter::measurement::Summary> const& Summaries) const
-      -> std::vector<double> = 0;
+  [[nodiscard]] virtual auto fitness(measurement::MetricSummaries const& Summaries) const -> std::vector<double> = 0;
 
   /// Get the bounds of the problem. For each dimension a min and max value is supplied.
   /// \return The min and max bound per dimension.

@@ -20,101 +20,119 @@
  *****************************************************************************/
 
 #include "firestarter/Firestarter.hpp"
-#include "firestarter/Environment/X86/X86Environment.hpp"
+#include "firestarter/Config/Config.hpp"
+#include "firestarter/Config/InstructionGroups.hpp"
+#include "firestarter/Constants.hpp"
+#include "firestarter/Cuda/Cuda.hpp"
+#include "firestarter/FunctionSelection.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
+#include "firestarter/OneAPI/OneAPI.hpp"
 #include "firestarter/Optimizer/Algorithm/NSGA2.hpp"
 #include "firestarter/Optimizer/History.hpp"
+#include "firestarter/Optimizer/Population.hpp"
 #include "firestarter/Optimizer/Problem/CLIArgumentProblem.hpp"
+#include "firestarter/SafeExit.hpp"
+#include "firestarter/ThreadAffinity.hpp"
+#include "firestarter/Tracing.h"
+#include "firestarter/X86/X86CpuFeatures.hpp"
+#include "firestarter/X86/X86FunctionSelection.hpp"
+#include "firestarter/X86/X86ProcessorInformation.hpp"
 
+#include <algorithm>
+#include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
+#include <iomanip>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace firestarter {
 
 Firestarter::Firestarter(Config&& ProvidedConfig)
     : Cfg(std::move(ProvidedConfig)) {
+  std::unique_ptr<FunctionSelection> FunctionSelectionPtr;
+
+  firestarterTracingInitialize(Cfg.Argc, Cfg.Argv);
+
   if constexpr (firestarter::OptionalFeatures.IsX86) {
-    Environment = std::make_unique<environment::x86::X86Environment>();
+    ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
+    FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
   }
 
-  Environment->evaluateCpuAffinity(Cfg.RequestedNumThreads, Cfg.CpuBind);
+  const auto Affinity =
+      ThreadAffinity::fromCommandLine(Topology.hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
   if constexpr (firestarter::OptionalFeatures.IsX86) {
     // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
     if (Cfg.ErrorDetection) {
-      const auto& X86Env = *dynamic_cast<environment::x86::X86Environment*>(Environment.get());
-      if (!X86Env.topology().featuresAsmjit().has(asmjit::CpuFeatures::X86::kSSE4_2)) {
+      if (!ProcessorInfos->cpuFeatures().hasAll(x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kSSE4_2))) {
         throw std::invalid_argument("Option --error-detection requires the crc32 "
                                     "instruction added with SSE_4_2.\n");
       }
     }
   }
 
-  if (Cfg.ErrorDetection && Environment->requestedNumThreads() < 2) {
+  if (Cfg.ErrorDetection && Affinity.RequestedNumThreads < 2) {
     throw std::invalid_argument("Option --error-detection must run with 2 or more threads. Number of "
                                 "threads is " +
-                                std::to_string(Environment->requestedNumThreads()) + "\n");
+                                std::to_string(Affinity.RequestedNumThreads) + "\n");
   }
 
   if (Cfg.PrintFunctionSummary) {
-    Environment->printFunctionSummary();
+    FunctionSelectionPtr->printFunctionSummary(*ProcessorInfos, /*ForceYes=*/false);
     safeExit(EXIT_SUCCESS);
   }
 
-  Environment->selectFunction(Cfg.FunctionId, Cfg.AllowUnavailablePayload);
+  FunctionPtr =
+      FunctionSelectionPtr->selectFunction(Cfg.FunctionId, *ProcessorInfos, Topology, Cfg.AllowUnavailablePayload);
 
   if (Cfg.ListInstructionGroups) {
-    Environment->printAvailableInstructionGroups();
+    FunctionPtr->payload()->printAvailableInstructionGroups();
+
     safeExit(EXIT_SUCCESS);
   }
-
-  if (!Cfg.InstructionGroups.empty()) {
-    Environment->selectInstructionGroups(Cfg.InstructionGroups);
+  if (Cfg.Groups) {
+    FunctionPtr->selectInstructionGroups(*Cfg.Groups);
+    log::info() << "  Running custom instruction group: " << *Cfg.Groups;
   }
 
-  if (Cfg.LineCount != 0) {
-    Environment->setLineCount(Cfg.LineCount);
+  if (Cfg.LineCount) {
+    FunctionPtr->setLineCount(*Cfg.LineCount);
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     if (Cfg.Measurement || Cfg.ListMetrics || Cfg.Optimize) {
       MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
-          Cfg.MeasurementInterval, Environment->requestedNumThreads(), Cfg.MetricPaths, Cfg.StdinMetrics);
+          Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
 
       if (Cfg.ListMetrics) {
-        log::info() << MeasurementWorker->availableMetrics();
+        log::info() << MeasurementWorker->availableMetricsString();
         safeExit(EXIT_SUCCESS);
       }
 
       // init all metrics
-      auto All = MeasurementWorker->metricNames();
-      auto Initialized = MeasurementWorker->initMetrics(All);
+      const auto All = MeasurementWorker->metrics();
+      MeasurementWorker->initMetrics(All);
 
-      if (Initialized.empty()) {
-        std::invalid_argument("No metrics initialized");
-      }
+      const auto Initialized = MeasurementWorker->initializedMetrics();
 
       // check if selected metrics are initialized
       for (auto const& OptimizationMetric : Cfg.OptimizationMetrics) {
-        auto NameEqual = [OptimizationMetric](auto const& Name) {
-          auto InvertedName = "-" + Name;
-          return Name == OptimizationMetric || InvertedName == OptimizationMetric;
-        };
-        // metric name is not found
-        if (std::find_if(All.begin(), All.end(), NameEqual) == All.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" does not exist.");
-        }
-        // metric has not initialized properly
-        if (std::find_if(Initialized.begin(), Initialized.end(), NameEqual) == Initialized.end()) {
-          std::invalid_argument("Metric \"" + OptimizationMetric + "\" failed to initialize.");
+        if (!static_cast<bool>(Initialized.count(OptimizationMetric))) {
+          throw std::invalid_argument("Metric \"" + OptimizationMetric.toString() + "\" failed to initialize.");
         }
       }
     }
 
     if (Cfg.Optimize) {
-      auto ApplySettings = [this](std::vector<std::pair<std::string, unsigned>> const& Setting) {
+      auto ApplySettings = [this](InstructionGroups const& Setting) {
         using Clock = std::chrono::high_resolution_clock;
         auto Start = Clock::now();
 
@@ -136,7 +154,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
         for (auto const& Thread : LoadThreads) {
           auto Td = Thread.second;
-          IpcEstimateMetricData::insertValue(
+          IpcEstimateMetric::insertValue(
               static_cast<double>(Td->LastRun.Iterations) *
               static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
               static_cast<double>(StopTimestamp - StartTimestamp));
@@ -150,7 +168,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
       auto Prob = std::make_shared<firestarter::optimizer::problem::CLIArgumentProblem>(
           std::move(ApplySettings), MeasurementWorker, Cfg.OptimizationMetrics, Cfg.EvaluationDuration, Cfg.StartDelta,
-          Cfg.StopDelta, Environment->config().settings().instructionGroupItems());
+          Cfg.StopDelta, FunctionPtr->constRef().settings().groups().intructions());
 
       Population = std::make_unique<firestarter::optimizer::Population>(std::move(Prob));
 
@@ -165,16 +183,22 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
     }
   }
 
-  Environment->printSelectedCodePathSummary();
+  FunctionPtr->printCodePathSummary();
 
-  log::info() << Environment->topology();
+  Topology.printSystemSummary();
+  log::info();
+  ProcessorInfos->print();
+  Topology.printCacheSummary();
+
+  Affinity.printThreadSummary(Topology);
 
   // setup thread with either high or low load configured at the start
   // low loads has to know the length of the period
-  initLoadWorkers();
+  initLoadWorkers(Affinity);
 
   // add some signal handler for aborting FIRESTARTER
   if constexpr (!firestarter::OptionalFeatures.IsWin32) {
+    // NOLINTNEXTLINE(misc-include-cleaner)
     (void)std::signal(SIGALRM, Firestarter::sigalrmHandler);
   }
 
@@ -183,7 +207,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 }
 
 void Firestarter::mainThread() {
-  Environment->printThreadSummary();
+  firestarterTracingRegionBegin("Main-Thread");
 
   Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
   Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
@@ -209,6 +233,8 @@ void Firestarter::mainThread() {
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     // check if optimization is selected
     if (Cfg.Optimize) {
+      firestarterTracingRegionBegin("Main-Thread-Optimize");
+
       auto StartTime = optimizer::History::getTime();
 
       Firestarter::Optimizer = std::make_unique<optimizer::OptimizerWorker>(std::move(Algorithm), std::move(Population),
@@ -218,7 +244,7 @@ void Firestarter::mainThread() {
       Firestarter::Optimizer->join();
       Firestarter::Optimizer.reset();
 
-      auto PayloadItems = Environment->config().settings().instructionGroupItems();
+      const auto PayloadItems = FunctionPtr->constRef().settings().groups().intructions();
 
       firestarter::optimizer::History::save(Cfg.OptimizeOutfile, StartTime, PayloadItems, Cfg.Argc, Cfg.Argv);
 
@@ -227,6 +253,8 @@ void Firestarter::mainThread() {
 
       // stop all the load threads
       (void)std::raise(SIGTERM);
+
+      firestarterTracingRegionEnd("Main-Thread-Optimize");
     }
   }
 
@@ -248,7 +276,7 @@ void Firestarter::mainThread() {
       // TODO(Issue #77): clear this up
       log::info() << "metric,num_timepoints,duration_ms,average,stddev";
       for (auto const& [name, sum] : MeasurementWorker->getValues(Cfg.StartDelta, Cfg.StopDelta)) {
-        log::info() << std::quoted(name) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
+        log::info() << std::quoted(name.toString()) << "," << sum.NumTimepoints << "," << sum.Duration.count() << ","
                     << sum.Average << "," << sum.Stddev;
       }
     }
@@ -257,6 +285,8 @@ void Firestarter::mainThread() {
   if (Cfg.ErrorDetection) {
     printThreadErrorReport();
   }
+
+  firestarterTracingRegionEnd("Main-Thread");
 }
 
 void Firestarter::setLoad(LoadThreadWorkType Value) {
@@ -275,6 +305,12 @@ void Firestarter::sigalrmHandler(int Signum) { (void)Signum; }
 
 void Firestarter::sigtermHandler(int Signum) {
   (void)Signum;
+
+  if (Firestarter::LoadVar == LoadThreadWorkType::LoadLow) {
+    firestarterTracingRegionEnd("WD_LOW");
+  } else if (Firestarter::LoadVar == LoadThreadWorkType::LoadHigh) {
+    firestarterTracingRegionEnd("WD_HIGH");
+  }
 
   Firestarter::setLoad(LoadThreadWorkType::LoadStop);
   // exit loop

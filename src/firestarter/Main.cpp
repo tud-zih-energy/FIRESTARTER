@@ -19,9 +19,13 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
-#include "firestarter/Config.hpp"
+#include "firestarter/Config/Config.hpp"
 #include "firestarter/Firestarter.hpp"
 #include "firestarter/Logging/Log.hpp"
+
+#include <cstdlib>
+#include <exception>
+#include <utility>
 
 auto main(int argc, const char** argv) -> int {
   firestarter::log::info() << "FIRESTARTER - A Processor Stress Test Utility, Version " << _FIRESTARTER_VERSION_STRING
@@ -33,8 +37,7 @@ auto main(int argc, const char** argv) -> int {
 #ifdef _FIRESTARTER_VERSION_TEMPERED
   firestarter::log::info() << "*The version and/or year was explicitely set during build and does not "
                            << "necessarily represent the actual version.\n"
-                           << "This helps maintainers to keep track of versions, e.g., on a cluster."
-                           << "\n";
+                           << "This helps maintainers to keep track of versions, e.g., on a cluster." << "\n";
 #endif
 
   try {

@@ -1,0 +1,25 @@
+ available load-functions:
+  ID   | NAME                           | available on this system | payload default setting
+  -------------------------------------------------------------------------------------------------------------------------------------------------------
+     1 | FUNC_KNL_XEONPHI_AVX512_4T     | yes                      | RAM_P:3,L2_S:8,L1_L:40,REG:10
+     2 | FUNC_SKL_COREI_FMA_1T          | yes                      | RAM_L:3,L3_LS_256:5,L2_LS_256:18,L1_2LS_256:78,REG:40
+     3 | FUNC_SKL_COREI_FMA_2T          | yes                      | RAM_L:3,L3_LS_256:5,L2_LS_256:18,L1_2LS_256:78,REG:40
+     4 | FUNC_SKL_XEONEP_AVX512_1T      | yes                      | RAM_S:3,RAM_P:1,L3_S:1,L3_P:1,L2_S:4,L2_L:70,L1_S:0,L1_L:40,REG:140
+     5 | FUNC_SKL_XEONEP_AVX512_2T      | yes                      | RAM_S:3,RAM_P:1,L3_S:1,L3_P:1,L2_S:4,L2_L:70,L1_S:0,L1_L:40,REG:140
+     6 | FUNC_HSW_COREI_FMA_1T          | yes                      | RAM_L:2,L3_LS:3,L2_LS:9,L1_LS:90,REG:40
+     7 | FUNC_HSW_COREI_FMA_2T          | yes                      | RAM_L:2,L3_LS:3,L2_LS:9,L1_LS:90,REG:40
+     8 | FUNC_HSW_XEONEP_FMA_1T         | yes                      | RAM_L:8,L3_LS:1,L2_LS:29,L1_LS:100,REG:100
+     9 | FUNC_HSW_XEONEP_FMA_2T         | yes                      | RAM_L:8,L3_LS:1,L2_LS:29,L1_LS:100,REG:100
+    10 | FUNC_SNB_COREI_AVX_1T          | yes                      | RAM_L:2,L3_LS:4,L2_LS:10,L1_LS:90,REG:45
+    11 | FUNC_SNB_COREI_AVX_2T          | yes                      | RAM_L:2,L3_LS:4,L2_LS:10,L1_LS:90,REG:45
+    12 | FUNC_SNB_XEONEP_AVX_1T         | yes                      | RAM_L:3,L3_LS:2,L2_LS:10,L1_LS:90,REG:30
+    13 | FUNC_SNB_XEONEP_AVX_2T         | yes                      | RAM_L:3,L3_LS:2,L2_LS:10,L1_LS:90,REG:30
+    14 | FUNC_NHM_COREI_SSE2_1T         | yes                      | RAM_P:1,L1_LS:70,REG:2
+    15 | FUNC_NHM_COREI_SSE2_2T         | yes                      | RAM_P:1,L1_LS:70,REG:2
+    16 | FUNC_NHM_XEONEP_SSE2_1T        | yes                      | RAM_P:1,L1_LS:60,REG:2
+    17 | FUNC_NHM_XEONEP_SSE2_2T        | yes                      | RAM_P:1,L1_LS:60,REG:2
+    18 | FUNC_BLD_OPTERON_FMA4_1T       | yes                      | RAM_L:1,L3_L:1,L2_LS:5,L1_L:90,REG:45
+    19 | FUNC_ZEN_EPYC_ZENFMA_1T        | yes                      | RAM_L:3,L3_L:14,L2_L:75,L1_LS:81,REG:100
+    20 | FUNC_ZEN_EPYC_ZENFMA_2T        | yes                      | RAM_L:3,L3_L:14,L2_L:75,L1_LS:81,REG:100
+    21 | FUNC_ZEN_2_EPYC_FMA_1T         | yes                      | RAM_L:10,L3_L:25,L2_L:91,L1_2LS_256:72,L1_LS_256:82,REG:75
+    22 | FUNC_ZEN_2_EPYC_FMA_2T         | yes                      | RAM_L:10,L3_L:25,L2_L:91,L1_2LS_256:72,L1_LS_256:82,REG:75

@@ -21,6 +21,7 @@
 
 #include "firestarter/SafeExit.hpp"
 
+#include <cstdlib>
 #include <mutex>
 
 [[noreturn]] void firestarter::safeExit(const int Status) {

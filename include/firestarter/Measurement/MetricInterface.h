@@ -34,6 +34,10 @@ extern "C" {
 
 /// Describe the type of the metric and how values need to be accumulated. Per default metrics are of pulling type where
 /// FIRESTARTER will pull the values through the GetReading function.
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define ROOT_METRIC_INDEX 0
+
 typedef struct {
   uint32_t
       /// Set this to 1 if the metric values provided are absolute.
@@ -77,11 +81,19 @@ typedef struct {
   /// \returns EXIT_SUCCESS on success.
   int32_t (*Fini)();
 
+  /// Get a vector of submetric names. This is required to know the name of a submetric that is just described via an
+  /// index throughout this metric interface.
+  /// This function ptr may be NULL in case the metric does not support submetrics.
+  /// \returns The NULL terminated array of submetric names (char *)
+  const char** (*GetSubmetricNames)();
+
   /// Get a reading of the metric. Set this function pointer to null if MetricType::InsertCallback is specified in the
   /// Type.
-  /// \arg Value The pointer to which the value will be saved.
+  /// \arg Values The memory array to which double values are saved. The index zero contains the root metric. The values
+  /// one and up are used to select the specific submetric.
+  /// \arg NumElems The number of elements in the double array.
   /// \returns EXIT_SUCCESS if we got a new value.
-  int32_t (*GetReading)(double* Value);
+  int32_t (*GetReading)(double* Value, uint64_t NumElems);
 
   /// Get error in case return code not being EXIT_SUCCESS.
   /// \returns The error string.
@@ -91,10 +103,11 @@ typedef struct {
   /// and the first argument to this callback.
   /// The first argument is the function pointer to the callback. The first argument to this function pointer needs to
   /// be filled with the second argument to this function.
-  /// The supplied function pointer needs to be called with the metric name for the second, an unix timestamp (time
-  /// since epoch) for the third and a metric value for the forth argument. This allows the metric to provide values in
-  /// a pushing way in contract to the pulling way of the GetReading function.
-  int32_t (*RegisterInsertCallback)(void (*)(void*, const char*, int64_t, double), void*);
+  /// The supplied function pointer needs to be called with either zero in case the metric value is provided or the
+  /// index starting with one of the submetric, an unix timestamp (time since epoch) for the third and a metric value
+  /// for the forth argument. This allows the metric to provide values in a pushing way in contrast to the pulling way
+  /// of the GetReading function.
+  int32_t (*RegisterInsertCallback)(void (*)(void*, uint64_t, int64_t, double), void*);
 
 } MetricInterface;
 // NOLINTEND(modernize-use-using)

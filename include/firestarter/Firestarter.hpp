@@ -21,7 +21,8 @@
 
 #pragma once
 
-#include "firestarter/Config.hpp"
+#include "firestarter/CPUTopology.hpp"
+#include "firestarter/Config/Config.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/Cuda/Cuda.hpp"
 #include "firestarter/DumpRegisterWorkerData.hpp"
@@ -31,12 +32,13 @@
 #include "firestarter/Optimizer/Algorithm.hpp"
 #include "firestarter/Optimizer/OptimizerWorker.hpp"
 #include "firestarter/Optimizer/Population.hpp"
+#include "firestarter/ProcessorInformation.hpp"
+#include "firestarter/ThreadAffinity.hpp"
 
 #include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <string>
 #include <utility>
 
 #if defined(linux) || defined(__linux__)
@@ -65,8 +67,12 @@ public:
 private:
   const Config Cfg;
 
-  /// The class that handles setting up the payload for firestarter
-  std::unique_ptr<environment::Environment> Environment;
+  /// This class handles getting the topology information of the processor and is used to set thread binding.
+  CPUTopology Topology;
+  /// This class holds the information about the current processor which is specific to one architecture.
+  std::shared_ptr<ProcessorInformation> ProcessorInfos;
+  /// The selection function.
+  std::unique_ptr<platform::PlatformConfig> FunctionPtr;
   /// The class for execution of the gemm routine on Cuda or HIP GPUs.
   std::unique_ptr<cuda::Cuda> Cuda;
   /// The class for execution of the gemm routine on OneAPI GPUs.
@@ -108,7 +114,8 @@ private:
   // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
   /// Spawn the load workers and initialize them.
-  void initLoadWorkers();
+  /// \arg Affinity Describes the number of threads and how they should be bound to the CPUs.
+  void initLoadWorkers(const ThreadAffinity& Affinity);
 
   /// Wait for the load worker to join
   void joinLoadWorkers();
@@ -127,7 +134,7 @@ private:
 
   /// Set the load workers to the ThreadWork state.
   /// \arg Setting The new setting to switch to.
-  void signalSwitch(std::vector<std::pair<std::string, unsigned>> const& Setting) {
+  void signalSwitch(const InstructionGroups& Setting) {
     struct SwitchLoad {
       static void func() { LoadVar = LoadThreadWorkType::LoadSwitch; };
     };
@@ -135,7 +142,7 @@ private:
     for (auto& Thread : LoadThreads) {
       auto Td = Thread.second;
 
-      Td->config().settings().selectInstructionGroups(Setting);
+      Td->Config->selectInstructionGroups(Setting);
     }
 
     signalLoadWorkers(LoadThreadState::ThreadSwitch, SwitchLoad::func);

@@ -19,14 +19,14 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Constants.hpp"
 #include "firestarter/Firestarter.hpp"
+#include "firestarter/Tracing.h"
 
 #include <cerrno>
+#include <chrono>
 #include <csignal>
-
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
-#endif
+#include <mutex>
 
 namespace firestarter {
 
@@ -73,12 +73,7 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       const auto LoadNsec = Load - LoadReduction;
 
       // wait for time to be ellapsed with high load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_HIGH", SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+      firestarterTracingRegionBegin("WD_HIGH");
       {
         std::unique_lock<std::mutex> Lk(WatchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -88,12 +83,7 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
           return;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_HIGH");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_HIGH");
-#endif
+      firestarterTracingRegionEnd("WD_HIGH");
 
       // signal low load
       setLoad(LoadThreadWorkType::LoadLow);
@@ -102,12 +92,7 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
       const auto IdleNsec = Idle - IdleReduction;
 
       // wait for time to be ellapsed with low load
-#ifdef ENABLE_VTRACING
-      VT_USER_START("WD_LOW");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_BEGIN("WD_LOW", SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+      firestarterTracingRegionBegin("WD_LOW");
       {
         std::unique_lock<std::mutex> Lk(WatchdogTerminateMutex);
         // abort waiting if we get the interrupt signal
@@ -117,12 +102,7 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
           return;
         }
       }
-#ifdef ENABLE_VTRACING
-      VT_USER_END("WD_LOW");
-#endif
-#ifdef ENABLE_SCOREP
-      SCOREP_USER_REGION_BY_NAME_END("WD_LOW");
-#endif
+      firestarterTracingRegionEnd("WD_LOW");
 
       // increment elapsed time
       Time += Period;

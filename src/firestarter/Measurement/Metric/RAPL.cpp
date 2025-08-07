@@ -21,11 +21,14 @@
 
 #include "firestarter/Measurement/Metric/RAPL.hpp"
 
+#include <cassert>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -33,13 +36,15 @@ extern "C" {
 #include <dirent.h>
 }
 
-auto RaplMetricData::fini() -> int32_t {
+auto RaplMetric::fini() -> int32_t {
   instance().Readers.clear();
+  instance().AccumulateReaders.clear();
+  instance().SubmetricNames = {nullptr};
 
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::init() -> int32_t {
+auto RaplMetric::init() -> int32_t {
   auto& Instance = instance();
 
   Instance.ErrorString = "";
@@ -50,16 +55,6 @@ auto RaplMetricData::init() -> int32_t {
     return EXIT_FAILURE;
   }
 
-  // we try to find psys first
-  // then package + dram
-  // and finally package only.
-
-  // contains an empty path if it is not found
-  std::string PsysPath;
-
-  // a vector of all paths to package and dram
-  std::vector<std::string> Paths = {};
-
   struct dirent* Dir = nullptr;
 
   // As long as the DIR object (named RaplDir here) is not shared between threads this call is thread-safe:
@@ -67,71 +62,53 @@ auto RaplMetricData::init() -> int32_t {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   while ((Dir = readdir(RaplDir)) != nullptr) {
     std::stringstream Path;
-    std::stringstream NamePath;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Path << RaplPath << "/" << Dir->d_name;
-    NamePath << Path.str() << "/name";
 
-    std::ifstream NameStream(NamePath.str());
-    if (!NameStream.good()) {
-      // an error opening the file occured
+    std::shared_ptr<ReaderDef> Def;
+
+    try {
+      Def = std::make_shared<ReaderDef>(/*Path=*/Path.str());
+    } catch (std::invalid_argument const& E) {
+      // This path does not contain a metric
       continue;
+    } catch (std::runtime_error const& E) {
+      Instance.ErrorString = E.what();
+      break;
     }
 
-    std::string Name;
-    std::getline(NameStream, Name);
+    Instance.Readers.emplace_back(Def);
 
-    if (Name == "psys") {
-      // found psys
-      PsysPath = Path.str();
-    } else if (0 == Name.rfind("package", 0) || Name == "dram") {
-      // find all package and dram
-      Paths.push_back(Path.str());
-    }
+    // Replace the nullptr with the new element and apend the nullptr again
+    *Instance.SubmetricNames.rbegin() = Def->name().c_str();
+    Instance.SubmetricNames.emplace_back(nullptr);
   }
   closedir(RaplDir);
 
-  // make psys the only value if available
-  if (!PsysPath.empty()) {
-    Paths.clear();
-    Paths.push_back(PsysPath);
+  // we try to find psys first
+  // then package + dram
+  // and finally package only.
+
+  // nullptr if not found
+  std::shared_ptr<ReaderDef> PsysReader;
+
+  for (const auto& Reader : Instance.Readers) {
+    const auto& Name = Reader->name();
+    if (Name.find("psys") != std::string::npos) {
+      PsysReader = Reader;
+    } else if (Name.find("dram") != std::string::npos || Name.find("package") != std::string::npos) {
+      Instance.AccumulateReaders.emplace_back(Reader);
+    }
   }
 
-  // paths now contains all interesting nodes
+  if (PsysReader) {
+    Instance.AccumulateReaders = {PsysReader};
+  }
 
-  if (Paths.empty()) {
+  // check that we have readers.
+  if (Instance.AccumulateReaders.empty()) {
     Instance.ErrorString = "No valid entries in " + std::string(RaplPath);
     return EXIT_FAILURE;
-  }
-
-  for (auto const& Path : Paths) {
-    std::stringstream EnergyUjPath;
-    EnergyUjPath << Path << "/energy_uj";
-    std::ifstream EnergyReadingStream(EnergyUjPath.str());
-    if (!EnergyReadingStream.good()) {
-      Instance.ErrorString = "Could not read energy_uj";
-      break;
-    }
-
-    std::stringstream MaxEnergyUjRangePath;
-    MaxEnergyUjRangePath << Path << "/max_energy_range_uj";
-    std::ifstream MaxEnergyReadingStream(MaxEnergyUjRangePath.str());
-    if (!MaxEnergyReadingStream.good()) {
-      Instance.ErrorString = "Could not read max_energy_range_uj";
-      break;
-    }
-
-    std::string Buffer;
-
-    std::getline(EnergyReadingStream, Buffer);
-    const auto Reading = std::stoul(Buffer);
-
-    std::getline(MaxEnergyReadingStream, Buffer);
-    const auto Max = std::stoul(Buffer);
-
-    auto Def = std::make_unique<ReaderDef>(/*Path=*/Path, /*LastReading=*/Reading, /*Overflow=*/0, /*Max=*/Max);
-
-    Instance.Readers.emplace_back(std::move(Def));
   }
 
   if (!Instance.ErrorString.empty()) {
@@ -142,39 +119,41 @@ auto RaplMetricData::init() -> int32_t {
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::getReading(double* Value) -> int32_t {
-  double FinalReading = 0.0;
+auto RaplMetric::getReading(double* Value, uint64_t NumElems) -> int32_t {
 
-  for (auto& Def : instance().Readers) {
-    std::string Buffer;
+  // Update all readers
+  auto& Readers = instance().Readers;
 
-    std::stringstream EnergyUjPath;
-    EnergyUjPath << Def->Path << "/energy_uj";
-    std::ifstream EnergyReadingStream(EnergyUjPath.str());
-    std::getline(EnergyReadingStream, Buffer);
-    const auto Reading = std::stoll(Buffer);
-
-    if (Reading < Def->LastReading) {
-      Def->Overflow += 1;
-    }
-
-    Def->LastReading = Reading;
-
-    FinalReading += 1.0E-6 * static_cast<double>((Def->Overflow * Def->Max) + Def->LastReading);
+  for (auto& Reader : Readers) {
+    Reader->read();
   }
 
   if (Value != nullptr) {
-    *Value = FinalReading;
+    assert(NumElems == 1 + Readers.size() &&
+           "The number of elems is smaller than the number of reader plus the root metric.");
+
+    // Read the value
+    double FinalReading = 0.0;
+    for (const auto& Reader : instance().AccumulateReaders) {
+      FinalReading += Reader->lastReading();
+    }
+
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    *Value++ = FinalReading;
+    for (auto& Reader : Readers) {
+      *Value++ = Reader->lastReading();
+    }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
 
   return EXIT_SUCCESS;
 }
 
-auto RaplMetricData::getError() -> const char* {
+auto RaplMetric::getError() -> const char* {
   const char* ErrorCString = instance().ErrorString.c_str();
   return ErrorCString;
 }
 
 // this function will be called periodically to make sure we do not miss an
 // overflow of the counter
-void RaplMetricData::callback() { getReading(nullptr); }
+void RaplMetric::callback() { getReading(nullptr, /*NumElems=*/0); }

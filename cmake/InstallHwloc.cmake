@@ -17,6 +17,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install
+			BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libhwloc.a
+			DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 			)
 
 		SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/install")
@@ -36,6 +38,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND cd <SOURCE_DIR>\\contrib\\windows && MSBuild /p:Configuration=Release /p:Platform=x64 hwloc.sln
 				INSTALL_COMMAND ""
+				BUILD_BYPRODUCTS <SOURCE_DIR>/contrib/windows/x64/Release/libhwloc.lib
+				DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 				)
 
 			SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
@@ -55,6 +59,8 @@ if (FIRESTARTER_BUILD_HWLOC)
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND ""
 				INSTALL_COMMAND ""
+				BUILD_BYPRODUCTS <SOURCE_DIR>/lib/libhwloc.a
+				DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 				)
 
 			SET(HWLOC_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/Hwloc/sources")
@@ -65,5 +71,10 @@ if (FIRESTARTER_BUILD_HWLOC)
 		endif()
 	endif()
 
-	include_directories(${HWLOC_INCLUDE_DIR}/include)
+	add_dependencies(hwloc HwlocInstall)
+
+	# Including a non exsistant directory is not allowed. This is the case when configuring and hwloc is not yet installed.
+	# See https://gitlab.kitware.com/cmake/cmake/-/issues/15052
+	file(MAKE_DIRECTORY "${HWLOC_INCLUDE_DIR}/include")
+	target_include_directories(hwloc INTERFACE "${HWLOC_INCLUDE_DIR}/include")
 endif()

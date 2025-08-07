@@ -27,9 +27,9 @@
 #include <string>
 
 /// The wrapper for the C interface to the PerfIpcMetric and PerfFreqMetric metric.
-class PerfMetricData {
+class PerfMetric {
 private:
-  PerfMetricData() = default;
+  PerfMetric() = default;
 
   static const constexpr char* PerfEventParanoidFile = "/proc/sys/kernel/perf_event_paranoid";
 
@@ -72,12 +72,12 @@ private:
   static auto getReading(double* IpcValue, double* FreqValue) -> int32_t;
 
 public:
-  PerfMetricData(PerfMetricData const&) = delete;
-  void operator=(PerfMetricData const&) = delete;
+  PerfMetric(PerfMetric const&) = delete;
+  void operator=(PerfMetric const&) = delete;
 
   /// Get the instance of this metric
-  static auto instance() -> PerfMetricData& {
-    static PerfMetricData Instance;
+  static auto instance() -> PerfMetric& {
+    static PerfMetric Instance;
     return Instance;
   }
 
@@ -95,48 +95,56 @@ public:
   static auto valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t;
 
   /// Get a reading of the perf-ipc metric.
-  /// \arg Value The pointer to which the value will be saved.
+  /// \arg Values The memory array to which double values are saved. The index zero contains the root metric. The values
+  /// one and up are used to select the specific submetric.
+  /// \arg NumElems The number of elements in the double array.
   /// \returns EXIT_SUCCESS if we got a new value.
-  static auto getReadingIpc(double* Value) -> int32_t;
+  static auto getReadingIpc(double* Value, uint64_t NumElems) -> int32_t;
 
   /// Get a reading of the perf-freq metric.
-  /// \arg Value The pointer to which the value will be saved.
+  /// \arg Values The memory array to which double values are saved. The index zero contains the root metric. The values
+  /// one and up are used to select the specific submetric.
+  /// \arg NumElems The number of elements in the double array.
   /// \returns EXIT_SUCCESS if we got a new value.
-  static auto getReadingFreq(double* Value) -> int32_t;
+  static auto getReadingFreq(double* Value, uint64_t NumElems) -> int32_t;
 
   /// Get error in case return code not being EXIT_SUCCESS.
   /// \returns The error string.
   static auto getError() -> const char*;
-};
 
-/// This metric provides IPC measurement of the programm and all associated threads.
-static constexpr const MetricInterface PerfIpcMetric{
-    /*Name=*/"perf-ipc",
-    /*Type=*/
-    {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
-     /*Reserved=*/0},
-    /*Unit=*/"IPC",
-    /*CallbackTime=*/0,
-    /*Callback=*/nullptr,
-    /*Init=*/PerfMetricData::init,
-    /*Fini=*/PerfMetricData::fini,
-    /*GetReading=*/PerfMetricData::getReadingIpc,
-    /*GetError=*/PerfMetricData::getError,
-    /*RegisterInsertCallback=*/nullptr,
-};
+  /// This metric provides IPC measurement of the programm and all associated threads.
+  inline static MetricInterface PerfIpcMetric{
+      /*Name=*/"perf-ipc",
+      /*Type=*/
+      {/*Absolute=*/1, /*Accumalative=*/0, /*DivideByThreadCount=*/0, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+       /*Reserved=*/0},
+      /*Unit=*/"IPC",
+      /*CallbackTime=*/0,
+      /*Callback=*/nullptr,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
+      /*GetReading=*/getReadingIpc,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/nullptr,
+  };
 
-/// This metric provides frequency measurement on the CPUs used to execute the program on.
-static constexpr const MetricInterface PerfFreqMetric{
-    /*Name=*/"perf-freq",
-    /*Type=*/
-    {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
-     /*Reserved=*/0},
-    /*Unit=*/"GHz",
-    /*CallbackTime=*/0,
-    /*Callback=*/nullptr,
-    /*Init=*/PerfMetricData::init,
-    /*Fini=*/PerfMetricData::fini,
-    /*GetReading=*/PerfMetricData::getReadingFreq,
-    /*GetError=*/PerfMetricData::getError,
-    /*RegisterInsertCallback=*/nullptr,
+  /// This metric provides frequency measurement on the CPUs used to execute the program on.
+  inline static MetricInterface PerfFreqMetric{
+      /*Name=*/"perf-freq",
+      /*Type=*/
+      {/*Absolute=*/0, /*Accumalative=*/1, /*DivideByThreadCount=*/1, /*InsertCallback=*/0, /*IgnoreStartStopDelta=*/0,
+       /*Reserved=*/0},
+      /*Unit=*/"GHz",
+      /*CallbackTime=*/0,
+      /*Callback=*/nullptr,
+      /*Init=*/init,
+      /*Fini=*/fini,
+      /*GetSubmetricNames=*/
+      nullptr,
+      /*GetReading=*/getReadingFreq,
+      /*GetError=*/getError,
+      /*RegisterInsertCallback=*/nullptr,
+  };
 };

@@ -143,16 +143,22 @@ Examples:
 
 FIRESTARTER can be build under Linux, Windows and macOS with CMake.
 
-GCC (>=7) or Clang (>=9) is supported.
+GCC (>=10) or Clang (>=11) is supported.
 
 CMake option                  | Description
 :---------------------------- | :----------------------------
-`FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, `FIRESTARTER_ONEAPI`, or `FIRESTARTER_HIP`. Default `FIRESTARTER`
-`FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA or OneAPI enabled. Default `ON`
-`FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default `ON`
-`FIRESTARTER_THREAD_AFFINITY` | Enable FIRESTARTER to set affinity to hardware threads. Default `ON`
+`FIRESTARTER_BUILD_TYPE`      | Can be any of `FIRESTARTER`, `FIRESTARTER_CUDA`, `FIRESTARTER_ONEAPI`, or `FIRESTARTER_HIP`. Default: `FIRESTARTER`
+`FIRESTARTER_LINK_STATIC`     | Link FIRESTARTER as a static binary. Note, dlopen is not supported in static binaries. This option is not available on macOS or with CUDA or OneAPI enabled. Default: `ON`
+`FIRESTARTER_BUILD_HWLOC`     | Build hwloc dependency. Default: `ON`
+`FIRESTARTER_BUILD_TESTS`     | Enable the tests. Default: `OFF`
+`FIRESTARTER_FETCH_GOOGLETEST`| Fetch the GoogleTest dependency. Default: `ON`
 
-When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel Library (MKL) and the complier `icx` can be found. These will be used to build `FIRESTARTER`, while dependencies will be build with `$CC` and `$CXX` respectively.
+When building `FIRESTARTER_ONEAPI` make sure that the Intel Math Kernel
+Library (MKL) and the compiler `icx` and `icpx` can be found. Please provide
+them through the `CC` and `CXX` environment variables.
+
+When building `FIRESTARTER_HIP` make sure that the compiler `hipcc` can be
+found. Please provide it through the `CC` and `CXX` environment variables.
 
 ## Metrics
 
@@ -254,14 +260,18 @@ Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
 Make also sure that you have the correct drivers for your GPU installed so that
 OneAPI can apply work to it. 
 
-## Reference
+## References
 
-A detailed description can be found in the following paper. Please cite this if
-you use FIRESTARTER for scientific work.
+Below is a list of our FIRESTARTER publications. Please preferably cite the latest paper
+if you use FIRESTARTER for scientific work.
+
+Robert Schöne, Markus Schmidl, Mario Bielert, and Daniel Hackenberg
+[FIRESTARTER 2: Dynamic Code Generation for Processor Stress
+Tests](https://dx.doi.org/10.1109/Cluster48925.2021.00084) (Cluster 2021)
 
 Daniel Hackenberg, Roland Oldenburg, Daniel Molka, and Robert Schöne
 [Introducing FIRESTARTER: A processor stress test
-utility](http://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
+utility](https://dx.doi.org/10.1109/IGCC.2013.6604507) (IGCC 2013)
 
 Additional information:
 [https://tu-dresden.de/zih/forschung/projekte/firestarter](https://tu-dresden.de/zih/forschung/projekte/firestarter).

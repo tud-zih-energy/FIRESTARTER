@@ -21,65 +21,74 @@
 
 #include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/Constants.hpp"
+#include "firestarter/DumpRegisterStruct.hpp"
 #include "firestarter/ErrorDetectionStruct.hpp"
 #include "firestarter/Firestarter.hpp"
 #include "firestarter/LoadWorkerData.hpp"
+#include "firestarter/LoadWorkerMemory.hpp"
+#include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/ThreadAffinity.hpp"
+#include "firestarter/Tracing.h"
 
 #if defined(linux) || defined(__linux__)
 #include "firestarter/Measurement/Metric/IPCEstimate.hpp"
 #endif
 
-#ifdef ENABLE_VTRACING
-#include <vt_user.h>
-#endif
-#ifdef ENABLE_SCOREP
-#include <SCOREP_User.h>
-#endif
-
+#include <algorithm>
+#include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <iomanip>
+#include <ios>
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 namespace firestarter {
 
-void Firestarter::initLoadWorkers() {
-  Environment->setCpuAffinity(0);
+void Firestarter::initLoadWorkers(const ThreadAffinity& Affinity) {
+  // Bind this thread to the first available CPU.
+  Topology.bindCallerToOsIndex(*Affinity.CpuBind.cbegin());
 
   // setup load variable to execute low or high load once the threads switch to
   // work.
   LoadVar = Cfg.Load == std::chrono::microseconds::zero() ? LoadThreadWorkType::LoadLow : LoadThreadWorkType::LoadHigh;
 
-  auto NumThreads = Environment->requestedNumThreads();
-
   // create a std::vector<std::shared_ptr<>> of requestenNumThreads()
   // communication pointers and add these to the threaddata
   if (Cfg.ErrorDetection) {
-    for (uint64_t I = 0; I < NumThreads; I++) {
+    for (uint64_t I = 0; I < Affinity.RequestedNumThreads; I++) {
       auto* CommPtr = static_cast<uint64_t*>(AlignedAlloc::malloc(2 * sizeof(uint64_t)));
       assert(CommPtr);
       ErrorCommunication.emplace_back(std::shared_ptr<uint64_t>(CommPtr, AlignedAlloc::free));
-      log::debug() << "Threads " << (I + NumThreads - 1) % NumThreads << " and " << I << " commPtr = 0x"
-                   << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
+      log::debug() << "Threads " << (I + Affinity.RequestedNumThreads - 1) % Affinity.RequestedNumThreads << " and "
+                   << I << " commPtr = 0x" << std::setfill('0') << std::setw(sizeof(uint64_t) * 2)
                    << std::hex
                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                    << reinterpret_cast<uint64_t>(CommPtr);
     }
   }
 
-  for (uint64_t I = 0; I < NumThreads; I++) {
-    auto Td = std::make_shared<LoadWorkerData>(I, std::cref(*Environment), std::ref(LoadVar), Cfg.Period,
-                                               Cfg.DumpRegisters, Cfg.ErrorDetection);
+  uint64_t I = 0;
+  for (const auto& OsIndex : Affinity.CpuBind) {
+    auto Td = std::make_shared<LoadWorkerData>(I, OsIndex, std::cref(ProcessorInfos), std::cref(FunctionPtr),
+                                               std::cref(Topology), std::ref(LoadVar), Cfg.Period, Cfg.DumpRegisters,
+                                               Cfg.ErrorDetection);
 
     if (Cfg.ErrorDetection) {
       // distribute pointers for error deteciton. (set threads in a ring)
       // give this thread the left pointer i and right pointer (i+1) %
       // requestedNumThreads().
-      Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % NumThreads]);
+      Td->setErrorCommunication(ErrorCommunication[I], ErrorCommunication[(I + 1) % Affinity.RequestedNumThreads]);
     }
 
     Td->BuffersizeMem = Td->config().settings().totalBufferSizePerThread() / sizeof(uint64_t);
@@ -95,6 +104,8 @@ void Firestarter::initLoadWorkers() {
     }
 
     LoadThreads.emplace_back(std::move(T), Td);
+
+    I++;
   }
 
   signalLoadWorkers(LoadThreadState::ThreadInit);
@@ -194,7 +205,7 @@ void Firestarter::printPerformanceReport() {
   }
 
   double const Runtime =
-      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(Environment->topology().clockrate());
+      static_cast<double>(StopTimestamp - StartTimestamp) / static_cast<double>(ProcessorInfos->clockrate());
   double const GFlops = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Flops) *
                         0.000000001 * static_cast<double>(Iterations) / Runtime;
   double const Bandwidth = static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Bytes) *
@@ -206,7 +217,7 @@ void Firestarter::printPerformanceReport() {
   if (Cfg.Measurement) {
     for (auto const& Thread : LoadThreads) {
       auto Td = Thread.second;
-      IpcEstimateMetricData::insertValue(
+      IpcEstimateMetric::insertValue(
           static_cast<double>(Td->LastRun.Iterations) *
           static_cast<double>(LoadThreads.front().second->CompiledPayloadPtr->stats().Instructions) /
           static_cast<double>(StopTimestamp - StartTimestamp));
@@ -221,19 +232,51 @@ void Firestarter::printPerformanceReport() {
     return Ss.str();
   };
 
+  const auto PrintGpuFlops = [&Runtime, &FormatString](auto& GpuPtr) -> void {
+    if (!GpuPtr) {
+      return;
+    }
+
+    auto SingleFlops = static_cast<double>(GpuPtr->executedFlop().SingleFlop.load()) * 0.000000001 / Runtime;
+    auto DoubleFlops = static_cast<double>(GpuPtr->executedFlop().DoubleFlop.load()) * 0.000000001 / Runtime;
+
+    if (SingleFlops > 0) {
+      log::debug() << "\n"
+                   << "estimated floating point performance (GPU)**: " << FormatString(SingleFlops)
+                   << " GFLOPS (single)";
+    }
+
+    if (DoubleFlops > 0) {
+      log::debug() << "\n"
+                   << "estimated floating point performance (GPU)**: " << FormatString(DoubleFlops)
+                   << " GFLOPS (double)";
+    }
+  };
+
   log::debug() << "\n"
                << "total iterations: " << Iterations << "\n"
                << "runtime: " << FormatString(Runtime) << " seconds (" << StopTimestamp - StartTimestamp << " cycles)\n"
                << "\n"
-               << "estimated floating point performance: " << FormatString(GFlops) << " GFLOPS\n"
-               << "estimated memory bandwidth*: " << FormatString(Bandwidth) << " GB/s\n"
-               << "\n"
+               << "estimated floating point performance (CPU): " << FormatString(GFlops) << " GFLOPS\n"
+               << "estimated memory bandwidth (CPU)*: " << FormatString(Bandwidth) << " GB/s";
+
+  PrintGpuFlops(Cuda);
+  PrintGpuFlops(Oneapi);
+
+  log::debug() << "\n"
                << "* this estimate is highly unreliable if --function is used in order "
                   "to "
                   "select\n"
                << "  a function that is not optimized for your architecture, or if "
                   "FIRESTARTER is\n"
                << "  executed on an unsupported architecture!";
+
+  if (Cuda || Oneapi) {
+    log::debug()
+        << "** this estimate is based on the assumption that no algorithmically optimized version\n"
+        << "    of the called algorithm has been implemented by the vendor. It also might not be not accurate\n"
+        << "    for short runs of FIRESTARTER";
+  }
 }
 
 void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
@@ -241,6 +284,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
   auto OldState = LoadThreadState::ThreadWait;
 
 #if defined(linux) || defined(__linux__)
+  // NOLINTNEXTLINE(misc-include-cleaner)
   pthread_setname_np(pthread_self(), "LoadWorker");
 #endif
 
@@ -264,11 +308,11 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
     // allocate and initialize memory
     case LoadThreadState::ThreadInit:
       // set affinity
-      Td->environment().setCpuAffinity(Td->id());
+      Td->Topology.bindCallerToOsIndex(Td->OsIndex);
 
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
+                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -305,7 +349,7 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
     case LoadThreadState::ThreadWork:
       Td->CurrentRun.Iterations = 0;
       // record threads start timestamp
-      Td->CurrentRun.StartTsc = Td->environment().topology().timestamp();
+      Td->CurrentRun.StartTsc = Td->ProcessorInfos->timestamp();
 
       // will be terminated by watchdog
       for (;;) {
@@ -316,36 +360,27 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 #ifdef ENABLE_SCOREP
         SCOREP_USER_REGION_BY_NAME_BEGIN("HIGH", SCOREP_USER_REGION_TYPE_COMMON);
 #endif
+
+        firestarterTracingRegionBegin("High");
         Td->CurrentRun.Iterations = Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
                                                                              Td->LoadVar, Td->CurrentRun.Iterations);
+        firestarterTracingRegionEnd("High");
 
         // call low load function
-#ifdef ENABLE_VTRACING
-        VT_USER_END("HIGH_LOAD_FUNC");
-        VT_USER_START("LOW_LOAD_FUNC");
-#endif
-#ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_END("HIGH");
-        SCOREP_USER_REGION_BY_NAME_BEGIN("LOW", SCOREP_USER_REGION_TYPE_COMMON);
-#endif
+        firestarterTracingRegionBegin("Low");
         Td->CompiledPayloadPtr->lowLoadFunction(Td->LoadVar, Td->Period);
-#ifdef ENABLE_VTRACING
-        VT_USER_END("LOW_LOAD_FUNC");
-#endif
-#ifdef ENABLE_SCOREP
-        SCOREP_USER_REGION_BY_NAME_END("LOW");
-#endif
+        firestarterTracingRegionEnd("Low");
 
         // terminate if master signals end of run and record stop timestamp
         if (Td->LoadVar == LoadThreadWorkType::LoadStop) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->ProcessorInfos->timestamp();
           Td->LastRun = Td->CurrentRun;
 
           return;
         }
 
         if (Td->LoadVar == LoadThreadWorkType::LoadSwitch) {
-          Td->CurrentRun.StopTsc = Td->environment().topology().timestamp();
+          Td->CurrentRun.StopTsc = Td->ProcessorInfos->timestamp();
           Td->LastRun = Td->CurrentRun;
 
           break;
@@ -354,8 +389,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       break;
     case LoadThreadState::ThreadSwitch:
       // compile payload
-      Td->CompiledPayloadPtr =
-          Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
+                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
 
       // call init function
       Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);
