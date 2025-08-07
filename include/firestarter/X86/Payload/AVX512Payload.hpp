@@ -24,8 +24,6 @@
 #include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/X86/Payload/X86Payload.hpp"
 
-#include <immintrin.h>
-
 namespace firestarter::x86::payload {
 
 // Define struct that is used as config and loaded through ldtilecfg()
