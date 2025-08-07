@@ -25,9 +25,9 @@
 #include "firestarter/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::x86::platform {
-class SkylakeSPConfig final : public X86PlatformConfig {
+class SapphireRapidsConfig final : public X86PlatformConfig {
 public:
-  SkylakeSPConfig() noexcept
+  SapphireRapidsConfig() noexcept
       : X86PlatformConfig(/*Name=*/"SPR_XEONEP", /*RequestedModels=*/
                           {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/143)},
                           /*Settings=*/
