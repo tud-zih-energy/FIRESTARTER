@@ -184,7 +184,7 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
   }
 
   // Init AMX registers and config
-  TileConfig tile_data = {0};
+  TileConfig tile_data{};
   request_permission();
   create_AMX_config(&tile_data); // Create tilecfg and fill it
 
