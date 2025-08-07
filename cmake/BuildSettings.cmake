@@ -10,7 +10,7 @@ endif()
 
 # Not MSVC
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mamx-tile -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O2 -fdata-sections -ffunction-sections")
 endif()
 
 
