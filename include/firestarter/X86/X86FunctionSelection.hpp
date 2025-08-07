@@ -32,6 +32,7 @@
 #include "firestarter/X86/Platform/RomeConfig.hpp"
 #include "firestarter/X86/Platform/SandyBridgeConfig.hpp"
 #include "firestarter/X86/Platform/SandyBridgeEPConfig.hpp"
+#include "firestarter/X86/Platform/SapphireRapidsConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeSPConfig.hpp"
 
@@ -63,7 +64,8 @@ private:
       std::make_shared<platform::HaswellEPConfig>(),      std::make_shared<platform::SandyBridgeConfig>(),
       std::make_shared<platform::SandyBridgeEPConfig>(),  std::make_shared<platform::NehalemConfig>(),
       std::make_shared<platform::NehalemEPConfig>(),      std::make_shared<platform::BulldozerConfig>(),
-      std::make_shared<platform::NaplesConfig>(),         std::make_shared<platform::RomeConfig>()};
+      std::make_shared<platform::NaplesConfig>(),         std::make_shared<platform::RomeConfig>(),
+      std::make_shared<platform::SapphireRapidsConfig>()};
 
   /// The list of configs that are fallbacks. If none of the PlatformConfigs is the default one on the current CPU, we
   /// select the first one from this list that is available on the current system. If multiple configs can be available
@@ -72,11 +74,12 @@ private:
   /// AVX512 takes precedence. This list should contain one entry for each of the supported CPU extensions by the
   /// FIRESTARTER payloads.
   std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>> FallbackPlatformConfigs = {
-      std::make_shared<platform::SkylakeSPConfig>(),   // AVX512
-      std::make_shared<platform::BulldozerConfig>(),   // FMA4
-      std::make_shared<platform::HaswellConfig>(),     // FMA
-      std::make_shared<platform::SandyBridgeConfig>(), // AVX
-      std::make_shared<platform::NehalemConfig>()      // SSE2
+      std::make_shared<platform::SapphireRapidsConfig>(), // AVX512 with AMX
+      std::make_shared<platform::SkylakeSPConfig>(),      // AVX512
+      std::make_shared<platform::BulldozerConfig>(),      // FMA4
+      std::make_shared<platform::HaswellConfig>(),        // FMA
+      std::make_shared<platform::SandyBridgeConfig>(),    // AVX
+      std::make_shared<platform::NehalemConfig>()         // SSE2
   };
 };
 
