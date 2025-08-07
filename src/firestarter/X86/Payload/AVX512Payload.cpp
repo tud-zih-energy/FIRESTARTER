@@ -185,41 +185,48 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
   }
 
   // Init AMX registers and config
-  TileConfig tile_data{};
-  request_permission();
-  create_AMX_config(&tile_data); // Create tilecfg and fill it
+  bool containsAMX = std::any_of(Sequence.cbegin(), Sequence.cend(), [](const std::string& s) {
+  return s.find("AMX") != std::string::npos;
+  });
+  if(containsAMX){
+    request_permission();
+    constexpr const auto TiledataOffset =
+    -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+    static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Tc));
+    
+    constexpr const auto PaletteIDOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, palette_id));
+    constexpr const auto PaletteStartRowOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, start_row)); 
+    Cb.mov(ptr_8(PointerReg, PaletteIDOffset), Imm(1));
+    Cb.mov(ptr_8(PointerReg, PaletteStartRowOffset), Imm(0));
 
-  __bfloat16* src1;
-  __bfloat16* src2;
-  void* src3;
-  unsigned int aligned_alloc_size =
-      static_cast<unsigned int>(static_cast<uint32_t>(MaxSize::ELEMENTS) * sizeof(__bfloat16));
-  if (aligned_alloc_size % 1024) { // aligned_alloc expects size to be multiple of alignment (aka 1024)
-    aligned_alloc_size = aligned_alloc_size + (1024 - (aligned_alloc_size % 1024));
+    for (int i = 0; i < 8; ++i) {
+      const auto ColsbIOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, colsb[0])) + static_cast<int32_t>(i*sizeof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig::colsb[0]));
+      const auto RowsIOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, rows[0])) + static_cast<int32_t>(i*sizeof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig::rows[0]));
+      Cb.mov(ptr_16(PointerReg, ColsbIOffset), Imm(static_cast<uint16_t>(MaxSize::COLS)));
+      Cb.mov(ptr_8(PointerReg, RowsIOffset), Imm(static_cast<uint8_t>(MaxSize::ROWS)));
+    }
+    auto tiledata_ptr = ptr_64(PointerReg, TiledataOffset);
+    Cb.ldtilecfg(tiledata_ptr);
+
+    // Init buffers
+    init_buffer_rand(src1, src2);
+    
+    memset(static_cast<void*>(src3), 0, aligned_alloc_size);
+
+    Cb.tileloaddt1(tmm6, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src1)));
+    Cb.tileloaddt1(tmm7, asmjit::x86::ptr(
+                             reinterpret_cast<uintptr_t>(src2))); // Ensure no overflows through loading x and -x in src2
+
+    Cb.tileloaddt1(asmjit::x86::tmm0, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3))); // Preload with 0
+    Cb.tileloaddt1(asmjit::x86::tmm1, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm2, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm3, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm4, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm5, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
   }
-  src1 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
-  src2 = static_cast<__bfloat16*>(aligned_alloc(1024, aligned_alloc_size));
-  src3 = static_cast<void*>(aligned_alloc(1024, aligned_alloc_size));
-  if ((static_cast<void*>(src1) == nullptr) || static_cast<void*>(src2) == nullptr ||
-      static_cast<void*>(src3) == nullptr) { // uintptr_t garantuees we can cast it to void* and back
-    std::cout << "[ERROR]: Allocation of source and target buffer for AMX failed. Aborting...\n";
-    exit(1);
-  }
 
-  // Init buffers
-  init_buffer_rand(src1, src2);
-  memset(static_cast<void*>(src3), 0, aligned_alloc_size);
 
-  Cb.tileloaddt1(tmm6, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src1)));
-  Cb.tileloaddt1(tmm7, asmjit::x86::ptr(
-                           reinterpret_cast<uintptr_t>(src2))); // Ensure no overflows through loading x and -x in src2
 
-  Cb.tileloaddt1(asmjit::x86::tmm0, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3))); // Preload with 0
-  Cb.tileloaddt1(asmjit::x86::tmm1, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
-  Cb.tileloaddt1(asmjit::x86::tmm2, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
-  Cb.tileloaddt1(asmjit::x86::tmm3, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
-  Cb.tileloaddt1(asmjit::x86::tmm4, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
-  Cb.tileloaddt1(asmjit::x86::tmm5, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
 
   // Initialize AVX512-Registers for FMA Operations
   Cb.vmovapd(zmm0, zmmword_ptr(PointerReg, 0));
@@ -250,7 +257,6 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
                      << RamSize / 1024 << ") KiB";
 
   Cb.align(asmjit::AlignMode::kCode, 64);
-
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
 
@@ -458,20 +464,6 @@ void AVX512Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
-void AVX512Payload::create_AMX_config(TileConfig* tileinfo) {
-  // Create tile_cfg, fill it and return
-  int i;
-  tileinfo->palette_id = 1;
-  tileinfo->start_row = 0;
-
-  for (i = 0; i < 8; ++i) {
-    tileinfo->colsb[i] = static_cast<uint16_t>(MaxSize::COLS);
-    tileinfo->rows[i] = static_cast<uint8_t>(MaxSize::ROWS);
-  }
-
-  _tile_loadconfig(tileinfo);
-}
-
 void AVX512Payload::request_permission() {
 
   long rc;
@@ -491,28 +483,25 @@ void AVX512Payload::request_permission() {
   }
 }
 
-void AVX512Payload::init_buffer_rand(__bfloat16* src1, __bfloat16* src2) {
+void AVX512Payload::init_buffer_rand(uint16_t* src1, uint16_t* src2) {
 
   // Initialize buffer with random values
   // Multiplication always produces either 1 or -1
   // Accumulation operation always on (1 + -1) = 0 ensures stable values
-
-  __bfloat16* buf1 = static_cast<__bfloat16*>(src1);
-  __bfloat16* buf2 = static_cast<__bfloat16*>(src2);
-
+  
   // TODO: Change MaxSize::ROWS/MaxSize::COLS from constant to maximum size check by asmJit
   //	   Currently not supported by asmJit
   //	   Alternative: Manually parse CPUID
 
   for (int i = 0; i < static_cast<uint8_t>(MaxSize::ROWS); i++) {
-    __bfloat16 random_init =
-        static_cast<__bfloat16>((rand() % 65536)); // Limit maximum size as 1/x needs to fit bfloat16
+    uint16_t random_init =
+        static_cast<uint16_t>((rand() % 4096)); // Fill fraction of bfloat16 with random bits and the lower 5 bits of exponent
     for (int j = 0; j < static_cast<uint16_t>(MaxSize::COLS); j++) {
-      buf1[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>(random_init);
+      src1[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init;
       if (!(j % 2)) {
-        buf2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>(((-1) / random_init));
+        src2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init | (1<<15); // Set sign bit to mitigate effect of addition from dot product
       } else if (j % 2) {
-        buf2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = static_cast<__bfloat16>((1 / random_init));
+        src2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init;
       }
     }
   }

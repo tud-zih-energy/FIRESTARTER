@@ -53,6 +53,22 @@ public:
     DumpRegisterStruct Drs;
     /// The data for the error detections functionality.
     ErrorDetectionStruct Eds;
+    // Define struct that is used as config and loaded through ldtilecfg()
+    // 64 Byte aligned
+    struct TileConfig {
+      uint8_t palette_id;
+      uint8_t start_row;
+      uint8_t reserved_0[14];
+      uint16_t colsb[16];
+      uint8_t rows[16];
+    } Tc;
+    
+    struct AMXMemory {
+      uint16_t src1[1024];
+      uint16_t src2[1024];
+      uint16_t src3[1024];
+    } AMXmem;
+    
   } ExtraVars;
 
   /// A placeholder to extract the address of the memory region with dynamic size which is used for the calculation in
