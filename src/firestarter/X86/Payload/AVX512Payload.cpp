@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <iterator>
 #include <sys/syscall.h>
+#include <unistd.h>
 #include <vector>
 
 namespace firestarter::x86::payload {
