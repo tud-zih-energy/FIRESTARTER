@@ -65,7 +65,7 @@ private:
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
   static void initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
                        const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                       unsigned MatrixSize, int Gpus);
+                       uint64_t MatrixSize, int Gpus);
 
 public:
   /// Initilize the OneAPI class. This will start a thread running the OneAPI::initGpus function and wait until all gpus
@@ -77,7 +77,7 @@ public:
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
-  OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+  OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, uint64_t MatrixSize,
          int Gpus)
 #if defined(FIRESTARTER_BUILD_ONEAPI)
       ;
