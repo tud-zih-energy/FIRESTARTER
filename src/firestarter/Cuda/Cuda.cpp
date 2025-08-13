@@ -267,7 +267,7 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 
 }; // namespace
 
-Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, uint64_t MatrixSize,
            int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
