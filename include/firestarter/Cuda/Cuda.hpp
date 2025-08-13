@@ -34,9 +34,9 @@ namespace firestarter::cuda {
 /// on execution of a kernel is complete.
 struct GpuFlop {
   /// The number of executed single precision flop
-  std::atomic<std::size_t> SingleFlop = 0;
+  std::atomic<std::uint64_t> SingleFlop = 0;
   /// The number of executed double precision flop
-  std::atomic<std::size_t> DoubleFlop = 0;
+  std::atomic<std::uint64_t> DoubleFlop = 0;
 };
 
 /// This class handles the workload on CUDA and HIP compatible GPUs. A gemm routine is used to stress them with a
