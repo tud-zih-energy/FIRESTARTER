@@ -12,8 +12,8 @@ on: [push, pull_request]
 #     ubuntu 24.04 gcc-14 and clang-18
 #     default compilers on ubuntu-22.04 and ubuntu-24.04
 # On Windows:
-#   FIRESTARTER against windows-2019 MSVC and mingw
-#   FIRESTARTER_CUDA against windows-2019 MSVC
+#   FIRESTARTER against windows-2022 MSVC and mingw
+#   FIRESTARTER_CUDA against windows-2022 MSVC
 # On MacOS:
 #   FIRESTARTER against XCode on MacOS 13
 
@@ -319,7 +319,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         cfg:
           - { CUDA: '0',    MSVC: true }
           - { CUDA: '0',    MSVC: false }
