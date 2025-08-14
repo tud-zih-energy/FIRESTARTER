@@ -124,7 +124,7 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
 template <typename FloatingPointType>
 void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                 int DeviceIndex, std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                unsigned MatrixSize) {
+                uint64_t MatrixSize) {
   static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
                 "create_load<FloatingPointType>: Template argument must be either float or double");
 
@@ -267,7 +267,7 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 
 }; // namespace
 
-Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, unsigned MatrixSize,
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, uint64_t MatrixSize,
            int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
@@ -283,7 +283,7 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
 
 void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
                     const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                    unsigned MatrixSize, int Gpus) {
+                    uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -335,7 +335,7 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
           // have to correct this.
           const auto Precision = getPrecision(I, UseDoubleConverted);
           void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
-                           const volatile firestarter::LoadThreadWorkType&, unsigned) =
+                           const volatile firestarter::LoadThreadWorkType&, uint64_t) =
               Precision ? createLoad<double> : createLoad<float>;
 
           std::thread T(LoadFunc, std::ref(ExecutedFlop), std::ref(GpuThreadsWaitForInitCv),
