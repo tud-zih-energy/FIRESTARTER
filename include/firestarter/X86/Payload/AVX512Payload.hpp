@@ -26,8 +26,9 @@
 
 namespace firestarter::x86::payload {
 
+
 /// This payload is designed for the AVX512 foundation CPU extension.
-class AVX512Payload final : public X86Payload {
+class AVX512Payload : public X86Payload {
 public:
   AVX512Payload() noexcept
       : X86Payload(
@@ -66,6 +67,9 @@ public:
                  bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr override;
 
 private:
+  static void request_permission();
+  static void init_buffer_rand(uint16_t* buf1, uint16_t* buf2);
+
   /// Function to initialize the memory used by the high load function.
   /// \arg MemoryAddr The pointer to the memory.
   /// \arg BufferSize The number of doubles that is allocated in MemoryAddr.

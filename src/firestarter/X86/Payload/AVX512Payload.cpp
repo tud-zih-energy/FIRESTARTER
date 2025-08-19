@@ -31,16 +31,29 @@
 #include <asmjit/x86.h>
 #include <cstdint>
 #include <iterator>
+#include <sys/syscall.h>
+#include <unistd.h>
 #include <vector>
 
 namespace firestarter::x86::payload {
+
+enum class XFeature : uint32_t { XTILECFG = 17, XTILEDATA = 18 };
+constexpr const uint32_t XFEATURE_MASK_XTILEDATA = (1 << static_cast<uint32_t>(XFeature::XTILEDATA));
+
+enum class Arch : uint32_t { GET_XCOMP_PERM = 0x1022, REQ_XCOMP_PERM = 0x1023 };
+
+enum class MaxSize : uint32_t { ELEMENTS = 1024, ROWS = 16, COLS = 64 };
 
 auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
                                    bool ErrorDetection,
                                    bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
+  using Tmm = asmjit::x86::Tmm;
   using Zmm = asmjit::x86::Zmm;
   // NOLINTBEGIN(readability-identifier-naming)
+  constexpr auto tmm6 = asmjit::x86::tmm6;
+  constexpr auto tmm7 = asmjit::x86::tmm7;
+
   constexpr asmjit::x86::Mem (*zmmword_ptr)(const asmjit::x86::Gp&, int32_t) = asmjit::x86::zmmword_ptr;
   constexpr auto zmm0 = asmjit::x86::zmm0;
   constexpr auto zmm1 = asmjit::x86::zmm1;
@@ -170,6 +183,51 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
   for (auto const& Reg : ShiftReg32) {
     Cb.mov(Reg, Imm(0xAAAAAAAA));
   }
+
+  // Init AMX registers and config
+  bool containsAMX = std::any_of(Sequence.cbegin(), Sequence.cend(), [](const std::string& s) {
+  return s.find("AMX") != std::string::npos;
+  });
+  if(containsAMX){
+    request_permission();
+    constexpr const auto TiledataOffset =
+    -static_cast<int32_t>(LoadWorkerMemory::getMemoryOffset()) +
+    static_cast<int32_t>(offsetof(LoadWorkerMemory, ExtraVars.Tc));
+    
+    constexpr const auto PaletteIDOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, palette_id));
+    constexpr const auto PaletteStartRowOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, start_row)); 
+    Cb.mov(ptr_8(PointerReg, PaletteIDOffset), Imm(1));
+    Cb.mov(ptr_8(PointerReg, PaletteStartRowOffset), Imm(0));
+
+    for (int i = 0; i < 8; ++i) {
+      const auto ColsbIOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, colsb[0])) + static_cast<int32_t>(i*sizeof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig::colsb[0]));
+      const auto RowsIOffset = TiledataOffset + static_cast<int32_t>(offsetof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig, rows[0])) + static_cast<int32_t>(i*sizeof(LoadWorkerMemory::ExtraLoadWorkerVariables::TileConfig::rows[0]));
+      Cb.mov(ptr_16(PointerReg, ColsbIOffset), Imm(static_cast<uint16_t>(MaxSize::COLS)));
+      Cb.mov(ptr_8(PointerReg, RowsIOffset), Imm(static_cast<uint8_t>(MaxSize::ROWS)));
+    }
+    auto tiledata_ptr = ptr_64(PointerReg, TiledataOffset);
+    Cb.ldtilecfg(tiledata_ptr);
+
+    // Init buffers
+    init_buffer_rand(src1, src2);
+    
+    memset(static_cast<void*>(src3), 0, aligned_alloc_size);
+
+    Cb.tileloaddt1(tmm6, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src1)));
+    Cb.tileloaddt1(tmm7, asmjit::x86::ptr(
+                             reinterpret_cast<uintptr_t>(src2))); // Ensure no overflows through loading x and -x in src2
+
+    Cb.tileloaddt1(asmjit::x86::tmm0, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3))); // Preload with 0
+    Cb.tileloaddt1(asmjit::x86::tmm1, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm2, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm3, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm4, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+    Cb.tileloaddt1(asmjit::x86::tmm5, asmjit::x86::ptr(reinterpret_cast<uintptr_t>(src3)));
+  }
+
+
+
+
   // Initialize AVX512-Registers for FMA Operations
   Cb.vmovapd(zmm0, zmmword_ptr(PointerReg, 0));
   Cb.vmovapd(zmm1, zmmword_ptr(PointerReg, 64));
@@ -199,7 +257,6 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
                      << RamSize / 1024 << ") KiB";
 
   Cb.align(asmjit::AlignMode::kCode, 64);
-
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
 
@@ -208,6 +265,7 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
   auto AddDest = AddStart + 1;
   auto MovDst = TransStart;
   unsigned L1Offset = 0;
+  unsigned AmxRegisterCounter = 0;
 
   const auto L1Increment = [&Cb, &L1Offset, &L1Size, &L1Addr, &OffsetReg, &PointerReg]() {
     L1Offset += 64;
@@ -224,7 +282,9 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
-      if (Item == "REG") {
+      if (Item == "AMX") {
+        Cb.tdpbf16ps(Tmm(AmxRegisterCounter++ % 6), tmm6, tmm7);
+      } else if (Item == "REG") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vfmadd231pd(Zmm(MovDst), zmm2, zmm1);
         Cb.xor_(ShiftReg[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg);
@@ -402,6 +462,49 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
 
 void AVX512Payload::init(double* MemoryAddr, uint64_t BufferSize) const {
   X86Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
+}
+
+void AVX512Payload::request_permission() {
+
+  long rc;
+  unsigned long bitmask;
+#ifdef __linux__
+  rc = syscall(SYS_arch_prctl, Arch::REQ_XCOMP_PERM, XFeature::XTILEDATA);
+#else
+  workerLog::fatal() << "AMX feature not supported by OS\n";
+#endif
+  if (rc) {
+    workerLog::error() << "XTILE_DATA request failed: " << rc;
+  }
+  if (bitmask & XFEATURE_MASK_XTILEDATA) {
+    workerLog::trace() << "XTILE_DATA requested successfully\n";
+  } else {
+    workerLog::error() << "XTILE_DATA not set\n";
+  }
+}
+
+void AVX512Payload::init_buffer_rand(uint16_t* src1, uint16_t* src2) {
+
+  // Initialize buffer with random values
+  // Multiplication always produces either 1 or -1
+  // Accumulation operation always on (1 + -1) = 0 ensures stable values
+  
+  // TODO: Change MaxSize::ROWS/MaxSize::COLS from constant to maximum size check by asmJit
+  //	   Currently not supported by asmJit
+  //	   Alternative: Manually parse CPUID
+
+  for (int i = 0; i < static_cast<uint8_t>(MaxSize::ROWS); i++) {
+    uint16_t random_init =
+        static_cast<uint16_t>((rand() % 4096)); // Fill fraction of bfloat16 with random bits and the lower 5 bits of exponent
+    for (int j = 0; j < static_cast<uint16_t>(MaxSize::COLS); j++) {
+      src1[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init;
+      if (!(j % 2)) {
+        src2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init | (1<<15); // Set sign bit to mitigate effect of addition from dot product
+      } else if (j % 2) {
+        src2[i * static_cast<uint16_t>(MaxSize::COLS) + j] = random_init;
+      }
+    }
+  }
 }
 
 } // namespace firestarter::x86::payload
