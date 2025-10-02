@@ -67,6 +67,8 @@ auto PerfMetric::init() -> int32_t {
   if (const char* Cpu = std::getenv("FIRESTARTER_PERF_CPU")) {
     // Collect the perf metrics only from a specific CPU.
     Instance.PerfCpu = std::stoi(Cpu);
+    // As we only collect metrics for one CPU, we do not need to divide the collected metrics by the thread count.
+    PerfMetric::PerfFreqMetric.Type.DivideByThreadCount = 0;
   }
 
   if (access(PerfEventParanoidFile, F_OK) == -1) {
