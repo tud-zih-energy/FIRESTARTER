@@ -89,7 +89,7 @@ MeasurementWorker::~MeasurementWorker() {
   if (WorkerThread.joinable()) {
     WorkerThread.join();
   }
-  if (WorkerThread.joinable()) {
+  if (StdinThread.joinable()) {
     StdinThread.detach();
   }
 }
