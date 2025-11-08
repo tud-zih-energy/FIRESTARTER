@@ -37,6 +37,7 @@ public:
             /*InstructionFlops=*/
             {{"REG", 32},
              {"L1_L", 32},
+             {"L1_2L", 64},
              {"L1_BROADCAST", 16},
              {"L1_S", 16},
              {"L1_LS", 16},
