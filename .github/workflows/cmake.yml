@@ -102,6 +102,8 @@ jobs:
       run: |
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/.ghcup
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -168,6 +170,12 @@ jobs:
     env:
       CUDA_ROOT: '/usr/local/cuda'
     steps:
+    - name: Try to clean up some things
+      run: |
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/.ghcup
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
