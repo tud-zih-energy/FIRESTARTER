@@ -239,6 +239,7 @@ auto SSE2Payload::compilePayload(const firestarter::payload::PayloadSettings& Se
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.addpd(Xmm(AddDest), Xmm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
         Cb.movdqa(Xmm(MovDest), Xmm(MovSrc));
