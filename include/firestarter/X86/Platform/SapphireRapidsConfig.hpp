@@ -28,18 +28,20 @@ namespace firestarter::x86::platform {
 class SapphireRapidsConfig final : public X86PlatformConfig {
 public:
   SapphireRapidsConfig() noexcept
-      : X86PlatformConfig(/*Name=*/"SPR_XEONEP", /*RequestedModels=*/
-                          {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/143)},
-                          /*Settings=*/
-                          firestarter::payload::PayloadSettings(
-                              /*Threads=*/{1, 2},
-                              // 48KiB L1 per core
-                              // 2MiB L2 per core
-                              // 1.875MiB L3 per core
-                              /*DataCacheBufferSize=*/{49152, 2097152, 1966080},
-                              /*RamBufferSize=*/1048576000, /*Lines=*/1536,
-                              /*Groups=*/
-                              InstructionGroups{{{"RAM_L", 1}, {"L3_L", 1}, {"L2_L", 1}, {"L1_L", 1}, {"REG", 1}}}),
-                          /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
+      : X86PlatformConfig(
+            /*Name=*/"SPR_XEONEP", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/6, /*ModelId=*/143)},
+            /*Settings=*/
+            firestarter::payload::PayloadSettings(
+                /*Threads=*/{1, 2},
+                // 48KiB L1 per core
+                // 2MiB L2 per core
+                // 1.875MiB L3 per core
+                /*DataCacheBufferSize=*/{49152, 2097152, 1966080},
+                /*RamBufferSize=*/1048576000, /*Lines=*/1536,
+                /*Groups=*/
+                InstructionGroups{
+                    {{"REG", 44}, {"L1_L", 84}, {"L1_2L", 90}, {"L1_LS", 17}, {"L2_L", 39}, {"RAM_P", 10}}}),
+            /*Payload=*/std::make_shared<const payload::AVX512Payload>()) {}
 };
 } // namespace firestarter::x86::platform
