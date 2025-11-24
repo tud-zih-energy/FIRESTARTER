@@ -39,7 +39,7 @@
 #if defined(__clang__)
 #include <emmintrin.h>
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
-void _mm_mfence() noexcept;
+void _mm_mfence();
 #else
 #include <intrin.h>
 #endif
