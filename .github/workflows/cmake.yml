@@ -47,7 +47,7 @@ jobs:
       run: |
         case ${{ matrix.HIP }} in
           6.3)
-            wget https://repo.radeon.com/amdgpu-install/6.3/ubuntu/noble/amdgpu-install_6.3.60300-1_all.deb
+            wget -q https://repo.radeon.com/amdgpu-install/6.3/ubuntu/noble/amdgpu-install_6.3.60300-1_all.deb
             sudo apt install ./amdgpu-install_6.3.60300-1_all.deb
             sudo amdgpu-install -y --usecase=hiplibsdk,rocm --no-dkms
             ;;
@@ -176,8 +176,8 @@ jobs:
       run: |
         case ${{ matrix.CUDA }} in
           8.0)
-            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
-            wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
+            wget -q https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda_8.0.61_375.26_linux-run
+            wget -q https://developer.nvidia.com/compute/cuda/8.0/Prod2/patches/2/cuda_8.0.61.2_linux-run
             sudo sh cuda_8.0.61_375.26_linux-run --extract=${CUDA_ROOT}
             sudo sh ${CUDA_ROOT}/cuda-linux64-rel-8.0.61-21551265.run --tar mxvf -C ${CUDA_ROOT}
             sudo sh cuda_8.0.61.2_linux-run --accept-eula --silent --installdir=${CUDA_ROOT}
@@ -185,12 +185,12 @@ jobs:
             rm cuda_8.0.61.2_linux-run
             ;;
           11.0)
-            wget https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
+            wget -q https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
             ;;
           NVHPC-22.5)
-            wget https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
+            wget -q https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             tar xpzf nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             rm nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
             sudo NVHPC_SILENT="true" NVHPC_INSTALL_DIR="$CUDA_ROOT" NVHPC_INSTALL_TYPE="single" ./nvhpc_2022_225_Linux_x86_64_cuda_11.7/install
