@@ -223,6 +223,7 @@ auto FMA4Payload::compilePayload(const firestarter::payload::PayloadSettings& Se
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.vfmaddpd(Xmm(AddDest), Xmm(AddDest), xmm0, Xmm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
         Cb.vfmaddpd(Xmm(MovDest), Xmm(MovDest), xmm1, Xmm(AddStart + ((AddDest - AddStart + AddRegs + 2) % AddRegs)));

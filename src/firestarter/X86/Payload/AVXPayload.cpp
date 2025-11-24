@@ -243,6 +243,7 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.vaddpd(Ymm(AddDest), Ymm(AddDest), Ymm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
         Cb.vmovdqa(Ymm(MovDest), Ymm(MovSrc));

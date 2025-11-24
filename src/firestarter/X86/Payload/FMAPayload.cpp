@@ -234,6 +234,7 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.vfmadd231pd(Ymm(AddDest), ymm0, ymm2);
         Cb.vfmadd231pd(Ymm(MovDest), ymm2, ymm1);
