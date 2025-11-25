@@ -23,6 +23,7 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/CompiledPayload.hpp"
+#include "firestarter/Payload/PayloadControlFlowDescription.hpp"
 #include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/Payload/PayloadStats.hpp"
 #include "firestarter/X86/Payload/CompiledX86Payload.hpp"
