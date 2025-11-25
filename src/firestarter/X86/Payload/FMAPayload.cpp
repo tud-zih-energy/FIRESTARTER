@@ -39,8 +39,6 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
                                 bool ErrorDetection, bool PrintAssembler,
                                 firestarter::payload::HighLoadControlFlowDescription ControlFlow) const
     -> firestarter::payload::CompiledPayload::UniquePtr {
-  (void)ControlFlow;
-
   using Imm = asmjit::Imm;
   using Xmm = asmjit::x86::Xmm;
   using Ymm = asmjit::x86::Ymm;
@@ -118,7 +116,11 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   const auto TempReg2 = asmjit::x86::rbp;
   const auto OffsetReg = asmjit::x86::r14;
   const auto AddrHighReg = asmjit::x86::r15;
+  // This register contains the current number of loop iterations
   const auto IterReg = asmjit::x86::mm0;
+  // This register holds the remaining number of iterations, if the payload is compiled with
+  // HighLoadControlFlowDescription::kMaxIterationCount
+  const auto RemainingIterationsReg = asmjit::x86::mm1;
   const auto ShiftRegs = std::vector<asmjit::x86::Gp>({asmjit::x86::rdi, asmjit::x86::rsi, asmjit::x86::rdx});
   const auto ShiftRegs32 = std::vector<asmjit::x86::Gp>({asmjit::x86::edi, asmjit::x86::esi, asmjit::x86::edx});
   const auto NbShiftRegs = 3;
@@ -144,7 +146,7 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   }
   // make all other used registers dirty except RAX
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
-                     AddrHighReg, IterReg, RamAddr);
+                     AddrHighReg, IterReg, RemainingIterationsReg);
   for (const auto& Reg : ShiftRegs) {
     Frame.addDirtyRegs(Reg);
   }
@@ -158,12 +160,22 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   Cb.emitProlog(Frame);
   Cb.emitArgsAssignment(Frame, Args);
 
-  // FIXME: movq from temp_reg to iter_reg
+  auto FunctionExit = Cb.newLabel();
+
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    // save iteration count
+    Cb.movq(RemainingIterationsReg, TempReg);
+
+    // return if zero
+    Cb.test(TempReg, TempReg);
+    Cb.jz(FunctionExit);
+  }
+
+  // Set inital iteration count to zero
+  Cb.mov(TempReg, Imm(0));
   Cb.movq(IterReg, TempReg);
 
   // stop right away if low load is selected
-  auto FunctionExit = Cb.newLabel();
-
   Cb.mov(TempReg, ptr_64(AddrHighReg));
   Cb.test(TempReg, TempReg);
   Cb.jz(FunctionExit);
@@ -355,7 +367,12 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
     }
   }
 
-  Cb.movq(TempReg, IterReg); // restore iteration counter
+  // restore iteration counter
+  Cb.movq(TempReg, IterReg);
+  // restore remaining iterations
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    Cb.movq(TempReg2, RemainingIterationsReg);
+  }
   if (firestarter::payload::PayloadSettings::getRAMSequenceCount(Sequence) > 0) {
     // reset RAM counter
     auto NoRamReset = Cb.newLabel();
@@ -369,7 +386,16 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
     // adds always two instruction
     Stats.Instructions += 2;
   }
-  Cb.inc(TempReg); // increment iteration counter
+  // increment iteration counter
+  Cb.inc(TempReg);
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    // decrement remaining iterations
+    Cb.dec(TempReg2);
+
+    // Return if the remaining instructions reached zero
+    Cb.test(TempReg2, TempReg2);
+    Cb.jz(FunctionExit);
+  }
   if (firestarter::payload::PayloadSettings::getL2SequenceCount(Sequence) > 0) {
     // reset L2-Cache counter
     auto NoL2Reset = Cb.newLabel();
@@ -383,7 +409,12 @@ auto FMAPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
     // adds always two instruction
     Stats.Instructions += 2;
   }
-  Cb.movq(IterReg, TempReg); // store iteration counter
+  // store iteration counter
+  Cb.movq(IterReg, TempReg);
+  // store remaining iterations
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    Cb.movq(RemainingIterationsReg, TempReg2);
+  }
   if (firestarter::payload::PayloadSettings::getL3SequenceCount(Sequence) > 0) {
     // reset L3-Cache counter
     auto NoL3Reset = Cb.newLabel();
