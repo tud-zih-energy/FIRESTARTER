@@ -15,7 +15,7 @@ on: [push, pull_request]
 #   FIRESTARTER against windows-2022 MSVC and mingw
 #   FIRESTARTER_CUDA against windows-2022 MSVC
 # On MacOS:
-#   FIRESTARTER against XCode on MacOS 13
+#   FIRESTARTER against XCode on MacOS 15 Intel
 
 # We further define jobs to test the compatibilty of the FIRESTARTER code against different linux distros:
 # - RHEL 9
@@ -451,7 +451,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-13]
+        os: [ macos-15-intel ]
 
     runs-on: ${{ matrix.os }}
 
