@@ -28,6 +28,7 @@
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Payload/PayloadControlFlowDescription.hpp"
 #include "firestarter/ThreadAffinity.hpp"
 #include "firestarter/Tracing.h"
 
