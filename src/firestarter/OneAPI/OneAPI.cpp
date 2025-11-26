@@ -131,7 +131,7 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 template <typename FloatingPointType>
 void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                 int DeviceIndex, std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
-                unsigned MatrixSize) {
+                uint64_t MatrixSize) {
   static_assert(std::is_same<FloatingPointType, float>::value || std::is_same<FloatingPointType, double>::value,
                 "createLoad<T>: Template argument T must be either float or double");
 
@@ -249,7 +249,7 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 } // namespace
 
 OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-               unsigned MatrixSize, int Gpus) {
+               uint64_t MatrixSize, int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
 
@@ -264,7 +264,7 @@ OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool Use
 
 void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
                       const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                      unsigned MatrixSize, int Gpus) {
+                      uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -330,7 +330,7 @@ void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForIni
             firestarter::log::warn() << "This should not have happened. Could not get precision via SYCL.";
           }
           void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
-                           const volatile firestarter::LoadThreadWorkType&, unsigned) =
+                           const volatile firestarter::LoadThreadWorkType&, uint64_t) =
               Precision ? createLoad<double> : createLoad<float>;
 
           std::thread T(LoadFunc, std::ref(ExecutedFlop), std::ref(GpuThreadsWaitForInitCv),

@@ -224,6 +224,7 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vfmadd231pd(Zmm(MovDst), zmm2, zmm1);

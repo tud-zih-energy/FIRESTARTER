@@ -225,6 +225,7 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
 
       // swap second and third param of fma instruction to force bitchanges on
       // the pipes to its execution units
