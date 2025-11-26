@@ -234,6 +234,15 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vfmadd231pd(Zmm(AddDest), zmm1, zmmword_ptr(L1Addr, 64));
         L1Increment();
+      } else if (Item == "L1_2L") {
+        Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmmword_ptr(L1Addr, 64));
+        L1Increment();
+        AddDest++;
+        if (AddDest > AddEnd) {
+          AddDest = AddStart;
+        }
+        Cb.vfmadd231pd(Zmm(AddDest), zmm1, zmmword_ptr(L1Addr, 64));
+        L1Increment();
       } else if (Item == "L1_BROADCAST") {
         Cb.vfmadd231pd(Zmm(AddDest), zmm0, zmm2);
         Cb.vbroadcastsd(Zmm(AddDest), ptr_64(L1Addr, 64));
