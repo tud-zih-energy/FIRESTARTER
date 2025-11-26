@@ -28,6 +28,7 @@
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Logging/FirstWorkerThreadFilter.hpp"
 #include "firestarter/Logging/Log.hpp"
+#include "firestarter/Payload/PayloadControlFlowDescription.hpp"
 #include "firestarter/ThreadAffinity.hpp"
 #include "firestarter/Tracing.h"
 
@@ -311,8 +312,9 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       Td->Topology.bindCallerToOsIndex(Td->OsIndex);
 
       // compile payload
-      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
-                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(
+          Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection, /*PrintAssembler=*/false,
+          /*ControlFlow=*/firestarter::payload::HighLoadControlFlowDescription::kStopOnLoadThreadWorkType);
 
       // allocate memory
       // if we should dump some registers, we use the first part of the memory
@@ -362,8 +364,8 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
 #endif
 
         firestarterTracingRegionBegin("High");
-        Td->CurrentRun.Iterations = Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
-                                                                             Td->LoadVar, Td->CurrentRun.Iterations);
+        Td->CurrentRun.Iterations += Td->CompiledPayloadPtr->highLoadFunction(Td->Memory->getMemoryAddress(),
+                                                                              Td->LoadVar, /*MaxNumIterations=*/0);
         firestarterTracingRegionEnd("High");
 
         // call low load function
@@ -389,8 +391,9 @@ void Firestarter::loadThreadWorker(const std::shared_ptr<LoadWorkerData>& Td) {
       break;
     case LoadThreadState::ThreadSwitch:
       // compile payload
-      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(Td->config().settings(), Td->DumpRegisters,
-                                                                      Td->ErrorDetection, /*PrintAssembler=*/false);
+      Td->CompiledPayloadPtr = Td->config().payload()->compilePayload(
+          Td->config().settings(), Td->DumpRegisters, Td->ErrorDetection, /*PrintAssembler=*/false,
+          /*ControlFlow=*/firestarter::payload::HighLoadControlFlowDescription::kStopOnLoadThreadWorkType);
 
       // call init function
       Td->CompiledPayloadPtr->init(Td->Memory->getMemoryAddress(), Td->BuffersizeMem);

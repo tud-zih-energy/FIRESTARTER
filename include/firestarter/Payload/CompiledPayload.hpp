@@ -64,12 +64,12 @@ public:
   /// \arg MemoryAddr The pointer to the memory.
   /// \arg LoadVar The variable that controls the load. If this variable changes from LoadThreadWorkType::LoadHigh to
   /// something else this function will return.
-  /// \arg Iterations The current iteration counter. This number will be incremented for every iteration of the high
-  /// load loop.
-  /// \returns The iteration counter passed into this function plus the number of iteration of the high load loop.
+  /// \arg MaxNumIterations If the kernel was generated with HighLoadControlFlowDescription::kMaxIterationCount, this
+  /// variable provides the maximal number of iterations that the hot loop will run inside the kernel.
+  /// \returns The number of iteration of the high load loop.
   [[nodiscard]] auto highLoadFunction(double* MemoryAddr, volatile LoadThreadWorkType& LoadVar,
-                                      uint64_t Iterations) -> uint64_t {
-    return HighLoadFunction(MemoryAddr, &LoadVar, Iterations);
+                                      uint64_t MaxNumIterations) -> uint64_t {
+    return HighLoadFunction(MemoryAddr, &LoadVar, MaxNumIterations);
   }
 
 protected:

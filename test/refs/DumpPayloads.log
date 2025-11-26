@@ -9,6 +9,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -362,6 +363,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -757,6 +759,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -910,6 +913,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -1210,9 +1214,11 @@ push rbp
 push r12
 push r13
 push r14
+push r15
 mov rax, rdi
 mov r13, rsi
-mov r14, rdx
+mov r15, rdx
+mov r14, 0
 mov r11, qword ptr [r13]
 test r11, r11
 jz L0
@@ -1504,6 +1510,7 @@ test qword ptr [r13], 1
 jnz L1
 L0:
 mov rax, r14
+pop r15
 pop r14
 pop r13
 pop r12
@@ -1518,9 +1525,11 @@ push rbp
 push r12
 push r13
 push r14
+push r15
 mov rax, rdi
 mov r13, rsi
-mov r14, rdx
+mov r15, rdx
+mov r14, 0
 mov r11, qword ptr [r13]
 test r11, r11
 jz L0
@@ -1746,6 +1755,7 @@ test qword ptr [r13], 1
 jnz L1
 L0:
 mov rax, r14
+pop r15
 pop r14
 pop r13
 pop r12
