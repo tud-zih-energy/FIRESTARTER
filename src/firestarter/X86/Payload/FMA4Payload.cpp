@@ -115,6 +115,8 @@ auto FMA4Payload::compilePayload(const firestarter::payload::PayloadSettings& Se
   const auto TempReg2 = asmjit::x86::rbp;
   const auto OffsetReg = asmjit::x86::r14;
   const auto AddrHighReg = asmjit::x86::r15;
+  // Since we exhausted the x86 general purpose registers, we need to rely on additional mmx register. They shall only
+  // be used for less frequent accesses and not as an intergral part of the hot loop.
   // This register contains the current number of loop iterations
   const auto IterReg = asmjit::x86::mm0;
   // This register holds the remaining number of iterations, if the payload is compiled with
