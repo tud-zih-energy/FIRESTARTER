@@ -120,6 +120,7 @@ auto RootMetric::fromDylib(const std::string& DylibPath) -> std::shared_ptr<Root
                                            /*Dylib=*/true,
                                            /*Stdin=*/false,
                                            /*Initialized=*/false);
+  Root->MetricPtr = Metric;
   Root->checkAvailability();
   return Root;
 }
