@@ -37,6 +37,7 @@ public:
             /*InstructionFlops=*/
             {{"REG", 32},
              {"L1_L", 32},
+             {"L1_2L", 64},
              {"L1_BROADCAST", 16},
              {"L1_S", 16},
              {"L1_LS", 16},
@@ -60,10 +61,12 @@ public:
   /// \arg ErrorDetection Should the code to support error detection between thread be baked into the high load routine
   /// of the compiled payload.
   /// \arg PrintAssembler Should the generated assembler code be logged.
+  /// \arg HighLoadControlFlowDescription Defines how the control flow of the hot loop is generated.
   /// \returns The compiled payload that provides access to the init and load functions.
-  [[nodiscard]] auto
-  compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters, bool ErrorDetection,
-                 bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr override;
+  [[nodiscard]] auto compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
+                                    bool ErrorDetection, bool PrintAssembler,
+                                    firestarter::payload::HighLoadControlFlowDescription ControlFlow) const
+      -> firestarter::payload::CompiledPayload::UniquePtr override;
 
 private:
   /// Function to initialize the memory used by the high load function.

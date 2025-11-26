@@ -23,3 +23,5 @@
     20 | FUNC_ZEN_EPYC_ZENFMA_2T        | yes                      | RAM_L:3,L3_L:14,L2_L:75,L1_LS:81,REG:100
     21 | FUNC_ZEN_2_EPYC_FMA_1T         | yes                      | RAM_L:10,L3_L:25,L2_L:91,L1_2LS_256:72,L1_LS_256:82,REG:75
     22 | FUNC_ZEN_2_EPYC_FMA_2T         | yes                      | RAM_L:10,L3_L:25,L2_L:91,L1_2LS_256:72,L1_LS_256:82,REG:75
+    23 | FUNC_SPR_XEONEP_AVX512_1T      | yes                      | REG:44,L1_L:84,L1_2L:90,L1_LS:17,L2_L:39,RAM_P:10
+    24 | FUNC_SPR_XEONEP_AVX512_2T      | yes                      | REG:44,L1_L:84,L1_2L:90,L1_LS:17,L2_L:39,RAM_P:10

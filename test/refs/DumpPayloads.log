@@ -9,6 +9,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -59,219 +60,285 @@ mov r11, 1501
 mov r12, 1365333
 .align 64 (code)
 L1:
-vfmadd231pd zmm4, zmm0, zmm2
-vbroadcastsd zmm4, qword ptr [rbx+64]
+L2@L1_2L:
+vfmadd231pd zmm4, zmm0, zmmword ptr [rbx+64]
+add rbx, r14
+vfmadd231pd zmm5, zmm1, zmmword ptr [rbx+64]
 add rbx, r14
 shl edi, 1
-vfmadd231pd zmm5, zmm0, zmm2
+L3@REG:
+vfmadd231pd zmm6, zmm0, zmm2
 vfmadd231pd zmm25, zmm2, zmm1
 xor rdi, r13
 shl esi, 1
-vmovapd zmmword ptr [r9+64], zmm6
-vfmadd231pd zmm6, zmm0, zmm2
+L4@RAM_S:
+vmovapd zmmword ptr [r9+64], zmm7
+vfmadd231pd zmm7, zmm0, zmm2
 add r9, r14
 shl edx, 1
-vfmadd231pd zmm7, zmm0, zmmword ptr [rbx+64]
+L5@RAM_P:
+vfmadd231pd zmm8, zmm0, zmmword ptr [rbx+64]
 prefetcht2 [r9]
 add r9, r14
 shr edi, 1
-vmovapd zmmword ptr [r9+64], zmm8
-vfmadd231pd zmm8, zmm0, zmmword ptr [r9+128]
+L6@RAM_LS:
+vmovapd zmmword ptr [r9+64], zmm9
+vfmadd231pd zmm9, zmm0, zmmword ptr [r9+128]
 add r9, r14
 shr esi, 1
-vfmadd231pd zmm9, zmm0, zmm2
+L7@RAM_L:
+vfmadd231pd zmm10, zmm0, zmm2
 vfmadd231pd zmm30, zmm1, zmmword ptr [r9+64]
 add r9, r14
 shr edx, 1
-vmovapd zmmword ptr [r8+64], zmm10
-vfmadd231pd zmm10, zmm0, zmm2
+L8@L3_S:
+vmovapd zmmword ptr [r8+64], zmm11
+vfmadd231pd zmm11, zmm0, zmm2
 add r8, r14
 shl edi, 1
-vfmadd231pd zmm11, zmm0, zmmword ptr [rbx+64]
+L9@L3_P:
+vfmadd231pd zmm12, zmm0, zmmword ptr [rbx+64]
 prefetcht2 [r8]
 add r8, r14
 shl esi, 1
-vmovapd zmmword ptr [r8+64], zmm12
-vfmadd231pd zmm12, zmm0, zmmword ptr [r8+128]
+L10@L3_LS:
+vmovapd zmmword ptr [r8+64], zmm13
+vfmadd231pd zmm13, zmm0, zmmword ptr [r8+128]
 add r8, r14
 shl edx, 1
-vfmadd231pd zmm13, zmm0, zmm2
-vfmadd231pd zmm13, zmm1, zmmword ptr [r8+64]
+L11@L3_L:
+vfmadd231pd zmm14, zmm0, zmm2
+vfmadd231pd zmm14, zmm1, zmmword ptr [r8+64]
 add r8, r14
 shr edi, 1
-vmovapd zmmword ptr [rcx+64], zmm14
-vfmadd231pd zmm14, zmm0, zmm2
+L12@L2_S:
+vmovapd zmmword ptr [rcx+64], zmm15
+vfmadd231pd zmm15, zmm0, zmm2
 add rcx, r14
 shr esi, 1
-vmovapd zmmword ptr [rcx+64], zmm15
-vfmadd231pd zmm15, zmm0, zmmword ptr [rcx+128]
+L13@L2_LS:
+vmovapd zmmword ptr [rcx+64], zmm16
+vfmadd231pd zmm16, zmm0, zmmword ptr [rcx+128]
 add rcx, r14
 shr edx, 1
-vfmadd231pd zmm16, zmm0, zmm2
-vfmadd231pd zmm16, zmm1, zmmword ptr [rcx+64]
+L14@L2_L:
+vfmadd231pd zmm17, zmm0, zmm2
+vfmadd231pd zmm17, zmm1, zmmword ptr [rcx+64]
 add rcx, r14
 shl edi, 1
-vmovapd zmmword ptr [rbx+64], zmm17
-vfmadd231pd zmm17, zmm0, zmm2
+L15@L1_S:
+vmovapd zmmword ptr [rbx+64], zmm18
+vfmadd231pd zmm18, zmm0, zmm2
 add rbx, r14
 shl esi, 1
-vmovapd zmmword ptr [rbx+64], zmm18
-vfmadd231pd zmm18, zmm0, zmmword ptr [rbx+128]
+L16@L1_LS:
+vmovapd zmmword ptr [rbx+64], zmm19
+vfmadd231pd zmm19, zmm0, zmmword ptr [rbx+128]
 add rbx, r14
 shl edx, 1
-vfmadd231pd zmm19, zmm0, zmm2
+L17@L1_L:
+vfmadd231pd zmm20, zmm0, zmm2
+vfmadd231pd zmm20, zmm1, zmmword ptr [rbx+64]
+add rbx, r14
+shr edi, 1
+L18@L1_BROADCAST:
+vfmadd231pd zmm21, zmm0, zmm2
+vbroadcastsd zmm21, qword ptr [rbx+64]
+add rbx, r14
+shr esi, 1
+L19@L1_2L:
+vfmadd231pd zmm22, zmm0, zmmword ptr [rbx+64]
+add rbx, r14
+vfmadd231pd zmm23, zmm1, zmmword ptr [rbx+64]
+add rbx, r14
+shr edx, 1
+L20@REG:
+vfmadd231pd zmm24, zmm0, zmm2
+vfmadd231pd zmm26, zmm2, zmm1
+xor rdx, r13
+shl edi, 1
+L21@RAM_S:
+vmovapd zmmword ptr [r9+64], zmm3
+vfmadd231pd zmm3, zmm0, zmm2
+add r9, r14
+shl esi, 1
+L22@RAM_P:
+vfmadd231pd zmm4, zmm0, zmmword ptr [rbx+64]
+prefetcht2 [r9]
+add r9, r14
+shl edx, 1
+L23@RAM_LS:
+vmovapd zmmword ptr [r9+64], zmm5
+vfmadd231pd zmm5, zmm0, zmmword ptr [r9+128]
+add r9, r14
+shr edi, 1
+L24@RAM_L:
+vfmadd231pd zmm6, zmm0, zmm2
+vfmadd231pd zmm30, zmm1, zmmword ptr [r9+64]
+add r9, r14
+shr esi, 1
+L25@L3_S:
+vmovapd zmmword ptr [r8+64], zmm7
+vfmadd231pd zmm7, zmm0, zmm2
+add r8, r14
+shr edx, 1
+L26@L3_P:
+vfmadd231pd zmm8, zmm0, zmmword ptr [rbx+64]
+prefetcht2 [r8]
+add r8, r14
+shl edi, 1
+L27@L3_LS:
+vmovapd zmmword ptr [r8+64], zmm9
+vfmadd231pd zmm9, zmm0, zmmword ptr [r8+128]
+add r8, r14
+shl esi, 1
+L28@L3_L:
+vfmadd231pd zmm10, zmm0, zmm2
+vfmadd231pd zmm10, zmm1, zmmword ptr [r8+64]
+add r8, r14
+shl edx, 1
+L29@L2_S:
+vmovapd zmmword ptr [rcx+64], zmm11
+vfmadd231pd zmm11, zmm0, zmm2
+add rcx, r14
+shr edi, 1
+L30@L2_LS:
+vmovapd zmmword ptr [rcx+64], zmm12
+vfmadd231pd zmm12, zmm0, zmmword ptr [rcx+128]
+add rcx, r14
+shr esi, 1
+L31@L2_L:
+vfmadd231pd zmm13, zmm0, zmm2
+vfmadd231pd zmm13, zmm1, zmmword ptr [rcx+64]
+add rcx, r14
+shr edx, 1
+L32@L1_S:
+vmovapd zmmword ptr [rbx+64], zmm14
+vfmadd231pd zmm14, zmm0, zmm2
+add rbx, r14
+shl edi, 1
+L33@L1_LS:
+vmovapd zmmword ptr [rbx+64], zmm15
+vfmadd231pd zmm15, zmm0, zmmword ptr [rbx+128]
+add rbx, r14
+shl esi, 1
+L34@L1_L:
+vfmadd231pd zmm16, zmm0, zmm2
+vfmadd231pd zmm16, zmm1, zmmword ptr [rbx+64]
+add rbx, r14
+shl edx, 1
+L35@L1_BROADCAST:
+vfmadd231pd zmm17, zmm0, zmm2
+vbroadcastsd zmm17, qword ptr [rbx+64]
+add rbx, r14
+shr edi, 1
+L36@L1_2L:
+vfmadd231pd zmm18, zmm0, zmmword ptr [rbx+64]
+add rbx, r14
 vfmadd231pd zmm19, zmm1, zmmword ptr [rbx+64]
 add rbx, r14
-shr edi, 1
-vfmadd231pd zmm20, zmm0, zmm2
-vbroadcastsd zmm20, qword ptr [rbx+64]
-add rbx, r14
 shr esi, 1
-vfmadd231pd zmm21, zmm0, zmm2
-vfmadd231pd zmm26, zmm2, zmm1
+L37@REG:
+vfmadd231pd zmm20, zmm0, zmm2
+vfmadd231pd zmm27, zmm2, zmm1
 xor rsi, r13
 shr edx, 1
-vmovapd zmmword ptr [r9+64], zmm22
-vfmadd231pd zmm22, zmm0, zmm2
+L38@RAM_S:
+vmovapd zmmword ptr [r9+64], zmm21
+vfmadd231pd zmm21, zmm0, zmm2
 add r9, r14
 shl edi, 1
-vfmadd231pd zmm23, zmm0, zmmword ptr [rbx+64]
+L39@RAM_P:
+vfmadd231pd zmm22, zmm0, zmmword ptr [rbx+64]
 prefetcht2 [r9]
 add r9, r14
 shl esi, 1
-vmovapd zmmword ptr [r9+64], zmm24
-vfmadd231pd zmm24, zmm0, zmmword ptr [r9+128]
+L40@RAM_LS:
+vmovapd zmmword ptr [r9+64], zmm23
+vfmadd231pd zmm23, zmm0, zmmword ptr [r9+128]
 add r9, r14
 shl edx, 1
-vfmadd231pd zmm3, zmm0, zmm2
-vfmadd231pd zmm30, zmm1, zmmword ptr [r9+64]
-add r9, r14
-shr edi, 1
-vmovapd zmmword ptr [r8+64], zmm4
-vfmadd231pd zmm4, zmm0, zmm2
-add r8, r14
-shr esi, 1
-vfmadd231pd zmm5, zmm0, zmmword ptr [rbx+64]
-prefetcht2 [r8]
-add r8, r14
-shr edx, 1
-vmovapd zmmword ptr [r8+64], zmm6
-vfmadd231pd zmm6, zmm0, zmmword ptr [r8+128]
-add r8, r14
-shl edi, 1
-vfmadd231pd zmm7, zmm0, zmm2
-vfmadd231pd zmm7, zmm1, zmmword ptr [r8+64]
-add r8, r14
-shl esi, 1
-vmovapd zmmword ptr [rcx+64], zmm8
-vfmadd231pd zmm8, zmm0, zmm2
-add rcx, r14
-shl edx, 1
-vmovapd zmmword ptr [rcx+64], zmm9
-vfmadd231pd zmm9, zmm0, zmmword ptr [rcx+128]
-add rcx, r14
-shr edi, 1
-vfmadd231pd zmm10, zmm0, zmm2
-vfmadd231pd zmm10, zmm1, zmmword ptr [rcx+64]
-add rcx, r14
-shr esi, 1
-vmovapd zmmword ptr [rbx+64], zmm11
-vfmadd231pd zmm11, zmm0, zmm2
-add rbx, r14
-shr edx, 1
-vmovapd zmmword ptr [rbx+64], zmm12
-vfmadd231pd zmm12, zmm0, zmmword ptr [rbx+128]
-add rbx, r14
-shl edi, 1
-vfmadd231pd zmm13, zmm0, zmm2
-vfmadd231pd zmm13, zmm1, zmmword ptr [rbx+64]
-add rbx, r14
-shl esi, 1
-vfmadd231pd zmm14, zmm0, zmm2
-vbroadcastsd zmm14, qword ptr [rbx+64]
-add rbx, r14
-shl edx, 1
-vfmadd231pd zmm15, zmm0, zmm2
-vfmadd231pd zmm27, zmm2, zmm1
-xor rdx, r13
-shr edi, 1
-vmovapd zmmword ptr [r9+64], zmm16
-vfmadd231pd zmm16, zmm0, zmm2
-add r9, r14
-shr esi, 1
-vfmadd231pd zmm17, zmm0, zmmword ptr [rbx+64]
-prefetcht2 [r9]
-add r9, r14
-shr edx, 1
-vmovapd zmmword ptr [r9+64], zmm18
-vfmadd231pd zmm18, zmm0, zmmword ptr [r9+128]
-add r9, r14
-shl edi, 1
-vfmadd231pd zmm19, zmm0, zmm2
-vfmadd231pd zmm30, zmm1, zmmword ptr [r9+64]
-add r9, r14
-shl esi, 1
-vmovapd zmmword ptr [r8+64], zmm20
-vfmadd231pd zmm20, zmm0, zmm2
-add r8, r14
-shl edx, 1
-vfmadd231pd zmm21, zmm0, zmmword ptr [rbx+64]
-prefetcht2 [r8]
-add r8, r14
-shr edi, 1
-vmovapd zmmword ptr [r8+64], zmm22
-vfmadd231pd zmm22, zmm0, zmmword ptr [r8+128]
-add r8, r14
-shr esi, 1
-vfmadd231pd zmm23, zmm0, zmm2
-vfmadd231pd zmm23, zmm1, zmmword ptr [r8+64]
-add r8, r14
-shr edx, 1
-vmovapd zmmword ptr [rcx+64], zmm24
+L41@RAM_L:
 vfmadd231pd zmm24, zmm0, zmm2
-add rcx, r14
+vfmadd231pd zmm30, zmm1, zmmword ptr [r9+64]
+add r9, r14
+shr edi, 1
+L42@L3_S:
+vmovapd zmmword ptr [r8+64], zmm3
+vfmadd231pd zmm3, zmm0, zmm2
+add r8, r14
+shr esi, 1
+L43@L3_P:
+vfmadd231pd zmm4, zmm0, zmmword ptr [rbx+64]
+prefetcht2 [r8]
+add r8, r14
+shr edx, 1
+L44@L3_LS:
+vmovapd zmmword ptr [r8+64], zmm5
+vfmadd231pd zmm5, zmm0, zmmword ptr [r8+128]
+add r8, r14
 shl edi, 1
-vmovapd zmmword ptr [rcx+64], zmm3
-vfmadd231pd zmm3, zmm0, zmmword ptr [rcx+128]
-add rcx, r14
+L45@L3_L:
+vfmadd231pd zmm6, zmm0, zmm2
+vfmadd231pd zmm6, zmm1, zmmword ptr [r8+64]
+add r8, r14
 shl esi, 1
-vfmadd231pd zmm4, zmm0, zmm2
-vfmadd231pd zmm4, zmm1, zmmword ptr [rcx+64]
+L46@L2_S:
+vmovapd zmmword ptr [rcx+64], zmm7
+vfmadd231pd zmm7, zmm0, zmm2
 add rcx, r14
 shl edx, 1
-vmovapd zmmword ptr [rbx+64], zmm5
-vfmadd231pd zmm5, zmm0, zmm2
-add rbx, r14
+L47@L2_LS:
+vmovapd zmmword ptr [rcx+64], zmm8
+vfmadd231pd zmm8, zmm0, zmmword ptr [rcx+128]
+add rcx, r14
 shr edi, 1
-vmovapd zmmword ptr [rbx+64], zmm6
-vfmadd231pd zmm6, zmm0, zmmword ptr [rbx+128]
-add rbx, r14
+L48@L2_L:
+vfmadd231pd zmm9, zmm0, zmm2
+vfmadd231pd zmm9, zmm1, zmmword ptr [rcx+64]
+add rcx, r14
 shr esi, 1
-vfmadd231pd zmm7, zmm0, zmm2
-vfmadd231pd zmm7, zmm1, zmmword ptr [rbx+64]
+L49@L1_S:
+vmovapd zmmword ptr [rbx+64], zmm10
+vfmadd231pd zmm10, zmm0, zmm2
 add rbx, r14
 shr edx, 1
+L50@L1_LS:
+vmovapd zmmword ptr [rbx+64], zmm11
+vfmadd231pd zmm11, zmm0, zmmword ptr [rbx+128]
+add rbx, r14
+shl edi, 1
+L51@L1_L:
+vfmadd231pd zmm12, zmm0, zmm2
+vfmadd231pd zmm12, zmm1, zmmword ptr [rbx+64]
+add rbx, r14
+shl esi, 1
+L52@L1_BROADCAST:
+vfmadd231pd zmm13, zmm0, zmm2
+vbroadcastsd zmm13, qword ptr [rbx+64]
+add rbx, r14
+shl edx, 1
 movq r13, mm0
 sub r12, 1
-jnz L2
+jnz L53
 mov r12, 1365333
 mov r9, rax
 add r9, 1441792
-L2:
+L53:
 inc r13
 sub r10, 1
-jnz L3
+jnz L54
 mov r10, 1456
 mov rcx, rax
 add rcx, 32768
-L3:
+L54:
 movq mm0, r13
 sub r11, 1
-jnz L4
+jnz L55
 mov r11, 1501
 mov r8, rax
 add r8, 1048576
-L4:
+L55:
 mov rbx, rax
 test qword ptr [r15], 1
 jnz L1
@@ -296,6 +363,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -331,279 +399,342 @@ mov r11, 1201
 mov r12, 1365333
 .align 64 (code)
 L1:
+L2@L1_2L:
 vfmadd231pd ymm4, ymm0, ymmword ptr [rbx+32]
 vfmadd231pd ymm12, ymm1, ymmword ptr [rbx+64]
 add rbx, r14
 shl edi, 1
+L3@REG:
 vfmadd231pd ymm5, ymm0, ymm2
 vfmadd231pd ymm12, ymm2, ymm1
 xor rdi, r13
 shl esi, 1
+L4@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm6
 vfmadd231pd ymm6, ymm0, ymm2
 add r9, r14
 shl edx, 1
+L5@RAM_P:
 vfmadd231pd ymm7, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shr edi, 1
+L6@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm8
 vfmadd231pd ymm8, ymm0, ymmword ptr [r9+32]
 add r9, r14
 shr esi, 1
+L7@RAM_L:
 vfmadd231pd ymm9, ymm0, ymm2
 vfmadd231pd ymm15, ymm1, ymmword ptr [r9+64]
 add r9, r14
 shr edx, 1
+L8@L3_S:
 vmovapd xmmword ptr [r8+96], xmm10
 vfmadd231pd ymm10, ymm0, ymm2
 add r8, r14
 shl edi, 1
+L9@L3_P:
 vfmadd231pd ymm11, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shl esi, 1
+L10@L3_LS_256:
 vmovapd ymmword ptr [r8+96], ymm3
 vfmadd231pd ymm3, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shl edx, 1
+L11@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm4
 vfmadd231pd ymm4, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shr edi, 1
+L12@L3_L:
 vfmadd231pd ymm5, ymm0, ymm2
 vfmadd231pd ymm5, ymm1, ymmword ptr [r8+64]
 add r8, r14
 shr esi, 1
+L13@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm6
 vfmadd231pd ymm6, ymm0, ymm2
 add rcx, r14
 shr edx, 1
+L14@L2_LS_256:
 vmovapd ymmword ptr [rcx+96], ymm7
 vfmadd231pd ymm7, ymm0, [rcx+64]
 add rcx, r14
 shl edi, 1
+L15@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm8
 vfmadd231pd ymm8, ymm0, ymmword ptr [rcx+64]
 add rcx, r14
 shl esi, 1
+L16@L2_L:
 vfmadd231pd ymm9, ymm0, ymm2
 vfmadd231pd ymm9, ymm1, ymmword ptr [rcx+64]
 add rcx, r14
 shl edx, 1
+L17@L2_2LS_256:
 vfmadd231pd ymm10, ymm0, [rcx+64]
 vfmadd231pd ymm13, ymm1, [rcx+96]
 vmovapd ymmword ptr [rcx+32], ymm10
 add rcx, 128
+L18@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm11
 vfmadd231pd ymm11, ymm0, ymm2
 add rbx, r14
 shr esi, 1
+L19@L1_LS_256:
 vfmadd231pd ymm3, ymm0, ymmword ptr [rbx+64]
 vmovapd ymmword ptr [rbx+32], ymm3
 add rbx, r14
 shr edx, 1
+L20@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm4
 vfmadd231pd ymm4, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shl edi, 1
+L21@L1_L:
 vfmadd231pd ymm5, ymm0, ymm2
 vfmadd231pd ymm5, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shl esi, 1
+L22@L1_2LS_256:
 vfmadd231pd ymm6, ymm0, ymmword ptr [rbx+64]
 vfmadd231pd ymm13, ymm1, ymmword ptr [rbx+96]
 vmovapd ymmword ptr [rbx+32], ymm6
 add rbx, r14
+L23@L1_2L:
 vfmadd231pd ymm7, ymm0, ymmword ptr [rbx+32]
 vfmadd231pd ymm13, ymm1, ymmword ptr [rbx+64]
 add rbx, r14
 shr edi, 1
+L24@REG:
 vfmadd231pd ymm8, ymm0, ymm2
 vfmadd231pd ymm13, ymm2, ymm1
 xor rdi, r13
 shr esi, 1
+L25@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm9
 vfmadd231pd ymm9, ymm0, ymm2
 add r9, r14
 shr edx, 1
+L26@RAM_P:
 vfmadd231pd ymm10, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shl edi, 1
+L27@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm11
 vfmadd231pd ymm11, ymm0, ymmword ptr [r9+32]
 add r9, r14
 shl esi, 1
+L28@RAM_L:
 vfmadd231pd ymm3, ymm0, ymm2
 vfmadd231pd ymm15, ymm1, ymmword ptr [r9+64]
 add r9, r14
 shl edx, 1
+L29@L3_S:
 vmovapd xmmword ptr [r8+96], xmm4
 vfmadd231pd ymm4, ymm0, ymm2
 add r8, r14
 shr edi, 1
+L30@L3_P:
 vfmadd231pd ymm5, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shr esi, 1
+L31@L3_LS_256:
 vmovapd ymmword ptr [r8+96], ymm6
 vfmadd231pd ymm6, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shr edx, 1
+L32@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm7
 vfmadd231pd ymm7, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shl edi, 1
+L33@L3_L:
 vfmadd231pd ymm8, ymm0, ymm2
 vfmadd231pd ymm8, ymm1, ymmword ptr [r8+64]
 add r8, r14
 shl esi, 1
+L34@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm9
 vfmadd231pd ymm9, ymm0, ymm2
 add rcx, r14
 shl edx, 1
+L35@L2_LS_256:
 vmovapd ymmword ptr [rcx+96], ymm10
 vfmadd231pd ymm10, ymm0, [rcx+64]
 add rcx, r14
 shr edi, 1
+L36@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm11
 vfmadd231pd ymm11, ymm0, ymmword ptr [rcx+64]
 add rcx, r14
 shr esi, 1
+L37@L2_L:
 vfmadd231pd ymm3, ymm0, ymm2
 vfmadd231pd ymm3, ymm1, ymmword ptr [rcx+64]
 add rcx, r14
 shr edx, 1
+L38@L2_2LS_256:
 vfmadd231pd ymm4, ymm0, [rcx+64]
 vfmadd231pd ymm14, ymm1, [rcx+96]
 vmovapd ymmword ptr [rcx+32], ymm4
 add rcx, 128
+L39@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm5
 vfmadd231pd ymm5, ymm0, ymm2
 add rbx, r14
 shl esi, 1
+L40@L1_LS_256:
 vfmadd231pd ymm6, ymm0, ymmword ptr [rbx+64]
 vmovapd ymmword ptr [rbx+32], ymm6
 add rbx, r14
 shl edx, 1
+L41@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm7
 vfmadd231pd ymm7, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shr edi, 1
+L42@L1_L:
 vfmadd231pd ymm8, ymm0, ymm2
 vfmadd231pd ymm8, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shr esi, 1
+L43@L1_2LS_256:
 vfmadd231pd ymm9, ymm0, ymmword ptr [rbx+64]
 vfmadd231pd ymm14, ymm1, ymmword ptr [rbx+96]
 vmovapd ymmword ptr [rbx+32], ymm9
 add rbx, r14
+L44@L1_2L:
 vfmadd231pd ymm10, ymm0, ymmword ptr [rbx+32]
 vfmadd231pd ymm14, ymm1, ymmword ptr [rbx+64]
 add rbx, r14
 shl edi, 1
+L45@REG:
 vfmadd231pd ymm11, ymm0, ymm2
 vfmadd231pd ymm14, ymm2, ymm1
 xor rdi, r13
 shl esi, 1
+L46@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm3
 vfmadd231pd ymm3, ymm0, ymm2
 add r9, r14
 shl edx, 1
+L47@RAM_P:
 vfmadd231pd ymm4, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shr edi, 1
+L48@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm5
 vfmadd231pd ymm5, ymm0, ymmword ptr [r9+32]
 add r9, r14
 shr esi, 1
+L49@RAM_L:
 vfmadd231pd ymm6, ymm0, ymm2
 vfmadd231pd ymm15, ymm1, ymmword ptr [r9+64]
 add r9, r14
 shr edx, 1
+L50@L3_S:
 vmovapd xmmword ptr [r8+96], xmm7
 vfmadd231pd ymm7, ymm0, ymm2
 add r8, r14
 shl edi, 1
+L51@L3_P:
 vfmadd231pd ymm8, ymm0, ymmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shl esi, 1
+L52@L3_LS_256:
 vmovapd ymmword ptr [r8+96], ymm9
 vfmadd231pd ymm9, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shl edx, 1
+L53@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm10
 vfmadd231pd ymm10, ymm0, ymmword ptr [r8+64]
 add r8, r14
 shr edi, 1
+L54@L3_L:
 vfmadd231pd ymm11, ymm0, ymm2
 vfmadd231pd ymm11, ymm1, ymmword ptr [r8+64]
 add r8, r14
 shr esi, 1
+L55@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm3
 vfmadd231pd ymm3, ymm0, ymm2
 add rcx, r14
 shr edx, 1
+L56@L2_LS_256:
 vmovapd ymmword ptr [rcx+96], ymm4
 vfmadd231pd ymm4, ymm0, [rcx+64]
 add rcx, r14
 shl edi, 1
+L57@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm5
 vfmadd231pd ymm5, ymm0, ymmword ptr [rcx+64]
 add rcx, r14
 shl esi, 1
+L58@L2_L:
 vfmadd231pd ymm6, ymm0, ymm2
 vfmadd231pd ymm6, ymm1, ymmword ptr [rcx+64]
 add rcx, r14
 shl edx, 1
+L59@L2_2LS_256:
 vfmadd231pd ymm7, ymm0, [rcx+64]
 vfmadd231pd ymm12, ymm1, [rcx+96]
 vmovapd ymmword ptr [rcx+32], ymm7
 add rcx, 128
+L60@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm8
 vfmadd231pd ymm8, ymm0, ymm2
 add rbx, r14
 shr esi, 1
+L61@L1_LS_256:
 vfmadd231pd ymm9, ymm0, ymmword ptr [rbx+64]
 vmovapd ymmword ptr [rbx+32], ymm9
 add rbx, r14
 shr edx, 1
+L62@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm10
 vfmadd231pd ymm10, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shl edi, 1
+L63@L1_L:
 vfmadd231pd ymm11, ymm0, ymm2
 vfmadd231pd ymm11, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shl esi, 1
+L64@L1_2LS_256:
 vfmadd231pd ymm3, ymm0, ymmword ptr [rbx+64]
 vfmadd231pd ymm12, ymm1, ymmword ptr [rbx+96]
 vmovapd ymmword ptr [rbx+32], ymm3
 add rbx, r14
 movq r13, mm0
 sub r12, 1
-jnz L2
+jnz L65
 mov r12, 1365333
 mov r9, rax
 add r9, 1441792
-L2:
+L65:
 inc r13
 sub r10, 1
-jnz L3
+jnz L66
 mov r10, 873
 mov rcx, rax
 add rcx, 32768
-L3:
+L66:
 movq mm0, r13
 sub r11, 1
-jnz L4
+jnz L67
 mov r11, 1201
 mov r8, rax
 add r8, 1048576
-L4:
+L67:
 mov rbx, rax
 test qword ptr [r15], 1
 jnz L1
@@ -628,6 +759,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -664,84 +796,99 @@ mov r11, 6007
 mov r12, 5461333
 .align 64 (code)
 L1:
+L2@L1_LS:
 vfmadd231pd ymm2, ymm0, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm2
 add rbx, r14
 vpsrlq xmm13, xmm13, 1
+L3@REG:
 vfmadd231pd ymm3, ymm1, ymm0
 xor r13, rdi
 shl rsi, 1
 vpsllq xmm14, xmm14, 1
+L4@RAM_L:
 vfmadd231pd ymm15, ymm0, ymmword ptr [r9+32]
 xor r13, rsi
 add r9, r14
 vpsllq xmm13, xmm13, 1
+L5@L3_L:
 vfmadd231pd ymm5, ymm1, ymmword ptr [r8+64]
 xor r13, rdx
 add r8, r14
 vpsrlq xmm14, xmm14, 1
+L6@L2_L:
 vfmadd231pd ymm6, ymm0, ymmword ptr [rcx+64]
 xor r13, rdi
 add rcx, r14
 vpsrlq xmm13, xmm13, 1
+L7@L1_LS:
 vfmadd231pd ymm7, ymm1, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm7
 add rbx, r14
 vpsllq xmm14, xmm14, 1
+L8@REG:
 vfmadd231pd ymm8, ymm0, ymm1
 xor r13, rdx
 shl rdi, 1
 vpsllq xmm13, xmm13, 1
+L9@RAM_L:
 vfmadd231pd ymm15, ymm1, ymmword ptr [r9+32]
 xor r13, rdi
 add r9, r14
 vpsrlq xmm14, xmm14, 1
+L10@L3_L:
 vfmadd231pd ymm10, ymm0, ymmword ptr [r8+64]
 xor r13, rsi
 add r8, r14
 vpsrlq xmm13, xmm13, 1
+L11@L2_L:
 vfmadd231pd ymm11, ymm1, ymmword ptr [rcx+64]
 xor r13, rdx
 add rcx, r14
 vpsllq xmm14, xmm14, 1
+L12@L1_LS:
 vfmadd231pd ymm12, ymm0, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm12
 add rbx, r14
 vpsllq xmm13, xmm13, 1
+L13@REG:
 vfmadd231pd ymm2, ymm1, ymm0
 xor r13, rsi
 shr rdx, 1
 vpsrlq xmm14, xmm14, 1
+L14@RAM_L:
 vfmadd231pd ymm15, ymm0, ymmword ptr [r9+32]
 xor r13, rdx
 add r9, r14
+L15@L3_L:
 vfmadd231pd ymm4, ymm1, ymmword ptr [r8+64]
 xor r13, rdi
 add r8, r14
+L16@L2_L:
 vfmadd231pd ymm5, ymm0, ymmword ptr [rcx+64]
 xor r13, rsi
 add rcx, r14
 movq r13, mm0
 sub r12, 1
-jnz L2
+jnz L17
 mov r12, 5461333
 mov r9, rax
 add r9, 1441792
-L2:
+L17:
 inc r13
 sub r10, 1
-jnz L3
+jnz L18
 mov r10, 4369
 mov rcx, rax
 add rcx, 32768
-L3:
+L18:
 movq mm0, r13
 sub r11, 1
-jnz L4
+jnz L19
 mov r11, 6007
 mov r8, rax
 add r8, 1048576
-L4:
+L19:
 mov rbx, rax
 test qword ptr [r15], 1
 jnz L1
@@ -766,6 +913,7 @@ push r15
 mov rax, rdi
 mov r15, rsi
 mov r13, rdx
+mov r13, 0
 movq mm0, r13
 mov r13, qword ptr [r15]
 test r13, r13
@@ -800,207 +948,252 @@ mov r11, 1501
 mov r12, 1365333
 .align 64 (code)
 L1:
+L2@L1_L:
 vfmaddpd xmm3, xmm3, xmm0, xmm4
 vfmaddpd ymm3, ymm3, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shl edi, 1
+L3@REG:
 vfmaddpd xmm4, xmm4, xmm0, xmm5
 vfmaddpd xmm11, xmm11, xmm1, xmm6
 xor rdi, r13
 shl esi, 1
+L4@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm5
 vfmaddpd xmm5, xmm5, xmm0, xmm6
 add r9, r14
 shl edx, 1
+L5@RAM_P:
 vfmaddpd xmm6, xmm6, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shr edi, 1
+L6@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm7
 vfmaddpd xmm7, xmm7, xmm0, xmmword ptr [r9+32]
 add r9, r14
 shr esi, 1
+L7@RAM_L:
 vfmaddpd xmm8, xmm8, xmm0, xmm9
 vfmaddpd xmm15, xmm15, xmm1, xmmword ptr [r9+64]
 add r9, r14
 shr edx, 1
+L8@L3_S:
 vmovapd xmmword ptr [r8+96], xmm9
 vfmaddpd xmm9, xmm9, xmm0, xmm10
 add r8, r14
 shl edi, 1
+L9@L3_P:
 vfmaddpd xmm10, xmm10, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shl esi, 1
+L10@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm2
 vfmaddpd xmm2, xmm2, xmm0, xmmword ptr [r8+64]
 add r8, r14
 shl edx, 1
+L11@L3_L:
 vfmaddpd xmm3, xmm3, xmm0, xmm4
 vfmaddpd xmm3, xmm3, xmm1, xmmword ptr [r8+64]
 add r8, r14
 shr edi, 1
+L12@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm4
 vfmaddpd xmm4, xmm4, xmm0, xmm5
 add rcx, r14
 shr esi, 1
+L13@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm5
 vfmaddpd xmm5, xmm5, xmm0, xmmword ptr [rcx+64]
 add rcx, r14
 shr edx, 1
+L14@L2_L:
 vfmaddpd xmm6, xmm6, xmm0, xmm7
 vfmaddpd xmm6, xmm6, xmm1, xmmword ptr [rcx+64]
 add rcx, r14
 shl edi, 1
+L15@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm7
 vfmaddpd ymm7, ymm7, ymm0, ymm8
 add rbx, r14
 shl esi, 1
+L16@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm8
 vfmaddpd ymm8, ymm8, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shl edx, 1
+L17@L1_L:
 vfmaddpd xmm9, xmm9, xmm0, xmm10
 vfmaddpd ymm9, ymm9, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shr edi, 1
+L18@REG:
 vfmaddpd xmm10, xmm10, xmm0, xmm2
 vfmaddpd xmm12, xmm12, xmm1, xmm3
 xor rdi, r13
 shr esi, 1
+L19@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm2
 vfmaddpd xmm2, xmm2, xmm0, xmm3
 add r9, r14
 shr edx, 1
+L20@RAM_P:
 vfmaddpd xmm3, xmm3, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shl edi, 1
+L21@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm4
 vfmaddpd xmm4, xmm4, xmm0, xmmword ptr [r9+32]
 add r9, r14
 shl esi, 1
+L22@RAM_L:
 vfmaddpd xmm5, xmm5, xmm0, xmm6
 vfmaddpd xmm15, xmm15, xmm1, xmmword ptr [r9+64]
 add r9, r14
 shl edx, 1
+L23@L3_S:
 vmovapd xmmword ptr [r8+96], xmm6
 vfmaddpd xmm6, xmm6, xmm0, xmm7
 add r8, r14
 shr edi, 1
+L24@L3_P:
 vfmaddpd xmm7, xmm7, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shr esi, 1
+L25@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm8
 vfmaddpd xmm8, xmm8, xmm0, xmmword ptr [r8+64]
 add r8, r14
 shr edx, 1
+L26@L3_L:
 vfmaddpd xmm9, xmm9, xmm0, xmm10
 vfmaddpd xmm9, xmm9, xmm1, xmmword ptr [r8+64]
 add r8, r14
 shl edi, 1
+L27@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm10
 vfmaddpd xmm10, xmm10, xmm0, xmm2
 add rcx, r14
 shl esi, 1
+L28@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm2
 vfmaddpd xmm2, xmm2, xmm0, xmmword ptr [rcx+64]
 add rcx, r14
 shl edx, 1
+L29@L2_L:
 vfmaddpd xmm3, xmm3, xmm0, xmm4
 vfmaddpd xmm3, xmm3, xmm1, xmmword ptr [rcx+64]
 add rcx, r14
 shr edi, 1
+L30@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm4
 vfmaddpd ymm4, ymm4, ymm0, ymm5
 add rbx, r14
 shr esi, 1
+L31@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm5
 vfmaddpd ymm5, ymm5, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shr edx, 1
+L32@L1_L:
 vfmaddpd xmm6, xmm6, xmm0, xmm7
 vfmaddpd ymm6, ymm6, ymm1, ymmword ptr [rbx+32]
 add rbx, r14
 shl edi, 1
+L33@REG:
 vfmaddpd xmm7, xmm7, xmm0, xmm8
 vfmaddpd xmm13, xmm13, xmm1, xmm9
 xor rdi, r13
 shl esi, 1
+L34@RAM_S:
 vmovapd xmmword ptr [r9+64], xmm8
 vfmaddpd xmm8, xmm8, xmm0, xmm9
 add r9, r14
 shl edx, 1
+L35@RAM_P:
 vfmaddpd xmm9, xmm9, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r9]
 add r9, r14
 shr edi, 1
+L36@RAM_LS:
 vmovapd xmmword ptr [r9+64], xmm10
 vfmaddpd xmm10, xmm10, xmm0, xmmword ptr [r9+32]
 add r9, r14
 shr esi, 1
+L37@RAM_L:
 vfmaddpd xmm2, xmm2, xmm0, xmm3
 vfmaddpd xmm15, xmm15, xmm1, xmmword ptr [r9+64]
 add r9, r14
 shr edx, 1
+L38@L3_S:
 vmovapd xmmword ptr [r8+96], xmm3
 vfmaddpd xmm3, xmm3, xmm0, xmm4
 add r8, r14
 shl edi, 1
+L39@L3_P:
 vfmaddpd xmm4, xmm4, xmm0, xmmword ptr [rbx+32]
 prefetcht2 [r8]
 add r8, r14
 shl esi, 1
+L40@L3_LS:
 vmovapd xmmword ptr [r8+96], xmm5
 vfmaddpd xmm5, xmm5, xmm0, xmmword ptr [r8+64]
 add r8, r14
 shl edx, 1
+L41@L3_L:
 vfmaddpd xmm6, xmm6, xmm0, xmm7
 vfmaddpd xmm6, xmm6, xmm1, xmmword ptr [r8+64]
 add r8, r14
 shr edi, 1
+L42@L2_S:
 vmovapd xmmword ptr [rcx+64], xmm7
 vfmaddpd xmm7, xmm7, xmm0, xmm8
 add rcx, r14
 shr esi, 1
+L43@L2_LS:
 vmovapd xmmword ptr [rcx+96], xmm8
 vfmaddpd xmm8, xmm8, xmm0, xmmword ptr [rcx+64]
 add rcx, r14
 shr edx, 1
+L44@L2_L:
 vfmaddpd xmm9, xmm9, xmm0, xmm10
 vfmaddpd xmm9, xmm9, xmm1, xmmword ptr [rcx+64]
 add rcx, r14
 shl edi, 1
+L45@L1_S:
 vmovapd xmmword ptr [rbx+32], xmm10
 vfmaddpd ymm10, ymm10, ymm0, ymm2
 add rbx, r14
 shl esi, 1
+L46@L1_LS:
 vmovapd xmmword ptr [rbx+64], xmm2
 vfmaddpd ymm2, ymm2, ymm0, ymmword ptr [rbx+32]
 add rbx, r14
 shl edx, 1
 movq r13, mm0
 sub r12, 1
-jnz L2
+jnz L47
 mov r12, 1365333
 mov r9, rax
 add r9, 1441792
-L2:
+L47:
 inc r13
 sub r10, 1
-jnz L3
+jnz L48
 mov r10, 1456
 mov rcx, rax
 add rcx, 32768
-L3:
+L48:
 movq mm0, r13
 sub r11, 1
-jnz L4
+jnz L49
 mov r11, 1501
 mov r8, rax
 add r8, 1048576
-L4:
+L49:
 mov rbx, rax
 test qword ptr [r15], 1
 jnz L1
@@ -1021,9 +1214,11 @@ push rbp
 push r12
 push r13
 push r14
+push r15
 mov rax, rdi
 mov r13, rsi
-mov r14, rdx
+mov r15, rdx
+mov r14, 0
 mov r11, qword ptr [r13]
 test r11, r11
 jz L0
@@ -1081,195 +1276,241 @@ mov r9, 1501
 mov r10, 1365333
 .align 64 (code)
 L1:
+L2@L1_L:
 vaddpd ymm1, ymm1, ymmword ptr [rbx+32]
 add rbx, r12
 psllw mm3, mm0
+L3@REG:
 vaddpd ymm2, ymm2, ymm3
 vmovdqa ymm11, ymm12
 psllw mm4, mm1
+L4@RAM_S:
 vaddpd ymm3, ymm3, ymm2
 vmovapd xmmword ptr [rdi+64], xmm3
 add rdi, r12
 psllw mm5, mm2
+L5@RAM_P:
 vaddpd ymm4, ymm4, ymmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
 psllw mm0, mm3
+L6@RAM_LS:
 vaddpd ymm5, ymm5, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdi+64], xmm5
 add rdi, r12
 psllw mm1, mm4
+L7@RAM_L:
 vaddpd ymm6, ymm6, ymmword ptr [rdi+64]
 add rdi, r12
 psllw mm2, mm5
+L8@L3_S:
 vaddpd ymm7, ymm7, ymm6
 vmovapd xmmword ptr [rdx+96], xmm7
 add rdx, r12
 psrlw mm3, mm0
+L9@L3_P:
 vaddpd ymm8, ymm8, ymmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
 psrlw mm4, mm1
+L10@L3_LS:
 vaddpd ymm9, ymm9, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdx+96], xmm9
 add rdx, r12
 psrlw mm5, mm2
+L11@L3_L:
 vaddpd ymm1, ymm1, ymmword ptr [rdx+64]
 add rdx, r12
 psrlw mm0, mm3
+L12@L2_S:
 vaddpd ymm2, ymm2, ymm1
 vmovapd xmmword ptr [rcx+64], xmm2
 add rcx, r12
 psrlw mm1, mm4
+L13@L2_LS:
 vaddpd ymm3, ymm3, ymmword ptr [rcx+64]
 vmovapd xmmword ptr [rcx+96], xmm3
 add rcx, r12
 psrlw mm2, mm5
+L14@L2_L:
 vaddpd ymm4, ymm4, ymmword ptr [rcx+64]
 add rcx, r12
 psllw mm3, mm0
+L15@L1_S:
 vaddpd ymm5, ymm5, ymm4
 vmovapd xmmword ptr [rbx+32], xmm5
 add rbx, r12
 psllw mm4, mm1
+L16@L1_LS:
 vaddpd ymm6, ymm6, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm6
 add rbx, r12
 psllw mm5, mm2
+L17@L1_L:
 vaddpd ymm7, ymm7, ymmword ptr [rbx+32]
 add rbx, r12
 psllw mm0, mm3
+L18@REG:
 vaddpd ymm8, ymm8, ymm9
 vmovdqa ymm14, ymm15
 psllw mm1, mm4
+L19@RAM_S:
 vaddpd ymm9, ymm9, ymm8
 vmovapd xmmword ptr [rdi+64], xmm9
 add rdi, r12
 psllw mm2, mm5
+L20@RAM_P:
 vaddpd ymm1, ymm1, ymmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
 psrlw mm3, mm0
+L21@RAM_LS:
 vaddpd ymm2, ymm2, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdi+64], xmm2
 add rdi, r12
 psrlw mm4, mm1
+L22@RAM_L:
 vaddpd ymm3, ymm3, ymmword ptr [rdi+64]
 add rdi, r12
 psrlw mm5, mm2
+L23@L3_S:
 vaddpd ymm4, ymm4, ymm3
 vmovapd xmmword ptr [rdx+96], xmm4
 add rdx, r12
 psrlw mm0, mm3
+L24@L3_P:
 vaddpd ymm5, ymm5, ymmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
 psrlw mm1, mm4
+L25@L3_LS:
 vaddpd ymm6, ymm6, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdx+96], xmm6
 add rdx, r12
 psrlw mm2, mm5
+L26@L3_L:
 vaddpd ymm7, ymm7, ymmword ptr [rdx+64]
 add rdx, r12
 psllw mm3, mm0
+L27@L2_S:
 vaddpd ymm8, ymm8, ymm7
 vmovapd xmmword ptr [rcx+64], xmm8
 add rcx, r12
 psllw mm4, mm1
+L28@L2_LS:
 vaddpd ymm9, ymm9, ymmword ptr [rcx+64]
 vmovapd xmmword ptr [rcx+96], xmm9
 add rcx, r12
 psllw mm5, mm2
+L29@L2_L:
 vaddpd ymm1, ymm1, ymmword ptr [rcx+64]
 add rcx, r12
 psllw mm0, mm3
+L30@L1_S:
 vaddpd ymm2, ymm2, ymm1
 vmovapd xmmword ptr [rbx+32], xmm2
 add rbx, r12
 psllw mm1, mm4
+L31@L1_LS:
 vaddpd ymm3, ymm3, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm3
 add rbx, r12
 psllw mm2, mm5
+L32@L1_L:
 vaddpd ymm4, ymm4, ymmword ptr [rbx+32]
 add rbx, r12
 psrlw mm3, mm0
+L33@REG:
 vaddpd ymm5, ymm5, ymm6
 vmovdqa ymm11, ymm12
 psrlw mm4, mm1
+L34@RAM_S:
 vaddpd ymm6, ymm6, ymm5
 vmovapd xmmword ptr [rdi+64], xmm6
 add rdi, r12
 psrlw mm5, mm2
+L35@RAM_P:
 vaddpd ymm7, ymm7, ymmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
 psrlw mm0, mm3
+L36@RAM_LS:
 vaddpd ymm8, ymm8, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdi+64], xmm8
 add rdi, r12
 psrlw mm1, mm4
+L37@RAM_L:
 vaddpd ymm9, ymm9, ymmword ptr [rdi+64]
 add rdi, r12
 psrlw mm2, mm5
+L38@L3_S:
 vaddpd ymm1, ymm1, ymm0
 vmovapd xmmword ptr [rdx+96], xmm1
 add rdx, r12
 psllw mm3, mm0
+L39@L3_P:
 vaddpd ymm2, ymm2, ymmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
 psllw mm4, mm1
+L40@L3_LS:
 vaddpd ymm3, ymm3, ymmword ptr [rdx+64]
 vmovapd xmmword ptr [rdx+96], xmm3
 add rdx, r12
 psllw mm5, mm2
+L41@L3_L:
 vaddpd ymm4, ymm4, ymmword ptr [rdx+64]
 add rdx, r12
 psllw mm0, mm3
+L42@L2_S:
 vaddpd ymm5, ymm5, ymm4
 vmovapd xmmword ptr [rcx+64], xmm5
 add rcx, r12
 psllw mm1, mm4
+L43@L2_LS:
 vaddpd ymm6, ymm6, ymmword ptr [rcx+64]
 vmovapd xmmword ptr [rcx+96], xmm6
 add rcx, r12
 psllw mm2, mm5
+L44@L2_L:
 vaddpd ymm7, ymm7, ymmword ptr [rcx+64]
 add rcx, r12
 psrlw mm3, mm0
+L45@L1_S:
 vaddpd ymm8, ymm8, ymm7
 vmovapd xmmword ptr [rbx+32], xmm8
 add rbx, r12
 psrlw mm4, mm1
+L46@L1_LS:
 vaddpd ymm9, ymm9, ymmword ptr [rbx+32]
 vmovapd xmmword ptr [rbx+64], xmm9
 add rbx, r12
 psrlw mm5, mm2
 sub r10, 1
-jnz L2
+jnz L47
 mov r10, 1365333
 mov rdi, rax
 add rdi, 1441792
-L2:
+L47:
 sub r8, 1
-jnz L3
+jnz L48
 mov r8, 1456
 mov rcx, rax
 add rcx, 32768
-L3:
+L48:
 sub r9, 1
-jnz L4
+jnz L49
 mov r9, 1501
 mov rdx, rax
 add rdx, 1048576
-L4:
+L49:
 inc r14
 mov rbx, rax
 test qword ptr [r13], 1
 jnz L1
 L0:
 mov rax, r14
+pop r15
 pop r14
 pop r13
 pop r12
@@ -1284,9 +1525,11 @@ push rbp
 push r12
 push r13
 push r14
+push r15
 mov rax, rdi
 mov r13, rsi
-mov r14, rdx
+mov r15, rdx
+mov r14, 0
 mov r11, qword ptr [r13]
 test r11, r11
 jz L0
@@ -1323,150 +1566,196 @@ mov r9, 1501
 mov r10, 1365333
 .align 64 (code)
 L1:
+L2@L1_L:
 addpd xmm1, xmmword ptr [rbx+32]
 add rbx, r12
+L3@REG:
 addpd xmm2, xmm3
 movdqa xmm15, xmm14
+L4@RAM_S:
 addpd xmm3, xmm2
 movapd xmmword ptr [rdi+64], xmm3
 add rdi, r12
+L5@RAM_P:
 addpd xmm4, xmmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
+L6@RAM_LS:
 addpd xmm5, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdi+64], xmm5
 add rdi, r12
+L7@RAM_L:
 addpd xmm6, xmmword ptr [rdi+64]
 add rdi, r12
+L8@L3_S:
 addpd xmm7, xmm6
 movapd xmmword ptr [rdx+96], xmm7
 add rdx, r12
+L9@L3_P:
 addpd xmm8, xmmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
+L10@L3_LS:
 addpd xmm9, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdx+96], xmm9
 add rdx, r12
+L11@L3_L:
 addpd xmm10, xmmword ptr [rdx+64]
 add rdx, r12
+L12@L2_S:
 addpd xmm11, xmm10
 movapd xmmword ptr [rcx+64], xmm11
 add rcx, r12
+L13@L2_LS:
 addpd xmm12, xmmword ptr [rcx+64]
 movapd xmmword ptr [rcx+96], xmm12
 add rcx, r12
+L14@L2_L:
 addpd xmm13, xmmword ptr [rcx+64]
 add rcx, r12
+L15@L1_S:
 addpd xmm1, xmm0
 movapd xmmword ptr [rbx+32], xmm1
 add rbx, r12
+L16@L1_LS:
 addpd xmm2, xmmword ptr [rbx+32]
 movapd xmmword ptr [rbx+64], xmm2
 add rbx, r12
+L17@L1_L:
 addpd xmm3, xmmword ptr [rbx+32]
 add rbx, r12
+L18@REG:
 addpd xmm4, xmm5
 movdqa xmm14, xmm15
+L19@RAM_S:
 addpd xmm5, xmm4
 movapd xmmword ptr [rdi+64], xmm5
 add rdi, r12
+L20@RAM_P:
 addpd xmm6, xmmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
+L21@RAM_LS:
 addpd xmm7, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdi+64], xmm7
 add rdi, r12
+L22@RAM_L:
 addpd xmm8, xmmword ptr [rdi+64]
 add rdi, r12
+L23@L3_S:
 addpd xmm9, xmm8
 movapd xmmword ptr [rdx+96], xmm9
 add rdx, r12
+L24@L3_P:
 addpd xmm10, xmmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
+L25@L3_LS:
 addpd xmm11, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdx+96], xmm11
 add rdx, r12
+L26@L3_L:
 addpd xmm12, xmmword ptr [rdx+64]
 add rdx, r12
+L27@L2_S:
 addpd xmm13, xmm12
 movapd xmmword ptr [rcx+64], xmm13
 add rcx, r12
+L28@L2_LS:
 addpd xmm1, xmmword ptr [rcx+64]
 movapd xmmword ptr [rcx+96], xmm1
 add rcx, r12
+L29@L2_L:
 addpd xmm2, xmmword ptr [rcx+64]
 add rcx, r12
+L30@L1_S:
 addpd xmm3, xmm2
 movapd xmmword ptr [rbx+32], xmm3
 add rbx, r12
+L31@L1_LS:
 addpd xmm4, xmmword ptr [rbx+32]
 movapd xmmword ptr [rbx+64], xmm4
 add rbx, r12
+L32@L1_L:
 addpd xmm5, xmmword ptr [rbx+32]
 add rbx, r12
+L33@REG:
 addpd xmm6, xmm7
 movdqa xmm15, xmm14
+L34@RAM_S:
 addpd xmm7, xmm6
 movapd xmmword ptr [rdi+64], xmm7
 add rdi, r12
+L35@RAM_P:
 addpd xmm8, xmmword ptr [rbx+32]
 prefetcht2 [rdi]
 add rdi, r12
+L36@RAM_LS:
 addpd xmm9, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdi+64], xmm9
 add rdi, r12
+L37@RAM_L:
 addpd xmm10, xmmword ptr [rdi+64]
 add rdi, r12
+L38@L3_S:
 addpd xmm11, xmm10
 movapd xmmword ptr [rdx+96], xmm11
 add rdx, r12
+L39@L3_P:
 addpd xmm12, xmmword ptr [rbx+32]
 prefetcht0 [rdx]
 add rdx, r12
+L40@L3_LS:
 addpd xmm13, xmmword ptr [rdx+64]
 movapd xmmword ptr [rdx+96], xmm13
 add rdx, r12
+L41@L3_L:
 addpd xmm1, xmmword ptr [rdx+64]
 add rdx, r12
+L42@L2_S:
 addpd xmm2, xmm1
 movapd xmmword ptr [rcx+64], xmm2
 add rcx, r12
+L43@L2_LS:
 addpd xmm3, xmmword ptr [rcx+64]
 movapd xmmword ptr [rcx+96], xmm3
 add rcx, r12
+L44@L2_L:
 addpd xmm4, xmmword ptr [rcx+64]
 add rcx, r12
+L45@L1_S:
 addpd xmm5, xmm4
 movapd xmmword ptr [rbx+32], xmm5
 add rbx, r12
+L46@L1_LS:
 addpd xmm6, xmmword ptr [rbx+32]
 movapd xmmword ptr [rbx+64], xmm6
 add rbx, r12
 sub r10, 1
-jnz L2
+jnz L47
 mov r10, 1365333
 mov rdi, rax
 add rdi, 1441792
-L2:
+L47:
 sub r8, 1
-jnz L3
+jnz L48
 mov r8, 1456
 mov rcx, rax
 add rcx, 32768
-L3:
+L48:
 sub r9, 1
-jnz L4
+jnz L49
 mov r9, 1501
 mov rdx, rax
 add rdx, 1048576
-L4:
+L49:
 inc r14
 mov rbx, rax
 test qword ptr [r13], 1
 jnz L1
 L0:
 mov rax, r14
+pop r15
 pop r14
 pop r13
 pop r12

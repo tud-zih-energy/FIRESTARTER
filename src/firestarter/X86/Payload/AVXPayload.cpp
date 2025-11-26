@@ -23,6 +23,7 @@
 #include "firestarter/Constants.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/CompiledPayload.hpp"
+#include "firestarter/Payload/PayloadControlFlowDescription.hpp"
 #include "firestarter/Payload/PayloadSettings.hpp"
 #include "firestarter/Payload/PayloadStats.hpp"
 #include "firestarter/X86/Payload/CompiledX86Payload.hpp"
@@ -36,8 +37,9 @@
 namespace firestarter::x86::payload {
 
 auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Settings, bool DumpRegisters,
-                                bool ErrorDetection,
-                                bool PrintAssembler) const -> firestarter::payload::CompiledPayload::UniquePtr {
+                                bool ErrorDetection, bool PrintAssembler,
+                                firestarter::payload::HighLoadControlFlowDescription ControlFlow) const
+    -> firestarter::payload::CompiledPayload::UniquePtr {
   using Imm = asmjit::Imm;
   using Mm = asmjit::x86::Mm;
   using Xmm = asmjit::x86::Xmm;
@@ -112,7 +114,11 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   const auto TempReg2 = asmjit::x86::rbp;
   const auto OffsetReg = asmjit::x86::r12;
   const auto AddrHighReg = asmjit::x86::r13;
+  // This register contains the current number of loop iterations
   const auto IterReg = asmjit::x86::r14;
+  // This register holds the remaining number of iterations, if the payload is compiled with
+  // HighLoadControlFlowDescription::kMaxIterationCount
+  const auto RemainingIterationsReg = asmjit::x86::r15;
   const auto ShiftRegs = 6;
   const auto AddRegs = 10;
   const auto TransRegs = 6;
@@ -135,10 +141,10 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   }
   // make all other used registers dirty except RAX
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
-                     AddrHighReg, IterReg);
+                     AddrHighReg, IterReg, RemainingIterationsReg);
 
   asmjit::FuncArgsAssignment Args(&Func);
-  Args.assignAll(PointerReg, AddrHighReg, IterReg);
+  Args.assignAll(PointerReg, AddrHighReg, RemainingIterationsReg);
   Args.updateFuncFrame(Frame);
   Frame.finalize();
 
@@ -148,6 +154,16 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
   // stop right away if low load is selected
   auto FunctionExit = Cb.newLabel();
 
+  // Set inital iteration count to zero
+  Cb.mov(IterReg, Imm(0));
+
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    // return if remaining iteration count is zero
+    Cb.test(RemainingIterationsReg, RemainingIterationsReg);
+    Cb.jz(FunctionExit);
+  }
+
+  // stop right away if low load is selected
   Cb.mov(TempReg, ptr_64(AddrHighReg));
   Cb.test(TempReg, TempReg);
   Cb.jz(FunctionExit);
@@ -243,6 +259,7 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
 
   for (auto Count = 0U; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
+      Cb.bind(Cb.newAnonymousLabel(Item.c_str()));
       if (Item == "REG") {
         Cb.vaddpd(Ymm(AddDest), Ymm(AddDest), Ymm(AddStart + ((AddDest - AddStart + AddRegs + 1) % AddRegs)));
         Cb.vmovdqa(Ymm(MovDest), Ymm(MovSrc));
@@ -384,7 +401,17 @@ auto AVXPayload::compilePayload(const firestarter::payload::PayloadSettings& Set
     // adds always two instruction
     Stats.Instructions += 2;
   }
-  Cb.inc(IterReg); // increment iteration counter
+
+  // increment iteration counter
+  Cb.inc(IterReg);
+  if (ControlFlow == firestarter::payload::HighLoadControlFlowDescription::kMaxIterationCount) {
+    // decrement remaining iterations
+    Cb.dec(RemainingIterationsReg);
+    // Return if the remaining instructions reached zero
+    Cb.test(RemainingIterationsReg, RemainingIterationsReg);
+    Cb.jz(FunctionExit);
+  }
+
   Cb.mov(L1Addr, PointerReg);
 
   if (DumpRegisters) {

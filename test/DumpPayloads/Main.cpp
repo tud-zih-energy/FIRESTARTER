@@ -50,7 +50,8 @@ void dumpPayload(firestarter::payload::Payload& PayloadPtr) {
                                                  /*Groups=*/oneEach(Instuctions));
 
   (void)PayloadPtr.compilePayload(Settings, /*DumpRegisters=*/false, /*ErrorDetection=*/false,
-                                  /*PrintAssembler=*/true);
+                                  /*PrintAssembler=*/true,
+                                  firestarter::payload::HighLoadControlFlowDescription::kStopOnLoadThreadWorkType);
 }
 
 } // namespace
