@@ -284,7 +284,7 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
 
 void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                     bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
-                    bool UseDouble, unsigned MatrixSize, int Gpus) {
+                    bool UseDouble, uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
