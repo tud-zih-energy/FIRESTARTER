@@ -182,15 +182,16 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
   compat::accellSafeCall(compat::malloc<FloatingPointType>(&CDataPtr, Iterations * MemorySize), __FILE__, __LINE__,
                          DeviceIndex);
 
-  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)"
-                            << "\n";
-  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)"
-                            << "\n";
-  firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << " (Size: " << (Iterations * MemorySize) << "B)"
-                            << "\n";
+  firestarter::log::trace()
+      << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+      << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)";
+  firestarter::log::trace()
+      << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+      << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)";
+  firestarter::log::trace()
+      << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
+      << ". C: " << CDataPtr << " (Size: " << (Iterations * MemorySize) << "B)";
+
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
