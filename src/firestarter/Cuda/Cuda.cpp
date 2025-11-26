@@ -183,11 +183,14 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                          DeviceIndex);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)"
+                            << "\n";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)"
+                            << "\n";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)" << "\n";
+                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)"
+                            << "\n";
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
@@ -282,9 +285,8 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
   WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
-void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                    std::mutex& WaitForInitCvMutex, bool& InitDone,
-                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                    bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
                     bool UseDouble, unsigned MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;

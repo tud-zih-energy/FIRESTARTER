@@ -106,7 +106,8 @@ int getPrecision(int DeviceIndex, int UseDouble) {
   }
   // Get a list of devices for the chosen platform
 
-  firestarter::log::trace() << "Get support for double" << " on device nr. " << DeviceIndex;
+  firestarter::log::trace() << "Get support for double"
+                            << " on device nr. " << DeviceIndex;
   auto Devices = ChosenPlatform.get_devices();
   if (Devices[DeviceIndex].has(sycl::aspect::fp64))
     SupportsDouble = 1;
@@ -263,9 +264,8 @@ OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool Use
   WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
-void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                      std::mutex& WaitForInitCvMutex, bool& InitDone,
-                      const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                      bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
                       bool UseDouble, unsigned MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
