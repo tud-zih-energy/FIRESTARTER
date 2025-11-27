@@ -264,7 +264,7 @@ This causes the perf metrics to be collected only on the specified cpu.
 the Intel OneAPI toolkits, since some of these libraries cannot be linked statically.
 Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
 Make also sure that you have the correct drivers for your GPU installed so that
-OneAPI can apply work to it. 
+OneAPI can apply work to it.
 
 ## References
 
