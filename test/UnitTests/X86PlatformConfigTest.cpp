@@ -40,7 +40,8 @@ public:
   void init(double* /*MemoryAddr*/, uint64_t /*BufferSize*/) const override {}
 
   [[nodiscard]] auto compilePayload(const firestarter::payload::PayloadSettings& /*Settings*/, bool /*DumpRegisters*/,
-                                    bool /*ErrorDetection*/, bool /*PrintAssembler*/) const
+                                    bool /*ErrorDetection*/, bool /*PrintAssembler*/,
+                                    firestarter::payload::HighLoadControlFlowDescription /*ControlFlow*/) const
       -> firestarter::payload::CompiledPayload::UniquePtr override {
     return {nullptr, nullptr};
   }

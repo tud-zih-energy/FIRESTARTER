@@ -53,7 +53,8 @@ public:
   [[nodiscard]] auto compilePayload(const firestarter::payload::PayloadSettings& /*Settings*/,
                                     bool
                                     /*DumpRegisters*/,
-                                    bool /*ErrorDetection*/, bool /*PrintAssembler*/) const
+                                    bool /*ErrorDetection*/, bool /*PrintAssembler*/,
+                                    firestarter::payload::HighLoadControlFlowDescription /*ControlFlow*/) const
       -> firestarter::payload::CompiledPayload::UniquePtr override {
     return {nullptr, nullptr};
   }
@@ -82,7 +83,7 @@ public:
             /*Payload=*/std::make_shared<FakePayload<PayloadIsAvailable>>())
       , Id(Id) {}
 
-  [[nodiscard]] auto getId() const -> auto{ return Id; }
+  [[nodiscard]] auto getId() const -> auto { return Id; }
 
 private:
   [[nodiscard]] auto isDefault(const firestarter::CpuModel& /*Model*/,
@@ -92,8 +93,8 @@ private:
 
   [[nodiscard]] auto clone() const -> std::unique_ptr<PlatformConfig> override { return nullptr; }
 
-  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
-      -> std::unique_ptr<PlatformConfig> override {
+  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize,
+                                    unsigned ThreadsPerCore) const -> std::unique_ptr<PlatformConfig> override {
     auto Config = std::make_unique<FakePlatfromConfig<PayloadIsAvailable, IsDefault>>(Id);
     Config->settings().concretize(InstructionCacheSize, ThreadsPerCore);
     return Config;
@@ -139,8 +140,8 @@ public:
         FakeCpuModel(), FakeCpuFeatures(), "VendorString", "ModelString", InstructionCacheSize, NumThreadsPerCore);
   }
 
-  [[nodiscard]] auto platformConfigs() const
-      -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& override {
+  [[nodiscard]] auto
+  platformConfigs() const -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& override {
     return PlatformConfigs;
   }
 
