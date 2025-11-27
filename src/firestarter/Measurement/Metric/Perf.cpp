@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <linux/perf_event.h>
+#include <stdexcept>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/syscall.h> // IWYU pragma: keep
@@ -66,7 +67,15 @@ auto PerfMetric::init() -> int32_t {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   if (const char* Cpu = std::getenv("FIRESTARTER_PERF_CPU")) {
     // Collect the perf metrics only from a specific CPU.
-    Instance.PerfCpu = std::stoi(Cpu);
+    auto ErrorString = std::string(Cpu) + " is not a valid value for FIRESTARTER_PERF_CPU.";
+    try {
+      Instance.PerfCpu = std::stoi(Cpu);
+    } catch (const std::invalid_argument&) {
+      throw std::runtime_error(ErrorString);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(ErrorString);
+    }
+
     // As we only collect metrics for one CPU, we do not need to divide the collected metrics by the thread count.
     PerfMetric::PerfFreqMetric.Type.DivideByThreadCount = 0;
   }
