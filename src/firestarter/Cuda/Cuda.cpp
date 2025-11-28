@@ -183,11 +183,11 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                          DeviceIndex);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)" << "\n";
+                            << ". C: " << CDataPtr << " (Size: " << (Iterations * MemorySize) << "B)";
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
@@ -271,19 +271,20 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
            int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
+  bool InitDone = false;
 
-  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
-                UseDouble, MatrixSize, Gpus);
+  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  WaitForInitCv.wait(Lk);
+  WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
-void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                    uint64_t MatrixSize, int Gpus) {
+void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                    bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+                    bool UseDouble, uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -361,6 +362,10 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
                              << compat::AccelleratorString << "?";
   }
 
+  {
+    const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
+    InitDone = true;
+  }
   // notify that init is done
   WaitForInitCv.notify_all();
 
