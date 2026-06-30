@@ -250,19 +250,17 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 
 OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
                uint64_t MatrixSize, int Gpus) {
-  std::condition_variable WaitForInitCv;
-  std::mutex WaitForInitCvMutex;
-
-  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
-                UseDouble, MatrixSize, Gpus);
+  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
-  // wait for gpus to initialize
-  WaitForInitCv.wait(Lk);
+  // wait for gpus to initialize; use a predicate to guard against spurious wakeups
+  WaitForInitCv.wait(Lk, [this] { return InitDone; });
 }
 
 void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
+                      std::mutex& WaitForInitCvMutex, bool& InitDone,
                       const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
                       uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
@@ -274,6 +272,9 @@ void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForIni
 
     if (Platforms.empty()) {
       std::cerr << "No SYCL platforms found." << std::endl;
+      std::lock_guard<std::mutex> Guard(WaitForInitCvMutex);
+      InitDone = true;
+      WaitForInitCv.notify_all();
       return;
     }
 
@@ -354,7 +355,11 @@ void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForIni
                                 "FIRESTARTER instead of FIRESTARTER_OneAPI?";
   }
 
-  // notify that init is done
+  // notify that init is done; set the flag under the mutex so the predicate in the constructor is safe
+  {
+    std::lock_guard<std::mutex> Guard(WaitForInitCvMutex);
+    InitDone = true;
+  }
   WaitForInitCv.notify_all();
 
   /* join computation threads */

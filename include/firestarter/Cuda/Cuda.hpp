@@ -52,10 +52,19 @@ private:
   /// execution of a kernel is complete.
   GpuFlop ExecutedFlop;
 
+  /// The condition variable used to signal that all gpus are initialized.
+  std::condition_variable WaitForInitCv;
+  /// The mutex guarding WaitForInitCv and InitDone.
+  std::mutex WaitForInitCvMutex;
+  /// Set to true by initGpus (under WaitForInitCvMutex) once initialization is complete.
+  bool InitDone = false;
+
   /// Spawns a thread for each of the selected gpus, initilizes them and starts the execution of the gemm in parallel.
   /// \arg ExecutedFlop The variable that contains the number of flop estimated that have been executed. It will be
   /// incremented by the flops when on execution of a kernel is complete.
   /// \arg WaitForInitCv The condition variables used to signal that all gpus are initialized.
+  /// \arg WaitForInitCvMutex The mutex guarding WaitForInitCv and InitDone.
+  /// \arg InitDone Flag set to true once initialization is complete.
   /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
   /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
@@ -64,6 +73,7 @@ private:
   /// automatic selection.
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
   static void initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
+                       std::mutex& WaitForInitCvMutex, bool& InitDone,
                        const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
                        uint64_t MatrixSize, int Gpus);
 
