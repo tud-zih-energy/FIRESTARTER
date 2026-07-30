@@ -29,6 +29,11 @@ using namespace firestarter::environment::aarch64::payload;
 using namespace asmjit;
 using namespace asmjit::a64;
 
+AArch64NEONFMAPayload::AArch64NEONFMAPayload(
+    asmjit::CpuFeatures const &supportedFeatures)
+    : AArch64Payload(supportedFeatures, {asmjit::CpuFeatures::ARM::kARMv8a},
+                     "ARMv8a", 2, 32) {}
+
 // based on Default and x86 FMA workload.
 
 int AArch64NEONFMAPayload::compilePayload(
@@ -421,10 +426,10 @@ int AArch64NEONFMAPayload::compilePayload(
 std::list<std::string> AArch64NEONFMAPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
-/*  transform(this->instructionFlops.begin(), this->instructionFlops.end(),
-            back_inserter(instructions),
-            [](const auto &item) { return item.first; });
-*/
+  for (auto const &item : this->instructionFlops) {
+    instructions.push_back(item.first);
+  }
+
   return instructions;
 }
 

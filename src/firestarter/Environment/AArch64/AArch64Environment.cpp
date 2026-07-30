@@ -139,7 +139,6 @@ int AArch64Environment::selectInstructionGroups(std::string groups) {
   const std::string delimiter = ",";
   const std::regex re("^(\\w+):(\\d+)$");
   const auto availableInstructionGroups = this->selectedConfig()
-                                              .platformConfig()
                                               .payload()
                                               .getAvailableInstructions();
 
@@ -188,11 +187,9 @@ int AArch64Environment::selectInstructionGroups(std::string groups) {
 
 void AArch64Environment::printAvailableInstructionGroups() {
   std::stringstream ss;
+  auto instructions = this->selectedConfig().payload().getAvailableInstructions();
 
-  for (auto const &item : this->selectedConfig()
-                              .platformConfig()
-                              .payload()
-                              .getAvailableInstructions()) {
+  for (auto const &item : instructions) {
     ss << item << ",";
   }
 

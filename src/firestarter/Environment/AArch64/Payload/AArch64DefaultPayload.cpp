@@ -412,10 +412,10 @@ int AArch64DefaultPayload::compilePayload(
 std::list<std::string> AArch64DefaultPayload::getAvailableInstructions() const {
   std::list<std::string> instructions;
 
-/*  transform(this->instructionFlops.begin(), this->instructionFlops.end(),
-            back_inserter(instructions),
-            [](const auto &item) { return item.first; });
-*/
+  for (auto const &item : this->instructionFlops) {
+    instructions.push_back(item.first);
+  }
+
   return instructions;
 }
 
