@@ -51,12 +51,19 @@ void AArch64Payload::init(unsigned long long *memoryAddr,
                       double lastValue) {
   unsigned long long i = 0;
 
+  unsigned long long safeBufferSize = std::min<unsigned long long>(
+      bufferSize, 1ull << 20);
+
   for (; i < INIT_BLOCKSIZE; i++)
     *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * firstValue;
-  for (; i <= bufferSize - INIT_BLOCKSIZE; i += INIT_BLOCKSIZE)
+
+  for (; i < safeBufferSize; i += INIT_BLOCKSIZE) {
+    auto copySize = std::min<unsigned long long>(INIT_BLOCKSIZE, safeBufferSize - i);
     std::memcpy(memoryAddr + i, memoryAddr + i - INIT_BLOCKSIZE,
-                sizeof(unsigned long long) * INIT_BLOCKSIZE);
-  for (; i < bufferSize; i++)
+                sizeof(unsigned long long) * copySize);
+  }
+
+  for (; i < safeBufferSize; i++)
     *((double *)(memoryAddr + i)) = 0.25 + (double)i * 8.0 * lastValue;
 }
 

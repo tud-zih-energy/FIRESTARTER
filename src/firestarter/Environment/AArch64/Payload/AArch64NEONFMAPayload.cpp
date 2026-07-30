@@ -114,8 +114,9 @@ int AArch64NEONFMAPayload::compilePayload(
   auto offset_reg = x10;
   auto addrHigh_reg = x11;
   auto iter_reg = x12;
-  // TODO this should be better
-  auto shift_reg = std::vector<Gp>({x13, x14, x15, x16, x17, x18, x19, x20});
+  // Use caller-saved temporaries first; keep the shift state in callee-saved
+  // registers so the frame can preserve them correctly across the call.
+  auto shift_reg = std::vector<Gp>({x13, x14, x15, x19, x20, x21, x22, x23});
   auto nr_shift_regs = 8;
   // TODO this should be more advanced
   // this should be a multiple of 4
@@ -139,6 +140,9 @@ int AArch64NEONFMAPayload::compilePayload(
   frame.addDirtyRegs(l1_addr, l2_addr, l3_addr, ram_addr, l2_count_reg,
                      l3_count_reg, ram_count_reg, temp_reg, temp_reg2,
                      offset_reg, addrHigh_reg, iter_reg);
+  for (auto const &reg : shift_reg) {
+    frame.addDirtyRegs(reg);
+  }
 
   FuncArgsAssignment args(&func);
   args.assignAll(pointer_reg, addrHigh_reg, iter_reg);
