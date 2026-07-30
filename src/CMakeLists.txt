@@ -82,6 +82,7 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 	endif()
 
 	target_link_libraries(FIRESTARTER_CUDA
+		PRIVATE
 		hwloc
 		AsmJit::AsmJit
 		Nitro::log
@@ -93,15 +94,8 @@ if ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_CUDA")
 		CUDA::cublas
 		)
 
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-		target_link_libraries(FIRESTARTER_CUDA
-                    ${CUDAToolkit_LIBRARY_ROOT}/lib/x64/cuda.lib 
-			)
-	else()
-		target_link_libraries(FIRESTARTER_CUDA
-			cuda
-			-ldl
-			)
+	if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		target_link_libraries(FIRESTARTER_CUDA PRIVATE dl)
 	endif()
 
 elseif ("${FIRESTARTER_BUILD_TYPE}" STREQUAL "FIRESTARTER_ONEAPI")
