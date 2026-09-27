@@ -548,6 +548,28 @@ jobs:
         mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_11.0
         rm -rf FIRESTARTER
         chmod +x FIRESTARTER_CUDA_11.0
+    # Linux CUDA 12.0
+    - name: Retrieve FIRESTARTER_CUDA_12.0-linux
+      uses: actions/download-artifact@v4
+      with:
+        name: FIRESTARTER_CUDA_12.0-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_12.0
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER_CUDA_12.0
+    # Linux CUDA 13.0
+    - name: Retrieve FIRESTARTER_CUDA_13.0-linux
+      uses: actions/download-artifact@v4
+      with:
+        name: FIRESTARTER_CUDA_13.0-linux
+        path: FIRESTARTER
+    - name: Move binary to right directory
+      run: |
+        mv FIRESTARTER/FIRESTARTER_CUDA FIRESTARTER_CUDA_13.0
+        rm -rf FIRESTARTER
+        chmod +x FIRESTARTER_CUDA_13.0
     # Linux CUDA HPC
     - name: Retrieve FIRESTARTER_CUDA_NVHPC-22.5-linux
       uses: actions/download-artifact@v4
