@@ -55,14 +55,19 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 /// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
 /// cases automatic results in double.
 /// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
-/// \arg Properties The device properties.
+/// \arg DeviceIndex The index of the GPU device.
 /// \return The selected precision, either 0 or 1 for float or double respectively.
-auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
+auto selectPrecision(int UseDouble, int DeviceIndex) -> int {
 #if (CUDART_VERSION >= 8000)
   // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
   // workload
-  if (UseDouble == 2 && Properties.singleToDoublePrecisionPerfRatio > 3) {
-    return 0;
+  if (UseDouble == 2) {
+    int SingleToDoublePrecisionPerfRatio{};
+    compat::accellSafeCall(compat::getSingleToDoublePrecisionPerfRatio(SingleToDoublePrecisionPerfRatio, DeviceIndex),
+                           __FILE__, __LINE__, DeviceIndex);
+    if (SingleToDoublePrecisionPerfRatio > 3) {
+      return 0;
+    }
   }
   if (UseDouble) {
     return 1;
@@ -70,7 +75,7 @@ auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> 
   return 0;
 #else
   // as precision ratio is not supported return default/user input value
-  (void)Properties;
+  (void)DeviceIndex;
 
   if (UseDouble) {
     return 1;
@@ -91,7 +96,7 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
   compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
   compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
 
-  UseDouble = getPrecision(UseDouble, Properties);
+  UseDouble = selectPrecision(UseDouble, DeviceIndex);
 
   const bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
