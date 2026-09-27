@@ -6,7 +6,7 @@ on: [push, pull_request]
 # On linux:
 #   FIRESTARTER_HIP version 6.2 against the hipcc compiler on ubuntu24.04
 #   FIRESTARTER_ONEAPI versions 2023.2.0 and 2024.0 against icx and icpx compiler on ubuntu24.04
-#   FIRESTARTER_CUDA with cuda versions 8.0, 11.0 and NVHPC-22.5 against the default compiler on ubuntu24.04
+#   FIRESTARTER_CUDA with cuda versions 8.0, 11.0, 12.0, 13.0 and NVHPC-22.5 against the default compiler on ubuntu24.04
 #   FIRESTARTER against
 #     ubuntu 22.04 gcc-10 and clang-11
 #     ubuntu 24.04 gcc-14 and clang-18
@@ -163,7 +163,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-24.04]
-        CUDA: ['8.0', '11.0', 'NVHPC-22.5']
+        CUDA: ['8.0', '11.0', '12.0', '13.0', 'NVHPC-22.5']
 
     runs-on: ${{ matrix.os }}
 
@@ -196,6 +196,16 @@ jobs:
             wget -q https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
             sudo sh cuda_11.0.3_450.51.06_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
             rm cuda_11.0.3_450.51.06_linux.run
+            ;;
+          12.0)
+            wget -q https://developer.download.nvidia.com/compute/cuda/12.0.1/local_installers/cuda_12.0.1_525.85.12_linux.run
+            sudo sh cuda_12.0.1_525.85.12_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            rm cuda_12.0.1_525.85.12_linux.run
+            ;;
+          13.0)
+            wget -q https://developer.download.nvidia.com/compute/cuda/13.0.3/local_installers/cuda_13.0.3_580.126.20_linux.run
+            sudo sh cuda_13.0.3_580.126.20_linux.run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
+            rm cuda_13.0.3_580.126.20_linux.run
             ;;
           NVHPC-22.5)
             wget -q https://developer.download.nvidia.com/hpc-sdk/22.5/nvhpc_2022_225_Linux_x86_64_cuda_11.7.tar.gz
