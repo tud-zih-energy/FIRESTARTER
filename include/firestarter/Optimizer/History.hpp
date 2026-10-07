@@ -35,6 +35,7 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -304,14 +305,16 @@ public:
 
     std::ofstream Fp(Outpath);
 
-    if (Fp.bad()) {
-      firestarter::log::error() << "Could not open " << Outpath;
-      return;
-    }
-
     Fp << S;
 
     Fp.close();
+
+    // Failing to open, write or close the file sets the failbit. Do not lose the results of a potentially long
+    // optimization run in this case.
+    if (Fp.fail()) {
+      firestarter::log::warn() << "Could not write " << Outpath << ". Printing the output json to stdout instead.";
+      std::cout << S << '\n' << std::flush;
+    }
   }
 
   /// Get the current time in the local timezone as a string formatted by "%F_%T%z". This function is NOT threadsafe.
