@@ -156,21 +156,10 @@ std::string AArch64ProcessorInformation::partNumToString(unsigned PartNum) {
   case 0x025: return "Cortex-A520";
   case 0x026: return "Cortex-A720";
   case 0x027: return "Cortex-X4";
-  case 0xD01: return "Neoverse N1";
-  case 0xD02: return "Neoverse V1";
-  case 0xD03: return "Neoverse N2";
-  case 0xD04: return "Neoverse V2";
-  case 0xD05: return "Neoverse N3";
-  case 0xD06: return "Neoverse V3";
-  case 0xD07: return "Neoverse V3";
-  case 0xD08: return "Neoverse N3";
-  case 0xD09: return "Neoverse V3";
-  case 0xD0A: return "Neoverse V3";
-  case 0xD0B: return "Neoverse V3";
-  case 0xD0C: return "Neoverse V3";
-  case 0xD0D: return "Neoverse V3";
-  case 0xD0E: return "Neoverse V3";
-  case 0xD0F: return "Neoverse V3";
+  case 0xD0C: return "Neoverse N1";
+  case 0xD0D: return "Neoverse V1";
+  case 0xD49: return "Neoverse N2";
+  case 0xD4F: return "Neoverse V2";
   default:   return "Unknown (0x" + std::to_string(PartNum) + ")";
   }
 }
