@@ -41,10 +41,12 @@ public:
   /// Get the current hardware timestamp
   [[nodiscard]] auto timestamp() const -> uint64_t override;
 
-  /// The CPU vendor i.e., ARM, Apple, etc.
+  /// The CPU vendor derived from MIDR_EL1 implementer field.
   [[nodiscard]] auto vendor() const -> std::string const& final { return Vendor; }
   /// Get the string containing the processor model.
   [[nodiscard]] auto model() const -> std::string const& final { return Model; }
+  /// The processor name derived from MIDR_EL1 part number.
+  [[nodiscard]] auto processorName() const -> std::string const& override { return ProcessorName; }
 
 private:
   /// Read the implementer field from MIDR_EL1 (bits [31:24])
@@ -53,14 +55,20 @@ private:
   static unsigned midrPartNum();
   /// Read the revision field from MIDR_EL1 (bits [3:0])
   static unsigned midrRevision();
+  /// Convert an implementer code to a vendor string.
+  static std::string implementerToString(unsigned Implementer);
+  /// Convert a part number to a processor name string.
+  static std::string partNumToString(unsigned PartNum);
 
   /// The asmjit CpuInfo for the current processor
   asmjit::CpuInfo CpuInfo;
   /// The list of cpu features that are supported by the current processor
   std::list<std::string> FeatureList;
 
-  /// The CPU vendor i.e., ARM, Apple, etc.
+  /// The CPU vendor derived from MIDR_EL1 implementer field.
   std::string Vendor;
+  /// The processor name derived from MIDR_EL1 part number.
+  std::string ProcessorName;
   /// Model string for the AArch64 processor
   std::string Model;
 };
