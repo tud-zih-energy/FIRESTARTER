@@ -36,13 +36,15 @@ namespace firestarter::aarch64 {
 AArch64ProcessorInformation::AArch64ProcessorInformation()
     : ProcessorInformation(
           "aarch64", std::make_unique<AArch64CpuFeatures>(asmjit::CpuInfo::host().features()),
-          std::make_unique<AArch64CpuModel>(/*ModelId=*/0))
+          std::make_unique<AArch64CpuModel>(midrImplementer(), midrPartNum(), midrRevision()))
     , CpuInfo(asmjit::CpuInfo::host())
     , Vendor(CpuInfo.vendor()) {
 
   {
     std::stringstream Ss;
-    Ss << "AArch64 Processor";
+    Ss << "AArch64 Processor (Implementer: 0x" << std::hex << std::uppercase
+       << midrImplementer() << ", Part: 0x" << midrPartNum() << ", Rev: r" << std::dec
+       << midrRevision() << ")";
     Model = Ss.str();
   }
 
@@ -73,6 +75,24 @@ auto AArch64ProcessorInformation::timestamp() const -> uint64_t {
   uint64_t Tsc = 0;
   __asm__ __volatile__("mrs %0, cntvct_el0" : "=r"(Tsc));
   return Tsc;
+}
+
+unsigned AArch64ProcessorInformation::midrImplementer() {
+  uint64_t Midr = 0;
+  __asm__ __volatile__("mrs %0, midr_el1" : "=r"(Midr));
+  return static_cast<unsigned>((Midr >> 24) & 0xFF);
+}
+
+unsigned AArch64ProcessorInformation::midrPartNum() {
+  uint64_t Midr = 0;
+  __asm__ __volatile__("mrs %0, midr_el1" : "=r"(Midr));
+  return static_cast<unsigned>((Midr >> 4) & 0xFFF);
+}
+
+unsigned AArch64ProcessorInformation::midrRevision() {
+  uint64_t Midr = 0;
+  __asm__ __volatile__("mrs %0, midr_el1" : "=r"(Midr));
+  return static_cast<unsigned>(Midr & 0xF);
 }
 
 } // namespace firestarter::aarch64

@@ -30,16 +30,23 @@
 namespace firestarter::aarch64 {
 
 /// This class models the cpu model on the AArch64 platform.
-/// For AArch64 we use a generic model since there is no direct equivalent
-/// to x86 family/model/stepping.
+/// Uses fields from the MIDR_EL1 register (Main ID Register), which is the
+/// AArch64 equivalent of x86's CPUID family/model/stepping.
 class AArch64CpuModel : public CpuModel {
 private:
-  /// A generic identifier for the AArch64 model
-  unsigned ModelId;
+  /// The implementer code (MIDR_EL1[31:24]), e.g. 0x41=ARM, 0x51=Qualcomm, 0x61=Apple
+  unsigned Implementer;
+  /// The part number (MIDR_EL1[15:4]), e.g. 0x000=Cortex-A53, 0x00F=Cortex-A57, 0x00D=Cortex-A72
+  unsigned PartNum;
+  /// The revision (MIDR_EL1[3:0]), e.g. 0=r0, 1=r1, ...
+  unsigned Revision;
 
 public:
   AArch64CpuModel() = delete;
-  explicit AArch64CpuModel(unsigned ModelId) noexcept : ModelId(ModelId) {}
+  explicit AArch64CpuModel(unsigned Implementer, unsigned PartNum, unsigned Revision) noexcept
+      : Implementer(Implementer)
+      , PartNum(PartNum)
+      , Revision(Revision) {}
 
   /// \arg Other The model to which operator < should be checked.
   /// \return true if this is less than other
@@ -49,7 +56,8 @@ public:
       throw std::runtime_error("Other is not of the correct type AArch64CpuModel");
     }
 
-    return ModelId < DerivedModel->ModelId;
+    return std::tie(Implementer, PartNum, Revision) < std::tie(DerivedModel->Implementer, DerivedModel->PartNum,
+                                                                DerivedModel->Revision);
   }
 
   /// Check if two models match.
@@ -61,7 +69,8 @@ public:
       throw std::runtime_error("Other is not of the correct type AArch64CpuModel");
     }
 
-    return ModelId == DerivedModel->ModelId;
+    return std::tie(Implementer, PartNum, Revision) == std::tie(DerivedModel->Implementer, DerivedModel->PartNum,
+                                                                DerivedModel->Revision);
   }
 };
 

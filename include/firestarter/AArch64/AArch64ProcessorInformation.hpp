@@ -47,6 +47,13 @@ public:
   [[nodiscard]] auto model() const -> std::string const& final { return Model; }
 
 private:
+  /// Read the implementer field from MIDR_EL1 (bits [31:24])
+  static unsigned midrImplementer();
+  /// Read the part number field from MIDR_EL1 (bits [15:4])
+  static unsigned midrPartNum();
+  /// Read the revision field from MIDR_EL1 (bits [3:0])
+  static unsigned midrRevision();
+
   /// The asmjit CpuInfo for the current processor
   asmjit::CpuInfo CpuInfo;
   /// The list of cpu features that are supported by the current processor

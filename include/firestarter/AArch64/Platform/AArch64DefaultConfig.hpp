@@ -27,12 +27,52 @@
 namespace firestarter::aarch64::platform {
 
 /// Default AArch64 platform config using NEON FMA payload.
+/// Known ARM cores are listed by their MIDR_EL1 fields (Implementer, PartNum, Revision).
 class AArch64DefaultConfig final : public AArch64PlatformConfig {
 public:
   AArch64DefaultConfig() noexcept
       : AArch64PlatformConfig(
             /*Name=*/"AARCH64_Default", /*RequestedModels=*/
-            {AArch64CpuModel(/*ModelId=*/0)},
+            {
+                // ARM Cortex-A53 (Implementer: 0x41, Part: 0x000)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x000, /*Revision=*/0),
+                // ARM Cortex-A55 (Implementer: 0x41, Part: 0x001)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x001, /*Revision=*/0),
+                // ARM Cortex-A57 (Implementer: 0x41, Part: 0x00F)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x00F, /*Revision=*/0),
+                // ARM Cortex-A72 (Implementer: 0x41, Part: 0x00D)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x00D, /*Revision=*/0),
+                // ARM Cortex-A73 (Implementer: 0x41, Part: 0x00E)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x00E, /*Revision=*/0),
+                // ARM Cortex-A75 (Implementer: 0x41, Part: 0x00C)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x00C, /*Revision=*/0),
+                // ARM Cortex-A76 (Implementer: 0x41, Part: 0x013)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x013, /*Revision=*/0),
+                // ARM Cortex-A77 (Implementer: 0x41, Part: 0x015)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x015, /*Revision=*/0),
+                // ARM Cortex-A78 (Implementer: 0x41, Part: 0x014)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x014, /*Revision=*/0),
+                // ARM Cortex-A710 (Implementer: 0x41, Part: 0x017)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x017, /*Revision=*/0),
+                // ARM Cortex-A715 (Implementer: 0x41, Part: 0x018)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x018, /*Revision=*/0),
+                // ARM Cortex-X1 (Implementer: 0x41, Part: 0x01E)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x01E, /*Revision=*/0),
+                // ARM Cortex-X2 (Implementer: 0x41, Part: 0x021)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x021, /*Revision=*/0),
+                // ARM Cortex-X3 (Implementer: 0x41, Part: 0x023)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x023, /*Revision=*/0),
+                // ARM Cortex-X4 (Implementer: 0x41, Part: 0x024)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x024, /*Revision=*/0),
+                // ARM Neoverse N1 (Implementer: 0x41, Part: 0x001)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x001, /*Revision=*/1),
+                // ARM Neoverse N2 (Implementer: 0x41, Part: 0x022)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x022, /*Revision=*/0),
+                // ARM Neoverse V1 (Implementer: 0x41, Part: 0x002)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x002, /*Revision=*/0),
+                // ARM Neoverse V2 (Implementer: 0x41, Part: 0x020)
+                AArch64CpuModel(/*Implementer=*/0x41, /*PartNum=*/0x020, /*Revision=*/0),
+            },
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2, 3}, /*DataCacheBufferSize=*/{16384, 1048576, 786432},
