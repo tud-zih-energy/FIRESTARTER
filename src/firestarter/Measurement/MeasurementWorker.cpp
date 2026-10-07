@@ -78,7 +78,7 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
 
   WorkerThread = std::thread(MeasurementWorker::dataAcquisitionWorker, std::ref(*this));
 
-  if (StdinMetricsNames.size() > 1) {
+  if (!StdinMetricsNames.empty()) {
     // create a worker for getting metric values from stdin
     StdinThread = std::thread(MeasurementWorker::stdinDataAcquisitionWorker, std::ref(*this));
   }
