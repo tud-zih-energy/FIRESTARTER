@@ -197,6 +197,10 @@ jobs:
             test -x "${installer}"
             sudo "./${installer}" --toolkit --toolkitpath="${CUDA_ROOT}" --override --silent
             rm "${installer}"
+            patch_installer=cuda_9.0.176.4_linux-run
+            wget https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/4/${patch_installer}
+            sudo sh "${patch_installer}" --accept-eula --silent --installdir="${CUDA_ROOT}"
+            rm "${patch_installer}"
             echo "Installed nvcc at ${CUDA_ROOT}/bin/nvcc:"
             if [ ! -x "${CUDA_ROOT}/bin/nvcc" ]; then
               echo "CUDA installer did not create an executable nvcc; installer log follows:"
