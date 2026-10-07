@@ -36,9 +36,14 @@
 #include "firestarter/SafeExit.hpp"
 #include "firestarter/ThreadAffinity.hpp"
 #include "firestarter/Tracing.h"
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
 #include "firestarter/X86/X86CpuFeatures.hpp"
 #include "firestarter/X86/X86FunctionSelection.hpp"
 #include "firestarter/X86/X86ProcessorInformation.hpp"
+#elif defined(__aarch64__)
+#include "firestarter/AArch64/AArch64FunctionSelection.hpp"
+#include "firestarter/AArch64/AArch64ProcessorInformation.hpp"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -61,23 +66,31 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 
   firestarterTracingInitialize(Cfg.Argc, Cfg.Argv);
 
-  if constexpr (firestarter::OptionalFeatures.IsX86) {
-    ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
-    FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
-  }
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+  ProcessorInfos = std::make_shared<x86::X86ProcessorInformation>();
+  FunctionSelectionPtr = std::make_unique<x86::X86FunctionSelection>();
+#elif defined(__aarch64__)
+  ProcessorInfos = std::make_shared<aarch64::AArch64ProcessorInformation>();
+  FunctionSelectionPtr = std::make_unique<aarch64::AArch64FunctionSelection>();
+#endif
 
   const auto Affinity =
       ThreadAffinity::fromCommandLine(Topology.hardwareThreadsInfo(), Cfg.RequestedNumThreads, Cfg.CpuBinding);
 
-  if constexpr (firestarter::OptionalFeatures.IsX86) {
-    // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
-    if (Cfg.ErrorDetection) {
-      if (!ProcessorInfos->cpuFeatures().hasAll(x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kSSE4_2))) {
-        throw std::invalid_argument("Option --error-detection requires the crc32 "
-                                    "instruction added with SSE_4_2.\n");
-      }
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+  // Error detection uses crc32 instruction added by the SSE4.2 extension to x86
+  if (Cfg.ErrorDetection) {
+    if (!ProcessorInfos->cpuFeatures().hasAll(x86::X86CpuFeatures().add(asmjit::CpuFeatures::X86::kSSE4_2))) {
+      throw std::invalid_argument("Option --error-detection requires the crc32 "
+                                  "instruction added with SSE_4_2.\n");
     }
   }
+#elif defined(__aarch64__)
+  // Error detection is not yet supported on AArch64
+  if (Cfg.ErrorDetection) {
+    throw std::invalid_argument("Option --error-detection is not supported on AArch64.\n");
+  }
+#endif
 
   if (Cfg.ErrorDetection && Affinity.RequestedNumThreads < 2) {
     throw std::invalid_argument("Option --error-detection must run with 2 or more threads. Number of "
@@ -292,13 +305,15 @@ void Firestarter::mainThread() {
 void Firestarter::setLoad(LoadThreadWorkType Value) {
   // signal load change to workers
   Firestarter::LoadVar = Value;
-  if constexpr (firestarter::OptionalFeatures.IsX86) {
-    if constexpr (firestarter::OptionalFeatures.IsMsc) {
-      _mm_mfence();
-    } else {
-      __asm__ __volatile__("mfence;");
-    }
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+  if constexpr (firestarter::OptionalFeatures.IsMsc) {
+    _mm_mfence();
+  } else {
+    __asm__ __volatile__("mfence;");
   }
+#elif defined(__aarch64__)
+  __asm__ __volatile__("dmb sy" : : : "memory");
+#endif
 }
 
 void Firestarter::sigalrmHandler(int Signum) { (void)Signum; }

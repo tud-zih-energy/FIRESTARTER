@@ -19,20 +19,29 @@ SET(FIRESTARTER_LIBRARY_FILES
 
 	firestarter/Payload/CompiledPayload.cpp
 	firestarter/Payload/PayloadSettings.cpp
-
-	# here starts the x86 specific code
-	firestarter/X86/X86ProcessorInformation.cpp
-
-	firestarter/X86/Platform/X86PlatformConfig.cpp
-
-	firestarter/X86/Payload/X86Payload.cpp
-	firestarter/X86/Payload/AVX512Payload.cpp
-	firestarter/X86/Payload/FMA4Payload.cpp
-	firestarter/X86/Payload/FMAPayload.cpp
-	firestarter/X86/Payload/ZENFMAPayload.cpp
-	firestarter/X86/Payload/AVXPayload.cpp
-	firestarter/X86/Payload/SSE2Payload.cpp
 )
+
+# here starts the architecture specific code
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86)$" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+	list(APPEND FIRESTARTER_LIBRARY_FILES
+		firestarter/X86/X86ProcessorInformation.cpp
+		firestarter/X86/Platform/X86PlatformConfig.cpp
+		firestarter/X86/Payload/X86Payload.cpp
+		firestarter/X86/Payload/AVX512Payload.cpp
+		firestarter/X86/Payload/FMA4Payload.cpp
+		firestarter/X86/Payload/FMAPayload.cpp
+		firestarter/X86/Payload/ZENFMAPayload.cpp
+		firestarter/X86/Payload/AVXPayload.cpp
+		firestarter/X86/Payload/SSE2Payload.cpp
+	)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+	list(APPEND FIRESTARTER_LIBRARY_FILES
+		firestarter/AArch64/AArch64ProcessorInformation.cpp
+		firestarter/AArch64/Payload/AArch64Payload.cpp
+		firestarter/AArch64/Payload/AArch64DefaultPayload.cpp
+		firestarter/AArch64/Payload/AArch64NEONFMAPayload.cpp
+	)
+endif()
 
 # the selected tracing variant
 if(FIRESTARTER_TRACING STREQUAL "None")
