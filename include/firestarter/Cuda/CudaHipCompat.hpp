@@ -423,7 +423,12 @@ inline auto createContextOrStream(int DeviceIndex) -> StreamOrContext {
                             << DeviceIndex;
   CUdevice Device;
   accellSafeCall(cuDeviceGet(&Device, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+#if (CUDA_VERSION >= 13000)
+  // Since CUDA 13 cuCtxCreate maps to cuCtxCreate_v4, which takes an additional (optional) CUctxCreateParams pointer.
+  accellSafeCall(cuCtxCreate(&Soc, nullptr, 0, Device), __FILE__, __LINE__, DeviceIndex);
+#else
   accellSafeCall(cuCtxCreate(&Soc, 0, Device), __FILE__, __LINE__, DeviceIndex);
+#endif
 
   firestarter::log::trace() << "Set created " << AccelleratorString << " context on device nr. " << DeviceIndex;
   accellSafeCall(cuCtxSetCurrent(Soc), __FILE__, __LINE__, DeviceIndex);
@@ -496,6 +501,18 @@ inline auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> 
   static_assert(false, "Tried to call getDeviceProperties, but neither building for CUDA nor HIP.");
 #endif
 }
+
+#ifdef FIRESTARTER_BUILD_CUDA
+/// Get the ratio of single precision performance to double precision performance of a specific GPU device. Wrapper to
+/// cudaDeviceGetAttribute with cudaDevAttrSingleToDoublePrecisionPerfRatio. This replaces the
+/// singleToDoublePrecisionPerfRatio member of cudaDeviceProp, which was removed in CUDA 13.
+/// \arg Ratio The reference to the ratio that is retrived.
+/// \arg DeviceIndex The index of the GPU device for which to retrive the ratio.
+/// \returns The Error code returned from this call.
+inline auto getSingleToDoublePrecisionPerfRatio(int& Ratio, int DeviceIndex) -> ErrorT {
+  return static_cast<ErrorT>(cudaDeviceGetAttribute(&Ratio, cudaDevAttrSingleToDoublePrecisionPerfRatio, DeviceIndex));
+}
+#endif
 
 /// Get the number of memory in the current CUDA or HIP context. Wrapper to cuMemGetInfo or
 /// hipMemGetInfo.
