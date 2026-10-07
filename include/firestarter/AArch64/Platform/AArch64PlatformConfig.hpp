@@ -50,8 +50,8 @@ public:
   }
 
   /// Clone a concrete platform config.
-  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize,
-                                    unsigned ThreadsPerCore) const -> std::unique_ptr<PlatformConfig> final {
+  [[nodiscard]] auto cloneConcreate(std::optional<unsigned> InstructionCacheSize, unsigned ThreadsPerCore) const
+      -> std::unique_ptr<PlatformConfig> final {
     auto Ptr = clone();
     auto* DerivedPtr = dynamic_cast<AArch64PlatformConfig*>(Ptr.get());
     DerivedPtr->settings().concretize(InstructionCacheSize, ThreadsPerCore);

@@ -56,8 +56,8 @@ public:
       throw std::runtime_error("Other is not of the correct type AArch64CpuModel");
     }
 
-    return std::tie(Implementer, PartNum, Revision) < std::tie(DerivedModel->Implementer, DerivedModel->PartNum,
-                                                                DerivedModel->Revision);
+    return std::tie(Implementer, PartNum, Revision) <
+           std::tie(DerivedModel->Implementer, DerivedModel->PartNum, DerivedModel->Revision);
   }
 
   /// Check if two models match.
@@ -69,8 +69,8 @@ public:
       throw std::runtime_error("Other is not of the correct type AArch64CpuModel");
     }
 
-    return std::tie(Implementer, PartNum, Revision) == std::tie(DerivedModel->Implementer, DerivedModel->PartNum,
-                                                                DerivedModel->Revision);
+    return std::tie(Implementer, PartNum, Revision) ==
+           std::tie(DerivedModel->Implementer, DerivedModel->PartNum, DerivedModel->Revision);
   }
 };
 

@@ -128,8 +128,8 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
     Frame.addDirtyRegs(VecV(I));
   }
   // make all other used registers dirty except x0
-  Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2,
-                     OffsetReg, AddrHighReg, IterReg, RemainingIterationsReg);
+  Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
+                     AddrHighReg, IterReg, RemainingIterationsReg);
 
   asmjit::FuncArgsAssignment Args(&Func);
   Args.assignAll(PointerReg, AddrHighReg, RemainingIterationsReg);
@@ -215,13 +215,13 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
   auto MovSrc = MovDst + 1;
   unsigned L1Offset = 0;
 
-#define L1_INCREMENT()                                                                                              \
-  L1Offset += 64;                                                                                                   \
-  if (L1Offset < L1Size * 0.5) {                                                                                    \
-    Cb.add(L1Addr, L1Addr, OffsetReg);                                                                              \
-  } else {                                                                                                          \
-    L1Offset = 0;                                                                                                   \
-    Cb.mov(L1Addr, PointerReg);                                                                                     \
+#define L1_INCREMENT()                                                                                                 \
+  L1Offset += 64;                                                                                                      \
+  if (L1Offset < L1Size * 0.5) {                                                                                       \
+    Cb.add(L1Addr, L1Addr, OffsetReg);                                                                                 \
+  } else {                                                                                                             \
+    L1Offset = 0;                                                                                                      \
+    Cb.mov(L1Addr, PointerReg);                                                                                        \
   }
 
 #define L2_INCREMENT() Cb.add(L2Addr, L2Addr, OffsetReg)

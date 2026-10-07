@@ -78,8 +78,7 @@ public:
                 /*Threads=*/{1, 2, 3}, /*DataCacheBufferSize=*/{16384, 1048576, 786432},
                 /*RamBufferSize=*/104857600, /*Lines=*/1536,
                 /*Groups=*/
-                InstructionGroups{
-                    {{"RAM_L", 1}, {"L3_L", 1}, {"L2_L", 5}, {"L1_L", 38}, {"REG", 45}}}),
+                InstructionGroups{{{"RAM_L", 1}, {"L3_L", 1}, {"L2_L", 5}, {"L1_L", 38}, {"REG", 45}}}),
             /*Payload=*/std::make_shared<const payload::AArch64NEONFMAPayload>()) {}
 };
 

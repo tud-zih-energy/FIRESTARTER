@@ -46,7 +46,8 @@ private:
 
   /// Wrap the CompiledPayload class and forward all arguments.
   CompiledAArch64Payload(const firestarter::payload::PayloadStats& Stats,
-                         std::unique_ptr<firestarter::payload::Payload>&& PayloadPtr, HighLoadFunctionPtr HighLoadFunction)
+                         std::unique_ptr<firestarter::payload::Payload>&& PayloadPtr,
+                         HighLoadFunctionPtr HighLoadFunction)
       : CompiledPayload(Stats, std::move(PayloadPtr), HighLoadFunction) {}
 
 public:
@@ -62,7 +63,8 @@ public:
       workerLog::error() << "Asmjit adding Assembler to JitRuntime failed";
     }
 
-    return {new CompiledAArch64Payload(Stats, std::move(std::make_unique<DerivedPayload>()), HighLoadFunction), deleter};
+    return {new CompiledAArch64Payload(Stats, std::move(std::make_unique<DerivedPayload>()), HighLoadFunction),
+            deleter};
   }
 };
 

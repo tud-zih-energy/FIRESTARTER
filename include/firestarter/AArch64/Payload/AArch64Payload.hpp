@@ -21,11 +21,11 @@
 
 #pragma once
 
+#include "firestarter/AArch64/AArch64CpuFeatures.hpp"
 #include "firestarter/Constants.hpp"
 #include "firestarter/LoadWorkerMemory.hpp"
 #include "firestarter/Logging/Log.hpp"
 #include "firestarter/Payload/Payload.hpp"
-#include "firestarter/AArch64/AArch64CpuFeatures.hpp"
 
 #include <asmjit/a64.h>
 #include <cassert>
