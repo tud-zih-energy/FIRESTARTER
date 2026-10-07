@@ -32,7 +32,7 @@ struct TimeValue {
 
   constexpr TimeValue(std::chrono::high_resolution_clock::time_point Time, double Value)
       : Time(Time)
-      , Value(Value) {};
+      , Value(Value){};
 
   auto operator==(const TimeValue& Other) const -> bool {
     return std::tie(Time, Value) == std::tie(Other.Time, Other.Value);
