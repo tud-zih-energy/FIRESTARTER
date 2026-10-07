@@ -357,22 +357,18 @@ jobs:
         sudo apt autoremove
 
 
-  build-linux-arm-cross:
-    # Cross-compile for AArch64 to verify the ARM code path builds.
-    # This does not run the binary (no ARM hardware on the runner), it only
-    # checks that the AArch64 sources compile and link.
+  build-linux-arm:
+    # Native AArch64 build on a GitHub ARM runner. Mirrors the x86 build-linux
+    # job: builds with tests, runs the binary, and uploads the artifact on tags.
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-24.04]
+        include:
+          - { os: ubuntu-24.04-arm, compiler: default }
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Install AArch64 cross-compiler
-      run: |
-        sudo apt update
-        sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -380,23 +376,20 @@ jobs:
     - name: Create build directory
       run: |
         mkdir build
-    - name: Run CMake configure (AArch64 cross-compile)
+    - name: Run CMake configure
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-              -DCMAKE_SYSTEM_NAME=Linux \
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-              -DFIRESTARTER_LINK_STATIC=OFF ..
-    - name: Build (AArch64 cross-compile)
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
+    - name: Build (default)
       run: |
         cd build
         make -j4
-    - name: Verify binary architecture
+    - name: Strip binary (default)
       run: |
-        file build/src/FIRESTARTER | grep -q "ARM aarch64"
+        cd build
+        strip src/FIRESTARTER
+    - name: Test FIRESTARTER (default)
+      run: ./build/src/FIRESTARTER -t 1
     - uses: actions/upload-artifact@v4
       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
       with:
