@@ -168,7 +168,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      CUDA_ROOT: '/usr/local/cuda'
+      CUDA_ROOT: ${{ matrix.CUDA == '9.0' && '/usr/local/cuda-9.0' || '/usr/local/cuda' }}
     steps:
     - name: Try to clean up some things
       run: |
@@ -184,11 +184,20 @@ jobs:
       run: |
         case ${{ matrix.CUDA }} in
           9.0)
-            wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run
+            installer=cuda_9.0.176_384.81_linux-run
+            wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/${installer}
             sudo rm -rf "${CUDA_ROOT}"
             sudo mkdir -p "${CUDA_ROOT}"
-            sudo sh cuda_9.0.176_384.81_linux-run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
-            rm cuda_9.0.176_384.81_linux-run
+            chmod +x "${installer}"
+            echo "CUDA_ROOT=${CUDA_ROOT}"
+            ls -l "${installer}" "$(dirname "${CUDA_ROOT}")" "${CUDA_ROOT}"
+            test -x "${installer}"
+            sudo "./${installer}" --toolkit --toolkitpath="${CUDA_ROOT}" --override --silent
+            rm "${installer}"
+            echo "Installed nvcc at ${CUDA_ROOT}/bin/nvcc:"
+            ls -l "${CUDA_ROOT}/bin/nvcc"
+            test -x "${CUDA_ROOT}/bin/nvcc"
+            "${CUDA_ROOT}/bin/nvcc" --version
             ;;
           11.0)
             wget -q https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run
