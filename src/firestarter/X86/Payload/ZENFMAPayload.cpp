@@ -192,10 +192,8 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
     Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
 
-  // Initialize xmm14 for shift operation
-  // cb.mov(temp_reg, Imm(1));
-  // cb.movd(temp_reg, Xmm(14));
-  Cb.movd(ShiftRegs[0], Xmm(13));
+  // Initialize xmm13 and xmm14 for shift operation with the alternating bit pattern of the shift registers
+  Cb.vmovd(Xmm(13), ShiftRegs[0].r32());
   Cb.vbroadcastss(Xmm(13), Xmm(13));
   Cb.vmovapd(Xmm(14), Xmm(13));
   Cb.vpsrlq(Xmm(14), Xmm(14), Imm(1));

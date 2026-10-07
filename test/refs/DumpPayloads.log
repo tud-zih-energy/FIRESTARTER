@@ -781,6 +781,7 @@ vmovapd ymm9, ymmword ptr [rax+544]
 vmovapd ymm10, ymmword ptr [rax+576]
 vmovapd ymm11, ymmword ptr [rax+608]
 vmovapd ymm12, ymmword ptr [rax+640]
+vmovd xmm13, edi
 vbroadcastss xmm13, xmm13
 vmovapd xmm14, xmm13
 vpsrlq xmm14, xmm14, 1
