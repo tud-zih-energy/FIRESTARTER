@@ -186,6 +186,7 @@ jobs:
           9.0)
             wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run
             sudo rm -rf "${CUDA_ROOT}"
+            sudo mkdir -p "${CUDA_ROOT}"
             sudo sh cuda_9.0.176_384.81_linux-run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
             rm cuda_9.0.176_384.81_linux-run
             ;;
