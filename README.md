@@ -165,6 +165,8 @@ found. Please provide it through the `CC` and `CXX` environment variables.
 The Linux version of FIRESTARTER supports to collect metrics during runtime.
 Available metrics can be shown with `--list-metrics`.  Default metrics are
 `perf-ipc`, `perf-freq`, `ipc-estimate` and `sysfs-powercap-rapl`.
+Please note that the `perf-*` metrics require either `CAP_SYS_ADMIN` or
+`/proc/sys/kernel/perf_event_paranoid` to be set accordingly for your user.
 
 ### Custom Metrics
 
@@ -253,12 +255,21 @@ If `perf-ipc` is not available use `ipc-estimate`
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
 ```
 
+### Metric Options
+
+The `perf-ipc` and `perf-freq` metrics allow the user to set the optional
+`FIRESTARTER_PERF_CPU` environment variable to an integer.
+Per default, FIRESTARTER collects `perf-ipc` and `perf-freq` metrics for all
+its threads and, if necessary, divides the metrics by the thread count. If the
+optional `FIRESTARTER_PERF_CPU` environment variable is set to an integer, this
+value is interpreted as the single CPU on which `perf` metrics are collected.
+
 ## OneAPI
 `FIRESTARTER_ONEAPI` needs to find certain libraries, which are installed with
 the Intel OneAPI toolkits, since some of these libraries cannot be linked statically.
 Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
 Make also sure that you have the correct drivers for your GPU installed so that
-OneAPI can apply work to it. 
+OneAPI can apply work to it.
 
 ## References
 
