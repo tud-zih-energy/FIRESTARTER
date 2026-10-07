@@ -55,14 +55,19 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 /// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
 /// cases automatic results in double.
 /// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
-/// \arg Properties The device properties.
+/// \arg DeviceIndex The index of the GPU device.
 /// \return The selected precision, either 0 or 1 for float or double respectively.
-auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> int {
+auto selectPrecision(int UseDouble, int DeviceIndex) -> int {
 #if (CUDART_VERSION >= 8000)
   // read precision ratio (dp/sp) of GPU to choose the right variant for maximum
   // workload
-  if (UseDouble == 2 && Properties.singleToDoublePrecisionPerfRatio > 3) {
-    return 0;
+  if (UseDouble == 2) {
+    int SingleToDoublePrecisionPerfRatio{};
+    compat::accellSafeCall(compat::getSingleToDoublePrecisionPerfRatio(SingleToDoublePrecisionPerfRatio, DeviceIndex),
+                           __FILE__, __LINE__, DeviceIndex);
+    if (SingleToDoublePrecisionPerfRatio > 3) {
+      return 0;
+    }
   }
   if (UseDouble) {
     return 1;
@@ -70,7 +75,7 @@ auto getPrecision(int UseDouble, const compat::DeviceProperties& Properties) -> 
   return 0;
 #else
   // as precision ratio is not supported return default/user input value
-  (void)Properties;
+  (void)DeviceIndex;
 
   if (UseDouble) {
     return 1;
@@ -91,7 +96,7 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
   compat::accellSafeCall(compat::memGetInfo(MemoryAvail, MemoryTotal), __FILE__, __LINE__, DeviceIndex);
   compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
 
-  UseDouble = getPrecision(UseDouble, Properties);
+  UseDouble = selectPrecision(UseDouble, DeviceIndex);
 
   const bool DoubleNotSupported =
 #ifdef FIRESTARTER_BUILD_CUDA
@@ -183,11 +188,11 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                          DeviceIndex);
 
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". A: " << ADataPtr << " (Size: " << MemorySize << "B)";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)" << "\n";
+                            << ". B: " << BDataPtr << " (Size: " << MemorySize << "B)";
   firestarter::log::trace() << "Allocated " << compat::AccelleratorString << " memory on device nr. " << DeviceIndex
-                            << ". C: " << CDataPtr << " (Size: " << Iterations * MemorySize << "B)" << "\n";
+                            << ". C: " << CDataPtr << " (Size: " << (Iterations * MemorySize) << "B)";
 
   firestarter::log::trace() << "Initializing " << compat::AccelleratorString << " matrices a, b on device nr. "
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
@@ -271,19 +276,20 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
            int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
+  bool InitDone = false;
 
-  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
-                UseDouble, MatrixSize, Gpus);
+  std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  WaitForInitCv.wait(Lk);
+  WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
-void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                    const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                    uint64_t MatrixSize, int Gpus) {
+void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                    bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+                    bool UseDouble, uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -361,8 +367,12 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
                              << compat::AccelleratorString << "?";
   }
 
-  // notify that init is done
-  WaitForInitCv.notify_all();
+  {
+    const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
+    InitDone = true;
+    // Notify while holding the lock so the constructor cannot destroy WaitForInitCv before this call.
+    WaitForInitCv.notify_all();
+  }
 
   /* join computation threads */
   for (auto& Thread : GpuThreads) {
