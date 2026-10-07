@@ -358,9 +358,9 @@ void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForIni
   {
     const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
     InitDone = true;
+    // Notify while holding the lock so the constructor cannot destroy WaitForInitCv before this call.
+    WaitForInitCv.notify_all();
   }
-  // notify that init is done
-  WaitForInitCv.notify_all();
 
   /* join computation threads */
   for (auto& Thread : GpuThreads) {
