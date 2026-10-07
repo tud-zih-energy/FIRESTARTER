@@ -33,8 +33,8 @@ class AArch64FunctionSelection final : public FunctionSelection {
 public:
   AArch64FunctionSelection() = default;
 
-  [[nodiscard]] auto platformConfigs() const
-      -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& override {
+  [[nodiscard]] auto
+  platformConfigs() const -> const std::vector<std::shared_ptr<firestarter::platform::PlatformConfig>>& override {
     return PlatformConfigs;
   }
 
