@@ -191,12 +191,19 @@ jobs:
             chmod +x "${installer}"
             echo "CUDA_ROOT=${CUDA_ROOT}"
             ls -l "${installer}" "$(dirname "${CUDA_ROOT}")" "${CUDA_ROOT}"
+            echo "Available disk space and inodes before CUDA installation:"
+            df -h . /tmp "${CUDA_ROOT}"
+            df -i . /tmp "${CUDA_ROOT}"
             test -x "${installer}"
             sudo "./${installer}" --toolkit --toolkitpath="${CUDA_ROOT}" --override --silent
             rm "${installer}"
             echo "Installed nvcc at ${CUDA_ROOT}/bin/nvcc:"
+            if [ ! -x "${CUDA_ROOT}/bin/nvcc" ]; then
+              echo "CUDA installer did not create an executable nvcc; installer log follows:"
+              sudo tail -n 200 /var/log/cuda-installer.log || true
+              exit 1
+            fi
             ls -l "${CUDA_ROOT}/bin/nvcc"
-            test -x "${CUDA_ROOT}/bin/nvcc"
             "${CUDA_ROOT}/bin/nvcc" --version
             ;;
           11.0)
