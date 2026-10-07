@@ -93,7 +93,10 @@ auto RaplMetric::init() -> int32_t {
   std::shared_ptr<ReaderDef> PsysReader;
 
   for (const auto& Reader : Instance.Readers) {
-    const auto& Name = Reader->name();
+    // Match the name of the domain itself and not the recursive name. Subdomains of a package carry the package in
+    // their recursive name (e.g. package-0-core). The core and uncore domains are already included in the package
+    // domain and must not be added up again. The dram domain is not part of the package domain.
+    const auto& Name = Reader->domainName();
     if (Name.find("psys") != std::string::npos) {
       PsysReader = Reader;
     } else if (Name.find("dram") != std::string::npos || Name.find("package") != std::string::npos) {
