@@ -106,7 +106,7 @@ int getPrecision(int DeviceIndex, int UseDouble) {
   }
   // Get a list of devices for the chosen platform
 
-  firestarter::log::trace() << "Get support for double" << " on device nr. " << DeviceIndex;
+  firestarter::log::trace() << "Get support for double on device nr. " << DeviceIndex;
   auto Devices = ChosenPlatform.get_devices();
   if (Devices[DeviceIndex].has(sycl::aspect::fp64))
     SupportsDouble = 1;
@@ -252,19 +252,20 @@ OneAPI::OneAPI(const volatile firestarter::LoadThreadWorkType& LoadVar, bool Use
                uint64_t MatrixSize, int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
+  bool InitDone = false;
 
-  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::cref(LoadVar), UseFloat,
-                UseDouble, MatrixSize, Gpus);
+  std::thread T(OneAPI::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
   // wait for gpus to initialize
-  WaitForInitCv.wait(Lk);
+  WaitForInitCv.wait(Lk, [&InitDone] { return InitDone; });
 }
 
-void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv,
-                      const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble,
-                      uint64_t MatrixSize, int Gpus) {
+void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
+                      bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
+                      bool UseDouble, uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -354,8 +355,12 @@ void OneAPI::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForIni
                                 "FIRESTARTER instead of FIRESTARTER_OneAPI?";
   }
 
-  // notify that init is done
-  WaitForInitCv.notify_all();
+  {
+    const std::lock_guard<std::mutex> Lk(WaitForInitCvMutex);
+    InitDone = true;
+    // Notify while holding the lock so the constructor cannot destroy WaitForInitCv before this call.
+    WaitForInitCv.notify_all();
+  }
 
   /* join computation threads */
   for (auto& Thread : GpuThreads) {
