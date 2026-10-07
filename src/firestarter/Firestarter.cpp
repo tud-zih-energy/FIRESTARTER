@@ -72,6 +72,7 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 #elif defined(__aarch64__)
   ProcessorInfos = std::make_shared<aarch64::AArch64ProcessorInformation>();
   FunctionSelectionPtr = std::make_unique<aarch64::AArch64FunctionSelection>();
+  log::warn() << "AArch64 support is still in alpha stage. Results may be incomplete or inaccurate.";
 #endif
 
   const auto Affinity =
