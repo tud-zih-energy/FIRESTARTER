@@ -184,7 +184,7 @@ jobs:
       run: |
         case ${{ matrix.CUDA }} in
           9.0)
-            wget -q https://developer.download.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run
+            wget https://developer.download.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda_9.0.176_384.81_linux-run
             sudo sh cuda_9.0.176_384.81_linux-run --toolkit --toolkitpath=${CUDA_ROOT} --override --silent
             rm cuda_9.0.176_384.81_linux-run
             ;;
