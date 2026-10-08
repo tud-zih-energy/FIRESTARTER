@@ -59,7 +59,11 @@ public:
   }
 
   /// Check if this platform is available and the default on the current system.
+  /// An empty RequestedModels set means "match all" (default for any AArch64 CPU).
   [[nodiscard]] auto isDefault(const CpuModel& Model, const CpuFeatures& Features) const -> bool override {
+    if (RequestedModels.empty()) {
+      return payload()->isAvailable(Features);
+    }
     const auto ModelIt = std::find(RequestedModels.cbegin(), RequestedModels.cend(), Model);
     return ModelIt != RequestedModels.cend() && payload()->isAvailable(Features);
   }
