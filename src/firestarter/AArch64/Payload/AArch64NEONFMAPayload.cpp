@@ -116,8 +116,10 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   const auto ShiftRegs = std::vector<Gp>({asmjit::a64::x14, asmjit::a64::x15, asmjit::a64::x19, asmjit::a64::x20,
                                           asmjit::a64::x21, asmjit::a64::x22, asmjit::a64::x23, asmjit::a64::x24});
   const auto NrShiftRegs = 8;
-  const auto FmaRegs = 27; // This must be a multiple of 3, and <= 32. The FMA accumulator registers are v0, v3, v6, ..., v24, t0 and t1 are (v1,v2), (v4,v5), ... (v25,v26).
-  const auto LoadRegs = 5; // This is the remainder of the 32 NEON registers after reserving FmaRegs for the FMA accumulators. The load/store scratch registers are v27..v31.
+  const auto FmaRegs = 27; // This must be a multiple of 3, and <= 32. The FMA accumulator registers are v0, v3, v6,
+                           // ..., v24, t0 and t1 are (v1,v2), (v4,v5), ... (v25,v26).
+  const auto LoadRegs = 5; // This is the remainder of the 32 NEON registers after reserving FmaRegs for the FMA
+                           // accumulators. The load/store scratch registers are v27..v31.
 
   asmjit::FuncDetail Func;
   Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
