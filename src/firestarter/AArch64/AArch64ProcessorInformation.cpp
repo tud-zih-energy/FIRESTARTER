@@ -102,24 +102,28 @@ std::string AArch64ProcessorInformation::implementerToString(unsigned Implemente
     return "Cavium";
   case 0x44:
     return "DEC";
-  case 0x48:
+  case 0x46:
     return "Fujitsu";
+  case 0x48:
+    return "HiSilicon";
+  case 0x49:
+    return "Infineon";
+  case 0x4D:
+    return "Motorola";
   case 0x4E:
     return "Nvidia";
   case 0x50:
     return "APM";
   case 0x51:
     return "Qualcomm";
-  case 0x53:
-    return "Samsung";
   case 0x56:
-    return "HiSilicon";
+    return "Marvell";
   case 0x61:
     return "Apple";
   case 0x69:
     return "Intel";
-  case 0x70:
-    return "NXP";
+  case 0x6D:
+    return "Microsoft";
   case 0xC0:
     return "Ampere";
   default:
@@ -129,90 +133,86 @@ std::string AArch64ProcessorInformation::implementerToString(unsigned Implemente
 
 std::string AArch64ProcessorInformation::partNumToString(unsigned PartNum) {
   switch (PartNum) {
-  case 0x000:
+  case 0xD00:
+    return "Foundation";
+  case 0xD03:
     return "Cortex-A53";
-  case 0x001:
-    return "Cortex-A55 / Neoverse N1";
-  case 0x002:
-    return "Neoverse V1";
-  case 0x003:
+  case 0xD04:
     return "Cortex-A35";
-  case 0x004:
-    return "Cortex-A34";
-  case 0x005:
-    return "Cortex-A65";
-  case 0x006:
+  case 0xD05:
     return "Cortex-A55";
-  case 0x008:
-    return "Cortex-A75";
-  case 0x009:
-    return "Cortex-A76";
-  case 0x00A:
-    return "Cortex-R52";
-  case 0x00B:
-    return "Cortex-M55";
-  case 0x00C:
-    return "Cortex-A75";
-  case 0x00D:
-    return "Cortex-A72";
-  case 0x00E:
-    return "Cortex-A73";
-  case 0x00F:
+  case 0xD07:
     return "Cortex-A57";
-  case 0x010:
-    return "Cortex-R52+";
-  case 0x011:
-    return "Cortex-M85";
-  case 0x013:
+  case 0xD08:
+    return "Cortex-A72";
+  case 0xD09:
+    return "Cortex-A73";
+  case 0xD0A:
+    return "Cortex-A75";
+  case 0xD0B:
     return "Cortex-A76";
-  case 0x014:
-    return "Cortex-A78";
-  case 0x015:
-    return "Cortex-A77";
-  case 0x016:
-    return "Cortex-A76 AE";
-  case 0x017:
-    return "Cortex-A710";
-  case 0x018:
-    return "Cortex-A715";
-  case 0x019:
-    return "Cortex-A510";
-  case 0x01A:
-    return "Cortex-A510";
-  case 0x01B:
-    return "Cortex-R82";
-  case 0x01C:
-    return "Cortex-M85";
-  case 0x01D:
-    return "Cortex-M55";
-  case 0x01E:
-    return "Cortex-X1";
-  case 0x01F:
-    return "Cortex-X2";
-  case 0x020:
-    return "Neoverse V2";
-  case 0x021:
-    return "Cortex-X2";
-  case 0x022:
-    return "Neoverse N2";
-  case 0x023:
-    return "Cortex-X3";
-  case 0x024:
-    return "Cortex-X4";
-  case 0x025:
-    return "Cortex-A520";
-  case 0x026:
-    return "Cortex-A720";
-  case 0x027:
-    return "Cortex-X4";
   case 0xD0C:
     return "Neoverse N1";
   case 0xD0D:
+    return "Cortex-A77";
+  case 0xD0E:
+    return "Cortex-A76AE";
+  case 0xD0F:
+    return "AEM v8A";
+  case 0xD40:
     return "Neoverse V1";
+  case 0xD41:
+    return "Cortex-A78";
+  case 0xD42:
+    return "Cortex-A78AE";
+  case 0xD44:
+    return "Cortex-X1";
+  case 0xD46:
+    return "Cortex-A510";
+  case 0xD47:
+    return "Cortex-A710";
+  case 0xD48:
+    return "Cortex-X2";
   case 0xD49:
     return "Neoverse N2";
+  case 0xD4B:
+    return "Cortex-A78C";
+  case 0xD4C:
+    return "Cortex-X1C";
+  case 0xD4D:
+    return "Cortex-A715";
+  case 0xD4E:
+    return "Cortex-X3";
   case 0xD4F:
     return "Neoverse V2";
+  case 0xD80:
+    return "Cortex-A520";
+  case 0xD81:
+    return "Cortex-A720";
+  case 0xD82:
+    return "Cortex-X4";
+  case 0xD83:
+    return "Neoverse V3AE";
+  case 0xD84:
+    return "Neoverse V3";
+  case 0xD85:
+    return "Cortex-X925";
+  case 0xD87:
+    return "Cortex-A725";
+  case 0xD88:
+    return "Cortex-A520AE";
+  case 0xD89:
+    return "Cortex-A720AE";
+  case 0xD8A:
+    return "C1-Nano";
+  case 0xD8B:
+    return "C1-Pro";
+  case 0xD8C:
+    return "C1-Ultra";
+  case 0xD8E:
+    return "Neoverse N3";
+  case 0xD90:
+    return "C1-Premium";
   default:
     return "Unknown (0x" + std::to_string(PartNum) + ")";
   }
