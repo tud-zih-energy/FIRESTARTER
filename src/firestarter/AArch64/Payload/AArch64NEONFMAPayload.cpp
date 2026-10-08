@@ -164,10 +164,13 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
 
   Cb.mov(OffsetReg, Imm(64)); // increment after each cache/memory access
 
-  // Initialize registers for shift operations
+  // Initialize integer toggle registers to zero. They are toggled between 0
+  // and ~0 via eor with TempReg2 (which holds ~0) in the hot loop to exercise
+  // the integer ALU's XOR unit.
   for (const auto& Reg : ShiftRegs) {
-    Cb.mov(Reg, Imm(0xAAAAAAAAAAAAAAAA));
+    Cb.mov(Reg, Imm(0));
   }
+  Cb.mov(TempReg2, Imm(0xFFFFFFFFFFFFFFFF));
 
   // Initialize the FMA accumulator registers (v0..v26) from the buffer.
   // v27..v31 are load/store scratch registers; they are intentionally left
@@ -260,7 +263,7 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
           DoAdd = !DoAdd;
         }
         Cb.eor(ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs],
-               ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg);
+               ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg2);
         ShiftPos++;
       } else if (Item == "L1_L") {
         Cb.ldr(VecV(LoadDest).d2(), asmjit::a64::ptr(L1Addr, 32));

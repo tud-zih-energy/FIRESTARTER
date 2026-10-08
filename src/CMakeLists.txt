@@ -38,7 +38,6 @@ elseif(FIRESTARTER_ARCH STREQUAL "aarch64")
 	list(APPEND FIRESTARTER_LIBRARY_FILES
 		firestarter/AArch64/AArch64ProcessorInformation.cpp
 		firestarter/AArch64/Payload/AArch64Payload.cpp
-		firestarter/AArch64/Payload/AArch64DefaultPayload.cpp
 		firestarter/AArch64/Payload/AArch64NEONFMAPayload.cpp
 	)
 endif()
