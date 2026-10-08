@@ -116,8 +116,8 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   const auto ShiftRegs = std::vector<Gp>({asmjit::a64::x14, asmjit::a64::x15, asmjit::a64::x19, asmjit::a64::x20,
                                           asmjit::a64::x21, asmjit::a64::x22, asmjit::a64::x23, asmjit::a64::x24});
   const auto NrShiftRegs = 8;
-  const auto FmaRegs = 28;
-  const auto LoadRegs = 4;
+  const auto FmaRegs = 27; // This must be a multiple of 3, and <= 32. The FMA accumulator registers are v0, v3, v6, ..., v24, t0 and t1 are (v1,v2), (v4,v5), ... (v25,v26).
+  const auto LoadRegs = 5; // This is the remainder of the 32 NEON registers after reserving FmaRegs for the FMA accumulators. The load/store scratch registers are v27..v31.
 
   asmjit::FuncDetail Func;
   Func.init(asmjit::FuncSignature::build<uint64_t, double*, volatile LoadThreadWorkType*, uint64_t>(
@@ -169,9 +169,11 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
     Cb.mov(Reg, Imm(0xAAAAAAAAAAAAAAAA));
   }
 
-  // Initialize NEON registers for Addition
-  Cb.ldr(VecV(0).d2(), asmjit::a64::ptr(PointerReg));
-  Cb.ldr(VecV(1).d2(), asmjit::a64::ptr(PointerReg, 32));
+  // Initialize the FMA accumulator registers (v0..v26) from the buffer.
+  // v27..v31 are load/store scratch registers; they are intentionally left
+  // uninitialized here. Because the FMA source indices wrap modulo FmaRegs
+  // the scratch registers are never used as FMA sources, so they can be used
+  // for loads/stores.
   for (auto I = 0; I < FmaRegs; I++) {
     Cb.ldr(VecV(I).d2(), asmjit::a64::ptr(PointerReg, 32 * I));
   }
@@ -224,28 +226,35 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
 
 #define RAM_INCREMENT() Cb.add(RamAddr, RamAddr, OffsetReg)
 
-  auto FmaDest = 0;
   auto LoadDest = FmaRegs;
-  bool UseAdd = true;
+  // FMA phase: 0..FmaRegs-1 emit fmla (acc += t0*t1) for each accumulator, then
+  // FmaRegs..2*FmaRegs-1 emit the matching fmls (acc -= t0*t1). Each accumulator
+  // is therefore updated by a balanced add/sub pair, so its value is preserved
+  // (bounded) across a full cycle and the FP datapath keeps toggling. One FMA is
+  // emitted per REG group, which keeps the groups fine-grained for scheduling.
+  //
+  // Register layout (stride 3, FmaRegs=27):
+  //   acc: v0, v3, v6, v9, v12, v15, v18, v21, v24
+  //   t0:  v1, v4, v7, v10, v13, v16, v19, v22, v25
+  //   t1:  v2, v5, v8, v11, v14, v17, v20, v23, v26
+  auto FmaPhase = 0;
+  auto DoAdd = true;
   for (unsigned Count = 0; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
       if (Item == "REG") {
-        // alternate between fmla and fmls
-        if (UseAdd) {
-          Cb.fmla(VecD((FmaDest + 32) % 32).d2(), VecD((FmaDest + 40) % 32).d2(), VecD((FmaDest + 48) % 32).d2());
-          Cb.fmla(VecD((FmaDest + 33) % 32).d2(), VecD((FmaDest + 41) % 32).d2(), VecD((FmaDest + 49) % 32).d2());
-          Cb.fmla(VecD((FmaDest + 34) % 32).d2(), VecD((FmaDest + 42) % 32).d2(), VecD((FmaDest + 50) % 32).d2());
-          Cb.fmla(VecD((FmaDest + 35) % 32).d2(), VecD((FmaDest + 43) % 32).d2(), VecD((FmaDest + 51) % 32).d2());
+        const auto Slot = FmaPhase / 3; // 0..8 for FmaRegs=27
+        const auto Acc = 3 * Slot;
+        const auto T0 = 3 * Slot + 1;
+        const auto T1 = 3 * Slot + 2;
+        if (DoAdd) {
+          Cb.fmla(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
         } else {
-          Cb.fmls(VecD((FmaDest + 32) % 32).d2(), VecD((FmaDest + 40) % 32).d2(), VecD((FmaDest + 48) % 32).d2());
-          Cb.fmls(VecD((FmaDest + 33) % 32).d2(), VecD((FmaDest + 41) % 32).d2(), VecD((FmaDest + 49) % 32).d2());
-          Cb.fmls(VecD((FmaDest + 34) % 32).d2(), VecD((FmaDest + 42) % 32).d2(), VecD((FmaDest + 50) % 32).d2());
-          Cb.fmls(VecD((FmaDest + 35) % 32).d2(), VecD((FmaDest + 43) % 32).d2(), VecD((FmaDest + 51) % 32).d2());
+          Cb.fmls(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
         }
-        FmaDest += 4;
-        if (FmaDest == FmaRegs) {
-          UseAdd = !UseAdd;
-          FmaDest = 0;
+        FmaPhase+= 3;
+        if (FmaPhase >= FmaRegs) {
+          FmaPhase = 0;
+          DoAdd = !DoAdd;
         }
         Cb.eor(ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs],
                ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg);
@@ -399,7 +408,7 @@ auto AArch64NEONFMAPayload::getAvailableInstructions() const -> std::list<std::s
 }
 
 void AArch64NEONFMAPayload::init(double* MemoryAddr, uint64_t BufferSize) const {
-  AArch64Payload::initMemory(MemoryAddr, BufferSize, 1.654738925401e-10, 1.654738925401e-15);
+  AArch64Payload::initMemory(MemoryAddr, BufferSize, 0.27948995982e-4, 0.27948995982e-4);
 }
 
 } // namespace firestarter::aarch64::payload
