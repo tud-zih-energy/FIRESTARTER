@@ -190,11 +190,14 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
 
   Cb.mov(L1Addr, PointerReg); // address for L1-buffer
   Cb.mov(L2Addr, PointerReg);
-  Cb.add(L2Addr, L2Addr, Imm(L1Size)); // address for L2-buffer
+  Cb.mov(TempReg2, Imm(L1Size));
+  Cb.add(L2Addr, L2Addr, TempReg2); // address for L2-buffer
   Cb.mov(L3Addr, PointerReg);
-  Cb.add(L3Addr, L3Addr, Imm(L2Size)); // address for L3-buffer
+  Cb.mov(TempReg2, Imm(L2Size));
+  Cb.add(L3Addr, L3Addr, TempReg2); // address for L3-buffer
   Cb.mov(RamAddr, PointerReg);
-  Cb.add(RamAddr, RamAddr, Imm(L3Size)); // address for RAM-buffer
+  Cb.mov(TempReg2, Imm(L3Size));
+  Cb.add(RamAddr, RamAddr, TempReg2); // address for RAM-buffer
   Cb.mov(L2CountReg, Imm(L2LoopCount));
   workerLog::trace() << "reset counter for L2-buffer with " << L2LoopCount << " cache line accesses per loop ("
                      << L2Size / 1024 << ") KiB";
@@ -293,7 +296,8 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
     Cb.cbnz(RamCountReg, NoRamReset);
     Cb.mov(RamCountReg, Imm(RamLoopCount));
     Cb.mov(RamAddr, PointerReg);
-    Cb.add(RamAddr, RamAddr, Imm(L3Size));
+    Cb.mov(TempReg2, Imm(L3Size));
+    Cb.add(RamAddr, RamAddr, TempReg2);
     Cb.bind(NoRamReset);
     Stats.Instructions += 2;
   }
@@ -305,7 +309,8 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
     Cb.cbnz(L2CountReg, NoL2Reset);
     Cb.mov(L2CountReg, Imm(L2LoopCount));
     Cb.mov(L2Addr, PointerReg);
-    Cb.add(L2Addr, L2Addr, Imm(L1Size));
+    Cb.mov(TempReg2, Imm(L1Size));
+    Cb.add(L2Addr, L2Addr, TempReg2);
     Cb.bind(NoL2Reset);
     Stats.Instructions += 2;
   }
@@ -317,7 +322,8 @@ auto AArch64DefaultPayload::compilePayload(const firestarter::payload::PayloadSe
     Cb.cbnz(L3CountReg, NoL3Reset);
     Cb.mov(L3CountReg, Imm(L3LoopCount));
     Cb.mov(L3Addr, PointerReg);
-    Cb.add(L3Addr, L3Addr, Imm(L2Size));
+    Cb.mov(TempReg2, Imm(L2Size));
+    Cb.add(L3Addr, L3Addr, TempReg2);
     Cb.bind(NoL3Reset);
     Stats.Instructions += 2;
   }
