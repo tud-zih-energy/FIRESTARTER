@@ -248,19 +248,21 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   for (unsigned Count = 0; Count < Repetitions; Count++) {
     for (const auto& Item : Sequence) {
       if (Item == "REG") {
-        const auto Slot = FmaPhase / 3; // 0..8 for FmaRegs=27
-        const auto Acc = 3 * Slot;
-        const auto T0 = 3 * Slot + 1;
-        const auto T1 = 3 * Slot + 2;
-        if (DoAdd) {
-          Cb.fmla(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
-        } else {
-          Cb.fmls(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
-        }
-        FmaPhase+= 3;
-        if (FmaPhase >= FmaRegs) {
-          FmaPhase = 0;
-          DoAdd = !DoAdd;
+        for (int i = 0; i < 4; i++) {
+          const auto Slot = FmaPhase / 3; // 0..8 for FmaRegs=27
+          const auto Acc = 3 * Slot;
+          const auto T0 = 3 * Slot + 1;
+          const auto T1 = 3 * Slot + 2;
+          if (DoAdd) {
+            Cb.fmla(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
+          } else {
+            Cb.fmls(VecD(Acc).d2(), VecD(T0).d2(), VecD(T1).d2());
+          }
+          FmaPhase += 3;
+          if (FmaPhase >= FmaRegs) {
+            FmaPhase = 0;
+            DoAdd = !DoAdd;
+          }
         }
         Cb.eor(ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs],
                ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg2);
