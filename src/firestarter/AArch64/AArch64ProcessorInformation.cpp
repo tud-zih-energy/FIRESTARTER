@@ -31,9 +31,36 @@
 #include <memory>
 #include <sstream>
 
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+
 namespace firestarter::aarch64 {
 
+#if defined(__APPLE__)
+// On Apple Silicon, MIDR_EL1 is not accessible from user space (it traps with
+// SIGILL). We therefore identify the chip via sysctl instead. The MIDR fields
+// are only used to construct the CpuModel (for ordering), so we return the
+// Apple implementer code with a zeroed part/revision.
+static auto appleCpuBrandString() -> std::string {
+  char Buffer[256] = {};
+  size_t Size = sizeof(Buffer);
+  if (sysctlbyname("machdep.cpu.brand_string", Buffer, &Size, nullptr, 0) != 0) {
+    return "Apple Silicon";
+  }
+  return Buffer;
+}
+#endif
+
 AArch64ProcessorInformation::AArch64ProcessorInformation()
+#if defined(__APPLE__)
+    : ProcessorInformation("aarch64", std::make_unique<AArch64CpuFeatures>(asmjit::CpuInfo::host().features()),
+                           std::make_unique<AArch64CpuModel>(0x61, 0, 0))
+    , CpuInfo(asmjit::CpuInfo::host())
+    , Vendor("Apple")
+    , ProcessorName(appleCpuBrandString()) {
+  Model = ProcessorName;
+#else
     : ProcessorInformation("aarch64", std::make_unique<AArch64CpuFeatures>(asmjit::CpuInfo::host().features()),
                            std::make_unique<AArch64CpuModel>(midrImplementer(), midrPartNum(), midrRevision()))
     , CpuInfo(asmjit::CpuInfo::host())
@@ -46,6 +73,7 @@ AArch64ProcessorInformation::AArch64ProcessorInformation()
        << midrPartNum() << ", Rev: r" << std::dec << midrRevision() << ")";
     Model = Ss.str();
   }
+#endif
 
   // Build the feature list from asmjit
   for (auto FeatureId = 0; FeatureId <= (int)asmjit::CpuFeatures::ARM::Id::kMaxValue; FeatureId++) {

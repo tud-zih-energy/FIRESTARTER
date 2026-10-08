@@ -7,7 +7,7 @@ set(UNIT_TEST_FILES
 )
 
 # The X86-specific unit tests are only built on x86 targets.
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86)$" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if(FIRESTARTER_ARCH STREQUAL "x86_64")
     list(APPEND UNIT_TEST_FILES
         X86CpuFeaturesTest.cpp
         X86CpuModelTest.cpp

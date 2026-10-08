@@ -62,6 +62,26 @@ include(cmake/BuildSettings.cmake)
 
 include(cmake/DarwinBuild.cmake)
 
+# Determine the target architecture once.
+# On macOS, CMAKE_OSX_ARCHITECTURES is the authoritative target arch (CMAKE_SYSTEM_PROCESSOR
+# reflects the host, which is wrong for cross-compilation).
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND DEFINED CMAKE_OSX_ARCHITECTURES)
+    list(GET CMAKE_OSX_ARCHITECTURES 0 _FIRESTARTER_TARGET_ARCH)
+else()
+    set(_FIRESTARTER_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+if(_FIRESTARTER_TARGET_ARCH MATCHES "^(x86_64|AMD64|i[3-6]86|x86)$")
+    set(FIRESTARTER_ARCH "x86_64")
+elseif(_FIRESTARTER_TARGET_ARCH MATCHES "^(aarch64|arm64|ARM64)$")
+    set(FIRESTARTER_ARCH "aarch64")
+else()
+    set(FIRESTARTER_ARCH "unknown")
+    message(WARNING "FIRESTARTER: unrecognized target architecture '${_FIRESTARTER_TARGET_ARCH}'. "
+                    "No architecture-specific payload sources will be compiled.")
+endif()
+message(STATUS "FIRESTARTER target architecture: ${FIRESTARTER_ARCH}")
+
 if(NOT DEFINED ASMJIT_STATIC)
 	set(ASMJIT_STATIC TRUE)
 endif()
