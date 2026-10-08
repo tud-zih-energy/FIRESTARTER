@@ -207,7 +207,6 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   Cb.bind(Loop);
 
   auto ShiftPos = 0;
-  bool Left = false;
   unsigned L1Offset = 0;
 
 #define L1_INCREMENT_TIMES(n)                                                                                          \
@@ -306,7 +305,6 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
         LoadDest = FmaRegs;
       if (ShiftPos == NrShiftRegs) {
         ShiftPos = 0;
-        Left = !Left;
       }
     }
   }
