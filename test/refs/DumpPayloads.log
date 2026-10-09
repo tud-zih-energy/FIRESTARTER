@@ -1763,3 +1763,158 @@ pop rbp
 pop rbx
 ret
 
+Payload ZENFMA_V2
+.section .text
+push rbx
+push rbp
+push r12
+push r13
+push r14
+push r15
+mov rax, rdi
+mov r15, rsi
+mov r13, rdx
+mov r13, 0
+movq mm0, r13
+mov r13, qword ptr [r15]
+test r13, r13
+jz L0
+mov r14, 64
+mov rdi, -6148914691236517206
+mov rsi, -6148914691236517206
+mov rdx, -6148914691236517206
+vmovapd ymm0, ymmword ptr [rax]
+vmovapd ymm1, ymmword ptr [rax+32]
+vmovapd ymm2, ymmword ptr [rax+320]
+vmovapd ymm3, ymmword ptr [rax+352]
+vmovapd ymm4, ymmword ptr [rax+384]
+vmovapd ymm5, ymmword ptr [rax+416]
+vmovapd ymm6, ymmword ptr [rax+448]
+vmovapd ymm7, ymmword ptr [rax+480]
+vmovapd ymm8, ymmword ptr [rax+512]
+vmovapd ymm9, ymmword ptr [rax+544]
+vmovapd ymm10, ymmword ptr [rax+576]
+vmovapd ymm11, ymmword ptr [rax+608]
+vmovapd ymm12, ymmword ptr [rax+640]
+vmovd xmm13, edi
+vbroadcastss xmm13, xmm13
+vmovapd xmm14, xmm13
+vpsrlq xmm14, xmm14, 1
+mov rbx, rax
+mov rcx, rax
+add rcx, 32768
+mov r8, rax
+add r8, 1048576
+mov r9, rax
+add r9, 1441792
+mov r10, 4369
+mov r11, 6007
+mov r12, 5461333
+.align 64 (code)
+L1:
+L2@L1_LS:
+vfmadd231pd ymm2, ymm0, ymmword ptr [rbx+32]
+vmovapd xmmword ptr [rbx+64], xmm2
+add rbx, r14
+vpsrlq xmm13, xmm13, 1
+L3@REG:
+vfmadd231pd ymm3, ymm1, ymm0
+xor r13, rdi
+shl rsi, 1
+vpsllq xmm14, xmm14, 1
+L4@RAM_L:
+vfmadd231pd ymm15, ymm0, ymmword ptr [r9+32]
+xor r13, rsi
+add r9, r14
+vpsllq xmm13, xmm13, 1
+L5@L3_L:
+vfmadd231pd ymm5, ymm1, ymmword ptr [r8+64]
+xor r13, rdx
+add r8, r14
+vpsrlq xmm14, xmm14, 1
+L6@L2_L:
+vfmadd231pd ymm6, ymm0, ymmword ptr [rcx+64]
+xor r13, rdi
+add rcx, r14
+vpsrlq xmm13, xmm13, 1
+L7@L1_LS:
+vfmadd231pd ymm7, ymm1, ymmword ptr [rbx+32]
+vmovapd xmmword ptr [rbx+64], xmm7
+add rbx, r14
+vpsllq xmm14, xmm14, 1
+L8@REG:
+vfmadd231pd ymm8, ymm0, ymm1
+xor r13, rdx
+shl rdi, 1
+vpsllq xmm13, xmm13, 1
+L9@RAM_L:
+vfmadd231pd ymm15, ymm1, ymmword ptr [r9+32]
+xor r13, rdi
+add r9, r14
+vpsrlq xmm14, xmm14, 1
+L10@L3_L:
+vfmadd231pd ymm10, ymm0, ymmword ptr [r8+64]
+xor r13, rsi
+add r8, r14
+vpsrlq xmm13, xmm13, 1
+L11@L2_L:
+vfmadd231pd ymm11, ymm1, ymmword ptr [rcx+64]
+xor r13, rdx
+add rcx, r14
+vpsllq xmm14, xmm14, 1
+L12@L1_LS:
+vfmadd231pd ymm12, ymm0, ymmword ptr [rbx+32]
+vmovapd xmmword ptr [rbx+64], xmm12
+add rbx, r14
+vpsllq xmm13, xmm13, 1
+L13@REG:
+vfmadd231pd ymm2, ymm1, ymm0
+xor r13, rsi
+shr rdx, 1
+vpsrlq xmm14, xmm14, 1
+L14@RAM_L:
+vfmadd231pd ymm15, ymm0, ymmword ptr [r9+32]
+xor r13, rdx
+add r9, r14
+L15@L3_L:
+vfmadd231pd ymm4, ymm1, ymmword ptr [r8+64]
+xor r13, rdi
+add r8, r14
+L16@L2_L:
+vfmadd231pd ymm5, ymm0, ymmword ptr [rcx+64]
+xor r13, rsi
+add rcx, r14
+movq r13, mm0
+sub r12, 1
+jnz L17
+mov r12, 5461333
+mov r9, rax
+add r9, 1441792
+L17:
+inc r13
+sub r10, 1
+jnz L18
+mov r10, 4369
+mov rcx, rax
+add rcx, 32768
+L18:
+movq mm0, r13
+sub r11, 1
+jnz L19
+mov r11, 6007
+mov r8, rax
+add r8, 1048576
+L19:
+mov rbx, rax
+test qword ptr [r15], 1
+jnz L1
+L0:
+movq rax, mm0
+pop r15
+pop r14
+pop r13
+pop r12
+pop rbp
+pop rbx
+ret
+

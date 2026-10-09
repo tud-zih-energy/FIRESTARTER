@@ -28,14 +28,23 @@ namespace firestarter::x86::payload {
 
 /// This payload is designed for the FMA CPU extension in combination with the first generation Zen microarchitecture.
 class ZENFMAPayload final : public X86Payload {
+private:
+  /// Load xmm13 (and thereby xmm14) with the bit pattern of the shift registers before the hot loop. The original
+  /// ZENFMA payload never did this, so its xmm13 and xmm14 start with whatever the caller left in xmm13.
+  bool InitShiftVectorRegisters;
+
 public:
-  ZENFMAPayload() noexcept
+  /// \arg InitShiftVectorRegisters Initialize xmm13 and xmm14 for the shift operations as intended. This is the
+  /// ZENFMA_V2 payload. By default the generated code of the original ZENFMA payload is kept unchanged.
+  explicit ZENFMAPayload(bool InitShiftVectorRegisters = false) noexcept
       : X86Payload(/*FeatureRequests=*/X86CpuFeatures()
                        .add(asmjit::CpuFeatures::X86::Id::kAVX)
                        .add(asmjit::CpuFeatures::X86::Id::kFMA),
-                   /*Name=*/"ZENFMA", /*RegisterSize=*/4, /*RegisterCount=*/16,
+                   /*Name=*/InitShiftVectorRegisters ? "ZENFMA_V2" : "ZENFMA", /*RegisterSize=*/4,
+                   /*RegisterCount=*/16,
                    /*InstructionFlops=*/{{"REG", 8}, {"L1_LS", 8}, {"L2_L", 8}, {"L3_L", 8}, {"RAM_L", 8}},
-                   /*InstructionMemory=*/{{"RAM_L", 64}}) {}
+                   /*InstructionMemory=*/{{"RAM_L", 64}})
+      , InitShiftVectorRegisters(InitShiftVectorRegisters) {}
 
   /// Compile this payload with supplied settings and optional features.
   /// \arg Settings The settings for this payload e.g., the number of lines or the size of the caches.
