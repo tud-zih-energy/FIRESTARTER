@@ -31,14 +31,18 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
 #include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <ios>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace firestarter::optimizer {
@@ -251,19 +255,7 @@ public:
       J["metrics"].push_back(Eval);
     }
 
-    // Initialize a string with length of 256 filled with null characters
-    auto Hostname = std::string(256, 0);
-    // get the hostname
-    if (0 != gethostname(Hostname.data(), Hostname.size())) {
-      Hostname = "unknown";
-    }
-
-    // Strip away any remaining null terminators
-    if (const auto Pos = Hostname.find('\0'); Pos != std::string::npos) {
-      Hostname.erase(Pos);
-    }
-
-    J["hostname"] = Hostname;
+    J["hostname"] = hostname();
 
     J["startTime"] = StartTime;
     J["endTime"] = getTime();
@@ -286,32 +278,82 @@ public:
 
     firestarter::log::trace() << S;
 
-    std::string Outpath = Path;
-    if (Outpath.empty()) {
-      // Wrap get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
-      const std::unique_ptr<char, void (*)(void*)> WrappedPwd = {get_current_dir_name(), free};
-      if (WrappedPwd) {
-        // Get the pointer captured in the WrappedPwd (not only the first char as would be with *WrappedPwd)
-        Outpath = WrappedPwd.get();
-      } else {
-        firestarter::log::warn() << "Could not find $PWD.";
-        Outpath = "/tmp";
-      }
-      Outpath += "/" + Hostname + "_" + StartTime + ".json";
-    }
+    const auto Outpath = outputPath(Path, StartTime);
 
     firestarter::log::info() << "\nDumping output json in " << Outpath;
 
     std::ofstream Fp(Outpath);
 
-    if (Fp.bad()) {
-      firestarter::log::error() << "Could not open " << Outpath;
-      return;
-    }
-
     Fp << S;
 
     Fp.close();
+
+    // Failing to open, write or close the file sets the failbit. checkOutputPath() catches most problems before the
+    // optimization starts.
+    if (Fp.fail()) {
+      firestarter::log::error() << "Could not write " << Outpath;
+    }
+  }
+
+  /// Check that the json output file of the optimization can be written. This should be called before the
+  /// optimization starts, so that a wrong path does not discard the results of a potentially long run.
+  /// \arg Path The path of the output file given by the user, see outputPath().
+  static void checkOutputPath(std::string const& Path) {
+    const auto Outpath = outputPath(Path, getTime());
+
+    // Open the file for appending so that an existing file is not truncated, and remove it again if it did not exist
+    // before.
+    const auto Existed = std::ifstream(Outpath).good();
+    const auto Writable = std::ofstream(Outpath, std::ios::app).good();
+    if (Writable && !Existed) {
+      (void)std::remove(Outpath.c_str());
+    }
+
+    if (!Writable) {
+      throw std::invalid_argument("Cannot write the output of the optimization to " + Outpath +
+                                  ". Please check --optimize-outfile.");
+    }
+  }
+
+  /// Get the path of the json output file of the optimization.
+  /// \arg Path The path of the output file given by the user. If it is empty, the file is placed in the current working
+  /// directory (or /tmp if it cannot be determined) and named after the hostname and the start time.
+  /// \arg StartTime The start time of the optimization.
+  /// \returns The path of the json output file.
+  static auto outputPath(std::string const& Path, std::string const& StartTime) -> std::string {
+    if (!Path.empty()) {
+      return Path;
+    }
+
+    std::string Outpath;
+    // Wrap get_current_dir_name in a unique ptr, as it needs to get deleted by free when it is not used anymore.
+    const std::unique_ptr<char, void (*)(void*)> WrappedPwd = {get_current_dir_name(), free};
+    if (WrappedPwd) {
+      // Get the pointer captured in the WrappedPwd (not only the first char as would be with *WrappedPwd)
+      Outpath = WrappedPwd.get();
+    } else {
+      firestarter::log::warn() << "Could not find $PWD.";
+      Outpath = "/tmp";
+    }
+    return Outpath + "/" + hostname() + "_" + StartTime + ".json";
+  }
+
+  /// Get the hostname of this system.
+  /// \returns The hostname or "unknown" if it cannot be determined.
+  static auto hostname() -> std::string {
+    // Initialize a string with length of 256 filled with null characters
+    auto Hostname = std::string(256, 0);
+    // get the hostname
+    if (0 != gethostname(Hostname.data(), Hostname.size())) {
+      Hostname = "unknown";
+    }
+
+    // Strip away any remaining null terminators
+    if (const auto Pos = Hostname.find('\0'); Pos != std::string::npos) {
+      Hostname.erase(Pos);
+    }
+
+    return Hostname;
   }
 
   /// Get the current time in the local timezone as a string formatted by "%F_%T%z". This function is NOT threadsafe.
