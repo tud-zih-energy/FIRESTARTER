@@ -92,21 +92,38 @@ AArch64ProcessorInformation::AArch64ProcessorInformation()
   }
 }
 
-// AArch64 does not have a direct equivalent of x86's TSC-based clockrate measurement.
-// Return 0 to indicate unknown clockrate.
-auto AArch64ProcessorInformation::clockrate() const -> uint64_t { return measureClockrate(); }
+// The clock rate used to convert timestamp() (CNTVCT_EL0) deltas into seconds.
+// This is the generic timer counter frequency read from CNTFRQ_EL0, i.e. the
+// frequency of the counter that timestamp() reads. Note that this is a
+// reference frequency, not the core clock.
+auto AArch64ProcessorInformation::clockrate() const -> uint64_t {
+  uint64_t Freq = 0;
+  __asm__ __volatile__("mrs %0, cntfrq_el0" : "=r"(Freq));
+  if (Freq != 0) {
+    return Freq;
+  }
+  // Firmware left CNTFRQ_EL0 at 0; fall back to measuring the counter
+  // frequency against the actually elapsed wall-clock time.
+  return measureClockrate();
+}
 
-// private local method to measure current clockrate in Hz using
-// the generic timer counter (CNTVCT_EL0) and a sleep interval.
+// Fallback: measure the generic timer counter frequency (Hz) by counting
+// CNTVCT_EL0 ticks over a sleep interval and dividing by the actually elapsed
+// steady_clock time (the nominal sleep duration is not reliable).
 auto AArch64ProcessorInformation::measureClockrate() const -> uint64_t {
   constexpr auto SleepDuration = std::chrono::milliseconds(100);
 
-  uint64_t StartTsc = timestamp();
+  const auto WallStart = std::chrono::steady_clock::now();
+  const uint64_t StartTsc = timestamp();
   std::this_thread::sleep_for(SleepDuration);
-  uint64_t EndTsc = timestamp();
+  const uint64_t EndTsc = timestamp();
+  const auto WallEnd = std::chrono::steady_clock::now();
 
-  uint64_t TicksElapsed = EndTsc - StartTsc;
-  double SecondsElapsed = std::chrono::duration<double>(SleepDuration).count();
+  const uint64_t TicksElapsed = EndTsc - StartTsc;
+  const double SecondsElapsed = std::chrono::duration<double>(WallEnd - WallStart).count();
+  if (SecondsElapsed <= 0.0) {
+    return 0;
+  }
 
   return static_cast<uint64_t>(TicksElapsed / SecondsElapsed);
 }

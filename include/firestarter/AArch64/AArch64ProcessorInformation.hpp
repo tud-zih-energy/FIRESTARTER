@@ -59,7 +59,8 @@ private:
   static std::string implementerToString(unsigned Implementer);
   /// Convert a part number to a processor name string.
   static std::string partNumToString(unsigned PartNum);
-  /// Measure the current clockrate in Hz using the generic timer counter.
+  /// Fallback: measure the generic timer counter frequency in Hz when
+  /// CNTFRQ_EL0 is not populated by firmware.
   auto measureClockrate() const -> uint64_t;
 
   /// The asmjit CpuInfo for the current processor
