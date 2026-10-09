@@ -65,7 +65,7 @@ include(cmake/DarwinBuild.cmake)
 # Determine the target architecture once.
 # On macOS, CMAKE_OSX_ARCHITECTURES is the authoritative target arch (CMAKE_SYSTEM_PROCESSOR
 # reflects the host, which is wrong for cross-compilation).
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND DEFINED CMAKE_OSX_ARCHITECTURES)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_OSX_ARCHITECTURES)
     list(GET CMAKE_OSX_ARCHITECTURES 0 _FIRESTARTER_TARGET_ARCH)
 else()
     set(_FIRESTARTER_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")

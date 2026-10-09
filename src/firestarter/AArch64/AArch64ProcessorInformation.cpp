@@ -30,6 +30,7 @@
 #include <ctime>
 #include <memory>
 #include <sstream>
+#include <thread>
 
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
