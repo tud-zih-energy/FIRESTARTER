@@ -94,8 +94,10 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
   const auto RamLoopCount =
       firestarter::payload::PayloadSettings::getRAMLoopCount(Sequence, Settings.linesPerThread(), RamSize);
 
+  AsmjitErrorHandler ErrorHandler;
   asmjit::CodeHolder Code;
   Code.init(asmjit::Environment::host());
+  Code.setErrorHandler(&ErrorHandler);
 
   asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler);
@@ -192,10 +194,9 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
     Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
 
-  // Initialize xmm14 for shift operation
-  // cb.mov(temp_reg, Imm(1));
-  // cb.movd(temp_reg, Xmm(14));
-  Cb.movd(ShiftRegs[0], Xmm(13));
+  // Initialize xmm14 for shift operation. xmm13 is intentionally not loaded from the shift registers: the instruction
+  // meant to do this ("movd rdi, xmm13") was invalid and has never been emitted, so it is left out to keep the
+  // generated code of this payload unchanged.
   Cb.vbroadcastss(Xmm(13), Xmm(13));
   Cb.vmovapd(Xmm(14), Xmm(13));
   Cb.vpsrlq(Xmm(14), Xmm(14), Imm(1));

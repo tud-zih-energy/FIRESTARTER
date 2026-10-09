@@ -97,8 +97,10 @@ auto AVX512Payload::compilePayload(const firestarter::payload::PayloadSettings& 
   const auto RamLoopCount =
       firestarter::payload::PayloadSettings::getRAMLoopCount(Sequence, Settings.linesPerThread(), RamSize);
 
+  AsmjitErrorHandler ErrorHandler;
   asmjit::CodeHolder Code;
   Code.init(asmjit::Environment::host());
+  Code.setErrorHandler(&ErrorHandler);
 
   asmjit::x86::Builder Cb(&Code);
   Cb.addDiagnosticOptions(asmjit::DiagnosticOptions::kValidateAssembler);
