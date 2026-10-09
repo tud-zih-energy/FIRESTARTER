@@ -22,6 +22,11 @@ function(add_ref_test)
 endfunction()
 
 add_subdirectory(DumpCPUTopology)
-add_subdirectory(DumpPayloads)
 add_subdirectory(UnitTests)
-add_subdirectory(X86Functions)
+
+# The DumpPayloads and X86Functions test executables reference X86-specific
+# payload and processor code, so they are only built on x86 targets.
+if(FIRESTARTER_ARCH STREQUAL "x86_64")
+    add_subdirectory(DumpPayloads)
+    add_subdirectory(X86Functions)
+endif()

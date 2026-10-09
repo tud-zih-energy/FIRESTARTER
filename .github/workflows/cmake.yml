@@ -358,6 +358,47 @@ jobs:
         sudo apt autoremove
 
 
+  build-linux-arm:
+    # Native AArch64 build on a GitHub ARM runner. Mirrors the x86 build-linux
+    # job: builds with tests, runs the binary, and uploads the artifact on tags.
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04-arm, compiler: default }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+    - name: Create build directory
+      run: |
+        mkdir build
+    - name: Run CMake configure
+      run: |
+        cd build
+        cmake -DFIRESTARTER_BUILD_TESTS=ON ..
+    - name: Build (default)
+      run: |
+        cd build
+        make -j4
+    - name: Strip binary (default)
+      run: |
+        cd build
+        strip src/FIRESTARTER
+    - name: Test FIRESTARTER (default)
+      run: ./build/src/FIRESTARTER -t 1
+    - uses: actions/upload-artifact@v4
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'pull_request'
+      with:
+        name: FIRESTARTER-linux-aarch64-alpha
+        retention-days: 1
+        path: build/src/FIRESTARTER
+
+
   build-windows:
     strategy:
       fail-fast: true

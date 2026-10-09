@@ -73,6 +73,8 @@ struct FirestarterOptionalFeatures {
   bool DumpRegisterEnabled;
   /// Is the current build for X86?
   bool IsX86;
+  /// Is the current build for AArch64?
+  bool IsAArch64;
   /// Is the current build for Windows?
   bool IsWin32;
   /// Is the current build built with Windows MSC?
@@ -114,6 +116,10 @@ static constexpr const FirestarterOptionalFeatures OptionalFeatures{
 
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
     /*IsX86=*/true,
+    /*IsAArch64=*/false,
+#elif defined(__aarch64__)
+    /*IsX86=*/false,
+    /*IsAArch64=*/true,
 #else
 #error "FIRESTARTER is not implemented for this ISA"
 #endif
