@@ -35,7 +35,7 @@ public:
             /*Name=*/"ARMv8a_NEON_FMA", /*RegisterSize=*/2,
             /*RegisterCount=*/32,
             /*InstructionFlops=*/
-            {{"REG", 8},
+            {{"REG", 16},
              {"L1_L", 0},
              {"L1_S", 0},
              {"L2_L", 0},

@@ -112,10 +112,10 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   const auto AddrHighReg = asmjit::a64::x11;
   const auto IterReg = asmjit::a64::x12;
   const auto RemainingIterationsReg = asmjit::a64::x13;
-  // Use callee-saved registers for shift state
-  const auto ShiftRegs = std::vector<Gp>({asmjit::a64::x14, asmjit::a64::x15, asmjit::a64::x19, asmjit::a64::x20,
-                                          asmjit::a64::x21, asmjit::a64::x22, asmjit::a64::x23, asmjit::a64::x24});
-  const auto NrShiftRegs = 8;
+  // Use callee-saved registers for the integer XOR toggle state
+  const auto EorRegs = std::vector<Gp>({asmjit::a64::x14, asmjit::a64::x15, asmjit::a64::x19, asmjit::a64::x20,
+                                        asmjit::a64::x21, asmjit::a64::x22, asmjit::a64::x23, asmjit::a64::x24});
+  const auto NrEorRegs = 8;
   const auto FmaRegs = 27; // This must be a multiple of 3, and <= 32. The FMA accumulator registers are v0, v3, v6,
                            // ..., v24, t0 and t1 are (v1,v2), (v4,v5), ... (v25,v26).
   const auto LoadRegs = 5; // This is the remainder of the 32 NEON registers after reserving FmaRegs for the FMA
@@ -136,7 +136,7 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   // make all other used registers dirty except x0
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
                      AddrHighReg, IterReg, RemainingIterationsReg);
-  for (const auto& Reg : ShiftRegs) {
+  for (const auto& Reg : EorRegs) {
     Frame.addDirtyRegs(Reg);
   }
 
@@ -165,14 +165,6 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   Cb.cbz(TempReg, FunctionExit);
 
   Cb.mov(OffsetReg, Imm(64)); // increment after each cache/memory access
-
-  // Initialize integer toggle registers to zero. They are toggled between 0
-  // and ~0 via eor with TempReg2 (which holds ~0) in the hot loop to exercise
-  // the integer ALU's XOR unit.
-  for (const auto& Reg : ShiftRegs) {
-    Cb.mov(Reg, Imm(0));
-  }
-  Cb.mov(TempReg2, Imm(0xFFFFFFFFFFFFFFFF));
 
   // Initialize the FMA accumulator registers (v0..v26) from the buffer.
   // v27..v31 are load/store scratch registers; they are intentionally left
@@ -203,12 +195,20 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   workerLog::trace() << "reset counter for RAM-buffer with " << RamLoopCount << " cache line accesses per loop ("
                      << RamSize / 1024 << ") KiB";
 
+  // Initialize integer toggle registers to zero. They are toggled between 0
+  // and ~0 via eor with TempReg2 (which holds ~0) in the hot loop to exercise
+  // the integer ALU's XOR unit.
+  for (const auto& Reg : EorRegs) {
+    Cb.mov(Reg, Imm(0));
+  }
+  Cb.mov(TempReg2, Imm(0xFFFFFFFFFFFFFFFF));
+
   Cb.align(asmjit::AlignMode::kCode, 64);
 
   auto Loop = Cb.newLabel();
   Cb.bind(Loop);
 
-  auto ShiftPos = 0;
+  auto EorPos = 0;
   unsigned L1Offset = 0;
 
 #define L1_INCREMENT_TIMES(n)                                                                                          \
@@ -265,9 +265,8 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
             DoAdd = !DoAdd;
           }
         }
-        Cb.eor(ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs],
-               ShiftRegs[(ShiftPos + NrShiftRegs - 1) % NrShiftRegs], TempReg2);
-        ShiftPos++;
+        Cb.eor(EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs], EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs], TempReg2);
+        EorPos++;
       } else if (Item == "L1_L") {
         Cb.ldr(VecV(LoadDest).d2(), asmjit::a64::ptr(L1Addr, 32));
         LoadDest++;
@@ -305,8 +304,8 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
       }
       if (LoadDest == FmaRegs + LoadRegs)
         LoadDest = FmaRegs;
-      if (ShiftPos == NrShiftRegs) {
-        ShiftPos = 0;
+      if (EorPos == NrEorRegs) {
+        EorPos = 0;
       }
     }
   }
