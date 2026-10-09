@@ -112,6 +112,8 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   const auto AddrHighReg = asmjit::a64::x11;
   const auto IterReg = asmjit::a64::x12;
   const auto RemainingIterationsReg = asmjit::a64::x13;
+  // Dedicated register holding the ~0 mask for the integer XOR toggle.
+  const auto EorMaskReg = asmjit::a64::x25;
   // Use callee-saved registers for the integer XOR toggle state
   const auto EorRegs = std::vector<Gp>({asmjit::a64::x14, asmjit::a64::x15, asmjit::a64::x19, asmjit::a64::x20,
                                         asmjit::a64::x21, asmjit::a64::x22, asmjit::a64::x23, asmjit::a64::x24});
@@ -135,7 +137,7 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
   }
   // make all other used registers dirty except x0
   Frame.addDirtyRegs(L1Addr, L2Addr, L3Addr, RamAddr, L2CountReg, L3CountReg, RamCountReg, TempReg, TempReg2, OffsetReg,
-                     AddrHighReg, IterReg, RemainingIterationsReg);
+                     AddrHighReg, IterReg, RemainingIterationsReg, EorMaskReg);
   for (const auto& Reg : EorRegs) {
     Frame.addDirtyRegs(Reg);
   }
@@ -196,12 +198,14 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
                      << RamSize / 1024 << ") KiB";
 
   // Initialize integer toggle registers to zero. They are toggled between 0
-  // and ~0 via eor with TempReg2 (which holds ~0) in the hot loop to exercise
-  // the integer ALU's XOR unit.
+  // and ~0 via eor with EorMaskReg (which holds ~0) in the hot loop to
+  // exercise the integer ALU's XOR unit.
+  // EorMaskReg is set once here and never written again, so the ~0 mask
+  // survives the whole hot loop.
   for (const auto& Reg : EorRegs) {
     Cb.mov(Reg, Imm(0));
   }
-  Cb.mov(TempReg2, Imm(0xFFFFFFFFFFFFFFFF));
+  Cb.mov(EorMaskReg, Imm(0xFFFFFFFFFFFFFFFF));
 
   Cb.align(asmjit::AlignMode::kCode, 64);
 
@@ -265,7 +269,8 @@ auto AArch64NEONFMAPayload::compilePayload(const firestarter::payload::PayloadSe
             DoAdd = !DoAdd;
           }
         }
-        Cb.eor(EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs], EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs], TempReg2);
+        Cb.eor(EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs], EorRegs[(EorPos + NrEorRegs - 1) % NrEorRegs],
+               EorMaskReg);
         EorPos++;
       } else if (Item == "L1_L") {
         Cb.ldr(VecV(LoadDest).d2(), asmjit::a64::ptr(L1Addr, 32));
