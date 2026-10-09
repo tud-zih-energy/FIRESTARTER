@@ -1,6 +1,6 @@
 /******************************************************************************
  * FIRESTARTER - A Processor Stress Test Utility
- * Copyright (C) 2020 TU Dresden, Center for Information Services and High
+ * Copyright (C) 2026 TU Dresden, Center for Information Services and High
  * Performance Computing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,19 +25,21 @@
 #include "firestarter/X86/Platform/X86PlatformConfig.hpp"
 
 namespace firestarter::x86::platform {
-/// The original ZEN_EPYC config with the ZENFMA payload. It is kept unchanged under its function IDs for
-/// reproducibility, but it is no longer the default for any CPU model. NaplesV2Config is the default for these CPUs.
-class NaplesConfig final : public X86PlatformConfig {
+/// The ZEN_EPYC config with the ZENFMA_V2 payload, which initializes xmm13 and xmm14 for the shift operations. It uses
+/// the same settings as NaplesConfig and replaces it as the default for first generation Zen CPUs.
+class NaplesV2Config final : public X86PlatformConfig {
 public:
-  NaplesConfig() noexcept
+  NaplesV2Config() noexcept
       : X86PlatformConfig(
-            /*Name=*/"ZEN_EPYC", /*RequestedModels=*/{},
+            /*Name=*/"ZEN_EPYC", /*RequestedModels=*/
+            {X86CpuModel(/*FamilyId=*/23, /*ModelId=*/1), X86CpuModel(/*FamilyId=*/23, /*ModelId=*/8),
+             X86CpuModel(/*FamilyId=*/23, /*ModelId=*/17), X86CpuModel(/*FamilyId=*/23, /*ModelId=*/24)},
             /*Settings=*/
             firestarter::payload::PayloadSettings(
                 /*Threads=*/{1, 2}, /*DataCacheBufferSize=*/{65536, 524288, 2097152}, /*RamBufferSize=*/104857600,
                 /*Lines=*/1536,
                 /*Groups=*/
                 InstructionGroups{{{"RAM_L", 3}, {"L3_L", 14}, {"L2_L", 75}, {"L1_LS", 81}, {"REG", 100}}}),
-            /*Payload=*/std::make_shared<const payload::ZENFMAPayload>()) {}
+            /*Payload=*/std::make_shared<const payload::ZENFMAPayload>(/*InitShiftVectorRegisters=*/true)) {}
 };
 } // namespace firestarter::x86::platform

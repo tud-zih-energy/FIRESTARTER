@@ -27,6 +27,7 @@
 #include "firestarter/X86/Platform/HaswellEPConfig.hpp"
 #include "firestarter/X86/Platform/KnightsLandingConfig.hpp"
 #include "firestarter/X86/Platform/NaplesConfig.hpp"
+#include "firestarter/X86/Platform/NaplesV2Config.hpp"
 #include "firestarter/X86/Platform/NehalemConfig.hpp"
 #include "firestarter/X86/Platform/NehalemEPConfig.hpp"
 #include "firestarter/X86/Platform/RomeConfig.hpp"
@@ -66,7 +67,8 @@ private:
       std::make_shared<platform::SandyBridgeEPConfig>(),  std::make_shared<platform::NehalemConfig>(),
       std::make_shared<platform::NehalemEPConfig>(),      std::make_shared<platform::BulldozerConfig>(),
       std::make_shared<platform::NaplesConfig>(),         std::make_shared<platform::RomeConfig>(),
-      std::make_shared<platform::SapphireRapidsConfig>(), std::make_shared<platform::TurinDenseConfig>()};
+      std::make_shared<platform::SapphireRapidsConfig>(), std::make_shared<platform::TurinDenseConfig>(),
+      std::make_shared<platform::NaplesV2Config>()};
 
   /// The list of configs that are fallbacks. If none of the PlatformConfigs is the default one on the current CPU, we
   /// select the first one from this list that is available on the current system. If multiple configs can be available

@@ -63,7 +63,8 @@ auto main(int /*argc*/, const char** /*argv*/) -> int {
       std::make_unique<firestarter::x86::payload::ZENFMAPayload>(),
       std::make_unique<firestarter::x86::payload::FMA4Payload>(),
       std::make_unique<firestarter::x86::payload::AVXPayload>(),
-      std::make_unique<firestarter::x86::payload::SSE2Payload>()};
+      std::make_unique<firestarter::x86::payload::SSE2Payload>(),
+      std::make_unique<firestarter::x86::payload::ZENFMAPayload>(/*InitShiftVectorRegisters=*/true)};
 
   for (const auto& PayloadPtr : PayloadPtrs) {
     firestarter::log::info() << "Payload " << PayloadPtr->name();

@@ -194,9 +194,12 @@ auto ZENFMAPayload::compilePayload(const firestarter::payload::PayloadSettings& 
     Cb.vmovapd(Ymm(I), ymmword_ptr(PointerReg, 256 + (I * 32)));
   }
 
-  // Initialize xmm14 for shift operation. xmm13 is intentionally not loaded from the shift registers: the instruction
-  // meant to do this ("movd rdi, xmm13") was invalid and has never been emitted, so it is left out to keep the
-  // generated code of this payload unchanged.
+  // Initialize xmm13 and xmm14 for shift operation. The original ZENFMA payload never loaded xmm13 from the shift
+  // registers (the instruction meant to do this, "movd rdi, xmm13", was invalid and has never been emitted), so its
+  // generated code is kept unchanged. ZENFMA_V2 loads the alternating bit pattern as intended.
+  if (InitShiftVectorRegisters) {
+    Cb.vmovd(Xmm(13), ShiftRegs[0].r32());
+  }
   Cb.vbroadcastss(Xmm(13), Xmm(13));
   Cb.vmovapd(Xmm(14), Xmm(13));
   Cb.vpsrlq(Xmm(14), Xmm(14), Imm(1));
