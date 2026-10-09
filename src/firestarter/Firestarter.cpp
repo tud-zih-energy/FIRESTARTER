@@ -108,6 +108,11 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   }
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
+    if (Cfg.Optimize) {
+      // Fail before any measurement or load thread is started if the results of the optimization cannot be saved.
+      optimizer::History::checkOutputPath(Cfg.OptimizeOutfile);
+    }
+
     if (Cfg.Measurement || Cfg.ListMetrics || Cfg.Optimize) {
       MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
           Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
