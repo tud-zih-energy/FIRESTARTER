@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <linux/perf_event.h>
+#include <stdexcept>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/syscall.h> // IWYU pragma: keep
@@ -60,6 +61,23 @@ auto PerfMetric::init() -> int32_t {
 
   if (Instance.InitDone) {
     return Instance.InitValue;
+  }
+
+  // No other functions are setting the environment variables
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  if (const char* Cpu = std::getenv("FIRESTARTER_PERF_CPU")) {
+    // Collect the perf metrics only from a specific CPU.
+    auto ErrorString = std::string(Cpu) + " is not a valid value for FIRESTARTER_PERF_CPU.";
+    try {
+      Instance.PerfCpu = std::stoi(Cpu);
+    } catch (const std::invalid_argument&) {
+      throw std::runtime_error(ErrorString);
+    } catch (const std::out_of_range&) {
+      throw std::runtime_error(ErrorString);
+    }
+
+    // As we only collect metrics for one CPU, we do not need to divide the collected metrics by the thread count.
+    PerfMetric::PerfFreqMetric.Type.DivideByThreadCount = 0;
   }
 
   if (access(PerfEventParanoidFile, F_OK) == -1) {
@@ -106,7 +124,7 @@ auto PerfMetric::init() -> int32_t {
   Instance.CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
                                        // pid == 0 and cpu == -1
                                        // This measures the calling process/thread on any CPU.
-                                       0, -1,
+                                       0, Instance.PerfCpu,
                                        // The group_fd argument allows event groups to be created.  An event
                                        // group has one event which is the group leader.  The leader is
                                        // created first, with group_fd = -1.  The rest of the group members
@@ -138,7 +156,7 @@ auto PerfMetric::init() -> int32_t {
   Instance.InstructionsFd = perfEventOpen(&InstructionsAttr,
                                           // pid == 0 and cpu == -1
                                           // This measures the calling process/thread on any CPU.
-                                          0, -1,
+                                          0, Instance.PerfCpu,
                                           // The group_fd argument allows event groups to be created.  An event
                                           // group has one event which is the group leader.  The leader is
                                           // created first, with group_fd = -1.  The rest of the group members
