@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <sstream>
 #include <type_traits>
@@ -41,11 +42,13 @@
 
 #include <cublas_v2.h>
 #include <cuda.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime_api.h>
 #include <curand_kernel.h>
 
 #elif defined(FIRESTARTER_BUILD_HIP)
 
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <hipblas/hipblas.h>
@@ -54,6 +57,30 @@
 #endif
 
 namespace firestarter::cuda::compat {
+
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+/// The half precision (FP16) type of CUDA or HIP.
+using Half = __half;
+#else
+/// Placeholder for the half precision (FP16) type for clangd.
+struct Half {
+  std::uint16_t Bits;
+};
+#endif
+static_assert(sizeof(Half) == 2, "Half must be exactly two bytes.");
+
+/// Convert a single precision float to half precision on the host with rounding to nearest even. Wrapper to
+/// __float2half_rn of cuda_fp16.h or hip_fp16.h.
+/// \arg Value The float value to convert.
+/// \returns The converted half precision value.
+inline auto floatToHalf(float Value) -> Half {
+#if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
+  return __float2half_rn(Value);
+#else
+  (void)Value;
+  static_assert(false, "Tried to call floatToHalf, but neither building for CUDA nor HIP.");
+#endif
+}
 
 /// Use this function as a wrapper to all calls of CUDA or HIP functions. If an error occured we abort and print the
 /// error code.
@@ -512,6 +539,20 @@ inline auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> 
 inline auto getSingleToDoublePrecisionPerfRatio(int& Ratio, int DeviceIndex) -> ErrorT {
   return static_cast<ErrorT>(cudaDeviceGetAttribute(&Ratio, cudaDevAttrSingleToDoublePrecisionPerfRatio, DeviceIndex));
 }
+
+/// Get the compute capability of a specific GPU device. Wrapper to cudaDeviceGetAttribute with
+/// cudaDevAttrComputeCapabilityMajor and cudaDevAttrComputeCapabilityMinor.
+/// \arg Major The reference to the major compute capability that is retrived.
+/// \arg Minor The reference to the minor compute capability that is retrived.
+/// \arg DeviceIndex The index of the GPU device for which to retrive the compute capability.
+/// \returns The Error code returned from these calls.
+inline auto getComputeCapability(int& Major, int& Minor, int DeviceIndex) -> ErrorT {
+  const auto Error = cudaDeviceGetAttribute(&Major, cudaDevAttrComputeCapabilityMajor, DeviceIndex);
+  if (Error != cudaSuccess) {
+    return static_cast<ErrorT>(Error);
+  }
+  return static_cast<ErrorT>(cudaDeviceGetAttribute(&Minor, cudaDevAttrComputeCapabilityMinor, DeviceIndex));
+}
 #endif
 
 /// Get the number of memory in the current CUDA or HIP context. Wrapper to cuMemGetInfo or
@@ -689,6 +730,27 @@ auto memcpyDtoD(FloatPointType* DestinationPtr, FloatPointType* SourcePtr, std::
 #endif
 }
 
+/// Copy memory from a host pointer to a device pointer. Wrapper to cuMemcpyHtoD or hipMemcpyHtoD.
+/// \arg DestinationPtr The destination address on the device.
+/// \arg SourcePtr The source address on the host.
+/// \arg Size The number of bytes to copy.
+/// \returns The Error code returned from these calls.
+template <typename FloatPointType>
+auto memcpyHtoD(FloatPointType* DestinationPtr, const FloatPointType* SourcePtr,
+                std::size_t Size) -> CUResultOrHipErrorT {
+#ifdef FIRESTARTER_BUILD_CUDA
+  return static_cast<CUResultOrHipErrorT>(cuMemcpyHtoD(reinterpret_cast<CUdeviceptr>(DestinationPtr), SourcePtr, Size));
+#elif defined(FIRESTARTER_BUILD_HIP)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  return static_cast<CUResultOrHipErrorT>(hipMemcpyHtoD(DestinationPtr, const_cast<FloatPointType*>(SourcePtr), Size));
+#else
+  (void)DestinationPtr;
+  (void)SourcePtr;
+  (void)Size;
+  static_assert(false, "Tried to call memcpyHtoD, but neither building for CUDA nor HIP.");
+#endif
+}
+
 /// Block until the current device finished. Wrapper to cudaDeviceSynchronize or hipcudaDeviceSynchronize.
 /// \returns The Error code returned from these calls.
 inline auto deviceSynchronize() -> ErrorT {
@@ -779,6 +841,52 @@ auto gemm(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, 
   (void)C;
   (void)Ldc;
   static_assert(false, "Tried to call gemm, but neither building for CUDA nor HIP.");
+#endif
+}
+
+/// This function performs the matrix-matrix multiplication C = Alpha * op(A) * op(B) + Beta * C for half precision
+/// (FP16) matrices with single precision accumulation. On GPUs with tensor cores this is executed on them. It wrapps
+/// (cu|hip)blasGemmEx. See gemm for a description of the arguments.
+/// \returns The Error code returned from these calls.
+inline auto gemmHalf(BlasHandle Handle, BlasOperation Transa, BlasOperation Transb, int M, int N, int K,
+                     const float& Alpha, const Half* A, int Lda, const Half* B, int Ldb, const float& Beta, Half* C,
+                     int Ldc) -> BlasStatusT {
+#ifdef FIRESTARTER_BUILD_CUDA
+#if (CUBLAS_VER_MAJOR >= 11)
+  return static_cast<BlasStatusT>(cublasGemmEx(
+      Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, CUDA_R_16F,
+      Lda, B, CUDA_R_16F, Ldb, &Beta, C, CUDA_R_16F, Ldc, CUBLAS_COMPUTE_32F, CUBLAS_GEMM_DEFAULT));
+#else
+  return static_cast<BlasStatusT>(cublasGemmEx(
+      Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, CUDA_R_16F,
+      Lda, B, CUDA_R_16F, Ldb, &Beta, C, CUDA_R_16F, Ldc, CUDA_R_32F, CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+#endif
+#elif defined(FIRESTARTER_BUILD_HIP)
+#if defined(HIPBLAS_V2) || (defined(hipblasVersionMajor) && (hipblasVersionMajor >= 3))
+  return static_cast<BlasStatusT>(hipblasGemmEx(
+      Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A, HIP_R_16F,
+      Lda, B, HIP_R_16F, Ldb, &Beta, C, HIP_R_16F, Ldc, HIPBLAS_COMPUTE_32F, HIPBLAS_GEMM_DEFAULT));
+#else
+  return static_cast<BlasStatusT>(hipblasGemmEx(
+      Handle, static_cast<BlasOperationT>(Transa), static_cast<BlasOperationT>(Transb), M, N, K, &Alpha, A,
+      HIPBLAS_R_16F, Lda, B, HIPBLAS_R_16F, Ldb, &Beta, C, HIPBLAS_R_16F, Ldc, HIPBLAS_R_32F, HIPBLAS_GEMM_DEFAULT));
+#endif
+#else
+  (void)Handle;
+  (void)Transa;
+  (void)Transb;
+  (void)M;
+  (void)N;
+  (void)K;
+  (void)Alpha;
+  (void)A;
+  (void)Lda;
+  (void)B;
+  (void)Ldb;
+  (void)Beta;
+  (void)C;
+  (void)Ldc;
+  static_assert(false, "Tried to call gemmHalf, but neither building for CUDA nor HIP.");
 #endif
 }
 

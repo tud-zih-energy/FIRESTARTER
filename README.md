@@ -38,6 +38,8 @@ General Options:
                                 instead of default
   -d, --usegpudouble            Use double precision matrix multiplications
                                 instead of default
+      --usegpuhalf              Use half precision (FP16) matrix multiplications
+                                (default on NVIDIA Blackwell and newer)
   -g, --gpus arg                Number of gpus to use, default: -1 (all)
   -m, --matrixsize arg          Size of the matrix to calculate, default: 0 (maximum)
   -t, --timeout TIMEOUT         Set the timeout (seconds) after which FIRESTARTER
