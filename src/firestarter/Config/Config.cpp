@@ -165,7 +165,12 @@ Config::Config(int Argc, const char** Argv)
 
   if (firestarter::OptionalFeatures.CudaEnabled) {
     Parser.add_options("general")
-      ("usegpuhalf", "Use half precision (FP16) matrix multiplications\non tensor cores instead of default");
+#ifdef FIRESTARTER_BUILD_HIP
+      // Half precision is never selected automatically for HIP.
+      ("usegpuhalf", "Use half precision (FP16) matrix multiplications\ninstead of default");
+#else
+      ("usegpuhalf", "Use half precision (FP16) matrix multiplications\n(default on NVIDIA Blackwell and newer)");
+#endif
   }
 
   if (firestarter::OptionalFeatures.gpuEnabled()) {

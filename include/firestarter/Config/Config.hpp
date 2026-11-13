@@ -114,7 +114,8 @@ struct Config {
   /// Should the GPUs use double point precision? If neither GpuUseFloat or GpuUseDouble is set, precision will be
   /// choosen automatically.
   bool GpuUseDouble = false;
-  /// Should the GPUs use half precision (FP16) matrix multiplications? This is only available for CUDA and HIP.
+  /// Should the GPUs use half precision (FP16) matrix multiplications? This is only available for CUDA and HIP. If
+  /// neither GpuUseFloat, GpuUseDouble or GpuUseHalf is set, half precision is selected on NVIDIA Blackwell and newer.
   bool GpuUseHalf = false;
   /// Should we print all available metrics.
   bool ListMetrics = false;

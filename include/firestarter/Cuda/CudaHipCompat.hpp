@@ -539,6 +539,20 @@ inline auto getDeviceProperties(DeviceProperties& Property, int DeviceIndex) -> 
 inline auto getSingleToDoublePrecisionPerfRatio(int& Ratio, int DeviceIndex) -> ErrorT {
   return static_cast<ErrorT>(cudaDeviceGetAttribute(&Ratio, cudaDevAttrSingleToDoublePrecisionPerfRatio, DeviceIndex));
 }
+
+/// Get the compute capability of a specific GPU device. Wrapper to cudaDeviceGetAttribute with
+/// cudaDevAttrComputeCapabilityMajor and cudaDevAttrComputeCapabilityMinor.
+/// \arg Major The reference to the major compute capability that is retrived.
+/// \arg Minor The reference to the minor compute capability that is retrived.
+/// \arg DeviceIndex The index of the GPU device for which to retrive the compute capability.
+/// \returns The Error code returned from these calls.
+inline auto getComputeCapability(int& Major, int& Minor, int DeviceIndex) -> ErrorT {
+  const auto Error = cudaDeviceGetAttribute(&Major, cudaDevAttrComputeCapabilityMajor, DeviceIndex);
+  if (Error != cudaSuccess) {
+    return static_cast<ErrorT>(Error);
+  }
+  return static_cast<ErrorT>(cudaDeviceGetAttribute(&Minor, cudaDevAttrComputeCapabilityMinor, DeviceIndex));
+}
 #endif
 
 /// Get the number of memory in the current CUDA or HIP context. Wrapper to cuMemGetInfo or

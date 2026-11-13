@@ -54,8 +54,9 @@ template <std::size_t Multiple> auto roundUp(int NumToRound) -> int {
 }
 
 /// Convert the UseDouble input (0 -> single precision, 1 -> double precision, 2 -> automatic) to either 0 or 1 for
-/// float or double respectively. For CUDART_VERSION at least equal 8000 and automatic selection we check if the card
-/// a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
+/// float or double respectively. In the automatic mode this is not used for GPUs that select half precision (see
+/// halfPrecisionSupport). For CUDART_VERSION at least equal 8000 and automatic selection we check if the
+/// card a singleToDoublePrecisionPerfRatio bigger than 3 and select float in this case otherwise double. In all other
 /// cases automatic results in double.
 /// \arg UseDouble The input that specifies either single precision, double precision or automatic selection.
 /// \arg DeviceIndex The index of the GPU device.
@@ -127,18 +128,35 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
   return UseDouble;
 }
 
-/// Check if a GPU supports half precision matrix multiplications.
+/// Describes if a GPU supports half precision matrix multiplications and if the automatic precision selection should
+/// use them.
+struct HalfPrecisionSupport {
+  /// The GPU supports half precision arithmetic.
+  bool Supported;
+  /// The automatic precision selection should use half precision on this GPU.
+  bool PreferredForAuto;
+};
+
+/// Check the half precision support of a GPU based on its compute capability. FP16 arithmetic requires compute
+/// capability 5.3 or newer. Half precision is preferred by the automatic selection on GPUs on which the single and
+/// double precision gemm cannot reach the power limit, since they do not use the tensor cores. On NVIDIA Blackwell
+/// (compute capability 10.0) and newer, the double precision gemm runs at the maximum clock without reaching the power
+/// limit, while the half precision gemm on the tensor cores is limited by it. On older GPUs (e.g., H100) the double
+/// precision gemm already reaches the power limit. For HIP no GPU is known that requires half precision, so the
+/// automatic selection is unchanged there.
 /// \arg DeviceIndex The index of the GPU device.
-/// \return true if half precision gemm is supported.
-auto halfSupported(int DeviceIndex) -> bool {
+/// \return The half precision support of the GPU.
+auto halfPrecisionSupport(int DeviceIndex) -> HalfPrecisionSupport {
 #ifdef FIRESTARTER_BUILD_CUDA
-  compat::DeviceProperties Properties;
-  compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
-  // FP16 arithmetic requires compute capability 5.3 or newer. Tensor cores are available from 7.0.
-  return Properties.major > 5 || (Properties.major == 5 && Properties.minor >= 3);
+  int Major{};
+  int Minor{};
+  compat::accellSafeCall(compat::getComputeCapability(Major, Minor, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+  // NOLINTBEGIN(readability-magic-numbers,cppcoreguidelines-avoid-magic-numbers)
+  return {/*Supported=*/Major > 5 || (Major == 5 && Minor >= 3), /*PreferredForAuto=*/Major >= 10};
+  // NOLINTEND(readability-magic-numbers,cppcoreguidelines-avoid-magic-numbers)
 #else
   (void)DeviceIndex;
-  return true;
+  return {/*Supported=*/true, /*PreferredForAuto=*/false};
 #endif
 }
 
@@ -411,7 +429,18 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
           void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
                            const volatile firestarter::LoadThreadWorkType&, uint64_t) = nullptr;
 
-          if (UseHalf && halfSupported(I)) {
+          // Use half precision if it is requested or if the precision is selected automatically and the GPU prefers
+          // half precision. The half precision support is only checked if it can be used.
+          const bool AutoSelect = UseDoubleConverted == 2 && !UseHalf;
+          const auto HalfSupport = (UseHalf || AutoSelect) ? halfPrecisionSupport(I) : HalfPrecisionSupport{};
+          const bool AutoSelectHalf = AutoSelect && HalfSupport.PreferredForAuto;
+
+          if ((UseHalf && HalfSupport.Supported) || AutoSelectHalf) {
+            if (AutoSelectHalf) {
+              firestarter::log::trace() << compat::AccelleratorString << " GPU " << I
+                                        << " has compute capability 10.0 or newer. Selecting half precision "
+                                           "automatically.";
+            }
             LoadFunc = createLoad<compat::Half>;
           } else {
             if (UseHalf) {

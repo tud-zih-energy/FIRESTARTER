@@ -61,7 +61,8 @@ private:
   /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
   /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
-  /// UseDouble is set the precision will be choosen automatically.
+  /// UseDouble is set the precision will be choosen automatically: half precision on NVIDIA Blackwell and newer GPUs,
+  /// otherwise single or double precision.
   /// \arg UseHalf Set to true if we want to stress using half precision (FP16) matrix multiplications with FP32
   /// accumulation. This takes precedence over UseFloat and UseDouble.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
@@ -77,7 +78,8 @@ public:
   /// \arg LoadVar A reference to the variable that controlls the current load of Firestarter.
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
   /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
-  /// UseDouble is set the precision will be choosen automatically.
+  /// UseDouble is set the precision will be choosen automatically: half precision on NVIDIA Blackwell and newer GPUs,
+  /// otherwise single or double precision.
   /// \arg UseHalf Set to true if we want to stress using half precision (FP16) matrix multiplications with FP32
   /// accumulation. This takes precedence over UseFloat and UseDouble.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
