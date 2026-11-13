@@ -28,10 +28,13 @@
 #include "firestarter/Cuda/CudaHipCompat.hpp"
 #include "firestarter/Logging/Log.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <random>
 #include <type_traits>
+#include <vector>
 
 namespace firestarter::cuda {
 
@@ -124,14 +127,68 @@ auto getPrecision(int DeviceIndex, int UseDouble) -> int {
   return UseDouble;
 }
 
+/// Check if a GPU supports half precision matrix multiplications.
+/// \arg DeviceIndex The index of the GPU device.
+/// \return true if half precision gemm is supported.
+auto halfSupported(int DeviceIndex) -> bool {
+#ifdef FIRESTARTER_BUILD_CUDA
+  compat::DeviceProperties Properties;
+  compat::accellSafeCall(compat::getDeviceProperties(Properties, DeviceIndex), __FILE__, __LINE__, DeviceIndex);
+  // FP16 arithmetic requires compute capability 5.3 or newer. Tensor cores are available from 7.0.
+  return Properties.major > 5 || (Properties.major == 5 && Properties.minor >= 3);
+#else
+  (void)DeviceIndex;
+  return true;
+#endif
+}
+
+/// Initialize a half precision matrix on the device with uniform random values in [-1, 1). There is no half precision
+/// random generator in (cu|hip)rand and we do not want to compile device code, so we generate a tile on the host, copy
+/// it to the device and replicate it there. The values are symmetric around zero to keep the FP16 results of large
+/// matrix multiplications well inside the FP16 range.
+/// \arg DataPtr The device pointer to the matrix.
+/// \arg NumElements The number of elements of the matrix.
+/// \arg MatrixSeed The seed for the random number generator.
+/// \arg DeviceIndex The index of the GPU device.
+void initHalfMatrix(compat::Half* DataPtr, std::size_t NumElements, unsigned MatrixSeed, int DeviceIndex) {
+  // An odd tile size makes sure that the repeated pattern does not align with the rows of the matrix.
+  constexpr std::size_t TileElements = (std::size_t{1} << 24U) - 1;
+  const auto NumTileElements = (std::min)(NumElements, TileElements);
+
+  std::mt19937 Generator(MatrixSeed);
+  std::uniform_real_distribution<float> Distribution(-1.0F, 1.0F);
+  std::vector<compat::Half> Tile(NumTileElements);
+  for (auto& Element : Tile) {
+    Element = compat::floatToHalf(Distribution(Generator));
+  }
+
+  compat::accellSafeCall(compat::memcpyHtoD(DataPtr, Tile.data(), NumTileElements * sizeof(compat::Half)), __FILE__,
+                         __LINE__, DeviceIndex);
+
+  // replicate the tile by doubling the initialized region
+  std::size_t Filled = NumTileElements;
+  while (Filled < NumElements) {
+    const auto Chunk = (std::min)(Filled, NumElements - Filled);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    compat::accellSafeCall(compat::memcpyDtoD(DataPtr + Filled, DataPtr, Chunk * sizeof(compat::Half)), __FILE__,
+                           __LINE__, DeviceIndex);
+    Filled += Chunk;
+  }
+}
+
 // GPU index. Used to pin this thread to the GPU.
 // Size use is one square matrix dim size
 template <typename FloatingPointType>
 void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                 int DeviceIndex, std::atomic<int>& InitCount, const volatile firestarter::LoadThreadWorkType& LoadVar,
                 uint64_t MatrixSize) {
-  static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double>,
-                "create_load<FloatingPointType>: Template argument must be either float or double");
+  static_assert(std::is_same_v<FloatingPointType, float> || std::is_same_v<FloatingPointType, double> ||
+                    std::is_same_v<FloatingPointType, compat::Half>,
+                "create_load<FloatingPointType>: Template argument must be either float, double or compat::Half");
+
+  constexpr bool IsHalf = std::is_same_v<FloatingPointType, compat::Half>;
+  // Half precision gemm uses single precision for the scalars and the accumulation.
+  using ScalarType = std::conditional_t<IsHalf, float, FloatingPointType>;
 
   firestarter::log::trace() << "Starting " << compat::AccelleratorString << " with given matrix size " << MatrixSize;
 
@@ -198,7 +255,10 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                             << DeviceIndex << ". Using " << MatrixSize * MatrixSize << " elements of size "
                             << sizeof(FloatingPointType) << " Byte";
   // initialize matrix A and B on the GPU with random values
-  {
+  if constexpr (IsHalf) {
+    initHalfMatrix(ADataPtr, MatrixSize * MatrixSize, Seed, DeviceIndex);
+    initHalfMatrix(BDataPtr, MatrixSize * MatrixSize, Seed + 1, DeviceIndex);
+  } else {
     compat::RandGenerator RandomGen{};
     compat::accellSafeCall(compat::randCreateGeneratorPseudoRandom(RandomGen), __FILE__, __LINE__, DeviceIndex);
     compat::accellSafeCall(compat::randSetPseudoRandomGeneratorSeed(RandomGen, Seed), __FILE__, __LINE__, DeviceIndex);
@@ -230,33 +290,44 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
                              << " MiB available (using " << ToMiB(UseBytes) << " MiB)\n"
                              << "    matrix size:    " << MatrixSize << "\n"
                              << "    used precision: "
-                             << ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single");
+                             << (IsHalf ? "half (FP16 with FP32 accumulation)"
+                                        : ((sizeof(FloatingPointType) == sizeof(double)) ? "double" : "single"));
 
     InitCount++;
   }
   WaitForInitCv.notify_all();
 
-  const FloatingPointType Alpha = 1.0;
-  const FloatingPointType Beta = 0.0;
+  const ScalarType Alpha = 1.0;
+  const ScalarType Beta = 0.0;
 
   // actual stress begins here
   while (LoadVar != firestarter::LoadThreadWorkType::LoadStop) {
     for (std::size_t I = 0; I < Iterations; I++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       auto CSectionPtr = CDataPtr + (I * MatrixSize * MatrixSize);
-      compat::accellSafeCall(compat::gemm<FloatingPointType>(Blas, compat::BlasOperation::BLAS_OP_N,
-                                                             compat::BlasOperation::BLAS_OP_N, MatrixSize, MatrixSize,
-                                                             MatrixSize, Alpha, ADataPtr, MatrixSize, BDataPtr,
-                                                             MatrixSize, Beta, CSectionPtr, MatrixSize),
-                             __FILE__, __LINE__, DeviceIndex);
+      if constexpr (IsHalf) {
+        compat::accellSafeCall(compat::gemmHalf(Blas, compat::BlasOperation::BLAS_OP_N,
+                                                compat::BlasOperation::BLAS_OP_N, MatrixSize, MatrixSize, MatrixSize,
+                                                Alpha, ADataPtr, MatrixSize, BDataPtr, MatrixSize, Beta, CSectionPtr,
+                                                MatrixSize),
+                               __FILE__, __LINE__, DeviceIndex);
+      } else {
+        compat::accellSafeCall(compat::gemm<FloatingPointType>(Blas, compat::BlasOperation::BLAS_OP_N,
+                                                               compat::BlasOperation::BLAS_OP_N, MatrixSize, MatrixSize,
+                                                               MatrixSize, Alpha, ADataPtr, MatrixSize, BDataPtr,
+                                                               MatrixSize, Beta, CSectionPtr, MatrixSize),
+                               __FILE__, __LINE__, DeviceIndex);
+      }
       compat::accellSafeCall(compat::deviceSynchronize(), __FILE__, __LINE__, DeviceIndex);
 
       // The number of executed flop for a gemm with two square 'MatrixSize' sized matricies is 2 *
       // ('MatrixSize'^3)
-      if (std::is_same_v<FloatingPointType, float>) {
+      if constexpr (std::is_same_v<FloatingPointType, float>) {
         ExecutedFlop.SingleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
-      } else if (std::is_same_v<FloatingPointType, double>) {
+      } else if constexpr (std::is_same_v<FloatingPointType, double>) {
         ExecutedFlop.DoubleFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
+      } else if constexpr (IsHalf) {
+        ExecutedFlop.HalfFlop += 2 * MatrixSize * MatrixSize * MatrixSize;
       }
     }
   }
@@ -272,14 +343,14 @@ void createLoad(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, s
 
 }; // namespace
 
-Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, uint64_t MatrixSize,
-           int Gpus) {
+Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, bool UseHalf,
+           uint64_t MatrixSize, int Gpus) {
   std::condition_variable WaitForInitCv;
   std::mutex WaitForInitCvMutex;
   bool InitDone = false;
 
   std::thread T(Cuda::initGpus, std::ref(ExecutedFlop), std::ref(WaitForInitCv), std::ref(WaitForInitCvMutex),
-                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, MatrixSize, Gpus);
+                std::ref(InitDone), std::cref(LoadVar), UseFloat, UseDouble, UseHalf, MatrixSize, Gpus);
   InitThread = std::move(T);
 
   std::unique_lock<std::mutex> Lk(WaitForInitCvMutex);
@@ -289,7 +360,7 @@ Cuda::Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloa
 
 void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                     bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
-                    bool UseDouble, uint64_t MatrixSize, int Gpus) {
+                    bool UseDouble, bool UseHalf, uint64_t MatrixSize, int Gpus) {
   std::condition_variable GpuThreadsWaitForInitCv;
   std::mutex GpuThreadsWaitForInitCvMutex;
   std::vector<std::thread> GpuThreads;
@@ -337,12 +408,21 @@ void Cuda::initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitC
         const std::lock_guard<std::mutex> Lk(GpuThreadsWaitForInitCvMutex);
 
         for (int I = 0; I < Gpus; ++I) {
-          // if there's a GPU in the system without Double Precision support, we
-          // have to correct this.
-          const auto Precision = getPrecision(I, UseDoubleConverted);
           void (*LoadFunc)(GpuFlop&, std::condition_variable&, std::mutex&, int, std::atomic<int>&,
-                           const volatile firestarter::LoadThreadWorkType&, uint64_t) =
-              Precision ? createLoad<double> : createLoad<float>;
+                           const volatile firestarter::LoadThreadWorkType&, uint64_t) = nullptr;
+
+          if (UseHalf && halfSupported(I)) {
+            LoadFunc = createLoad<compat::Half>;
+          } else {
+            if (UseHalf) {
+              firestarter::log::warn() << compat::AccelleratorString << " GPU " << I
+                                       << " does not support half precision. Selecting precision automatically.";
+            }
+            // if there's a GPU in the system without Double Precision support, we
+            // have to correct this.
+            const auto Precision = getPrecision(I, UseDoubleConverted);
+            LoadFunc = Precision ? createLoad<double> : createLoad<float>;
+          }
 
           std::thread T(LoadFunc, std::ref(ExecutedFlop), std::ref(GpuThreadsWaitForInitCv),
                         std::ref(GpuThreadsWaitForInitCvMutex), I, std::ref(InitCount), std::cref(LoadVar), MatrixSize);

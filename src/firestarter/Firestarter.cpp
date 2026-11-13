@@ -209,7 +209,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
 void Firestarter::mainThread() {
   firestarterTracingRegionBegin("Main-Thread");
 
-  Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
+  Cuda = std::make_unique<cuda::Cuda>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuUseHalf, Cfg.GpuMatrixSize,
+                                      Cfg.Gpus);
   Oneapi = std::make_unique<oneapi::OneAPI>(LoadVar, Cfg.GpuUseFloat, Cfg.GpuUseDouble, Cfg.GpuMatrixSize, Cfg.Gpus);
 
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {

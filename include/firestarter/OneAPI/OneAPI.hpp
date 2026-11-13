@@ -37,6 +37,8 @@ struct GpuFlop {
   std::atomic<uint64_t> SingleFlop = 0;
   /// The number of executed double precision flop
   std::atomic<uint64_t> DoubleFlop = 0;
+  /// The number of executed half precision flop
+  std::atomic<uint64_t> HalfFlop = 0;
 };
 
 /// This class handles the workload on OneAPI compatible GPUs. A gemm routine is used to stress them with a

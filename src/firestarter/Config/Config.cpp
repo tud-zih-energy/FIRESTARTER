@@ -160,7 +160,16 @@ Config::Config(int Argc, const char** Argv)
   if (firestarter::OptionalFeatures.gpuEnabled()) {
     Parser.add_options("general")
       ("f,usegpufloat", "Use single precision matrix multiplications\ninstead of default")
-      ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default")
+      ("d,usegpudouble", "Use double precision matrix multiplications\ninstead of default");
+  }
+
+  if (firestarter::OptionalFeatures.CudaEnabled) {
+    Parser.add_options("general")
+      ("usegpuhalf", "Use half precision (FP16) matrix multiplications\non tensor cores instead of default");
+  }
+
+  if (firestarter::OptionalFeatures.gpuEnabled()) {
+    Parser.add_options("general")
       ("g,gpus", "Number of gpus to use, default: -1 (all)",
         cxxopts::value<int>()->default_value("-1"))
       ("m,matrixsize", "Size of the matrix to calculate, default: 0 (maximum)",
@@ -323,9 +332,13 @@ Config::Config(int Argc, const char** Argv)
       GpuUseFloat = static_cast<bool>(Options.count("usegpufloat"));
       GpuUseDouble = static_cast<bool>(Options.count("usegpudouble"));
 
-      if (GpuUseFloat && GpuUseDouble) {
-        throw std::invalid_argument("Options -f/--usegpufloat and "
-                                    "-d/--usegpudouble cannot be used together.");
+      if (firestarter::OptionalFeatures.CudaEnabled) {
+        GpuUseHalf = static_cast<bool>(Options.count("usegpuhalf"));
+      }
+
+      if ((static_cast<int>(GpuUseFloat) + static_cast<int>(GpuUseDouble) + static_cast<int>(GpuUseHalf)) > 1) {
+        throw std::invalid_argument("Options -f/--usegpufloat, -d/--usegpudouble and "
+                                    "--usegpuhalf cannot be used together.");
       }
 
       GpuMatrixSize = Options["matrixsize"].as<unsigned>();

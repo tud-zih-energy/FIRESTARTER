@@ -37,6 +37,8 @@ struct GpuFlop {
   std::atomic<uint64_t> SingleFlop = 0;
   /// The number of executed double precision flop
   std::atomic<uint64_t> DoubleFlop = 0;
+  /// The number of executed half precision flop
+  std::atomic<uint64_t> HalfFlop = 0;
 };
 
 /// This class handles the workload on CUDA and HIP compatible GPUs. A gemm routine is used to stress them with a
@@ -60,12 +62,14 @@ private:
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
   /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
   /// UseDouble is set the precision will be choosen automatically.
+  /// \arg UseHalf Set to true if we want to stress using half precision (FP16) matrix multiplications with FP32
+  /// accumulation. This takes precedence over UseFloat and UseDouble.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
   static void initGpus(GpuFlop& ExecutedFlop, std::condition_variable& WaitForInitCv, std::mutex& WaitForInitCvMutex,
                        bool& InitDone, const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat,
-                       bool UseDouble, uint64_t MatrixSize, int Gpus);
+                       bool UseDouble, bool UseHalf, uint64_t MatrixSize, int Gpus);
 
 public:
   /// Initilize the cuda class. This will start a thread running the Cuda::initGpus function and wait until all gpus
@@ -74,11 +78,13 @@ public:
   /// \arg UseFloat Set to true if we want to stress using single precision floating points.
   /// \arg UseDouble Set to true if we want to stress using double precision floating points. If neither UseFloat or
   /// UseDouble is set the precision will be choosen automatically.
+  /// \arg UseHalf Set to true if we want to stress using half precision (FP16) matrix multiplications with FP32
+  /// accumulation. This takes precedence over UseFloat and UseDouble.
   /// \arg MatrixSize Set to a specific matrix size which will be choosen for the gemm operation or set to 0 for
   /// automatic selection.
   /// \arg Gpus Select the number of gpus to stress or -1 for all.
-  Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, uint64_t MatrixSize,
-       int Gpus)
+  Cuda(const volatile firestarter::LoadThreadWorkType& LoadVar, bool UseFloat, bool UseDouble, bool UseHalf,
+       uint64_t MatrixSize, int Gpus)
 #if defined(FIRESTARTER_BUILD_CUDA) || defined(FIRESTARTER_BUILD_HIP)
       ;
 #else
@@ -86,6 +92,7 @@ public:
     (void)&LoadVar;
     (void)UseFloat;
     (void)UseDouble;
+    (void)UseHalf;
     (void)MatrixSize;
     (void)Gpus;
   }

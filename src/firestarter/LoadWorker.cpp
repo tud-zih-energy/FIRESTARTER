@@ -240,6 +240,7 @@ void Firestarter::printPerformanceReport() {
 
     auto SingleFlops = static_cast<double>(GpuPtr->executedFlop().SingleFlop.load()) * 0.000000001 / Runtime;
     auto DoubleFlops = static_cast<double>(GpuPtr->executedFlop().DoubleFlop.load()) * 0.000000001 / Runtime;
+    auto HalfFlops = static_cast<double>(GpuPtr->executedFlop().HalfFlop.load()) * 0.000000001 / Runtime;
 
     if (SingleFlops > 0) {
       log::debug() << "\n"
@@ -251,6 +252,11 @@ void Firestarter::printPerformanceReport() {
       log::debug() << "\n"
                    << "estimated floating point performance (GPU)**: " << FormatString(DoubleFlops)
                    << " GFLOPS (double)";
+    }
+
+    if (HalfFlops > 0) {
+      log::debug() << "\n"
+                   << "estimated floating point performance (GPU)**: " << FormatString(HalfFlops) << " GFLOPS (half)";
     }
   };
 

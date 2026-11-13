@@ -114,6 +114,8 @@ struct Config {
   /// Should the GPUs use double point precision? If neither GpuUseFloat or GpuUseDouble is set, precision will be
   /// choosen automatically.
   bool GpuUseDouble = false;
+  /// Should the GPUs use half precision (FP16) matrix multiplications? This is only available for CUDA and HIP.
+  bool GpuUseHalf = false;
   /// Should we print all available metrics.
   bool ListMetrics = false;
   /// Do we perform an measurement.
