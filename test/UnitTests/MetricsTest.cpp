@@ -40,6 +40,7 @@ template <int32_t ReturnValue> auto init() -> int32_t { return ReturnValue; };
 
 auto getError() -> const char* { return ""; };
 
+#if defined(linux)
 using InsertFunction = void (*)(void*, uint64_t, int64_t, double);
 InsertFunction FrequencyInsert = nullptr;
 void* FrequencyContext = nullptr;
@@ -57,6 +58,7 @@ auto registerIpc(InsertFunction Insert, void* Context) -> int32_t {
   IpcContext = Context;
   return 0;
 }
+#endif
 
 const MetricType InsertCallbackMetricType{
     /*Absolute=*/0,       /*Accumalative=*/0,         /*DivideByThreadCount=*/0,
@@ -503,6 +505,7 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
   EXPECT_EQ(AvailableRoot->Submetrics[1]->Values[0], TV2);
 }
 
+#if defined(linux)
 TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
   const auto OriginalFrequency = PerfMetric::PerfFreqMetric;
   const auto OriginalIpc = PerfMetric::PerfIpcMetric;
@@ -562,3 +565,4 @@ TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
     EXPECT_DOUBLE_EQ(Unnormalized.at(Ipc).Average, 3.0);
   }
 }
+#endif
