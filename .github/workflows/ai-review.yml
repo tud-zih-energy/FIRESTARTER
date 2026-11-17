@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Run PR-Agent
-        uses: the-pr-agent/pr-agent@main
+        uses: docker://pragent/pr-agent@sha256:3121a7b8e3ab497b4df09dea6a444da8f01a474496c8c2f722828512c52fd266
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
