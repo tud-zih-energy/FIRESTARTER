@@ -37,8 +37,3 @@ it compiles.
 
 require_security_review = true
 require_tests_review = true
-require_risk_assessment = true
-require_merge_recommendation = true
-publish_merge_recommendation_status = true
-enable_large_pr_chunking = true
-
