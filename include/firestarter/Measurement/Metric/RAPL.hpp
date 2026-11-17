@@ -41,6 +41,8 @@ private:
     std::string Path;
     /// The name of this metric
     std::string Name;
+    /// The name of the RAPL domain without the names of its parent domains, e.g. dram
+    std::string DomainName;
     /// The last reading of this counter
     int64_t LastReading;
     /// The number of times the counter overflowed
@@ -88,6 +90,11 @@ private:
         throw std::invalid_argument("Not a valid metric");
       }
 
+      {
+        std::ifstream NameStream(this->Path + "/name");
+        std::getline(NameStream, DomainName);
+      }
+
       std::stringstream EnergyUjPath;
       EnergyUjPath << this->Path << "/energy_uj";
       std::ifstream EnergyReadingStream(EnergyUjPath.str());
@@ -113,6 +120,9 @@ private:
 
     /// Get the name of this metric
     auto name() -> const auto& { return Name; }
+
+    /// Get the name of the RAPL domain without the names of its parent domains
+    auto domainName() -> const auto& { return DomainName; }
 
     /// Read the RAPL counter and update the internal state
     void read() {
