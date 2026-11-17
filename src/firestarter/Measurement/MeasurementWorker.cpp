@@ -116,10 +116,11 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
 
   auto StartTime = this->StartTime;
   auto StopTime = std::chrono::high_resolution_clock::now();
+  const auto ThreadCount = NumThreads.load();
 
   for (auto& Metric : Metrics) {
     if (Metric->Initialized) {
-      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, NumThreads));
+      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, ThreadCount));
     }
   }
 
