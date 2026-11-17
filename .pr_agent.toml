@@ -1,5 +1,5 @@
 [config]
-model = "deepseek-ai/DeepSeek-V4-Flash"
+model = "openai/deepseek-ai/DeepSeek-V4-Flash"
 fallback_models = []
 
 [openai]
