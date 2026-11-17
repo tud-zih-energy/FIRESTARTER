@@ -522,7 +522,7 @@ TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
 
   uint64_t ThreadCount = 4;
   firestarter::measurement::MeasurementWorker Worker(std::chrono::milliseconds(1), ThreadCount, {}, {},
-                                                      [&ThreadCount]() { return ThreadCount; });
+                                                     [&ThreadCount]() { return ThreadCount; });
   const auto Frequency = firestarter::MetricName::fromString("perf-freq");
   const auto Ipc = firestarter::MetricName::fromString("perf-ipc");
   Worker.initMetrics({Frequency, Ipc});
