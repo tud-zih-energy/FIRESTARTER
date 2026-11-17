@@ -30,8 +30,8 @@ jobs:
 
           config.model: "openai/deepseek-ai/DeepSeek-V4.1-Flash"
           config.fallback_models: '[]'
-          config.custom_model_max_tokens: "32000"
-          config.max_model_tokens: "32000"
+          config.custom_model_max_tokens: "1048576"
+          config.max_model_tokens: "1048576"
 
           github_action_config.auto_review: "true"
           github_action_config.pr_actions: '["opened", "reopened", "synchronize", "ready_for_review"]'
