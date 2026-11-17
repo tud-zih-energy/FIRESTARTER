@@ -60,9 +60,11 @@ namespace firestarter::measurement {
 
 MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
                                      std::set<std::string> const& MetricDylibsNames,
-                                     std::set<std::string> const& StdinMetricsNames)
+                                     std::set<std::string> const& StdinMetricsNames,
+                                     std::function<uint64_t()> NumThreadsProvider)
     : UpdateInterval(UpdateInterval)
-    , NumThreads(NumThreads) {
+    , NumThreads(NumThreads)
+    , NumThreadsProvider(std::move(NumThreadsProvider)) {
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   for (auto const& Dylib : MetricDylibsNames) {
     Metrics.emplace_back(RootMetric::fromDylib(Dylib));
@@ -116,7 +118,7 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
 
   auto StartTime = this->StartTime;
   auto StopTime = std::chrono::high_resolution_clock::now();
-  const auto ThreadCount = NumThreads.load();
+  const auto ThreadCount = NumThreadsProvider ? NumThreadsProvider() : NumThreads;
 
   for (auto& Metric : Metrics) {
     if (Metric->Initialized) {

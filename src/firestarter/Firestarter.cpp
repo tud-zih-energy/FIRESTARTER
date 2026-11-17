@@ -110,7 +110,8 @@ Firestarter::Firestarter(Config&& ProvidedConfig)
   if constexpr (firestarter::OptionalFeatures.OptimizationEnabled) {
     if (Cfg.Measurement || Cfg.ListMetrics || Cfg.Optimize) {
       MeasurementWorker = std::make_shared<measurement::MeasurementWorker>(
-          Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics);
+          Cfg.MeasurementInterval, Affinity.RequestedNumThreads, Cfg.MetricPaths, Cfg.StdinMetrics,
+          [this]() { return static_cast<uint64_t>(LoadThreads.size()); });
 
       if (Cfg.ListMetrics) {
         log::info() << MeasurementWorker->availableMetricsString();

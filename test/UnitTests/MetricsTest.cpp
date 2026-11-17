@@ -503,7 +503,7 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
   EXPECT_EQ(AvailableRoot->Submetrics[1]->Values[0], TV2);
 }
 
-TEST(MetricsTest, MeasurementWorkerUsesUpdatedThreadCount) {
+TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
   const auto OriginalFrequency = PerfMetric::PerfFreqMetric;
   const auto OriginalIpc = PerfMetric::PerfIpcMetric;
   struct RestoreMetrics {
@@ -520,17 +520,17 @@ TEST(MetricsTest, MeasurementWorkerUsesUpdatedThreadCount) {
   PerfMetric::PerfIpcMetric = {"perf-ipc", {1, 0, 0, 1, 0, 0}, "IPC",      0, nullptr, init<0>, init<0>, nullptr,
                                nullptr,    getError,           registerIpc};
 
-  firestarter::measurement::MeasurementWorker Worker(std::chrono::milliseconds(1), 4, {}, {});
+  uint64_t ThreadCount = 4;
+  firestarter::measurement::MeasurementWorker Worker(std::chrono::milliseconds(1), ThreadCount, {}, {},
+                                                      [&ThreadCount]() { return ThreadCount; });
   const auto Frequency = firestarter::MetricName::fromString("perf-freq");
   const auto Ipc = firestarter::MetricName::fromString("perf-ipc");
   Worker.initMetrics({Frequency, Ipc});
   ASSERT_NE(FrequencyInsert, nullptr);
   ASSERT_NE(IpcInsert, nullptr);
 
-  for (const auto ThreadCount : {4U, 2U, 8U}) {
-    if (ThreadCount != 4U) {
-      Worker.setNumThreads(ThreadCount);
-    }
+  for (const auto ActiveThreadCount : {4U, 2U, 8U}) {
+    ThreadCount = ActiveThreadCount;
     Worker.startMeasurement();
     const auto InsertValues = [](double FrequencyValue) {
       const auto Time = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -548,9 +548,9 @@ TEST(MetricsTest, MeasurementWorkerUsesUpdatedThreadCount) {
     EXPECT_GT(Values.at(Frequency).Average, 0.0);
     EXPECT_DOUBLE_EQ(Values.at(Ipc).Average, 3.0);
 
-    Worker.setNumThreads(1);
+    ThreadCount = 1;
     const auto Unnormalized = Worker.getValues();
-    EXPECT_NEAR(Values.at(Frequency).Average * ThreadCount, Unnormalized.at(Frequency).Average,
+    EXPECT_NEAR(Values.at(Frequency).Average * ActiveThreadCount, Unnormalized.at(Frequency).Average,
                 Unnormalized.at(Frequency).Average * 1e-12);
     EXPECT_DOUBLE_EQ(Unnormalized.at(Ipc).Average, 3.0);
   }
