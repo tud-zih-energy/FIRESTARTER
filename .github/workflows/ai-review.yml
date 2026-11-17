@@ -28,7 +28,7 @@ jobs:
           OPENAI__API_BASE: https://llm.scads.ai/v1
           OPENAI__KEY: ${{ secrets.LLM_API_TOKEN }}
 
-          config.model: "deepseek-ai/DeepSeek-V4.1-Flash"
+          config.model: "openai/deepseek-ai/DeepSeek-V4.1-Flash"
           config.fallback_models: '[]'
 
           github_action_config.auto_review: "true"
