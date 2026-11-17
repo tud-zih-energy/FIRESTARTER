@@ -2,6 +2,10 @@
 model = "openai/deepseek-ai/DeepSeek-V4.1-Flash"
 fallback_models = []
 
+# Required for models unknown to PR-Agent
+custom_model_max_tokens = 32000
+max_model_tokens = 32000
+
 [openai]
 api_base = "https://llm.scads.ai/v1"
 
