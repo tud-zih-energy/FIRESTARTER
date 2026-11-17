@@ -25,7 +25,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          OPENAI__API_BASE: ${{ secrets.LLM_API_BASE }}
+          OPENAI__API_BASE: https://llm.scads.ai/v1
           OPENAI__KEY: ${{ secrets.LLM_API_TOKEN }}
 
           config.model: "deepseek-ai/DeepSeek-V4.1-Flash"
