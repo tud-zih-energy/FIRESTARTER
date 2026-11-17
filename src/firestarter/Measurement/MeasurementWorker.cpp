@@ -64,6 +64,7 @@ MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, u
                                      std::function<uint64_t()> NumThreadsProvider)
     : UpdateInterval(UpdateInterval)
     , NumThreads(NumThreads)
+    , MeasurementNumThreads(NumThreads)
     , NumThreadsProvider(std::move(NumThreadsProvider)) {
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   for (auto const& Dylib : MetricDylibsNames) {
@@ -110,7 +111,10 @@ void MeasurementWorker::initMetrics(std::set<MetricName> const& MetricNames) {
   }
 }
 
-void MeasurementWorker::startMeasurement() { StartTime = std::chrono::high_resolution_clock::now(); }
+void MeasurementWorker::startMeasurement() {
+  MeasurementNumThreads = NumThreadsProvider ? NumThreadsProvider() : NumThreads;
+  StartTime = std::chrono::high_resolution_clock::now();
+}
 
 auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
                                   std::chrono::milliseconds StopDelta) -> MetricSummaries {
@@ -118,11 +122,9 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
 
   auto StartTime = this->StartTime;
   auto StopTime = std::chrono::high_resolution_clock::now();
-  const auto ThreadCount = NumThreadsProvider ? NumThreadsProvider() : NumThreads;
-
   for (auto& Metric : Metrics) {
     if (Metric->Initialized) {
-      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, ThreadCount));
+      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, MeasurementNumThreads));
     }
   }
 

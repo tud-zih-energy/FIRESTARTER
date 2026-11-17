@@ -532,23 +532,30 @@ TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
   for (const auto ActiveThreadCount : {4U, 2U, 8U}) {
     ThreadCount = ActiveThreadCount;
     Worker.startMeasurement();
-    const auto InsertValues = [](double FrequencyValue) {
-      const auto Time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::high_resolution_clock::now().time_since_epoch())
-                            .count();
+    const auto InsertValues = [](double FrequencyValue, int64_t Time) {
       FrequencyInsert(FrequencyContext, ROOT_METRIC_INDEX, Time, FrequencyValue);
       IpcInsert(IpcContext, ROOT_METRIC_INDEX, Time, 3.0);
     };
-    InsertValues(0.0);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    InsertValues(100.0);
+    const auto StartTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               std::chrono::high_resolution_clock::now().time_since_epoch())
+                               .count();
+    InsertValues(0.0, StartTime);
+    InsertValues(100.0, StartTime + 10'000'000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(15));
 
+    ThreadCount = 1;
     const auto Values = Worker.getValues();
     ASSERT_EQ(Values.at(Frequency).NumTimepoints, 1);
     EXPECT_GT(Values.at(Frequency).Average, 0.0);
     EXPECT_DOUBLE_EQ(Values.at(Ipc).Average, 3.0);
 
-    ThreadCount = 1;
+    Worker.startMeasurement();
+    const auto UnnormalizedStartTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                           std::chrono::high_resolution_clock::now().time_since_epoch())
+                                           .count();
+    InsertValues(0.0, UnnormalizedStartTime);
+    InsertValues(100.0, UnnormalizedStartTime + 10'000'000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(15));
     const auto Unnormalized = Worker.getValues();
     EXPECT_NEAR(Values.at(Frequency).Average * ActiveThreadCount, Unnormalized.at(Frequency).Average,
                 Unnormalized.at(Frequency).Average * 1e-12);

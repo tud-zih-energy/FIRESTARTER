@@ -65,6 +65,8 @@ private:
 
   /// The number of threads in the measured experiment. This is required by some metrics.
   const uint64_t NumThreads;
+  /// The thread count captured when the current measurement started.
+  uint64_t MeasurementNumThreads;
 
   /// Optional source for the current number of threads. If unset, NumThreads is used.
   std::function<uint64_t()> NumThreadsProvider;
