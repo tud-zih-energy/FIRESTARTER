@@ -67,11 +67,12 @@ auto PerfMetric::init() -> int32_t {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   if (const char* Cpu = std::getenv("FIRESTARTER_PERF_CPU")) {
     // Collect the perf metrics only from a specific CPU.
-    auto ErrorString = std::string(Cpu) + " is not a valid value for FIRESTARTER_PERF_CPU.";
+    const auto CpuValue = std::string(Cpu);
+    auto ErrorString = CpuValue + " is not a valid value for FIRESTARTER_PERF_CPU.";
     try {
       auto Parsed = std::string::size_type{0};
-      const auto ParsedCpu = std::stoi(Cpu, &Parsed);
-      if (Cpu[Parsed] != '\0' || ParsedCpu < 0) {
+      const auto ParsedCpu = std::stoi(CpuValue, &Parsed);
+      if (Parsed != CpuValue.size() || ParsedCpu < 0) {
         throw std::invalid_argument(ErrorString);
       }
       Instance.PerfCpu = ParsedCpu;
