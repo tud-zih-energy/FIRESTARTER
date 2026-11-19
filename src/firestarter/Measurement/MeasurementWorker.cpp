@@ -40,6 +40,7 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -60,9 +61,12 @@ namespace firestarter::measurement {
 
 MeasurementWorker::MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
                                      std::set<std::string> const& MetricDylibsNames,
-                                     std::set<std::string> const& StdinMetricsNames)
+                                     std::set<std::string> const& StdinMetricsNames,
+                                     std::function<uint64_t()> NumThreadsProvider)
     : UpdateInterval(UpdateInterval)
-    , NumThreads(NumThreads) {
+    , NumThreads(NumThreads)
+    , MeasurementNumThreads(NumThreads)
+    , NumThreadsProvider(std::move(NumThreadsProvider)) {
 #if not(defined(FIRESTARTER_LINK_STATIC)) && defined(linux)
   for (auto const& Dylib : MetricDylibsNames) {
     Metrics.emplace_back(RootMetric::fromDylib(Dylib));
@@ -108,7 +112,10 @@ void MeasurementWorker::initMetrics(std::set<MetricName> const& MetricNames) {
   }
 }
 
-void MeasurementWorker::startMeasurement() { StartTime = std::chrono::high_resolution_clock::now(); }
+void MeasurementWorker::startMeasurement() {
+  MeasurementNumThreads = NumThreadsProvider ? NumThreadsProvider() : NumThreads;
+  StartTime = std::chrono::high_resolution_clock::now();
+}
 
 auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
                                   std::chrono::milliseconds StopDelta) -> MetricSummaries {
@@ -116,10 +123,9 @@ auto MeasurementWorker::getValues(std::chrono::milliseconds StartDelta,
 
   auto StartTime = this->StartTime;
   auto StopTime = std::chrono::high_resolution_clock::now();
-
   for (auto& Metric : Metrics) {
     if (Metric->Initialized) {
-      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, NumThreads));
+      Measurement.merge(Metric->getSummaries(StartTime, StopTime, StartDelta, StopDelta, MeasurementNumThreads));
     }
   }
 
