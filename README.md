@@ -165,6 +165,8 @@ found. Please provide it through the `CC` and `CXX` environment variables.
 The Linux version of FIRESTARTER supports to collect metrics during runtime.
 Available metrics can be shown with `--list-metrics`.  Default metrics are
 `perf-ipc`, `perf-freq`, `ipc-estimate` and `sysfs-powercap-rapl`.
+Please note that the `perf-*` metrics require either `CAP_SYS_ADMIN` or
+`/proc/sys/kernel/perf_event_paranoid` to be set accordingly for your user.
 
 ### Custom Metrics
 
@@ -253,12 +255,29 @@ If `perf-ipc` is not available use `ipc-estimate`
 FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc-estimate
 ```
 
+### Metric Options
+
+By default, `perf-ipc` and `perf-freq` collect events from the calling thread
+and its subsequently created threads on any CPU. `perf-freq` is divided by
+the measurement's thread count. Set `FIRESTARTER_PERF_CPU` to one CPU index
+or a comma-separated list of distinct, non-negative CPU indices (for example,
+`0,2,4`) to collect events only while those threads run on the selected CPUs.
+For a selection, `perf-ipc` is the ratio of total instructions to total
+cycles, and `perf-freq` is the total cycle rate divided by the number of
+selected CPUs, rather than the thread count. This is an average over the
+selected CPUs, including any that are idle.
+
+The optional `NumThreadsProvider` argument to `MeasurementWorker` supplies the
+thread count at the start of each measurement, allowing external users to
+change it between measurements. Without a provider, the constructor's fixed
+thread count is used; changes during a measurement are not tracked.
+
 ## OneAPI
 `FIRESTARTER_ONEAPI` needs to find certain libraries, which are installed with
 the Intel OneAPI toolkits, since some of these libraries cannot be linked statically.
 Make sure that they are installed and `$LD_LIBRARY_PATH` is set-up correctly.
 Make also sure that you have the correct drivers for your GPU installed so that
-OneAPI can apply work to it. 
+OneAPI can apply work to it.
 
 ## References
 

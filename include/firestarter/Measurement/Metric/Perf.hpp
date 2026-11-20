@@ -25,6 +25,7 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 /// The wrapper for the C interface to the PerfIpcMetric and PerfFreqMetric metric.
 class PerfMetric {
@@ -47,23 +48,20 @@ private:
   /// The error string of this metric
   std::string ErrorString;
 
-  /// The file descriptor of the perf_event_open syscall for the PERF_COUNT_HW_CPU_CYCLES event. This file descriptor
-  /// handles as a group for the other file descriptor.
-  int CpuCyclesFd = -1;
-  /// The file descriptor of the perf_event_open syscall for the PERF_COUNT_HW_INSTRUCTIONS event.
-  int InstructionsFd = -1;
-  /// The PERF_EVENT_IOC_ID for the cpu cycles file descriptor.
-  uint64_t CpuCyclesId{};
-  /// The PERF_EVENT_IOC_ID for the cpu instruction file descriptor.
-  uint64_t InstructionsId{};
+  struct EventGroup {
+    int CpuCyclesFd = -1;
+    int InstructionsFd = -1;
+    uint64_t CpuCyclesId{};
+    uint64_t InstructionsId{};
+    ReadFormat Last{};
+  };
+  std::vector<EventGroup> Groups;
+  bool CpuFilter = false;
 
   /// The flag that stop init from being executed multiple times.
   bool InitDone = false;
   /// The value that is returned if the init function called multiple times.
   int32_t InitValue{};
-
-  /// Save the last read metric for the perf-ipc metric. This value will be updated when the perf-ipc metric is read.
-  struct ReadFormat Last {};
 
   /// Get a reading of the perf-freq and perf-ipc metric. Pointers can be nullptr.
   /// \arg IpcValue The pointer to which the value for ipc metric value will be saved.

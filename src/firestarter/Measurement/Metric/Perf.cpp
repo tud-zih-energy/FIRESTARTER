@@ -21,16 +21,21 @@
 
 #include "firestarter/Measurement/Metric/Perf.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <charconv>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <linux/perf_event.h>
 #include <string>
+#include <string_view>
 #include <sys/ioctl.h>
 #include <sys/syscall.h> // IWYU pragma: keep
+#include <system_error>
 #include <unistd.h>
+#include <vector>
 
 namespace {
 // NOLINTNEXTLINE(misc-include-cleaner)
@@ -43,14 +48,17 @@ auto perfEventOpen(struct perf_event_attr* HwEvent, pid_t Pid, int Cpu, int Grou
 auto PerfMetric::fini() -> int32_t {
   auto& Instance = instance();
 
-  if (!(Instance.CpuCyclesFd < 0)) {
-    close(Instance.CpuCyclesFd);
-    Instance.CpuCyclesFd = -1;
+  for (const auto& Group : Instance.Groups) {
+    if (Group.InstructionsFd >= 0) {
+      close(Group.InstructionsFd);
+    }
+    if (Group.CpuCyclesFd >= 0) {
+      close(Group.CpuCyclesFd);
+    }
   }
-  if (!(Instance.InstructionsFd < 0)) {
-    close(Instance.InstructionsFd);
-    Instance.InstructionsFd = -1;
-  }
+  Instance.Groups.clear();
+  Instance.CpuFilter = false;
+  PerfFreqMetric.Type.DivideByThreadCount = 1;
   Instance.InitDone = false;
   return EXIT_SUCCESS;
 }
@@ -60,6 +68,34 @@ auto PerfMetric::init() -> int32_t {
 
   if (Instance.InitDone) {
     return Instance.InitValue;
+  }
+
+  std::vector<int> Cpus;
+  // No other functions are setting the environment variables
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  if (const char* CpuEnv = std::getenv("FIRESTARTER_PERF_CPU")) {
+    const std::string_view CpuValue(CpuEnv);
+    auto Remaining = CpuValue;
+    while (true) {
+      const auto Comma = Remaining.find(',');
+      const auto Token = Remaining.substr(0, Comma);
+      int Cpu = -1;
+      const auto Result = std::from_chars(Token.data(), Token.data() + Token.size(), Cpu);
+      if (Token.empty() || Result.ec != std::errc{} || Result.ptr != Token.data() + Token.size() || Cpu < 0 ||
+          std::find(Cpus.begin(), Cpus.end(), Cpu) != Cpus.end()) {
+        Instance.ErrorString = std::string(CpuValue) + " is not a valid value for FIRESTARTER_PERF_CPU.";
+        Instance.InitValue = EXIT_FAILURE;
+        Instance.InitDone = true;
+        return EXIT_FAILURE;
+      }
+      Cpus.push_back(Cpu);
+      if (Comma == std::string_view::npos) {
+        break;
+      }
+      Remaining.remove_prefix(Comma + 1);
+    }
+  } else {
+    Cpus.push_back(-1);
   }
 
   if (access(PerfEventParanoidFile, F_OK) == -1) {
@@ -103,30 +139,7 @@ auto PerfMetric::init() -> int32_t {
   CpuCyclesAttr.exclude_kernel = 1;
   CpuCyclesAttr.exclude_hv = 1;
 
-  Instance.CpuCyclesFd = perfEventOpen(&CpuCyclesAttr,
-                                       // pid == 0 and cpu == -1
-                                       // This measures the calling process/thread on any CPU.
-                                       0, -1,
-                                       // The group_fd argument allows event groups to be created.  An event
-                                       // group has one event which is the group leader.  The leader is
-                                       // created first, with group_fd = -1.  The rest of the group members
-                                       // are created with subsequent perf_event_open() calls with group_fd
-                                       // being set to the file descriptor of the group leader.
-                                       -1, 0);
-
-  if (Instance.CpuCyclesFd < 0) {
-    fini();
-    Instance.ErrorString = "perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES";
-    Instance.InitValue = EXIT_FAILURE;
-    Instance.InitDone = true;
-    return EXIT_FAILURE;
-  }
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-  ioctl(Instance.CpuCyclesFd, PERF_EVENT_IOC_ID, &Instance.CpuCyclesId);
-
   struct perf_event_attr InstructionsAttr {};
-  std::memset(&InstructionsAttr, 0, sizeof(struct perf_event_attr));
   InstructionsAttr.type = PERF_TYPE_HARDWARE;
   InstructionsAttr.size = sizeof(struct perf_event_attr);
   InstructionsAttr.config = PERF_COUNT_HW_INSTRUCTIONS;
@@ -135,41 +148,45 @@ auto PerfMetric::init() -> int32_t {
   InstructionsAttr.exclude_kernel = 1;
   InstructionsAttr.exclude_hv = 1;
 
-  Instance.InstructionsFd = perfEventOpen(&InstructionsAttr,
-                                          // pid == 0 and cpu == -1
-                                          // This measures the calling process/thread on any CPU.
-                                          0, -1,
-                                          // The group_fd argument allows event groups to be created.  An event
-                                          // group has one event which is the group leader.  The leader is
-                                          // created first, with group_fd = -1.  The rest of the group members
-                                          // are created with subsequent perf_event_open() calls with group_fd
-                                          // being set to the file descriptor of the group leader.
-                                          Instance.CpuCyclesFd, 0);
-
-  if (Instance.InstructionsFd < 0) {
+  const auto Fail = [&Instance](const std::string& Error) {
     fini();
-    Instance.ErrorString = "perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS";
+    Instance.ErrorString = Error;
     Instance.InitValue = EXIT_FAILURE;
     Instance.InitDone = true;
     return EXIT_FAILURE;
+  };
+
+  for (const int Cpu : Cpus) {
+    Instance.Groups.emplace_back();
+    auto& Group = Instance.Groups.back();
+    // pid 0 tracks the calling thread and newly created descendants, restricted
+    // to Cpu when it is non-negative.
+    Group.CpuCyclesFd = perfEventOpen(&CpuCyclesAttr, 0, Cpu, -1, 0);
+
+    if (Group.CpuCyclesFd < 0) {
+      return Fail("perf_event_open failed for PERF_COUNT_HW_CPU_CYCLES");
+    }
+
+    Group.InstructionsFd = perfEventOpen(&InstructionsAttr, 0, Cpu, Group.CpuCyclesFd, 0);
+    if (Group.InstructionsFd < 0) {
+      return Fail("perf_event_open failed for PERF_COUNT_HW_INSTRUCTIONS");
+    }
+
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg)
+    if (ioctl(Group.CpuCyclesFd, PERF_EVENT_IOC_ID, &Group.CpuCyclesId) < 0 ||
+        ioctl(Group.InstructionsFd, PERF_EVENT_IOC_ID, &Group.InstructionsId) < 0 ||
+        ioctl(Group.CpuCyclesFd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP) < 0 ||
+        ioctl(Group.CpuCyclesFd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP) < 0) {
+      return Fail("perf event ioctl failed");
+    }
+    // NOLINTEND(cppcoreguidelines-pro-type-vararg)
+    if (read(Group.CpuCyclesFd, &Group.Last, sizeof(Group.Last)) != sizeof(Group.Last) || Group.Last.Nr != 2) {
+      return Fail("group read failed in init");
+    }
   }
 
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-  ioctl(Instance.InstructionsFd, PERF_EVENT_IOC_ID, &Instance.InstructionsId);
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-  ioctl(Instance.CpuCyclesFd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-  ioctl(Instance.CpuCyclesFd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
-
-  if (0 == read(Instance.CpuCyclesFd, &Instance.Last, sizeof(Last))) {
-    fini();
-    Instance.ErrorString = "group read failed in init";
-    Instance.InitValue = EXIT_FAILURE;
-    Instance.InitDone = true;
-    return EXIT_FAILURE;
-  }
-
+  Instance.CpuFilter = Cpus.front() != -1;
+  PerfFreqMetric.Type.DivideByThreadCount = Instance.CpuFilter ? 0 : 1;
   Instance.InitValue = EXIT_SUCCESS;
   Instance.InitDone = true;
   return EXIT_SUCCESS;
@@ -191,31 +208,43 @@ auto PerfMetric::valueFromId(struct ReadFormat* Reader, uint64_t Id) -> uint64_t
 auto PerfMetric::getReading(double* IpcValue, double* FreqValue) -> int32_t {
   auto& Instance = instance();
 
-  if (Instance.CpuCyclesFd < 0 || Instance.InstructionsFd < 0) {
-    fini();
+  if (Instance.Groups.empty()) {
+    Instance.ErrorString = "perf metric is not initialized";
     return EXIT_FAILURE;
   }
 
-  struct ReadFormat ReadValues {};
-
-  if (0 == read(Instance.CpuCyclesFd, &ReadValues, sizeof(ReadValues))) {
-    fini();
-    Instance.ErrorString = "group read failed";
-    return EXIT_FAILURE;
+  std::vector<ReadFormat> Readings(Instance.Groups.size());
+  for (size_t I = 0; I < Instance.Groups.size(); ++I) {
+    if (read(Instance.Groups[I].CpuCyclesFd, &Readings[I], sizeof(ReadFormat)) != sizeof(ReadFormat) ||
+        Readings[I].Nr != 2) {
+      fini();
+      Instance.ErrorString = "group read failed";
+      return EXIT_FAILURE;
+    }
   }
 
+  uint64_t InstructionsDiff = 0;
+  uint64_t CyclesDiff = 0;
+  double Cycles = 0;
+  for (size_t I = 0; I < Instance.Groups.size(); ++I) {
+    auto& Group = Instance.Groups[I];
+    auto& Reading = Readings[I];
+    const auto CurrentCycles = valueFromId(&Reading, Group.CpuCyclesId);
+    Cycles += static_cast<double>(CurrentCycles);
+    if (IpcValue != nullptr) {
+      InstructionsDiff += valueFromId(&Reading, Group.InstructionsId) - valueFromId(&Group.Last, Group.InstructionsId);
+      CyclesDiff += CurrentCycles - valueFromId(&Group.Last, Group.CpuCyclesId);
+      Group.Last = Reading;
+    }
+  }
   if (IpcValue != nullptr) {
-    std::array<uint64_t, 2> Diff = {
-        valueFromId(&ReadValues, Instance.InstructionsId) - valueFromId(&Instance.Last, Instance.InstructionsId),
-        valueFromId(&ReadValues, Instance.CpuCyclesId) - valueFromId(&Instance.Last, Instance.CpuCyclesId)};
-
-    std::memcpy(&Instance.Last, &ReadValues, sizeof(Last));
-
-    *IpcValue = static_cast<double>(Diff[0]) / static_cast<double>(Diff[1]);
+    *IpcValue = static_cast<double>(InstructionsDiff) / static_cast<double>(CyclesDiff);
   }
-
   if (FreqValue != nullptr) {
-    *FreqValue = static_cast<double>(valueFromId(&ReadValues, Instance.CpuCyclesId)) / 1e9;
+    *FreqValue = Cycles / 1e9;
+    if (Instance.CpuFilter) {
+      *FreqValue /= static_cast<double>(Instance.Groups.size());
+    }
   }
 
   return EXIT_SUCCESS;
