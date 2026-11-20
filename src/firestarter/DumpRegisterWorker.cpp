@@ -129,7 +129,11 @@ void Firestarter::dumpRegisterWorker(std::unique_ptr<DumpRegisterWorkerData> Dat
   for (; Data->LoadWorkerDataPtr->LoadVar != LoadThreadWorkType::LoadStop;) {
     // signal the thread to dump its largest SIMD registers
     DumpVar = DumpVariable::Start;
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
     __asm__ __volatile__("mfence;");
+#elif defined(__aarch64__)
+    __asm__ __volatile__("dmb sy" : : : "memory");
+#endif
     while (DumpVar == DumpVariable::Start) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }

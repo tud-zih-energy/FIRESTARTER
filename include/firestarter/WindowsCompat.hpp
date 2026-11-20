@@ -36,7 +36,7 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-#if defined(__clang__)
+#if defined(__clang__) && (defined(__x86_64__) || defined(__i386__))
 #include <emmintrin.h>
 #elif not(defined(__MINGW32__) || defined(__MINGW64__))
 void _mm_mfence();

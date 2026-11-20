@@ -6,6 +6,21 @@ if (FIRESTARTER_BUILD_HWLOC)
 	add_library(hwloc STATIC IMPORTED)
 
 	if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+		# When cross-compiling, hwloc's autotools build must be told the target
+		# triplet via --host. The triplet can be set explicitly with
+		# FIRESTARTER_HWLOC_HOST (e.g. aarch64-linux-gnu); otherwise it is
+		# derived from the CMake system processor.
+		if (CMAKE_CROSSCOMPILING)
+			if (DEFINED FIRESTARTER_HWLOC_HOST)
+				set(_HWLOC_HOST_TRIPLET "${FIRESTARTER_HWLOC_HOST}")
+			else()
+				set(_HWLOC_HOST_TRIPLET "${CMAKE_SYSTEM_PROCESSOR}-linux-gnu")
+			endif()
+			set(_HWLOC_HOST_FLAG "--host=${_HWLOC_HOST_TRIPLET}")
+			message(STATUS "Cross-compiling hwloc for host: ${_HWLOC_HOST_TRIPLET}")
+		else()
+			set(_HWLOC_HOST_FLAG "")
+		endif()
 		ExternalProject_Add(
 			HwlocInstall PREFIX ${PROJECT_SOURCE_DIR}/lib/Hwloc
 			DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/download
@@ -13,7 +28,7 @@ if (FIRESTARTER_BUILD_HWLOC)
 			INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib/Hwloc/install
 			URL https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.0.tar.gz
 			URL_HASH SHA1=a5c2dad233609b1a1a7f2e905426b68bde725c70
-			CONFIGURE_COMMAND <SOURCE_DIR>/configure --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure ${_HWLOC_HOST_FLAG} --prefix=<INSTALL_DIR> --enable-static --disable-libudev --disable-shared --disable-doxygen --disable-libxml2 --disable-cairo --disable-io --disable-pci --disable-opencl --disable-cuda --disable-nvml --disable-gl --disable-libudev --disable-plugin-dlopen --disable-plugin-ltdl
 			BUILD_IN_SOURCE 1
 			BUILD_COMMAND make -j
 			INSTALL_COMMAND make install

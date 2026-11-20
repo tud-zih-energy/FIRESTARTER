@@ -13,6 +13,7 @@ the stress test damages the hardware! USE AT YOUR OWN RISK!
 ## Supported CPU Microarchitectures
 - Intel Nehalem, Westmere, Sandy Bridge, Ivy Bridge, Haswell, Skylake, Knights Landing
 - AMD Bulldozer (experimental), Zen, Zen+, Zen2
+- AArch64 (alpha)
 
 ## Usage and Options
 ```
