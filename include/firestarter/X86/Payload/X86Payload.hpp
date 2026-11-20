@@ -83,6 +83,16 @@ public:
   [[nodiscard]] auto featureRequests() const -> const auto& { return FeatureRequests; }
 
 protected:
+  /// Error handler for the asmjit CodeHolder. Without it, asmjit reports an invalid instruction only through the
+  /// return value of the emitting function, which is not checked, and the instruction is silently missing from the
+  /// compiled payload.
+  class AsmjitErrorHandler final : public asmjit::ErrorHandler {
+  public:
+    void handleError(asmjit::Error Err, const char* Message, asmjit::BaseEmitter* /*Origin*/) override {
+      log::error() << "Asmjit failed to generate the payload: " << Message << " (error code " << Err << ")";
+    }
+  };
+
   /// Print the generated assembler Code of asmjit
   /// \arg Builder The builder that contains the assembler code.
   static void printAssembler(asmjit::BaseBuilder& Builder) {
