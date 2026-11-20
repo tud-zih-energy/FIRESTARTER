@@ -80,6 +80,9 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
         WatchdogTerminateAlert.wait_for(Lk, LoadNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
         if (WatchdogTerminate) {
+          // The signal handler may have set LoadStop before we signaled the high load level above. Set it again,
+          // otherwise load threads that did not see LoadStop yet keep running.
+          setLoad(LoadThreadWorkType::LoadStop);
           return;
         }
       }
@@ -99,6 +102,9 @@ void Firestarter::watchdogWorker(std::chrono::microseconds Period, std::chrono::
         WatchdogTerminateAlert.wait_for(Lk, IdleNsec, []() { return WatchdogTerminate; });
         // terminate on interrupt
         if (WatchdogTerminate) {
+          // The signal handler may have set LoadStop before we signaled the low load level above. Set it again,
+          // otherwise load threads that did not see LoadStop yet keep waiting in the low load function.
+          setLoad(LoadThreadWorkType::LoadStop);
           return;
         }
       }

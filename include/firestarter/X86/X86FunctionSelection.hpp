@@ -35,6 +35,7 @@
 #include "firestarter/X86/Platform/SapphireRapidsConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeConfig.hpp"
 #include "firestarter/X86/Platform/SkylakeSPConfig.hpp"
+#include "firestarter/X86/Platform/TurinDenseConfig.hpp"
 
 #include <memory>
 
@@ -65,7 +66,7 @@ private:
       std::make_shared<platform::SandyBridgeEPConfig>(),  std::make_shared<platform::NehalemConfig>(),
       std::make_shared<platform::NehalemEPConfig>(),      std::make_shared<platform::BulldozerConfig>(),
       std::make_shared<platform::NaplesConfig>(),         std::make_shared<platform::RomeConfig>(),
-      std::make_shared<platform::SapphireRapidsConfig>()};
+      std::make_shared<platform::SapphireRapidsConfig>(), std::make_shared<platform::TurinDenseConfig>()};
 
   /// The list of configs that are fallbacks. If none of the PlatformConfigs is the default one on the current CPU, we
   /// select the first one from this list that is available on the current system. If multiple configs can be available

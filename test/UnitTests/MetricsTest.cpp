@@ -19,6 +19,7 @@
  * Contact: daniel.hackenberg@tu-dresden.de
  *****************************************************************************/
 
+#include "firestarter/Measurement/MeasurementWorker.hpp"
 #include "firestarter/Measurement/Metric.hpp"
 #include "firestarter/Measurement/MetricInterface.h"
 #include "firestarter/Measurement/TimeValue.hpp"
@@ -28,6 +29,7 @@
 #include <cstdint>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <thread>
 
 // NOLINTNEXTLINE(google-build-using-namespace)
 using namespace ::testing;
@@ -37,6 +39,26 @@ namespace {
 template <int32_t ReturnValue> auto init() -> int32_t { return ReturnValue; };
 
 auto getError() -> const char* { return ""; };
+
+#if defined(linux)
+using InsertFunction = void (*)(void*, uint64_t, int64_t, double);
+InsertFunction FrequencyInsert = nullptr;
+void* FrequencyContext = nullptr;
+InsertFunction IpcInsert = nullptr;
+void* IpcContext = nullptr;
+
+auto registerFrequency(InsertFunction Insert, void* Context) -> int32_t {
+  FrequencyInsert = Insert;
+  FrequencyContext = Context;
+  return 0;
+}
+
+auto registerIpc(InsertFunction Insert, void* Context) -> int32_t {
+  IpcInsert = Insert;
+  IpcContext = Context;
+  return 0;
+}
+#endif
 
 const MetricType InsertCallbackMetricType{
     /*Absolute=*/0,       /*Accumalative=*/0,         /*DivideByThreadCount=*/0,
@@ -482,3 +504,65 @@ TEST(MetricsTest, CheckSubmetricsFromCInterface) {
   EXPECT_EQ(AvailableRoot->Submetrics[0]->Values[0], TV1);
   EXPECT_EQ(AvailableRoot->Submetrics[1]->Values[0], TV2);
 }
+
+#if defined(linux)
+TEST(MetricsTest, MeasurementWorkerUsesThreadCountProvider) {
+  const auto OriginalFrequency = PerfMetric::PerfFreqMetric;
+  const auto OriginalIpc = PerfMetric::PerfIpcMetric;
+  struct RestoreMetrics {
+    MetricInterface Frequency;
+    MetricInterface Ipc;
+    ~RestoreMetrics() {
+      PerfMetric::PerfFreqMetric = Frequency;
+      PerfMetric::PerfIpcMetric = Ipc;
+    }
+  } Restore{OriginalFrequency, OriginalIpc};
+
+  PerfMetric::PerfFreqMetric = {"perf-freq", {0, 1, 1, 1, 0, 0}, "GHz", 0, nullptr, init<0>, init<0>, nullptr, nullptr,
+                                getError,    registerFrequency};
+  PerfMetric::PerfIpcMetric = {"perf-ipc", {1, 0, 0, 1, 0, 0}, "IPC",      0, nullptr, init<0>, init<0>, nullptr,
+                               nullptr,    getError,           registerIpc};
+
+  uint64_t ThreadCount = 4;
+  firestarter::measurement::MeasurementWorker Worker(std::chrono::milliseconds(1), ThreadCount, {}, {},
+                                                     [&ThreadCount]() { return ThreadCount; });
+  const auto Frequency = firestarter::MetricName::fromString("perf-freq");
+  const auto Ipc = firestarter::MetricName::fromString("perf-ipc");
+  Worker.initMetrics({Frequency, Ipc});
+  ASSERT_NE(FrequencyInsert, nullptr);
+  ASSERT_NE(IpcInsert, nullptr);
+
+  for (const auto ActiveThreadCount : {4U, 2U, 8U}) {
+    ThreadCount = ActiveThreadCount;
+    Worker.startMeasurement();
+    const auto InsertValues = [](double FrequencyValue, int64_t Time) {
+      FrequencyInsert(FrequencyContext, ROOT_METRIC_INDEX, Time, FrequencyValue);
+      IpcInsert(IpcContext, ROOT_METRIC_INDEX, Time, 3.0);
+    };
+    const auto StartTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               std::chrono::high_resolution_clock::now().time_since_epoch())
+                               .count();
+    InsertValues(0.0, StartTime);
+    InsertValues(100.0, StartTime + 10'000'000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(15));
+
+    ThreadCount = 1;
+    const auto Values = Worker.getValues();
+    ASSERT_EQ(Values.at(Frequency).NumTimepoints, 1);
+    EXPECT_GT(Values.at(Frequency).Average, 0.0);
+    EXPECT_DOUBLE_EQ(Values.at(Ipc).Average, 3.0);
+
+    Worker.startMeasurement();
+    const auto UnnormalizedStartTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                           std::chrono::high_resolution_clock::now().time_since_epoch())
+                                           .count();
+    InsertValues(0.0, UnnormalizedStartTime);
+    InsertValues(100.0, UnnormalizedStartTime + 10'000'000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(15));
+    const auto Unnormalized = Worker.getValues();
+    EXPECT_NEAR(Values.at(Frequency).Average * ActiveThreadCount, Unnormalized.at(Frequency).Average,
+                Unnormalized.at(Frequency).Average * 1e-12);
+    EXPECT_DOUBLE_EQ(Unnormalized.at(Ipc).Average, 3.0);
+  }
+}
+#endif

@@ -35,6 +35,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 
 namespace firestarter::measurement {
 
@@ -62,8 +63,13 @@ private:
   /// The start time of the measurement that should be summarized with the getValues function.
   std::chrono::high_resolution_clock::time_point StartTime;
 
-  /// The number of thread FIRESTARTER runs with. This is required by some metrics
+  /// The number of threads in the measured experiment. This is required by some metrics.
   const uint64_t NumThreads;
+  /// The thread count captured when the current measurement started.
+  uint64_t MeasurementNumThreads;
+
+  /// Optional source for the current number of threads. If unset, NumThreads is used.
+  std::function<uint64_t()> NumThreadsProvider;
 
   /// The thread function handles the timed polling of the metric values and saves them to the Value datastructure.
   static void dataAcquisitionWorker(MeasurementWorker& This);
@@ -113,8 +119,10 @@ public:
   /// \arg MetricDylibsNames The set of files to which are passed to dlopen for using additional metrics from shared
   /// libraries.
   /// \arg StdinMetricsNames The set of metric names that should be read in from stdin
+  /// \arg NumThreadsProvider Optional source for the current number of threads. If unset, NumThreads is used.
   MeasurementWorker(std::chrono::milliseconds UpdateInterval, uint64_t NumThreads,
-                    std::set<std::string> const& MetricDylibsNames, std::set<std::string> const& StdinMetricsNames);
+                    std::set<std::string> const& MetricDylibsNames, std::set<std::string> const& StdinMetricsNames,
+                    std::function<uint64_t()> NumThreadsProvider = {});
 
   /// Stops the worker threads
   ~MeasurementWorker();

@@ -1,0 +1,41 @@
+name: AI Pull Request Review
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  ai-review:
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run PR-Agent
+        uses: docker://pragent/pr-agent@sha256:3121a7b8e3ab497b4df09dea6a444da8f01a474496c8c2f722828512c52fd266
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          OPENAI__API_BASE: https://llm.scads.ai/v1
+          OPENAI__KEY: ${{ secrets.LLM_API_TOKEN }}
+
+          config.model: "openai/deepseek-ai/DeepSeek-V4.1-Flash"
+          config.fallback_models: '[]'
+          config.custom_model_max_tokens: "1048576"
+          config.max_model_tokens: "1048576"
+          config.ai_timeout: "600"
+
+          github_action_config.auto_review: "true"
+          github_action_config.pr_actions: '["opened", "reopened", "synchronize", "ready_for_review"]'
+
+          PR_REVIEWER.REQUIRE_SECURITY_REVIEW: "true"
+          PR_REVIEWER.REQUIRE_TESTS_REVIEW: "true"

@@ -1,0 +1,43 @@
+[config]
+model = "openai/deepseek-ai/DeepSeek-V4.1-Flash"
+fallback_models = []
+
+# Required for models unknown to PR-Agent
+custom_model_max_tokens = 1048576
+max_model_tokens = 1048576
+
+[openai]
+api_base = "https://llm.scads.ai/v1"
+
+[pr_reviewer]
+extra_instructions = """
+You are reviewing FIRESTARTER, a performance-critical
+CPU stress-testing application.
+
+Focus particularly on:
+
+1. Correctness and undefined behavior.
+2. Thread safety, race conditions and deadlocks.
+3. Memory management and resource lifetimes.
+4. Performance regressions.
+5. SIMD and architecture-specific implementations.
+6. Intel and AMD CPU compatibility.
+7. GCC and Clang compatibility.
+8. Linux, Windows and macOS portability.
+9. CMake and build-system correctness.
+10. Test coverage.
+
+Be particularly careful with changes to computational
+kernels and performance-critical code.
+
+Do not report stylistic preferences as bugs.
+
+Only report actionable findings. Explain the impact,
+affected code and a possible solution.
+
+Do not assume that a change is correct merely because
+it compiles.
+"""
+
+require_security_review = true
+require_tests_review = true
