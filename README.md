@@ -257,12 +257,20 @@ FIRESTARTER -t 20 --optimize=NSGA2 --optimization-metric sysfs-powercap-rapl,ipc
 
 ### Metric Options
 
-The `perf-ipc` and `perf-freq` metrics allow the user to set the optional
-`FIRESTARTER_PERF_CPU` environment variable to an integer.
-Per default, FIRESTARTER collects `perf-ipc` and `perf-freq` metrics for all
-its threads and, if necessary, divides the metrics by the thread count. If the
-optional `FIRESTARTER_PERF_CPU` environment variable is set to an integer, this
-value is interpreted as the single CPU on which `perf` metrics are collected.
+By default, `perf-ipc` and `perf-freq` collect events from the calling thread
+and its subsequently created threads on any CPU. `perf-freq` is divided by
+the measurement's thread count. Set `FIRESTARTER_PERF_CPU` to one CPU index
+or a comma-separated list of distinct, non-negative CPU indices (for example,
+`0,2,4`) to collect events only while those threads run on the selected CPUs.
+For a selection, `perf-ipc` is the ratio of total instructions to total
+cycles, and `perf-freq` is the total cycle rate divided by the number of
+selected CPUs, rather than the thread count. This is an average over the
+selected CPUs, including any that are idle.
+
+The optional `NumThreadsProvider` argument to `MeasurementWorker` supplies the
+thread count at the start of each measurement, allowing external users to
+change it between measurements. Without a provider, the constructor's fixed
+thread count is used; changes during a measurement are not tracked.
 
 ## OneAPI
 `FIRESTARTER_ONEAPI` needs to find certain libraries, which are installed with
